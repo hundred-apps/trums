@@ -1,0 +1,32 @@
+{
+  "menu": {
+    "feature": "Fitur",
+    "about": "Tentang",
+    "download": "Unduh"
+  },
+  "buttons": {
+    "getstarted": "Mulai Sekarang!"
+  },
+  "tabs": {
+    "usecc": {
+      "organization": {
+        "button": "Untuk Perusahaan",
+        "header": { "title": "", "subtitle": "" },
+        "body": { "title": "", "text": "" },
+        "footer": { "title": "", "subtitle": "" }
+      },
+      "home": {
+        "button": "Untuk Rumah",
+        "header": { "title": "", "subtitle": "" },
+        "body": { "title": "", "text": "" },
+        "footer": { "title": "", "subtitle": "" }
+      },
+      "education": {
+        "button": "Untuk Pendidikan",
+        "header": { "title": "", "subtitle": "" },
+        "body": { "title": "", "text": "" },
+        "footer": { "title": "", "subtitle": "" }
+      }
+    }
+  }
+}

@@ -1,0 +1,94 @@
+{
+  "dataTabUsecc": [
+    {
+      "id": "tab1",
+      "button": {
+        "label": "organization",
+        "icon": "octicon:organization-24"
+      },
+      "contents": {
+        "header": {
+          "title": "Manajemen Proyek yang Lebih Mudah",
+          "subtitle": "Atur dan kelola tugas tim Anda dengan lebih efektif, semuanya dalam satu tempat.",
+          "image": ""
+        },
+        "body": [
+          {
+            "title": "organization Name",
+            "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+            "image": ""
+          },
+          {
+            "title": "Company Name 2",
+            "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+            "image": ""
+          }
+        ],
+        "footer": {
+          "title": "organization",
+          "subtitle": "Company"
+        }
+      }
+    },
+    {
+      "id": "tab2",
+      "button": {
+        "label": "home",
+        "icon": "material-symbols:home-work-outline"
+      },
+      "contents": {
+        "header": {
+          "title": "Task Manager untuk Keluarga Anda",
+          "subtitle": "Atur jadwal aktivitas dan tanggung jawab seluruh keluarga agar tetap teratur dan efisien.",
+          "image": ""
+        },
+        "body": [
+          {
+            "title": "Home Name",
+            "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+            "image": ""
+          },
+          {
+            "title": "Company Name 2",
+            "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+            "image": ""
+          }
+        ],
+        "footer": {
+          "title": "home",
+          "subtitle": "home"
+        }
+      }
+    },
+    {
+      "id": "tab3",
+      "button": {
+        "label": "education",
+        "icon": "tdesign:education"
+      },
+      "contents": {
+        "header": {
+          "title": "Kelola Tugas Akademis Anda dengan Lebih Baik",
+          "subtitle": "Atur jadwal belajar, proyek kelompok, dan pekerjaan rumah dalam satu aplikasi yang mudah digunakan.",
+          "image": ""
+        },
+        "body": [
+          {
+            "title": "education Name",
+            "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+            "image": ""
+          },
+          {
+            "title": "Company Name 2",
+            "text": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+            "image": ""
+          }
+        ],
+        "footer": {
+          "title": "education",
+          "subtitle": "education"
+        }
+      }
+    }
+  ]
+}
