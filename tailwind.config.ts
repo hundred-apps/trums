@@ -5,7 +5,7 @@ export default <Partial<Config>>{
   theme: {
     extend: {
       colors: {
-        primary: colors.green,
+        primary: colors.amber,
       },
       boxShadow: {
         up: "0px -2px 5px 1px rgba(0,0,0,0.12)",

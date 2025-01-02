@@ -44,13 +44,17 @@ export default defineNuxtConfig({
     },
     customRoutes: "config",
     pages: {
-      about: {
-        en: "/about",
-        id: "/tentang",
+      login: {
+        en: "/login",
+        id: "/masuk",
       },
       feature: {
         en: "/feature",
         id: "/fitur",
+      },
+      about: {
+        en: "/about",
+        id: "/tentang",
       },
     },
   },

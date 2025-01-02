@@ -1,3 +1,22 @@
+<script setup>
+import { ref, onMounted } from "vue";
+const dataTab = ref([]);
+
+const fetchData = async () => {
+  const json = await import("@/assets/data/tabsContent.json");
+  dataTab.value = json.dataTabUsecc;
+  activeTab.value = dataTab.value[0]?.id || null;
+};
+
+onMounted(fetchData);
+
+const activeTab = ref(null);
+
+function openTab(tabId) {
+  activeTab.value = tabId;
+}
+</script>
+
 <template>
   <div class="tabs">
     <div class="flex justify-between items-end w-full">
@@ -90,22 +109,3 @@
     </div>
   </div>
 </template>
-
-<script setup>
-import { ref, onMounted } from "vue";
-const dataTab = ref([]);
-
-const fetchData = async () => {
-  const json = await import("@/assets/data/tabsContent.json");
-  dataTab.value = json.dataTabUsecc;
-  activeTab.value = dataTab.value[0]?.id || null;
-};
-
-onMounted(fetchData);
-
-const activeTab = ref(null);
-
-function openTab(tabId) {
-  activeTab.value = tabId;
-}
-</script>
