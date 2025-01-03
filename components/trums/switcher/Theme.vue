@@ -10,15 +10,15 @@ const currentStyle = toRef(props, "type");
 const availableThemes = [
   {
     key: "light",
-    text: "Light",
+    text: "light",
   },
   {
     key: "dark",
-    text: "Dark",
+    text: "dark",
   },
   {
     key: "system",
-    text: "System",
+    text: "system",
   },
 ];
 </script>
@@ -66,7 +66,7 @@ const availableThemes = [
             <Icon v-else-if="theme.key === 'dark'" name="uil:moon" />
             <Icon v-else-if="theme.key === 'system'" name="uil:laptop" />
           </span>
-          {{ theme.text }}
+          {{ $t(`mode.${theme.text}`) }}
         </HeadlessListboxOption>
       </HeadlessListboxOptions>
     </HeadlessListbox>

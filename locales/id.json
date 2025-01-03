@@ -1,12 +1,25 @@
 {
+  "title": {
+    "signIn": "Masuk"
+  },
   "menu": {
     "login": "Masuk",
     "feature": "Fitur",
     "about": "Tentang",
     "download": "Unduh"
   },
+  "languages": {
+    "id": "Indonesia",
+    "en": "Inggris"
+  },
+  "mode": {
+    "light": "Terang",
+    "dark": "Gelap",
+    "system": "Sistem"
+  },
   "buttons": {
-    "getstarted": "Mulai Sekarang!"
+    "getstarted": "Mulai Sekarang!",
+    "login": "Masuk"
   },
   "tabs": {
     "usecc": {
@@ -28,6 +41,20 @@
         "body": { "title": "", "text": "" },
         "footer": { "title": "", "subtitle": "" }
       }
+    }
+  },
+  "form": {
+    "label": {
+      "email": "Email Anda",
+      "password": "Kata Sandi",
+      "rememberMe": "Ingatkan Saya",
+      "forgotPassword": "Lupa Kata Sandi?",
+      "notRegistered": "Belum Daftar?",
+      "createAccount": "Buat Akun"
+    },
+    "placeholder": {
+      "email": "Masukkan alamat email",
+      "password": "Masukkan kata sandi"
     }
   }
 }

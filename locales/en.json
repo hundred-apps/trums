@@ -1,12 +1,25 @@
 {
+  "title": {
+    "signIn": "Sign In"
+  },
   "menu": {
     "login": "Login",
     "feature": "Feature",
     "about": "About",
     "download": "Download"
   },
+  "languages": {
+    "id": "Indonesian",
+    "en": "English"
+  },
+  "mode": {
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
   "buttons": {
-    "getstarted": "Get Started!"
+    "getstarted": "Get Started!",
+    "login": "Login"
   },
   "tabs": {
     "usecc": {
@@ -28,6 +41,20 @@
         "body": { "title": "", "text": "" },
         "footer": { "title": "", "subtitle": "" }
       }
+    }
+  },
+  "form": {
+    "label": {
+      "email": "Your Email",
+      "password": "Your Password",
+      "rememberMe": "Remember Me",
+      "forgotPassword": "Forgot Password?",
+      "notRegistered": "Not Registered?",
+      "createAccount": "Create Account"
+    },
+    "placeholder": {
+      "email": "Enter Your Email Address",
+      "password": "Enter your password"
     }
   }
 }
