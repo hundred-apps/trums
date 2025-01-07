@@ -19,7 +19,9 @@
   },
   "buttons": {
     "getstarted": "Get Started!",
-    "login": "Login"
+    "login": "Login",
+    "logout": "Logout",
+    "send": "Send"
   },
   "tabs": {
     "usecc": {

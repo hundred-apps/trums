@@ -80,7 +80,7 @@ const availableThemes = [
         :key="theme.key"
         :value="theme.key"
       >
-        {{ theme.text }}
+        {{ $t(`mode.${theme.text}`) }}
       </option>
     </select>
   </div>

@@ -28,10 +28,15 @@ export default defineNuxtConfig({
   },
   i18n: {
     locales: [
-      { code: "en", iso: "en-US", file: "en.json", name: "English" },
-      { code: "id", iso: "id-ID", file: "id.json", name: "Bahasa Indonesia" },
+      { code: "en", language: "en-US", file: "en.json", name: "English" },
+      {
+        code: "id",
+        language: "id-ID",
+        file: "id.json",
+        name: "Bahasa Indonesia",
+      },
     ],
-    strategy: "prefix_and_default",
+    strategy: "prefix_except_default",
     lazy: true,
     langDir: "locales/",
     defaultLocale: "en",
@@ -47,6 +52,14 @@ export default defineNuxtConfig({
       login: {
         en: "/login",
         id: "/masuk",
+      },
+      forgot: {
+        en: "/forgot-password",
+        id: "/lupa-kata-sandi",
+      },
+      "forgot-notification": {
+        en: "/forgot-password/notification",
+        id: "/lupa-kata-sandi/pemberitahuan",
       },
       feature: {
         en: "/feature",

@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import { useFlowbite } from "~/composables/useFlowbite";
+
 const localePath = useLocalePath();
 const $screen = useScreen();
 const showDrawer = ref(false);
@@ -18,6 +20,11 @@ const availableOs = [
     icon: "uiw:android",
   },
 ];
+onMounted(async () => {
+  useFlowbite(() => {
+    initFlowbite();
+  });
+});
 </script>
 
 <style scoped>
@@ -37,23 +44,105 @@ const availableOs = [
       class="flex-1 flex items-center justify-between w-screen mx-auto px-4"
       v-if="$screen.higherThan('lg', $screen.current.value)"
     >
-      <NuxtLink
-        :to="localePath('/')"
-        class="font-bold w-full text-xl text-primary-500 flex gap-2 items-center"
+      <div class="text-center w-full flex gap-2 items-center">
+        <TrumsButtons
+          type="primary"
+          size="sm"
+          data-drawer-target="drawer-navigation"
+          data-drawer-show="drawer-navigation"
+          aria-controls="drawer-navigation"
+        >
+          <Icon name="material-symbols:lists" size="20"></Icon>
+        </TrumsButtons>
+
+        <NuxtLink
+          :to="localePath('/')"
+          class="font-bold text-xl flex gap-2 items-center"
+        >
+          <img
+            v-if="$colorMode.value === 'dark'"
+            src="/images/logo/logo-white.png"
+            alt="logo Trums"
+            class="w-9"
+          />
+          <img
+            v-if="$colorMode.value === 'light'"
+            src="/images/logo/logo-black.png"
+            alt="logo Trums"
+            class="w-9"
+          />
+          <span class="dark:text-white text-black">Trums</span>
+        </NuxtLink>
+      </div>
+      <div
+        id="drawer-navigation"
+        class="fixed top-0 left-0 z-40 w-64 h-screen p-4 overflow-y-auto transition-transform -translate-x-full bg-white dark:bg-gray-800"
+        tabindex="-1"
+        aria-labelledby="drawer-navigation-label"
       >
-        <img src="/images/logo/logo.png" alt="logo Trums" class="w-9" />
-        <span class="capitalize">Trums</span>
-      </NuxtLink>
-      <div class="flex gap-5 w-full justify-center">
-        <TrumsLink :to="localePath('about')">{{ $t("menu.about") }}</TrumsLink>
-        <TrumsLink :to="localePath('feature')">{{
-          $t("menu.feature")
-        }}</TrumsLink>
+        <NuxtLink
+          :to="localePath('/')"
+          class="font-bold text-xl flex gap-2 items-center"
+        >
+          <img
+            v-if="$colorMode.value === 'dark'"
+            src="/images/logo/logo-white.png"
+            alt="logo Trums"
+            class="w-9"
+          />
+          <img
+            v-if="$colorMode.value === 'light'"
+            src="/images/logo/logo-black.png"
+            alt="logo Trums"
+            class="w-9"
+          />
+          <span class="dark:text-white text-black">Trums</span>
+        </NuxtLink>
+        <button
+          type="button"
+          data-drawer-hide="drawer-navigation"
+          aria-controls="drawer-navigation"
+          class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 absolute top-2.5 end-2.5 inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white"
+        >
+          <svg
+            aria-hidden="true"
+            class="w-5 h-5"
+            fill="currentColor"
+            viewBox="0 0 20 20"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+              clip-rule="evenodd"
+            ></path>
+          </svg>
+          <span class="sr-only">Close menu</span>
+        </button>
+        <div class="py-4 overflow-y-auto">
+          <ul class="space-y-2 font-medium">
+            <li>
+              <TrumsLink
+                :to="localePath('about')"
+                class="flex gap-2 items-center"
+              >
+                <Icon name="ix:about"></Icon> {{ $t("menu.about") }}</TrumsLink
+              >
+            </li>
+            <li>
+              <TrumsLink :to="localePath('feature')">{{
+                $t("menu.feature")
+              }}</TrumsLink>
+            </li>
+          </ul>
+        </div>
       </div>
       <div class="flex gap-4 w-full justify-end">
         <TrumsSwitcherTheme />
         <TrumsSwitcherLang />
-        <TrumsButtons size="sm">{{ $t("buttons.getstarted") }}</TrumsButtons>
+        <TrumsButtons :to="localePath('login')" size="sm" type="danger">{{
+          $t("buttons.logout")
+        }}</TrumsButtons>
       </div>
     </div>
     <div
@@ -64,7 +153,18 @@ const availableOs = [
         :to="localePath('/')"
         class="font-bold text-xl text-primary-500 flex gap-2 items-center"
       >
-        <img src="/images/logo/logo.png" alt="logo Trums" class="w-9" />
+        <img
+          v-if="$colorMode.value === 'dark'"
+          src="/images/logo/logo-white.png"
+          alt="logo Trums"
+          class="w-9"
+        />
+        <img
+          v-if="$colorMode.value === 'light'"
+          src="/images/logo/logo-black.png"
+          alt="logo Trums"
+          class="w-9"
+        />
         <span class="capitalize">Trums</span>
       </NuxtLink>
       <div class="pl-4 flex space-x-3 text-xl">

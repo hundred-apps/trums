@@ -2,6 +2,8 @@
 definePageMeta({
   layout: "login",
 });
+const { t } = useI18n();
+const localePath = useLocalePath();
 </script>
 <template>
   <TrumsWrapper class="content-center flex items-center justify-center">
@@ -26,20 +28,20 @@ definePageMeta({
         <h5
           class="text-xl font-medium text-center text-gray-900 dark:text-white"
         >
-          {{ $t("title.signIn") }}
+          {{ t("title.signIn") }}
         </h5>
         <div>
           <label
             for="email"
             class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-            >{{ $t("form.label.email") }}</label
+            >{{ t("form.label.email") }}</label
           >
           <input
             type="email"
             name="email"
             id="email"
             class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-300 focus:border-primary-300 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"
-            :placeholder="$t('form.placeholder.email')"
+            :placeholder="t('form.placeholder.email')"
             required
           />
         </div>
@@ -47,13 +49,13 @@ definePageMeta({
           <label
             for="password"
             class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-            >{{ $t("form.label.password") }}</label
+            >{{ t("form.label.password") }}</label
           >
           <input
             type="password"
             name="password"
             id="password"
-            :placeholder="$t('form.placeholder.password')"
+            :placeholder="t('form.placeholder.password')"
             class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-300 focus:border-primary-300 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"
             autocomplete="off"
             required
@@ -73,29 +75,32 @@ definePageMeta({
             <label
               for="remember"
               class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300"
-              >{{ $t("form.label.rememberMe") }}</label
+              >{{ t("form.label.rememberMe") }}</label
             >
           </div>
-          <a
-            href="#"
+          <TrumsLink
+            :to="localePath('/forgot')"
             class="ms-auto text-sm text-primary-500 hover:underline dark:text-primary-500"
-            >{{ $t("form.label.forgotPassword") }}</a
+            >{{ t("form.label.forgotPassword") }}</TrumsLink
           >
         </div>
-        <button
-          type="submit"
-          class="w-full text-white bg-primary-500 hover:bg-primary-600 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-500 dark:hover:bg-primary-600 dark:focus:ring-primary-600"
-        >
-          {{ $t("buttons.login") }}
-        </button>
+        <div class="flex justify-center">
+          <TrumsButtons
+            type="submit"
+            :to="localePath('/')"
+            class="w-full text-white bg-primary-500 hover:bg-primary-600 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-500 dark:hover:bg-primary-600 dark:focus:ring-primary-600"
+          >
+            {{ t("buttons.login") }}
+          </TrumsButtons>
+        </div>
         <div
           class="text-sm font-medium text-gray-500 dark:text-gray-300 text-center"
         >
-          {{ $t("form.label.notRegistered") }}
+          {{ t("form.label.notRegistered") }}
           <a
             href="#"
             class="text-primary-500 hover:underline dark:text-primary-500"
-            >{{ $t("form.label.createAccount") }}</a
+            >{{ t("form.label.createAccount") }}</a
           >
         </div>
         <div class="flex gap-2 justify-center items-center">

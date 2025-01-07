@@ -19,7 +19,9 @@
   },
   "buttons": {
     "getstarted": "Mulai Sekarang!",
-    "login": "Masuk"
+    "login": "Masuk",
+    "logout": "Keluar",
+    "send": "Kirim"
   },
   "tabs": {
     "usecc": {
