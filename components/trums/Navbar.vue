@@ -409,7 +409,7 @@ onMounted(async () => {
               </li>
               <li>
                 <TrumsLink
-                  to="login"
+                  to="/"
                   class="block px-4 py-2 text-sm text-red-500 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-red-600"
                 >
                   {{ $t("buttons.logout") }}

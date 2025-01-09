@@ -18,6 +18,7 @@
     "axios": "^1.7.9",
     "flowbite": "^2.5.2",
     "nuxt": "^3.13.0",
+    "nuxt-twemoji": "^3.6.2",
     "pinia": "^2.2.2",
     "sweetalert2": "^11.6.13",
     "universal-cookie": "^7.2.0",

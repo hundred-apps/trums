@@ -1,6 +1,7 @@
 {
   "title": {
-    "signIn": "Masuk"
+    "signIn": "Masuk",
+    "welcome": "Selamat datang di Trums"
   },
   "menu": {
     "login": "Masuk",

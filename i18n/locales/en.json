@@ -1,6 +1,7 @@
 {
   "title": {
-    "signIn": "Sign In"
+    "signIn": "Sign In",
+    "welcome": "Welcome to Trums"
   },
   "menu": {
     "login": "Login",

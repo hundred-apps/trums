@@ -3,6 +3,7 @@ export default defineNuxtConfig({
   compatibilityDate: "2024-04-03",
   devtools: { enabled: true },
   ssr: false,
+  pages: true,
   modules: [
     "@vueuse/nuxt",
     "@pinia/nuxt",
@@ -12,6 +13,7 @@ export default defineNuxtConfig({
     "@nuxt/icon",
     "@nuxtjs/i18n",
     "@nuxtjs/device",
+    "nuxt-twemoji",
   ],
 
   tailwindcss: {
@@ -47,6 +49,7 @@ export default defineNuxtConfig({
       redirectOn: "root",
       alwaysRedirect: true,
     },
+    customRoutes: "page",
   },
   colorMode: {
     preference: "system", // default value of $colorMode.preference
@@ -58,5 +61,8 @@ export default defineNuxtConfig({
     classSuffix: "-mode",
     storage: "cookie", // or 'sessionStorage' or 'cookie' or 'localStorage'
     storageKey: "color-mode",
+  },
+  twemoji: {
+    expiresIn: 3.154e7, // SVG cache expiration time in seconds (1 year)
   },
 });
