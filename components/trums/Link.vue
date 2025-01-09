@@ -20,9 +20,9 @@ const to = toRef(props, "to");
 </script>
 
 <template>
-  <NuxtLink v-if="to" tag="a" :to="to" :class="`hover:text-primary-500`">
+  <NuxtLinkLocale v-if="to" tag="a" :to="to" :class="`hover:text-primary-500`">
     <slot>{{ text }}</slot>
-  </NuxtLink>
+  </NuxtLinkLocale>
   <a v-else-if="!href" :class="`hover:text-primary-500`" href="#">
     <slot>{{ text }}</slot>
   </a>

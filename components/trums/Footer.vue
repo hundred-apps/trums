@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-const localePath = useLocalePath();
+const { t } = useI18n();
 </script>
 
 <style scoped>
@@ -24,15 +24,13 @@ const localePath = useLocalePath();
         {{ "Togu Inovasi Teknologi" }}. All rights reserved.
       </div>
       <div class="flex gap-3">
-        <TrumsLink :to="localePath('about')">
-          <span class="text-gray-700 dark:text-gray-300">{{
-            $t("menu.about")
-          }}</span>
+        <TrumsLink to="about">
+          <span class="text-gray-700 dark:text-gray-300">{{}}</span>
         </TrumsLink>
-        <TrumsLink :to="localePath('about')">
+        <TrumsLink to="about">
           <span class="text-gray-700 dark:text-gray-300">Privacy Policy</span>
         </TrumsLink>
-        <TrumsLink :to="localePath('about')">
+        <TrumsLink to="about">
           <span class="text-gray-700 dark:text-gray-300">Terms Of Use</span>
         </TrumsLink>
       </div>

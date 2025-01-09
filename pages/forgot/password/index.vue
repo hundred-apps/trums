@@ -2,7 +2,7 @@
 definePageMeta({
   layout: "login",
 });
-const localePath = useLocalePath();
+const { t } = useI18n();
 </script>
 <template>
   <TrumsWrapper class="content-center flex items-center justify-center">
@@ -21,14 +21,14 @@ const localePath = useLocalePath();
             name="email"
             id="email"
             class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary-300 focus:border-primary-300 block w-full p-2.5 dark:bg-gray-600 dark:border-gray-500 dark:placeholder-gray-400 dark:text-white"
-            :placeholder="$t('form.placeholder.email')"
+            :placeholder="t('form.placeholder.email')"
             required
           />
         </div>
         <div class="flex justify-center">
           <TrumsButtons
             type="submit"
-            :to="localePath('forgot-notification')"
+            to="forgot-notification"
             class="w-full text-white bg-primary-500 hover:bg-primary-600 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-500 dark:hover:bg-primary-600 dark:focus:ring-primary-600"
           >
             {{ $t("buttons.send") }}

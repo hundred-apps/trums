@@ -47,29 +47,6 @@ export default defineNuxtConfig({
       redirectOn: "root",
       alwaysRedirect: true,
     },
-    customRoutes: "config",
-    pages: {
-      login: {
-        en: "/login",
-        id: "/masuk",
-      },
-      forgot: {
-        en: "/forgot-password",
-        id: "/lupa-kata-sandi",
-      },
-      "forgot-notification": {
-        en: "/forgot-password/notification",
-        id: "/lupa-kata-sandi/pemberitahuan",
-      },
-      feature: {
-        en: "/feature",
-        id: "/fitur",
-      },
-      about: {
-        en: "/about",
-        id: "/tentang",
-      },
-    },
   },
   colorMode: {
     preference: "system", // default value of $colorMode.preference
