@@ -1,5 +1,6 @@
 <script lang="ts" setup>
 import { useFlowbite } from "~/composables/useFlowbite";
+import { initFlowbite } from "flowbite";
 import { ref, onMounted } from "vue";
 
 const { t } = useI18n();
@@ -357,7 +358,7 @@ onMounted(async () => {
               />
               <p>nama akun</p>
             </div>
-            <TrumsLink to="setting" class="size-7"
+            <TrumsLink to="/setting" class="size-7"
               ><Icon
                 name="material-symbols-light:settings"
                 class="size-7"
@@ -402,7 +403,7 @@ onMounted(async () => {
             <ul class="py-2" aria-labelledby="user-menu-button">
               <li>
                 <TrumsLink
-                  to="setting"
+                  to="/setting"
                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 dark:text-gray-200"
                   >{{ $t("menu.setting") }}</TrumsLink
                 >

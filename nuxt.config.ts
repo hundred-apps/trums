@@ -49,7 +49,12 @@ export default defineNuxtConfig({
       redirectOn: "root",
       alwaysRedirect: true,
     },
-    customRoutes: "page",
+    // customRoutes: "config",
+    // pages: {
+    //   setting: {
+    //     en: "/setting",
+    //   },
+    // },
   },
   colorMode: {
     preference: "system", // default value of $colorMode.preference

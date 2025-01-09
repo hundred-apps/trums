@@ -58,11 +58,13 @@ onMounted(async () => {
               scope="row"
               class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
             >
-              <TrumsLink to="settings">
-                {{ post.id }}
-              </TrumsLink>
+              {{ post.id }}
             </th>
-            <td class="px-6 py-4">{{ post.name }}</td>
+            <td class="px-6 py-4">
+              <TrumsLink :to="`/setting/detail/${post.id}`">{{
+                post.name
+              }}</TrumsLink>
+            </td>
             <td class="px-6 py-4">{{ post.created_at }}</td>
             <td class="px-6 py-4">
               <button class="px-4 py-2 bg-yellow-500 text-white rounded mr-2">
