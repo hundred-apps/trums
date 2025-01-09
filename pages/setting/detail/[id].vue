@@ -38,7 +38,7 @@ console.log(users);
     <div>
       <ul>
         <li>
-          {{ users.name }}
+          {{ users[0].name }}
         </li>
       </ul>
     </div>
