@@ -4,6 +4,6 @@ export default defineNuxtRouteMiddleware((to, from) => {
   }
   const { $oidc } = useNuxtApp();
   if (!$oidc.isLoggedIn) {
-    $oidc.login(to.fullPath);
+    window.location.href = "/";
   }
 });

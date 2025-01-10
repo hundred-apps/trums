@@ -29,13 +29,13 @@
   "workbench.editor.empty.hint": "hidden",
 
   /** ------------ Breadcrumbs Configurations ------------ **/
-  "breadcrumbs.enabled": false,
+  "breadcrumbs.enabled": true,
   "breadcrumbs.symbolPath": "off",
   "breadcrumbs.filePath": "on",
 
   /** ------------ Editor Settings ------------ **/
   "editor.fontFamily": "'Fira Code Retina', 'Hack Nerd Font', Monospace",
-  "editor.fontSize": 16,
+  "editor.fontSize": 12,
   "editor.fontWeight": 450,
   "editor.lineHeight": 26,
   "editor.lineNumbers": "on",
@@ -45,7 +45,7 @@
   "editor.scrollbar.horizontal": "hidden",
   "editor.unicodeHighlight.ambiguousCharacters": false,
   "editor.unicodeHighlight.invisibleCharacters": false,
-  "editor.cursorStyle": "underline",
+  "editor.cursorStyle": "line",
   "editor.minimap.enabled": false,
   "editor.wordWrap": "on",
   "editor.stickyScroll.enabled": true,

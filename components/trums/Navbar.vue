@@ -194,6 +194,10 @@ onMounted(async () => {
     initFlowbite();
   });
 });
+
+const oidc = useOidc()
+const { $oidc } = useNuxtApp()
+
 </script>
 
 <style scoped>
@@ -445,6 +449,7 @@ onMounted(async () => {
         </div>
         <TrumsSwitcherTheme />
         <TrumsSwitcherLang />
+        <TrumsButtons @click="$oidc.login('auth/callback')" size="sm">{{ $t("buttons.getstarted") }}</TrumsButtons>
       </div>
     </div>
     <div
