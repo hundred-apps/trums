@@ -1,9 +1,15 @@
 <script lang="ts" setup>
+
 import { ref, onMounted } from "vue";
 import { useApi } from "~/composables/useApi";
 import { useFlowbite } from "~/composables/useFlowbite";
 import { initModals } from "flowbite";
 import Swal from "sweetalert2";
+
+
+definePageMeta({
+  middleware: ['auth']
+})
 
 interface User {
   id: number;

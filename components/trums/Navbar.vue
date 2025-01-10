@@ -18,6 +18,10 @@ const availableOs = [
     icon: "uiw:android",
   },
 ];
+
+const oidc = useOidc()
+const { $oidc } = useNuxtApp()
+
 </script>
 
 <style scoped>
@@ -53,7 +57,7 @@ const availableOs = [
       <div class="flex gap-4 w-full justify-end">
         <TrumsSwitcherTheme />
         <TrumsSwitcherLang />
-        <TrumsButtons size="sm">{{ $t("buttons.getstarted") }}</TrumsButtons>
+        <TrumsButtons @click="$oidc.login('auth/callback')" size="sm">{{ $t("buttons.getstarted") }}</TrumsButtons>
       </div>
     </div>
     <div
