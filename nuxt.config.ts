@@ -4,6 +4,16 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   ssr: false,
   pages: true,
+  app: {
+    head: {
+      script: [
+        {
+          src: "https://cdn.jsdelivr.net/npm/apexcharts",
+          defer: true,
+        },
+      ],
+    },
+  },
   modules: [
     "@vueuse/nuxt",
     "@pinia/nuxt",
@@ -15,6 +25,7 @@ export default defineNuxtConfig({
     "@nuxtjs/device",
     "nuxt-openid-connect",
     "nuxt-twemoji",
+    "nuxt-openid-connect",
   ],
 
   tailwindcss: {
