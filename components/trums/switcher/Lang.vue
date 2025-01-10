@@ -13,8 +13,8 @@ const props = defineProps({
 const currentStyle = toRef(props, "type");
 
 const availableLang = [
-  { key: "en", text: "English" },
-  { key: "id", text: "Indonesia" },
+  { key: "en", text: "en" },
+  { key: "id", text: "id" },
 ];
 
 const { locale, setLocaleCookie } = useI18n(); // Ambil locale dari i18n
@@ -75,7 +75,7 @@ watch(locale, (newLocale) => {
             }
           "
         >
-          {{ lang.text }}
+          {{ $t(`languages.${lang.text}`) }}
         </HeadlessListboxOption>
       </HeadlessListboxOptions>
     </HeadlessListbox>
@@ -92,7 +92,7 @@ watch(locale, (newLocale) => {
         :value="lang.key"
         @click.prevent.stop="setLocaleCookie(lang.key)"
       >
-        {{ lang.text }}
+        {{ $t(`languages.${lang.text}`) }}
       </option>
     </select>
   </div>

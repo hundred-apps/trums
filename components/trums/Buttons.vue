@@ -12,6 +12,14 @@ const props = defineProps({
     type: String,
     default: "md",
   },
+  padding: {
+    type: String,
+    default: "md",
+  },
+  position: {
+    type: String,
+    default: "center",
+  },
   to: {
     type: [String, Object],
     default: undefined,
@@ -24,9 +32,9 @@ const props = defineProps({
 // state:styles
 const defaultStyle = `
   cursor-pointer
-  border transition-color duration-300
+  transition-color duration-300
   focus:outline-none focus:ring-1 focus:ring-offset-1 focus:dark:ring-offset-gray-50 focus:dark:ring-gray-400 focus:ring-gray-600/[0.6] focus:ring-offset-gray-800/[0.6]
-  flex items-center justify-center font-semibold
+  flex items-center font-semibold
 `;
 const styles = reactive<{
   [key: string]: string;
@@ -38,20 +46,44 @@ const styles = reactive<{
   opposite:
     "text-white bg-gray-800 hover:bg-white hover:text-gray-800 hover:border-gray-900 dark:text-gray-800 dark:bg-gray-100 dark:hover:bg-gray-800 dark:hover:text-gray-100 dark:border-white",
   danger: "text-white bg-red-500 hover:bg-red-400 border-red-500",
+  sidebar:
+    "text-gray-900 hover:bg-gray-100 dark:text-white dark:hover:bg-gray-700 hover:text-primary-500",
 });
 const sizes = reactive<{
   [key: string]: string;
 }>({
-  lg: "h-14 px-8 text-lg rounded-lg",
-  md: "h-10 px-6 text-base rounded",
-  sm: "h-9 px-4 text-sm rounded",
-  xs: "h-6 px-3 text-xs rounded",
+  lg: "text-lg rounded-lg",
+  md: "text-base rounded",
+  sm: "text-sm rounded",
+  xs: "text-xs rounded",
+});
+const padding = reactive<{
+  [key: string]: string;
+}>({
+  lg: "py-4 px-8",
+  md: "py-3 px-6",
+  sm: "py-2 px-4",
+  xs: "py-1 px-3",
+  xxs: "py-1 px-2",
+  xxxs: "py-1 px-1",
+  none: "pa-0",
+});
+const positions = reactive<{
+  [key: string]: string;
+}>({
+  left: "justify-start",
+  right: "justify-end",
+  center: "justify-center",
 });
 // state
 const selectedStyle = computed(() =>
   props.type in styles ? styles[props.type] : styles.primary
 );
 const selectedSize = computed(() => sizes[props.size] || sizes.lg);
+const selectedPadding = computed(() => padding[props.padding] || padding.none);
+const selectedPosition = computed(
+  () => positions[props.position] || positions.center
+);
 // methods
 const onClick = (event: MouseEvent) => {
   const router = useRouter();
@@ -65,17 +97,17 @@ const onClick = (event: MouseEvent) => {
 </script>
 
 <template>
-  <NuxtLink
+  <NuxtLinkLocale
     v-if="to"
     tag="a"
     :to="to"
-    :class="`${defaultStyle} ${selectedStyle} ${selectedSize}`"
+    :class="`${defaultStyle} ${selectedStyle} ${selectedSize} ${selectedPadding} ${selectedPosition}`"
   >
     <slot>{{ text }}</slot>
-  </NuxtLink>
+  </NuxtLinkLocale>
   <a
     v-else
-    :class="`${defaultStyle} ${selectedStyle} ${selectedSize}`"
+    :class="`${defaultStyle} ${selectedStyle} ${selectedSize} ${selectedPadding} ${selectedPosition}`"
     :href="href"
     @click="onClick"
   >

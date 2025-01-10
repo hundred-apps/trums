@@ -1,0 +1,96 @@
+{
+  "title": {
+    "signIn": "Masuk",
+    "welcome": "Selamat datang di Trums"
+  },
+  "menu": {
+    "login": "Masuk",
+    "assets": "Asset",
+    "contact": "Kontak",
+    "finance": "Keuangan",
+    "humanCapital": "SDM",
+    "inspect": "Periksa",
+    "inventory": "Penyimpanan",
+    "sales": "Sales",
+    "setting": "Pengaturan",
+    "supplyChain": "Supply Chain",
+    "submenu": {
+      "contacts": "Kontak",
+      "categories": "Kategori",
+      "bill": "Tagihan",
+      "budget": "Anggaran",
+      "invoice": "Faktur",
+      "transaction": "Transaksi",
+      "departement": "Departemen",
+      "people": "Orang",
+      "position": "Posisi",
+      "recruitment": "Perekrutan",
+      "inspection": "Pemeriksaan",
+      "maintenance": "Pemeliharaan",
+      "repair": "Perbaikan",
+      "checkin": "Check-In",
+      "checkout": "Check-Out",
+      "inqueiries": "Permintaan",
+      "inventories": "Penyimpanan",
+      "contract": "Kontrak",
+      "order": "Pesanan",
+      "pricelist": "List Harga",
+      "canvassing": "Campasing",
+      "delivery": "Pengiriman",
+      "purchaseOrder": "Pesanan pembelian",
+      "purchaseRequest": "Permintaan pembelian",
+      "receive": "Terima"
+    }
+  },
+  "languages": {
+    "id": "Indonesia",
+    "en": "Inggris"
+  },
+  "mode": {
+    "light": "Terang",
+    "dark": "Gelap",
+    "system": "Sistem"
+  },
+  "buttons": {
+    "getstarted": "Mulai Sekarang!",
+    "login": "Masuk",
+    "logout": "Keluar",
+    "send": "Kirim"
+  },
+  "tabs": {
+    "usecc": {
+      "organization": {
+        "button": "Untuk Perusahaan",
+        "header": { "title": "", "subtitle": "" },
+        "body": { "title": "", "text": "" },
+        "footer": { "title": "", "subtitle": "" }
+      },
+      "home": {
+        "button": "Untuk Rumah",
+        "header": { "title": "", "subtitle": "" },
+        "body": { "title": "", "text": "" },
+        "footer": { "title": "", "subtitle": "" }
+      },
+      "education": {
+        "button": "Untuk Pendidikan",
+        "header": { "title": "", "subtitle": "" },
+        "body": { "title": "", "text": "" },
+        "footer": { "title": "", "subtitle": "" }
+      }
+    }
+  },
+  "form": {
+    "label": {
+      "email": "Email Anda",
+      "password": "Kata Sandi",
+      "rememberMe": "Ingatkan Saya",
+      "forgotPassword": "Lupa Kata Sandi?",
+      "notRegistered": "Belum Daftar?",
+      "createAccount": "Buat Akun"
+    },
+    "placeholder": {
+      "email": "Masukkan alamat email",
+      "password": "Masukkan kata sandi"
+    }
+  }
+}
