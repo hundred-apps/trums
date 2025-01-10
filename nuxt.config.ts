@@ -4,6 +4,16 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   ssr: false,
   pages: true,
+  app: {
+    head: {
+      script: [
+        {
+          src: "https://cdn.jsdelivr.net/npm/apexcharts",
+          defer: true,
+        },
+      ],
+    },
+  },
   modules: [
     "@vueuse/nuxt",
     "@pinia/nuxt",
@@ -14,6 +24,7 @@ export default defineNuxtConfig({
     "@nuxtjs/i18n",
     "@nuxtjs/device",
     "nuxt-twemoji",
+    "nuxt-openid-connect",
   ],
 
   tailwindcss: {
@@ -69,5 +80,57 @@ export default defineNuxtConfig({
   },
   twemoji: {
     expiresIn: 3.154e7, // SVG cache expiration time in seconds (1 year)
+  },
+  runtimeConfig: {
+    openidConnect: {
+      op: {
+        issuer: process.env.NUXT_OPENID_CONNECT_OP_ISSUER,
+        clientId: process.env.NUXT_OPENID_CONNECT_CLIENT_ID,
+        clientSecret: process.env.NUXT_OPENID_CONNECT_CLIENT_SECRET,
+        callbackUrl: process.env.NUXT_OPENID_CONNECT_CALLBACK_URL,
+      },
+      config: {
+        cookieFlags: {
+          access_token: {
+            httpOnly: true,
+            secure: false,
+          },
+        },
+      },
+    },
+  },
+
+  openidConnect: {
+    addPlugin: true,
+    op: {
+      issuer: process.env.NUXT_OPENID_CONNECT_OP_ISSUER || "", // change to your OP addrress
+      clientId: process.env.NUXT_OPENID_CONNECT_CLIENT_ID || "",
+      clientSecret: process.env.NUXT_OPENID_CONNECT_CLIENT_SECRET || "",
+      callbackUrl:
+        process.env.NUXT_OPENID_CONNECT_CALLBACK_URL ||
+        "http://localhost:8888/auth/callback", // optional
+      scope: ["email", "profile", "address"],
+    },
+    config: {
+      debug: true,
+      response_type: "code",
+      secret: "oidc._sessionid",
+      isCookieUserInfo: false, // whether save userinfo into cookie.
+      cookie: { loginName: "" },
+      cookiePrefix: "oidc._",
+      cookieEncrypt: true,
+      cookieEncryptKey: "bfnuxt9c2470cb477d907b1e0917oidc",
+      cookieEncryptIV: "ab83667c72eec9e4",
+      cookieEncryptALGO: "aes-256-cbc",
+      cookieMaxAge: 24 * 60 * 60, //  default one day
+      hasCookieRefreshExpireDate: false, // Set this to true if your provider has an refresh_expires_in date for the refresh token
+      cookieRefreshDefaultMaxAge: 24 * 60 * 60, //  default one day if the hasCookieRefreshExpireDate is false
+      cookieFlags: {
+        access_token: {
+          httpOnly: true,
+          secure: false,
+        },
+      },
+    },
   },
 });

@@ -15,7 +15,11 @@ export default <Partial<Config>>{
       },
     },
   },
-  plugins: [require("flowbite/plugin")],
+  plugins: [
+    require("flowbite/plugin")({
+      charts: true,
+    }),
+  ],
   content: [
     `./components/**/*.{vue,js,ts}`,
     `./layouts/**/*.vue`,
