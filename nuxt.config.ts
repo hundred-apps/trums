@@ -109,7 +109,7 @@ export default defineNuxtConfig({
       issuer: process.env.NUXT_OPENID_CONNECT_OP_ISSUER || "",
       clientId: process.env.NUXT_OPENID_CONNECT_OP_CLIENT_ID || "",
       clientSecret: process.env.NUXT_OPENID_CONNECT_OP_CLIENT_SECRET || "",
-      callbackUrl: process.env.NUXT_OPENID_CONNECT_OP_CALLBACK_URL || "", // deprecated from 0.8.0
+      callbackUrl: process.env.NUXT_OPENID_CONNECT_OP_CALLBACK_URL || "",
       scope: ["email", "profile", "address"],
     },
     config: {

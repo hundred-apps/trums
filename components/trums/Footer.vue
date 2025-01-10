@@ -13,7 +13,7 @@ const { t } = useI18n();
 
 <template>
   <footer
-    class="flex border-t border-gray-900/10 dark:border-gray-50/[0.2] lg:px-10 md:px-4 w-screen"
+    class="flex border-t border-gray-900/10 dark:border-gray-50/[0.2] lg:px-2 md:px-1 w-full"
   >
     <div
       class="flex-1 justify-between max-w-screen-2xl mx-auto px-4 flex flex-col-reverse gap-1 md:flex-row py-2 space-y-2 md:space-y-0 items-center text-xs text-center md:text-left text-gray-400"

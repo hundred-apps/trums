@@ -35,7 +35,7 @@
 
   /** ------------ Editor Settings ------------ **/
   "editor.fontFamily": "'Fira Code Retina', 'Hack Nerd Font', Monospace",
-  "editor.fontSize": 12,
+  "editor.fontSize": 16,
   "editor.fontWeight": 450,
   "editor.lineHeight": 26,
   "editor.lineNumbers": "on",

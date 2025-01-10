@@ -1,7 +1,7 @@
 <script lang="ts" setup>
-definePageMeta({
-  middleware: ["auth"],
-});
+// definePageMeta({
+//   middleware: ["auth"],
+// });
 import { onMounted } from "vue";
 onMounted(() => {
   if (
