@@ -52,10 +52,10 @@ const styles = reactive<{
 const sizes = reactive<{
   [key: string]: string;
 }>({
-  lg: "text-lg rounded-lg",
-  md: "text-base rounded",
-  sm: "text-sm rounded",
-  xs: "text-xs rounded",
+  lg: "text-xl rounded-lg",
+  md: "text-lg rounded",
+  sm: "text-md rounded",
+  xs: "text-sm rounded",
 });
 const padding = reactive<{
   [key: string]: string;
