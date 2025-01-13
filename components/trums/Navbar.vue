@@ -424,7 +424,7 @@ const { $oidc } = useNuxtApp();
                 class="flex-1 ms-3 text-left rtl:text-right whitespace-nowrap"
                 >{{ $t(`menu.${menu.text}`) }}</span
               >
-              <Icon name="material-symbols:arrow-drop-down-rounded" size="30" />
+              <Icon name="material-symbols:arrow-drop-down-rounded" size="20" />
             </TrumsButtons>
             <ul
               v-if="menu.child !== null"
@@ -478,7 +478,7 @@ const { $oidc } = useNuxtApp();
           type="sidebar"
           padding="xxs"
           size="sm"
-          to="/logout"
+          to="/"
           class="flex items-center w-full text-base transition duration-75 rounded-lg group"
         >
           <Icon name="lets-icons:sign-out-squre" size="20" style="color: red" />
