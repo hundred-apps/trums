@@ -1,6 +1,17 @@
 <script lang="ts" setup>
 import { ref, onMounted } from "vue";
 import { useApi } from "~/composables/useApi";
+import { useRouter } from "vue-router";
+import { initFlowbite } from "flowbite";
+
+const router = useRouter();
+
+const navigateToForm = (mode = "", id = null, unique_id = null) => {
+  const path = id
+    ? `/assets-management/form/${id}`
+    : "/assets-management/form/new";
+  router.push({ path, query: { mode, unique_id } });
+};
 
 const showTable = ref(true);
 
@@ -10,8 +21,11 @@ const toggleView = () => {
 
 interface Catalogue {
   id: number;
+  unique_id?: string;
+  unique_code?: string;
   name: string;
-  created_at?: string;
+  filename: string;
+  file_catalogues: [];
 }
 const assets = ref<Catalogue[]>([]);
 
@@ -28,9 +42,8 @@ const fetchData = async () => {
 
 onMounted(async () => {
   await fetchData();
+  initFlowbite();
 });
-
-console.log("assets :", assets);
 </script>
 <template>
   <TrumsWrapper>
@@ -43,6 +56,7 @@ console.log("assets :", assets);
             padding="sm"
             size="sm"
             class="flex gap-1 items-center"
+            @click="navigateToForm('insert')"
             ><Icon name="mdi:plus" size="20" /> Asset</TrumsButtons
           >
         </div>
@@ -51,10 +65,26 @@ console.log("assets :", assets);
             type="secondary"
             padding="sm"
             size="sm"
+            data-tooltip-target="tooltip-show"
+            data-tooltip-placement="left"
             @click="toggleView"
           >
-            {{ showTable ? "Grid" : "Tabel" }}
+            <Icon
+              :name="
+                showTable ? 'si:grid-view-fill' : 'material-symbols:data-table'
+              "
+              size="30"
+            />
           </TrumsButtons>
+
+          <div
+            id="tooltip-show"
+            role="tooltip"
+            class="absolute z-10 invisible inline-block px-3 py-2 text-sm font-medium text-white transition-opacity duration-300 bg-gray-900 rounded-lg shadow-sm opacity-0 tooltip dark:bg-gray-700"
+          >
+            Show {{ showTable ? "Grid" : "Table" }}
+            <div class="tooltip-arrow" data-popper-arrow></div>
+          </div>
         </div>
       </div>
       <div id="search-asset">
@@ -91,11 +121,25 @@ console.log("assets :", assets);
         <TrumsCardAsset
           v-for="asset in assets"
           :key="asset.id"
-          :image="asset.image"
           :price="asset.price"
           :text="asset.name"
           :type="asset.type"
         >
+          <div
+            v-for="(image, index) in asset.file_catalogues"
+            :class="[
+              'duration-700 ease-in-out',
+              { block: index === 0 },
+              { hidden: index !== 0 },
+            ]"
+            :data-carousel-item="index === 0 ? 'active' : ''"
+          >
+            <img
+              class="rounded-t-lg h-[150px]"
+              :src="`http://192.168.1.228:9008/files/${image.filename}`"
+              :alt="image.filename"
+            />
+          </div>
         </TrumsCardAsset>
       </div>
       <div v-else class="relative overflow-x-auto shadow-md sm:rounded-lg">
@@ -119,21 +163,27 @@ console.log("assets :", assets);
               v-for="asset in assets"
               :key="asset.id"
             >
-              <th
+              <td
                 scope="row"
                 class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white"
               >
-                <img
-                  :src="`/images/logo/${asset.image}`"
-                  :alt="asset.image"
-                  width="50"
-                />
-              </th>
+                <div v-for="(image, index) in asset.file_catalogues">
+                  <img
+                    v-if="index === 0"
+                    :src="`http://192.168.1.228:9008/files/${image.filename}`"
+                    :alt="image.filename"
+                    width="50"
+                  />
+                </div>
+              </td>
               <td class="px-6 py-4">{{ asset.name }}</td>
-              <td class="px-6 py-4">{{ asset.type }}</td>
+              <td class="px-6 py-4">{{ asset.unique_code }}</td>
               <td class="px-6 py-4">{{ asset.price }}</td>
               <td class="px-6 py-4">
-                <button class="px-4 py-2 bg-yellow-500 text-white rounded mr-2">
+                <button
+                  class="px-4 py-2 bg-yellow-500 text-white rounded mr-2"
+                  @click="navigateToForm('update', asset.id, asset.unique_id)"
+                >
                   Edit
                 </button>
                 <button class="px-4 py-2 bg-red-500 text-white rounded">
@@ -144,6 +194,95 @@ console.log("assets :", assets);
           </tbody>
         </table>
       </div>
+    </div>
+
+    <div
+      id="indicators-carousel"
+      class="relative w-full"
+      data-carousel="static"
+    >
+      <!-- Carousel wrapper -->
+      <div class="relative h-56 overflow-hidden rounded-lg md:h-96">
+        <!-- Item 1 -->
+        <div
+          class="hidden duration-700 ease-in-out"
+          data-carousel-item="active"
+        >
+          <img
+            src="/public/favicon.ico"
+            class="absolute block w-full -translate-x-1/2 -translate-y-1/2 top-1/2 left-1/2"
+            alt="..."
+          />
+        </div>
+      </div>
+      <!-- Slider indicators -->
+      <div
+        class="absolute z-30 flex -translate-x-1/2 space-x-3 rtl:space-x-reverse bottom-5 left-1/2"
+      >
+        <div v-for="asset in assets">
+          <button
+            v-for="(button, index) in asset.file_catalogues"
+            type="button"
+            class="w-3 h-3 rounded-full"
+            aria-current="true"
+            :aria-label="`Slide ${index}`"
+            :data-carousel-slide-to="index"
+          ></button>
+        </div>
+      </div>
+      <!-- Slider controls -->
+      <button
+        type="button"
+        class="absolute top-0 start-0 z-30 flex items-center justify-center h-full px-4 cursor-pointer group focus:outline-none"
+        data-carousel-prev
+      >
+        <span
+          class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/30 dark:bg-gray-800/30 group-hover:bg-white/50 dark:group-hover:bg-gray-800/60 group-focus:ring-4 group-focus:ring-white dark:group-focus:ring-gray-800/70 group-focus:outline-none"
+        >
+          <svg
+            class="w-4 h-4 text-white dark:text-gray-800 rtl:rotate-180"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 6 10"
+          >
+            <path
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M5 1 1 5l4 4"
+            />
+          </svg>
+          <span class="sr-only">Previous</span>
+        </span>
+      </button>
+      <button
+        type="button"
+        class="absolute top-0 end-0 z-30 flex items-center justify-center h-full px-4 cursor-pointer group focus:outline-none"
+        data-carousel-next
+      >
+        <span
+          class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-white/30 dark:bg-gray-800/30 group-hover:bg-white/50 dark:group-hover:bg-gray-800/60 group-focus:ring-4 group-focus:ring-white dark:group-focus:ring-gray-800/70 group-focus:outline-none"
+        >
+          <svg
+            class="w-4 h-4 text-white dark:text-gray-800 rtl:rotate-180"
+            aria-hidden="true"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 6 10"
+          >
+            <path
+              stroke="currentColor"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="m1 9 4-4-4-4"
+            />
+          </svg>
+          <span class="sr-only">Next</span>
+        </span>
+      </button>
     </div>
   </TrumsWrapper>
 </template>

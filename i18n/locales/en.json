@@ -88,6 +88,9 @@
       "notRegistered": "Not Registered?",
       "createAccount": "Create Account"
     },
+    "validate": {
+      "required": "This field is required"
+    },
     "placeholder": {
       "email": "Enter Your Email Address",
       "password": "Enter your password"

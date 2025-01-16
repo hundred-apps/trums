@@ -88,6 +88,10 @@
       "notRegistered": "Belum Daftar?",
       "createAccount": "Buat Akun"
     },
+    "validate": {
+      "required": "Field ini wajib di isi"
+    },
+
     "placeholder": {
       "email": "Masukkan alamat email",
       "password": "Masukkan kata sandi"

@@ -12,10 +12,6 @@ const props = defineProps({
     type: String,
     default: "",
   },
-  image: {
-    type: String,
-    default: "",
-  },
 });
 </script>
 
@@ -25,13 +21,7 @@ const props = defineProps({
   >
     <div id="controls-carousel" class="relative w-full" data-carousel="static">
       <div class="relative h-56 overflow-hidden rounded-lg md:h-96">
-        <div class="hidden duration-700 ease-in-out" data-carousel-item>
-          <img
-            class="rounded-t-lg h-[150px]"
-            :src="`/images/logo/${image}`"
-            alt="product image"
-          />
-        </div>
+        <slot />
       </div>
       <button
         type="button"
