@@ -1,31 +1,30 @@
-<script setup>
+<script lang="ts" setup>
 import { ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { Form, useForm } from "vee-validate";
 import * as yup from "yup";
 import { useI18n } from "vue-i18n";
-const { t } = useI18n();
 import { useApi } from "~/composables/useApi";
 
+const { t } = useI18n();
 const route = useRoute();
 const ids = route.params.id;
 const mode = route.query.mode;
 const unique_id = route.query.unique_id;
 
-const assets = ref({});
-
-if (mode === "update") {
-  const fetchData = async () => {
-    try {
-      const response = await api.get(`/catalogues-read/${unique_id}`);
-      assets.value = response.data.data;
-    } catch (error) {
-      console.error("Gagal memuat postingan:", error);
-    }
-  };
-}
-
 const api = useApi();
+
+const assets = ref([]);
+
+const fetchData = async () => {
+  try {
+    const response = await api.get(`/catalogues-read/${unique_id}`);
+    const responseData = response.data.data;
+    assets.value = Array.isArray(responseData) ? responseData : [responseData];
+  } catch (error) {
+    console.error("Gagal memuat postingan:", error);
+  }
+};
 
 const schema = yup.object({
   unique_code: yup.string().required(t("form.validate.required")),
@@ -36,10 +35,23 @@ const schema = yup.object({
   berat: yup.number().required(t("form.validate.required")),
   volume: yup.number().required(t("form.validate.required")),
   description: yup.string().required(t("form.validate.required")),
+  is_asset: yup.boolean(),
 });
 
-const { handleSubmit, reset, setErrors, values } = useForm({
+const { handleSubmit, setValues, setErrors, values, defineField } = useForm({
   validationSchema: schema,
+  initialValues: {
+    unique_id: "",
+    unique_code: "",
+    name: "",
+    brand_id: null,
+    year: null,
+    sn: null,
+    berat: null,
+    volume: null,
+    description: "",
+    is_asset: false,
+  },
 });
 
 const files = ref([]);
@@ -47,14 +59,13 @@ const fileInputRef = ref(null);
 
 const processFiles = (uploadedFiles) => {
   for (const file of uploadedFiles) {
-    // Cek apakah file sudah ada di daftar (untuk mencegah duplikasi)
     if (!files.value.find((f) => f.name === file.name)) {
       const reader = new FileReader();
       reader.onload = (e) => {
         files.value.push({
           file,
           name: file.name,
-          preview: e.target.result, // URL base64
+          preview: e.target.result,
         });
       };
       reader.readAsDataURL(file);
@@ -86,7 +97,6 @@ const removeFile = (index) => {
 const onSubmit = (values) => {
   const formData = new FormData();
 
-  // Tambahkan nilai form ke FormData
   formData.append("unique_code", values.unique_code);
   formData.append("name", values.name);
   formData.append("brand_id", values.brand_id);
@@ -95,15 +105,20 @@ const onSubmit = (values) => {
   formData.append("berat", values.berat);
   formData.append("volume", values.volume);
   formData.append("description", values.description);
+  formData.append("is_asset", values.is_asset);
 
-  // Tambahkan file ke FormData
   files.value.forEach((file) => {
-    formData.append("files[]", file.file); // Menggunakan 'files[]' untuk array file
+    formData.append("files[]", file.file);
   });
 
-  // Kirim data ke API
+  console.log(values);
+
+  const endpoint =
+    mode === "update"
+      ? `/catalogues-create/${unique_id}`
+      : "/catalogues-create";
   api
-    .post("/catalogues-create", formData, {
+    .post(endpoint, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
@@ -113,14 +128,14 @@ const onSubmit = (values) => {
     })
     .catch((error) => {
       console.error("Error mengirim data", error);
-      console.log("Terjadi kesalahan saat mengirim data.");
     });
 };
-if (mode === "update") {
-  onMounted(async () => {
+
+onMounted(async () => {
+  if (mode === "update") {
     await fetchData();
-  });
-}
+  }
+});
 </script>
 
 <template>
@@ -136,14 +151,12 @@ if (mode === "update") {
           type="text"
           label="Unique Code"
           placeholder="Unique Code"
-          success-message="Nice Code!"
         />
         <TrumsFormInput
           name="name"
           type="text"
           label="Name Asset"
           placeholder="Name Asset"
-          success-message="Nice Name!"
         />
       </div>
       <div class="flex justify-between items-center gap-4">
@@ -152,14 +165,12 @@ if (mode === "update") {
           type="number"
           label="Brand ID"
           placeholder="Brand id"
-          success-message="Nice Brand!"
         />
         <TrumsFormInput
           name="year"
           type="number"
           label="Year Asset"
           placeholder="1998"
-          success-message="Nice Year!"
         />
       </div>
       <div class="flex justify-between items-center gap-4">
@@ -168,28 +179,27 @@ if (mode === "update") {
           type="number"
           label="Serial Number"
           placeholder="Serial Number"
-          success-message="Nice Serial Number!"
         />
         <TrumsFormInput
           name="berat"
           type="number"
           label="Weight Asset"
           placeholder="1"
-          success-message="Nice Weight!"
         />
         <TrumsFormInput
           name="volume"
           type="number"
           label="Volume Asset"
           placeholder="1"
-          success-message="Nice Volume!"
         />
       </div>
+      <TrumsFormCheckbox name="is_asset" label="Termasuk kedalam asset?" />
       <TrumsFormInput
         name="description"
         type="text"
         label="Description"
         placeholder=""
+        multiline
       />
 
       <div
@@ -255,7 +265,15 @@ if (mode === "update") {
           </div>
         </div>
       </div>
-      <button type="submit">Submit</button>
+      <TrumsButtons
+        is-button
+        button-type="submit"
+        type="primary"
+        text="Submit"
+        size="sm"
+        padding="xs"
+        class="w-fit"
+      ></TrumsButtons>
     </Form>
   </TrumsWrapper>
 </template>

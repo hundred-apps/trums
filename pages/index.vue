@@ -5,6 +5,8 @@ definePageMeta({
 const { t } = useI18n();
 const oidc = useOidc();
 const { $oidc } = useNuxtApp();
+console.log("(composable) isLoggedIn:", oidc.isLoggedIn);
+console.log("(injected) isLoggedIn:", $oidc.isLoggedIn);
 </script>
 <template>
   <TrumsWrapper class="content-center flex items-center justify-center">
@@ -33,7 +35,7 @@ const { $oidc } = useNuxtApp();
         </h5>
         <div class="flex justify-center">
           <TrumsButtons
-            @click="$oidc.login('auth/callback')"
+            to="/auth/callback"
             class="w-full text-white bg-primary-500 hover:bg-primary-600 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-500 dark:hover:bg-primary-600 dark:focus:ring-primary-600"
           >
             {{ $t("buttons.getstarted") }}

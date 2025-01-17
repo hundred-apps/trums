@@ -23,7 +23,6 @@ export default defineNuxtConfig({
     "@nuxt/icon",
     "@nuxtjs/i18n",
     "@nuxtjs/device",
-    "nuxt-openid-connect",
     "nuxt-twemoji",
     "nuxt-openid-connect",
   ],
@@ -106,14 +105,22 @@ export default defineNuxtConfig({
   openidConnect: {
     addPlugin: true,
     op: {
-      issuer: process.env.NUXT_OPENID_CONNECT_OP_ISSUER || "",
-      clientId: process.env.NUXT_OPENID_CONNECT_OP_CLIENT_ID || "",
-      clientSecret: process.env.NUXT_OPENID_CONNECT_OP_CLIENT_SECRET || "",
-      callbackUrl: process.env.NUXT_OPENID_CONNECT_OP_CALLBACK_URL || "",
+      issuer:
+        process.env.NUXT_OPENID_CONNECT_OP_ISSUER ||
+        "http://auth.hundredapps.co/oidc",
+      clientId:
+        process.env.NUXT_OPENID_CONNECT_OP_CLIENT_ID || "Y5_iCCYJx3WM78imB_zMF",
+      clientSecret:
+        process.env.NUXT_OPENID_CONNECT_OP_CLIENT_SECRET ||
+        "ND6_n1-LbQBbtwXvu4ceQmntIpITEWIr6G-ib3MzDoIO-5VZ4f3ty2rp1z8vH16zDGn-m8yrrCCnQkqE7_ewFQ",
+      callbackUrl:
+        process.env.NUXT_OPENID_CONNECT_OP_CALLBACK_URL ||
+        "http://localhost:8888/auth/callback",
+
       scope: ["email", "profile", "address"],
     },
     config: {
-      debug: false, // optional, default is false
+      debug: true, // optional, default is false
       response_type: "code", // or 'code'
       secret: "oidc._sessionid",
       cookie: { loginName: "" },
