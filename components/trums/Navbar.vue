@@ -25,14 +25,6 @@ const availableOs = [
 
 const menuSidebar = [
   {
-    key: "assets",
-    text: "assets",
-    to: "/assets-management",
-    icon: "fluent:web-asset-16-filled",
-    active: route.name === "assets-management",
-    child: null,
-  },
-  {
     key: "contact-management",
     text: "contact",
     icon: "ri:contacts-book-3-fill",
@@ -54,6 +46,10 @@ const menuSidebar = [
     icon: "carbon:finance",
     active: route.name === "finance-management",
     child: [
+      {
+        text: "assets",
+        to: "/finance-management/assets",
+      },
       {
         text: "bill",
         to: "/finance-management/bill",

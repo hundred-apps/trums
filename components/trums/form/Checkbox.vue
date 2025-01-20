@@ -15,10 +15,6 @@ const props = defineProps({
     type: Boolean,
     default: false, // Default value is false
   },
-  required: {
-    type: Boolean,
-    default: false,
-  },
 });
 
 const name = toRef(props, "name");

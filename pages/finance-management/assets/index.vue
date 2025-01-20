@@ -8,8 +8,8 @@ const router = useRouter();
 
 const navigateToForm = (mode = "", id = null, unique_id = null) => {
   const path = id
-    ? `/assets-management/form/${id}`
-    : "/assets-management/form/new";
+    ? `/finance-management/assets/form/${id}`
+    : "/finance-management/assets/form/new";
   router.push({ path, query: { mode, unique_id } });
 };
 

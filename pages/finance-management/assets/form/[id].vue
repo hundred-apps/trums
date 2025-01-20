@@ -8,6 +8,7 @@ import { useApi } from "~/composables/useApi";
 
 const { t } = useI18n();
 const route = useRoute();
+const router = useRouter();
 const ids = route.params.id;
 const mode = route.query.mode;
 const unique_id = route.query.unique_id;
@@ -111,20 +112,15 @@ const onSubmit = (values) => {
     formData.append("files[]", file.file);
   });
 
-  console.log(values);
-
-  const endpoint =
-    mode === "update"
-      ? `/catalogues-create/${unique_id}`
-      : "/catalogues-create";
   api
-    .post(endpoint, formData, {
+    .post("/catalogues-create", formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
     })
     .then((response) => {
       console.log("Data berhasil dikirim!", response);
+      router.push({ path: "/finance-management/assets" });
     })
     .catch((error) => {
       console.error("Error mengirim data", error);

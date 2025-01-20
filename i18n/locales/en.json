@@ -5,7 +5,6 @@
   },
   "menu": {
     "login": "Login",
-    "assets": "Assets",
     "contact": "Contact",
     "finance": "Finance",
     "humanCapital": "Human Capital",
@@ -15,6 +14,7 @@
     "setting": "Setting",
     "supplyChain": "Supply Chain",
     "submenu": {
+      "assets": "Assets",
       "contacts": "Contacts",
       "categories": "Categories",
       "bill": "Bill",
