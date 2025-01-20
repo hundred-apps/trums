@@ -10,6 +10,8 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
+    "@element-plus/icons-vue": "^2.3.1",
+    "@element-plus/nuxt": "^1.1.1",
     "@nuxtjs/device": "^3.2.4",
     "@pinia/nuxt": "^0.5.4",
     "@vee-validate/i18n": "^4.15.0",
@@ -19,6 +21,7 @@
     "@vueuse/nuxt": "^11.1.0",
     "apexcharts": "^4.3.0",
     "axios": "^1.7.9",
+    "element-plus": "^2.9.3",
     "flowbite": "^2.5.2",
     "nuxt": "^3.13.0",
     "nuxt-openid-connect": "^0.8.1",

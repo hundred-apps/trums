@@ -25,6 +25,7 @@ export default defineNuxtConfig({
     "@nuxtjs/device",
     "nuxt-twemoji",
     "nuxt-openid-connect",
+    "@element-plus/nuxt",
   ],
 
   tailwindcss: {
@@ -76,7 +77,7 @@ export default defineNuxtConfig({
     globalName: "__NUXT_COLOR_MODE__",
     componentName: "ColorScheme",
     classPrefix: "",
-    classSuffix: "-mode",
+    classSuffix: "",
     storage: "cookie", // or 'sessionStorage' or 'cookie' or 'localStorage'
     storageKey: "color-mode",
   },
