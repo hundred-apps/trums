@@ -28,6 +28,14 @@ const props = defineProps({
     type: String,
     default: undefined,
   },
+  isButton: {
+    type: Boolean,
+    default: false,
+  },
+  buttonType: {
+    type: String,
+    default: "button",
+  },
 });
 // state:styles
 const defaultStyle = `
@@ -52,10 +60,10 @@ const styles = reactive<{
 const sizes = reactive<{
   [key: string]: string;
 }>({
-  lg: "text-lg rounded-lg",
-  md: "text-base rounded",
-  sm: "text-sm rounded",
-  xs: "text-xs rounded",
+  lg: "text-xl rounded-lg",
+  md: "text-lg rounded",
+  sm: "text-md rounded",
+  xs: "text-sm rounded",
 });
 const padding = reactive<{
   [key: string]: string;
@@ -87,24 +95,38 @@ const selectedPosition = computed(
 // methods
 const onClick = (event: MouseEvent) => {
   const router = useRouter();
+
   if (props.to) {
     router.push(props.to);
   }
-  if (!props.href) {
+
+  if (!props.href && props.buttonType !== "submit") {
     event.preventDefault();
   }
 };
 </script>
 
 <template>
+  <button
+    v-if="isButton"
+    :buttonType="buttonType"
+    :class="`${defaultStyle} ${selectedStyle} ${selectedSize} ${selectedPadding} ${selectedPosition}`"
+    @click="onClick"
+  >
+    <slot>{{ text }}</slot>
+  </button>
+
+  <!-- Jika to ada, gunakan NuxtLinkLocale -->
   <NuxtLinkLocale
-    v-if="to"
+    v-else-if="to"
     tag="a"
     :to="to"
     :class="`${defaultStyle} ${selectedStyle} ${selectedSize} ${selectedPadding} ${selectedPosition}`"
   >
     <slot>{{ text }}</slot>
   </NuxtLinkLocale>
+
+  <!-- Jika href ada, gunakan a -->
   <a
     v-else
     :class="`${defaultStyle} ${selectedStyle} ${selectedSize} ${selectedPadding} ${selectedPosition}`"

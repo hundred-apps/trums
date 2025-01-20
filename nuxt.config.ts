@@ -23,7 +23,6 @@ export default defineNuxtConfig({
     "@nuxt/icon",
     "@nuxtjs/i18n",
     "@nuxtjs/device",
-    "nuxt-openid-connect",
     "nuxt-twemoji",
     "nuxt-openid-connect",
   ],
@@ -38,12 +37,9 @@ export default defineNuxtConfig({
     viewer: true,
   },
 
-  
   headlessui: {
     prefix: "Headless",
   },
-
-
 
   i18n: {
     locales: [

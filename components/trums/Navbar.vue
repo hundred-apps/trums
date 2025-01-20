@@ -25,14 +25,6 @@ const availableOs = [
 
 const menuSidebar = [
   {
-    key: "assets",
-    text: "assets",
-    to: "/assets-management",
-    icon: "fluent:web-asset-16-filled",
-    active: route.name === "assets-management",
-    child: null,
-  },
-  {
     key: "contact-management",
     text: "contact",
     icon: "ri:contacts-book-3-fill",
@@ -54,6 +46,10 @@ const menuSidebar = [
     icon: "carbon:finance",
     active: route.name === "finance-management",
     child: [
+      {
+        text: "assets",
+        to: "/finance-management/assets",
+      },
       {
         text: "bill",
         to: "/finance-management/bill",
@@ -195,9 +191,8 @@ onMounted(async () => {
   });
 });
 
-const oidc = useOidc()
-const { $oidc } = useNuxtApp()
-
+const oidc = useOidc();
+const { $oidc } = useNuxtApp();
 </script>
 
 <style scoped>
@@ -210,167 +205,31 @@ const { $oidc } = useNuxtApp()
 </style>
 
 <template>
-  <header
-    class="flex fixed backdrop-filter backdrop-blur-md top-0 z-40 w-full flex-none transition-colors duration-300 lg:z-50 border-b border-gray-950/10 dark:border-gray-50/[0.2] bg-white/[0.5] dark:bg-gray-950/[0.5] lg:px-10 md:px-6"
+  <nav
+    class="flex fixed backdrop-filter backdrop-blur-md top-0 z-40 w-full flex-none transition-colors duration-300 lg:z-50 border-b border-gray-950/10 dark:border-gray-50/[0.2] bg-white/[0.5] dark:bg-gray-950/[0.5] lg:px-2 py-2 md:px-1 h-[64px] max-h-[64px]"
   >
     <div
       class="flex-1 flex items-center justify-between w-screen mx-auto px-4"
       v-if="$screen.higherThan('lg', $screen.current.value)"
     >
-      <div class="text-center w-full flex gap-2 items-center">
-        <TrumsButtons
-          type="primary"
-          size="sm"
-          padding="xs"
-          data-drawer-target="drawer-navigation"
-          data-drawer-show="drawer-navigation"
-          aria-controls="drawer-navigation"
-        >
-          <Icon name="material-symbols:lists" size="20"></Icon>
-        </TrumsButtons>
-
-        <TrumsLink to="/" class="font-bold text-xl flex gap-2 items-center">
-          <img
-            v-if="$colorMode.value === 'dark'"
-            src="/images/logo/logo-white.png"
-            alt="logo Trums"
-            class="w-9"
-          />
-          <img
-            v-if="$colorMode.value === 'light'"
-            src="/images/logo/logo-black.png"
-            alt="logo Trums"
-            class="w-9"
-          />
-          <span class="dark:text-white text-black">Trums</span>
-        </TrumsLink>
-      </div>
-      <div
-        id="drawer-navigation"
-        class="fixed top-0 left-0 z-40 w-64 h-screen p-4 flex flex-col justify-between transition-transform -translate-x-full bg-white dark:bg-gray-800"
-        tabindex="-1"
-        aria-labelledby="drawer-navigation-label"
+      <TrumsLink
+        to="/dashboard"
+        class="font-bold text-xl flex gap-2 items-center"
       >
-        <div class="justify-start flex flex-col gap-2">
-          <div class="flex items-center justify-between">
-            <TrumsLink to="/" class="font-bold text-xl flex gap-2 items-center">
-              <img
-                v-if="$colorMode.value === 'dark'"
-                src="/images/logo/logo-white.png"
-                alt="logo Trums"
-                class="w-9"
-              />
-              <img
-                v-if="$colorMode.value === 'light'"
-                src="/images/logo/logo-black.png"
-                alt="logo Trums"
-                class="w-9"
-              />
-              <span class="dark:text-white text-black">Trums</span>
-            </TrumsLink>
-            <button
-              type="button"
-              data-drawer-hide="drawer-navigation"
-              aria-controls="drawer-navigation"
-              class="text-gray-400 bg-transparent hover:bg-gray-200 hover:text-gray-900 rounded-lg text-sm p-1.5 inline-flex items-center dark:hover:bg-gray-600 dark:hover:text-white"
-            >
-              <svg
-                aria-hidden="true"
-                class="w-5 h-5"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  fill-rule="evenodd"
-                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
-                  clip-rule="evenodd"
-                ></path>
-              </svg>
-              <span class="sr-only">Close menu</span>
-            </button>
-          </div>
-          <hr class="h-px bg-gray-200 border-0 dark:bg-gray-700" />
-        </div>
-
-        <div class="py-2 overflow-y-auto items-start justify-start h-full">
-          <ul class="space-y-2 font-medium">
-            <li v-for="menu in menuSidebar" :key="menu.key">
-              <TrumsButtons
-                v-if="menu.child !== null"
-                type="sidebar"
-                padding="xxs"
-                size="sm"
-                class="flex items-center w-full text-base transition duration-75 rounded-lg group"
-                :aria-controls="menu.key"
-                :data-collapse-toggle="menu.key"
-              >
-                <Icon :name="menu.icon" size="30" />
-                <span
-                  class="flex-1 ms-3 text-left rtl:text-right whitespace-nowrap"
-                  >{{ $t(`menu.${menu.text}`) }}</span
-                >
-                <Icon
-                  name="material-symbols:arrow-drop-down-rounded"
-                  size="30"
-                />
-              </TrumsButtons>
-              <ul
-                v-if="menu.child !== null"
-                :id="menu.key"
-                class="hidden py-2 space-y-2"
-              >
-                <li v-for="subMenu in menu.child" :key="subMenu.text">
-                  <TrumsButtons
-                    type="sidebar"
-                    :to="subMenu.to"
-                    size="sm"
-                    padding="xxs"
-                    position="left"
-                    class="w-full transition duration-75 pl-[50px] rounded-lg group hover:bg-gray-100"
-                    >{{ $t(`menu.submenu.${subMenu.text}`) }}</TrumsButtons
-                  >
-                </li>
-              </ul>
-              <TrumsButtons
-                v-else
-                type="sidebar"
-                padding="xxs"
-                size="sm"
-                :to="menu.to"
-                class="flex items-center w-full text-base transition duration-75 rounded-lg group"
-              >
-                <Icon :name="menu.icon" size="30" />
-                <span
-                  class="flex-1 ms-3 text-left rtl:text-right whitespace-nowrap"
-                  >{{ $t(`menu.${menu.text}`) }}</span
-                >
-              </TrumsButtons>
-            </li>
-          </ul>
-        </div>
-
-        <div class="justify-end flex flex-col gap-2">
-          <hr class="h-px bg-gray-200 border-0 dark:bg-gray-700" />
-
-          <div class="pb-4 flex justify-between items-center">
-            <div class="flex gap-2 items-center">
-              <img
-                class="rounded-full size-9"
-                src="/public/images/default/profile.jpg"
-                alt="image description"
-              />
-              <p>nama akun</p>
-            </div>
-            <TrumsLink to="/setting" class="size-7"
-              ><Icon
-                name="material-symbols-light:settings"
-                class="size-7"
-              ></Icon
-            ></TrumsLink>
-          </div>
-        </div>
-      </div>
+        <img
+          v-if="$colorMode.value === 'dark'"
+          src="/images/logo/logo-white.png"
+          alt="logo Trums"
+          class="w-9"
+        />
+        <img
+          v-if="$colorMode.value === 'light'"
+          src="/images/logo/logo-black.png"
+          alt="logo Trums"
+          class="w-9"
+        />
+        <span class="dark:text-white text-black">Trums</span>
+      </TrumsLink>
       <div class="flex gap-4 w-full justify-end">
         <div
           class="flex items-center md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse"
@@ -415,7 +274,7 @@ const { $oidc } = useNuxtApp()
               <li>
                 <TrumsLink
                   to="/"
-                  class="block px-4 py-2 text-sm text-red-500 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-red-600"
+                  class="block px-4 py-2 text-sm text-red-500 hover:text-red-600 hover:bg-gray-100 dark:hover:bg-gray-600 dark:hover:text-red-600"
                 >
                   {{ $t("buttons.logout") }}
                 </TrumsLink>
@@ -449,7 +308,6 @@ const { $oidc } = useNuxtApp()
         </div>
         <TrumsSwitcherTheme />
         <TrumsSwitcherLang />
-        <TrumsButtons @click="$oidc.login('auth/callback')" size="sm">{{ $t("buttons.getstarted") }}</TrumsButtons>
       </div>
     </div>
     <div
@@ -536,5 +394,99 @@ const { $oidc } = useNuxtApp()
         </TrumsSheetItem>
       </TrumsSheetGroup>
     </TrumsSheet>
-  </header>
+  </nav>
+  <aside
+    id="logo-sidebar"
+    class="fixed top-0 left-0 z-40 w-64 h-full pt-[60px] transition-transform -translate-x-full backdrop-filter border-r backdrop-blur-md sm:translate-x-0 border-gray-950/10 dark:border-gray-50/[0.2] bg-white/[0.5] dark:bg-gray-950/[0.5] lg:block md:hidden sm:hidden"
+    aria-label="Sidebar"
+  >
+    <div
+      class="h-full px-3 pb-4 overflow-y-auto flex flex-col justify-between border-gray-950/10 dark:border-gray-50/[0.2] bg-white/[0.5] dark:bg-gray-950/[0.5] backdrop-filter backdrop-blur-md"
+    >
+      <div class="py-2 overflow-y-auto items-start justify-start h-full">
+        <ul class="space-y-2 font-medium">
+          <li v-for="menu in menuSidebar" :key="menu.key">
+            <TrumsButtons
+              v-if="menu.child !== null"
+              type="sidebar"
+              padding="xxs"
+              size="sm"
+              class="flex items-center w-full text-base transition duration-75 rounded-lg group"
+              :aria-controls="menu.key"
+              :data-collapse-toggle="menu.key"
+            >
+              <Icon :name="menu.icon" size="20" />
+              <span
+                class="flex-1 ms-3 text-left rtl:text-right whitespace-nowrap"
+                >{{ $t(`menu.${menu.text}`) }}</span
+              >
+              <Icon name="material-symbols:arrow-drop-down-rounded" size="20" />
+            </TrumsButtons>
+            <ul
+              v-if="menu.child !== null"
+              :id="menu.key"
+              class="hidden py-2 space-y-2"
+            >
+              <li v-for="subMenu in menu.child" :key="subMenu.text">
+                <TrumsButtons
+                  type="sidebar"
+                  :to="subMenu.to"
+                  size="sm"
+                  padding="xxs"
+                  position="left"
+                  class="w-full transition duration-75 pl-[50px] rounded-lg group hover:bg-gray-100"
+                  >{{ $t(`menu.submenu.${subMenu.text}`) }}</TrumsButtons
+                >
+              </li>
+            </ul>
+            <TrumsButtons
+              v-else
+              type="sidebar"
+              padding="xxs"
+              size="sm"
+              :to="menu.to"
+              class="flex items-center w-full text-base transition duration-75 rounded-lg group"
+            >
+              <Icon :name="menu.icon" size="20" />
+              <span
+                class="flex-1 ms-3 text-left rtl:text-right whitespace-nowrap"
+                >{{ $t(`menu.${menu.text}`) }}</span
+              >
+            </TrumsButtons>
+          </li>
+        </ul>
+      </div>
+      <div class="justify-end flex flex-col gap-2">
+        <TrumsButtons
+          type="sidebar"
+          padding="xxs"
+          size="sm"
+          to="/setting"
+          class="flex items-center w-full text-base transition duration-75 rounded-lg group"
+        >
+          <Icon name="uil:setting" size="20" />
+          <span
+            class="flex-1 ms-3 text-left rtl:text-right whitespace-nowrap"
+            >{{ $t(`menu.setting`) }}</span
+          >
+        </TrumsButtons>
+        <TrumsButtons
+          type="sidebar"
+          padding="xxs"
+          size="sm"
+          to="/"
+          class="flex items-center w-full text-base transition duration-75 rounded-lg group"
+        >
+          <Icon name="lets-icons:sign-out-squre" size="20" style="color: red" />
+          <span
+            class="flex-1 ms-3 text-left rtl:text-right hover:text-red-600 whitespace-nowrap"
+            >{{ $t("buttons.logout") }}</span
+          >
+        </TrumsButtons>
+      </div>
+    </div>
+  </aside>
+  <div class="sm:ml-64">
+    <slot />
+  </div>
 </template>
