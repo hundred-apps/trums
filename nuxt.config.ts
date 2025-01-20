@@ -4,6 +4,11 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   ssr: false,
   pages: true,
+  runtimeConfig: {
+    public: {
+      baseURL: process.env.NUXT_API_URL, // Base URL untuk API
+    },
+  },
   app: {
     head: {
       script: [
@@ -25,7 +30,13 @@ export default defineNuxtConfig({
     "@nuxtjs/device",
     "nuxt-twemoji",
     "nuxt-openid-connect",
+    '@element-plus/nuxt'
   ],
+
+  css: ['element-plus/theme-chalk/dark/css-vars.css'],
+  // build: {
+  //   transpile: ['element-plus']
+  // },
 
   tailwindcss: {
     cssPath: ["~/assets/css/input.css", { injectPosition: "first" }],
@@ -76,7 +87,7 @@ export default defineNuxtConfig({
     globalName: "__NUXT_COLOR_MODE__",
     componentName: "ColorScheme",
     classPrefix: "",
-    classSuffix: "-mode",
+    classSuffix: "",
     storage: "cookie", // or 'sessionStorage' or 'cookie' or 'localStorage'
     storageKey: "color-mode",
   },
@@ -110,7 +121,7 @@ export default defineNuxtConfig({
       cookieMaxAge: 24 * 60 * 60, //  default one day
       cookieFlags: { // default is empty 
         access_token: { 
-          httpOnly: true,
+          httpOnly: false,
           secure: false,
         }
       }

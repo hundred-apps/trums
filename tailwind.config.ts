@@ -16,10 +16,8 @@ export default <Partial<Config>>{
     },
   },
   plugins: [
-    require("flowbite/plugin")({
-      charts: true,
-    }),
   ],
+  // darkMode: 'class',
   content: [
     `./components/**/*.{vue,js,ts}`,
     `./layouts/**/*.vue`,
@@ -27,7 +25,6 @@ export default <Partial<Config>>{
     `./composables/**/*.{js,ts}`,
     `./plugins/**/*.{js,ts}`,
     `./utils/**/*.{js,ts}`,
-    `./node_modules/flowbite/**/*.{js,ts}`,
     `./App.{js,ts,vue}`,
     `./app.{js,ts,vue}`,
     `./Error.{js,ts,vue}`,

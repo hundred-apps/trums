@@ -21,6 +21,12 @@ const availableThemes = [
     text: "system",
   },
 ];
+
+
+const changeTheme = (theme) => {
+  console.log(theme);
+}
+
 </script>
 
 <template>
