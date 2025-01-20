@@ -43,17 +43,17 @@ export default defineNuxtConfig({
 
   i18n: {
     locales: [
-      { code: "en", language: "en-US", file: "en.json", name: "English" },
+      { code: "en", iso: "en-US", file: "en.json", name: "English" },
       {
         code: "id",
-        language: "id-ID",
+        iso: "id-ID",
         file: "id.json",
         name: "Bahasa Indonesia",
       },
     ],
     strategy: "prefix_except_default",
     lazy: true,
-    langDir: "locales/",
+    langDir: "i18n/locales/",
     defaultLocale: "en",
     skipSettingLocaleOnNavigate: true,
     detectBrowserLanguage: {
