@@ -1,13 +1,16 @@
 <script lang="ts" setup>
-import { reactive, ref } from 'vue'
+import { reactive, ref, onMounted } from 'vue'
 import { useApi } from "~/composables/useApi";
-import type { ComponentSize, FormInstance, FormRules, ElMessage, UploadProps, UploadUserFile } from 'element-plus'
+import { type ComponentSize, type FormInstance, type FormRules, ElMessage, type UploadProps, type UploadUserFile } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import { type User } from '~/types/user';
 
 const imageUrl = ref('')
-const fileList = ref<UploadUserFile>([])
+const fileList = ref<UploadUserFile[]>([])
 const api = useApi();
 const user = localStorage.getItem('oidc._user');
+const appUserData = useCookie('userdata')
+const userToken = useCookie('token')
 
 definePageMeta({
     middleware: "auth",
@@ -85,11 +88,8 @@ const beforeAvatarUpload: UploadProps['beforeUpload'] = (rawFile) => {
 }
 
 const submitForm = async (formEl: FormInstance | undefined) => {
-  console.log(fileList.value[0].originFileObj);
   if (!formEl) return
   await formEl.validate( async (valid, fields) => {
-    console.log('form is valid : ', valid)
-    console.log('field is valid : ', fields)
     if (valid) {
       
 
@@ -98,12 +98,12 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       formData.append("email", ruleForm.email);
       formData.append("phone", ruleForm.phone);
       formData.append("gender", ruleForm.gender);
-      formData.append("photo", fileList.value[0]);
+      formData.append("photo", fileList.value[0].raw);
       
 
-      const jsonUser = JSON.parse(user);
+      const jsonUser = JSON.parse(user ?? '');
 
-      formData.append("gid", jsonUser.id);
+      formData.append("gid", parseInt(jsonUser.id));
 
       loading.value = true;
 
@@ -112,8 +112,21 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         
         const response = await api.post('/people-create', formData, {headers: {"Content-Type": "multipart/form-data"}});
 
-        console.log(response.data);
-        
+        if(response.status == 201){
+          
+
+          const dataUser: User = response.data.data;
+          appUserData.value = JSON.stringify(dataUser);
+          userToken.value = response.data.token;
+
+          window.location.href = '/dashboard';
+
+        }else{
+          ElMessage.error(response?.data?.message);
+        }
+
+
+
       } catch (error) {
         ElMessage.error(error.response?.data?.message);
       } finally {
@@ -131,6 +144,11 @@ const resetForm = (formEl: FormInstance | undefined) => {
   if (!formEl) return
   formEl.resetFields()
 }
+
+onMounted(() => {
+  const jsonUser = JSON.parse(user || '');
+  ruleForm.email = jsonUser.email;
+})
 
 </script>
 
@@ -172,8 +190,8 @@ const resetForm = (formEl: FormInstance | undefined) => {
             </el-form-item>
             <el-form-item label="Gender" prop="gender">
               <el-radio-group v-model="ruleForm.gender">
-                <el-radio value="Pria">Pria</el-radio>
-                <el-radio value="Wanita">Wanita</el-radio>
+                <el-radio value="pria">Pria</el-radio>
+                <el-radio value="wanita">Wanita</el-radio>
               </el-radio-group>
             </el-form-item>
             <el-form-item>

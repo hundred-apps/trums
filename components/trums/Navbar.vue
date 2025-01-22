@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { useFlowbite } from "~/composables/useFlowbite";
-import { initFlowbite } from "flowbite";
+// import { useFlowbite } from "~/composables/useFlowbite";
+// import { initFlowbite } from "flowbite";
 import { ref, onMounted } from "vue";
 
 const { t } = useI18n();
@@ -186,13 +186,11 @@ const menuSidebar = [
   },
 ];
 onMounted(async () => {
-  useFlowbite(() => {
-    initFlowbite();
-  });
+  // useFlowbite(() => {
+  //   initFlowbite();
+  // });
 });
 
-const oidc = useOidc();
-const { $oidc } = useNuxtApp();
 </script>
 
 <style scoped>
