@@ -2,7 +2,6 @@
 import { ref, onMounted } from "vue";
 import { useApi } from "~/composables/useApi";
 import { useRouter } from "vue-router";
-import { initFlowbite } from "flowbite";
 import Swal from "sweetalert2";
 
 const router = useRouter();
@@ -43,7 +42,6 @@ const fetchData = async () => {
 
 onMounted(async () => {
   await fetchData();
-  initFlowbite();
 });
 
 const deleteData = async (unique_id: number) => {

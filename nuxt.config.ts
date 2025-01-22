@@ -7,6 +7,7 @@ export default defineNuxtConfig({
   runtimeConfig: {
     public: {
       baseURL: process.env.NUXT_API_URL, // Base URL untuk API
+      baseImageURL: process.env.NUXT_API_IMAGE_URL, // Base URL untuk image
     },
   },
   app: {
