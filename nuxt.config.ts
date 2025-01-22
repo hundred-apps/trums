@@ -4,6 +4,11 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   ssr: false,
   pages: true,
+  runtimeConfig: {
+    public: {
+      baseURL: process.env.NUXT_API_URL, // Base URL untuk API
+    },
+  },
   app: {
     head: {
       script: [
@@ -27,6 +32,11 @@ export default defineNuxtConfig({
     "nuxt-openid-connect",
     "@element-plus/nuxt",
   ],
+
+  css: ["element-plus/theme-chalk/dark/css-vars.css"],
+  // build: {
+  //   transpile: ['element-plus']
+  // },
 
   tailwindcss: {
     cssPath: ["~/assets/css/input.css", { injectPosition: "first" }],
@@ -88,33 +98,30 @@ export default defineNuxtConfig({
   openidConnect: {
     addPlugin: true,
     op: {
-      issuer: process.env.NUXT_OPENID_CONNECT_OP_ISSUER || '',
-      clientId: process.env.NUXT_OPENID_CONNECT_OP_CLIENT_ID || '',
-      clientSecret: process.env.NUXT_OPENID_CONNECT_OP_CLIENT_SECRET || '',
-      callbackUrl: process.env.NUXT_OPENID_CONNECT_OP_CALLBACK_URL || '',   // deprecated from 0.8.0
-      scope: [
-        'email',
-        'profile',
-        'address'
-      ]
+      issuer: process.env.NUXT_OPENID_CONNECT_OP_ISSUER || "",
+      clientId: process.env.NUXT_OPENID_CONNECT_OP_CLIENT_ID || "",
+      clientSecret: process.env.NUXT_OPENID_CONNECT_OP_CLIENT_SECRET || "",
+      callbackUrl: process.env.NUXT_OPENID_CONNECT_OP_CALLBACK_URL || "", // deprecated from 0.8.0
+      scope: ["email", "profile", "address"],
     },
     config: {
       debug: false, // optional, default is false
-      response_type: 'code', // or 'code'
-      secret: 'oidc._sessionid',
-      cookie: { loginName: '' },
-      cookiePrefix: 'oidc._',
+      response_type: "code", // or 'code'
+      secret: "oidc._sessionid",
+      cookie: { loginName: "" },
+      cookiePrefix: "oidc._",
       cookieEncrypt: true,
-      cookieEncryptKey: 'bfnuxt9c2470cb477d907b1e0917oidc', // 32
-      cookieEncryptIV: 'ab83667c72eec9e4', // 16
-      cookieEncryptALGO: 'aes-256-cbc',
+      cookieEncryptKey: "bfnuxt9c2470cb477d907b1e0917oidc", // 32
+      cookieEncryptIV: "ab83667c72eec9e4", // 16
+      cookieEncryptALGO: "aes-256-cbc",
       cookieMaxAge: 24 * 60 * 60, //  default one day
-      cookieFlags: { // default is empty 
-        access_token: { 
-          httpOnly: true,
+      cookieFlags: {
+        // default is empty
+        access_token: {
+          httpOnly: false,
           secure: false,
-        }
-      }
-    }
-  }
+        },
+      },
+    },
+  },
 });

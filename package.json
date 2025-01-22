@@ -21,8 +21,6 @@
     "@vueuse/nuxt": "^11.1.0",
     "apexcharts": "^4.3.0",
     "axios": "^1.7.9",
-    "element-plus": "^2.9.3",
-    "flowbite": "^2.5.2",
     "nuxt": "^3.13.0",
     "nuxt-openid-connect": "^0.8.1",
     "nuxt-twemoji": "^3.6.2",
@@ -36,12 +34,14 @@
     "yup": "^1.6.1"
   },
   "devDependencies": {
+    "@element-plus/nuxt": "^1.1.1",
     "@iconify-json/heroicons": "^1.2.0",
     "@iconify-json/uil": "^1.2.0",
     "@nuxt/icon": "^1.5.1",
     "@nuxtjs/color-mode": "^3.5.1",
     "@nuxtjs/i18n": "^8.0.0",
     "@nuxtjs/tailwindcss": "^6.12.1",
+    "element-plus": "^2.9.3",
     "nuxt-headlessui": "^1.2.0"
   }
 }
