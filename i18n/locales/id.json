@@ -12,6 +12,7 @@
     "inventory": "Penyimpanan",
     "sales": "Sales",
     "setting": "Pengaturan",
+    "profile": "Profil",
     "supplyChain": "Supply Chain",
     "submenu": {
       "assets": "Asset",
@@ -56,29 +57,9 @@
     "login": "Masuk",
     "logout": "Keluar",
     "send": "Kirim",
-    "save": "Simpan"
-  },
-  "tabs": {
-    "usecc": {
-      "organization": {
-        "button": "Untuk Perusahaan",
-        "header": { "title": "", "subtitle": "" },
-        "body": { "title": "", "text": "" },
-        "footer": { "title": "", "subtitle": "" }
-      },
-      "home": {
-        "button": "Untuk Rumah",
-        "header": { "title": "", "subtitle": "" },
-        "body": { "title": "", "text": "" },
-        "footer": { "title": "", "subtitle": "" }
-      },
-      "education": {
-        "button": "Untuk Pendidikan",
-        "header": { "title": "", "subtitle": "" },
-        "body": { "title": "", "text": "" },
-        "footer": { "title": "", "subtitle": "" }
-      }
-    }
+    "save": "Simpan",
+    "cancel": "Batal",
+    "edit": "Ubah"
   },
   "form": {
     "label": {
@@ -107,6 +88,29 @@
       "email": "Alamat email anda",
       "phoneNumber": "08xxxxx",
       "password": "Masukkan kata sandi"
+    }
+  },
+
+  "tabs": {
+    "usecc": {
+      "organization": {
+        "button": "Untuk Perusahaan",
+        "header": { "title": "", "subtitle": "" },
+        "body": { "title": "", "text": "" },
+        "footer": { "title": "", "subtitle": "" }
+      },
+      "home": {
+        "button": "Untuk Rumah",
+        "header": { "title": "", "subtitle": "" },
+        "body": { "title": "", "text": "" },
+        "footer": { "title": "", "subtitle": "" }
+      },
+      "education": {
+        "button": "Untuk Pendidikan",
+        "header": { "title": "", "subtitle": "" },
+        "body": { "title": "", "text": "" },
+        "footer": { "title": "", "subtitle": "" }
+      }
     }
   }
 }

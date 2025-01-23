@@ -12,6 +12,7 @@
     "inventory": "Inventory",
     "sales": "Sales",
     "setting": "Setting",
+    "profile": "Profile",
     "supplyChain": "Supply Chain",
     "submenu": {
       "assets": "Assets",
@@ -56,29 +57,9 @@
     "login": "Login",
     "logout": "Logout",
     "send": "Send",
-    "save": "Save"
-  },
-  "tabs": {
-    "usecc": {
-      "organization": {
-        "button": "For Organization",
-        "header": { "title": "", "subtitle": "" },
-        "body": { "title": "", "text": "" },
-        "footer": { "title": "", "subtitle": "" }
-      },
-      "home": {
-        "button": "For Home",
-        "header": { "title": "", "subtitle": "" },
-        "body": { "title": "", "text": "" },
-        "footer": { "title": "", "subtitle": "" }
-      },
-      "education": {
-        "button": "For Education",
-        "header": { "title": "", "subtitle": "" },
-        "body": { "title": "", "text": "" },
-        "footer": { "title": "", "subtitle": "" }
-      }
-    }
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit"
   },
   "form": {
     "label": {
@@ -106,6 +87,29 @@
       "email": "Your email address",
       "phoneNumber": "08xxxxx",
       "password": "Enter your password"
+    }
+  },
+
+  "tabs": {
+    "usecc": {
+      "organization": {
+        "button": "For Organization",
+        "header": { "title": "", "subtitle": "" },
+        "body": { "title": "", "text": "" },
+        "footer": { "title": "", "subtitle": "" }
+      },
+      "home": {
+        "button": "For Home",
+        "header": { "title": "", "subtitle": "" },
+        "body": { "title": "", "text": "" },
+        "footer": { "title": "", "subtitle": "" }
+      },
+      "education": {
+        "button": "For Education",
+        "header": { "title": "", "subtitle": "" },
+        "body": { "title": "", "text": "" },
+        "footer": { "title": "", "subtitle": "" }
+      }
     }
   }
 }

@@ -15,10 +15,16 @@ import {
 import { useRouter } from "vue-router";
 
 const config = useRuntimeConfig();
+const { t } = useI18n();
 
 const router = useRouter();
 const userdata = ref<userData | null>(null);
 const imageUrl = config.public.baseImageURL;
+
+const navigateToSetting = (name = "") => {
+  const path = `/setting/profile/${name}`;
+  router.push({ path });
+};
 
 const user = useCookie("userdata");
 
@@ -69,16 +75,18 @@ const handleMenuClick = (menuKey: string) => {
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item class="hover:text-blue-500"
-                >Profile</el-dropdown-item
-              >
-              <el-dropdown-item class="hover:text-blue-500">
-                <TrumsLink to="/setting">
-                  {{ $t("menu.setting") }}
+              <el-dropdown-item
+                ><TrumsLink @click="navigateToSetting(userdata?.name)">
+                  {{ t("menu.profile") }}
                 </TrumsLink></el-dropdown-item
-              ><el-dropdown-item class="hover:text-blue-500">
+              >
+              <el-dropdown-item>
+                <TrumsLink to="/setting">
+                  {{ t("menu.setting") }}
+                </TrumsLink></el-dropdown-item
+              ><el-dropdown-item>
                 <TrumsLink to="/">
-                  {{ $t("buttons.logout") }}
+                  {{ t("buttons.logout") }}
                 </TrumsLink></el-dropdown-item
               >
             </el-dropdown-menu>
