@@ -190,15 +190,14 @@ onMounted(async () => {
   //   initFlowbite();
   // });
 });
-
 </script>
 
 <style scoped>
 .router-link-active {
-  @apply text-primary-500;
+  @apply text-blue-500;
 }
 .router-link-active:hover {
-  @apply text-primary-600;
+  @apply text-blue-600;
 }
 </style>
 
@@ -314,7 +313,7 @@ onMounted(async () => {
     >
       <TrumsLink
         to="/"
-        class="font-bold text-xl text-primary-500 flex gap-2 items-center"
+        class="font-bold text-xl text-blue-500 flex gap-2 items-center"
       >
         <img
           v-if="$colorMode.value === 'dark'"
@@ -332,7 +331,7 @@ onMounted(async () => {
       </TrumsLink>
       <div class="pl-4 flex space-x-3 text-xl">
         <TrumsLink
-          class="text-gray-600 dark:text-white hover:text-primary-500"
+          class="text-gray-600 dark:text-white hover:text-blue-500"
           @click.prevent="() => (showDrawer = !showDrawer)"
         >
           <Icon name="heroicons:bars-3-bottom-right-20-solid" />

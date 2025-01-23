@@ -22,11 +22,9 @@ const availableThemes = [
   },
 ];
 
-
 const changeTheme = (theme) => {
   console.log(theme);
-}
-
+};
 </script>
 
 <template>
@@ -61,7 +59,7 @@ const changeTheme = (theme) => {
           :value="theme.key"
           :class="{
             'py-2 px-2 flex items-center cursor-pointer': true,
-            'text-primary-500 bg-gray-100 dark:bg-gray-600/30':
+            'text-blue-500 bg-gray-100 dark:bg-gray-600/30':
               $colorMode.preference === theme.key,
             'hover:bg-gray-50 dark:hover:bg-gray-700/30':
               $colorMode.preference !== theme.key,

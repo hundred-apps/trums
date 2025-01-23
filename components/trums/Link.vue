@@ -20,13 +20,13 @@ const to = toRef(props, "to");
 </script>
 
 <template>
-  <NuxtLinkLocale v-if="to" tag="a" :to="to" :class="`hover:text-primary-500`">
+  <NuxtLinkLocale v-if="to" tag="a" :to="to" :class="`hover:text-blue-500`">
     <slot>{{ text }}</slot>
   </NuxtLinkLocale>
-  <a v-else-if="!href" :class="`hover:text-primary-500`" href="#">
+  <a v-else-if="!href" :class="`hover:text-blue-500`" href="#">
     <slot>{{ text }}</slot>
   </a>
-  <a v-else :class="`hover:text-primary-500 `" :href="href">
+  <a v-else :class="`hover:text-blue-500 `" :href="href">
     <slot>{{ text }}</slot>
   </a>
 </template>

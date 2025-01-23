@@ -19,6 +19,8 @@ const user = localStorage.getItem("oidc._user");
 const appUserData = useCookie("userdata");
 const userToken = useCookie("token");
 
+const { t } = useI18n();
+
 definePageMeta({
   middleware: "auth",
   layout: false,
@@ -47,12 +49,18 @@ const ruleForm = reactive<RuleForm>({
 const genderOptions = ["Pria", "Wanita"];
 
 const rules = reactive<FormRules<RuleForm>>({
-  name: [{ required: true, message: "Masukan nama anda", trigger: "blur" }],
+  name: [
+    {
+      required: true,
+      message: `${t("form.validate.name")}`,
+      trigger: "blur",
+    },
+  ],
   email: [
-    { required: true, message: "Masukan email anda", trigger: "blur" },
+    { required: true, message: `${t("form.validate.email")}`, trigger: "blur" },
     {
       type: "email",
-      message: "Please input correct email address",
+      message: `${t("form.validate.emailAddress")}`,
       trigger: ["blur", "change"],
     },
   ],
@@ -65,7 +73,13 @@ const rules = reactive<FormRules<RuleForm>>({
       trigger: ["blur", "change"],
     },
   ],
-  gender: [{ required: true, message: "Pilih Pria/Wanita", trigger: "change" }],
+  gender: [
+    {
+      required: true,
+      message: `${t("form.validate.gender")}`,
+      trigger: "change",
+    },
+  ],
 });
 
 // const fetchData = async () => {
@@ -152,6 +166,8 @@ const resetForm = (formEl: FormInstance | undefined) => {
   formEl.resetFields();
 };
 
+console.log("userdata: ", appUserData);
+
 onMounted(() => {
   const jsonUser = JSON.parse(user || "");
   ruleForm.email = jsonUser.email;
@@ -181,34 +197,64 @@ onMounted(() => {
           :rules="rules"
           label-width="auto"
           :size="formSize"
+          class="flex flex-col gap-1"
           status-icon
         >
-          <el-form-item label="Nama" prop="name" class="p-0">
-            <el-input v-model="ruleForm.name" class="p-0" />
+          <el-form-item
+            :label="`${t('form.label.name')}`"
+            prop="name"
+            class="p-0"
+          >
+            <el-input
+              v-model="ruleForm.name"
+              :placeholder="`${t('form.placeholder.name')}`"
+              class="p-0"
+            />
           </el-form-item>
-          <el-form-item label="Email" prop="email" class="p-0">
-            <el-input v-model="ruleForm.email" class="p-0" />
+          <el-form-item
+            :label="`${t('form.label.email')}`"
+            prop="email"
+            class="p-0"
+          >
+            <el-input
+              v-model="ruleForm.email"
+              :placeholder="`${t('form.placeholder.email')}`"
+              class="p-0"
+            />
           </el-form-item>
-          <el-form-item label="Nomor Telepon" prop="phone" class="p-0">
-            <el-input v-model="ruleForm.phone" class="p-0" />
+          <el-form-item
+            :label="`${t('form.label.phoneNumber')}`"
+            prop="phone"
+            class="p-0"
+          >
+            <el-input
+              v-model="ruleForm.phone"
+              :placeholder="`${t('form.placeholder.phoneNumber')}`"
+              class="p-0"
+            />
           </el-form-item>
-          <el-form-item label="Gender" prop="gender">
+          <el-form-item :label="`${t('form.label.gender')}`" prop="gender">
             <el-radio-group v-model="ruleForm.gender">
-              <el-radio value="pria">Pria</el-radio>
-              <el-radio value="wanita">Wanita</el-radio>
+              <el-radio value="pria">{{ t("form.label.genderMale") }}</el-radio>
+              <el-radio value="wanita">{{
+                t("form.label.genderFemale")
+              }}</el-radio>
             </el-radio-group>
           </el-form-item>
           <el-form-item>
-            <el-button
-              type="primary"
-              @click="submitForm(ruleFormRef)"
-              :loading="loading"
-            >
-              Create
-            </el-button>
-            <el-button @click="resetForm(ruleFormRef)" :loading="loading"
-              >Reset</el-button
-            >
+            <div class="flex-1">
+              <div class="flex justify-end">
+                <el-button @click="resetForm(ruleFormRef)" :loading="loading"
+                  >Reset</el-button
+                ><el-button
+                  type="primary"
+                  @click="submitForm(ruleFormRef)"
+                  :loading="loading"
+                >
+                  {{ $t("buttons.save") }}
+                </el-button>
+              </div>
+            </div>
           </el-form-item>
         </el-form>
       </el-card>

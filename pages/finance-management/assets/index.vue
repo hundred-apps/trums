@@ -80,21 +80,26 @@ const deleteData = async (unique_id: number) => {
           >
         </div>
         <div class="flex gap-4 w-full justify-end items-center">
-          <TrumsButtons
-            type="secondary"
-            padding="sm"
-            size="sm"
-            data-tooltip-target="tooltip-show"
-            data-tooltip-placement="left"
-            @click="toggleView"
+          <el-tooltip
+            :content="showTable ? 'Show grid' : 'Show Table'"
+            placement="left"
           >
-            <Icon
-              :name="
-                showTable ? 'si:grid-view-fill' : 'material-symbols:data-table'
-              "
-              size="30"
-            />
-          </TrumsButtons>
+            <TrumsButtons
+              type="secondary"
+              padding="sm"
+              size="sm"
+              @click="toggleView"
+            >
+              <Icon
+                :name="
+                  showTable
+                    ? 'si:grid-view-fill'
+                    : 'material-symbols:data-table'
+                "
+                size="30"
+              />
+            </TrumsButtons>
+          </el-tooltip>
 
           <div
             id="tooltip-show"

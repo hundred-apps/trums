@@ -23,10 +23,10 @@ function openTab(tabId) {
       <button
         v-for="tab in dataTab"
         :key="tab.id"
-        class="transition-all w-full flex justify-center items-center py-4 max-sm:py-2 px-4 -mb-px border-b-0 shadow-up dark:shadow-primaryUp rounded-t-xl text-primary-500"
+        class="transition-all w-full flex justify-center items-center py-4 max-sm:py-2 px-4 -mb-px border-b-0 shadow-up dark:shadow-primaryUp rounded-t-xl text-blue-500"
         :class="{
           'font-semibold': activeTab === tab.id,
-          'bg-primary-100 dark:bg-black dark:text-white': activeTab !== tab.id,
+          'bg-blue-100 dark:bg-black dark:text-white': activeTab !== tab.id,
           'mx-4': tab.id === 'tab2',
         }"
         @click="openTab(tab.id)"
@@ -84,9 +84,9 @@ function openTab(tabId) {
         <button
           v-for="innerTab in dataTab"
           :key="innerTab.id"
-          class="transition-all items-center py-2 max-sm:py-2 px-4 -mb-px rounded-md text-primary-700"
+          class="transition-all items-center py-2 max-sm:py-2 px-4 -mb-px rounded-md text-blue-700"
           :class="{
-            'font-semibold bg-primary-100': activeTab === innerTab.id,
+            'font-semibold bg-blue-100': activeTab === innerTab.id,
             'bg-gray-50 dark:bg-black dark:shadow-primaryUp':
               activeTab !== innerTab.id,
             'mx-4': innerTab.id === 'tab2',

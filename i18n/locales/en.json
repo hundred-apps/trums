@@ -55,7 +55,8 @@
     "getstarted": "Get Started!",
     "login": "Login",
     "logout": "Logout",
-    "send": "Send"
+    "send": "Send",
+    "save": "Save"
   },
   "tabs": {
     "usecc": {
@@ -81,7 +82,12 @@
   },
   "form": {
     "label": {
-      "email": "Your Email",
+      "name": "Name",
+      "email": "Email",
+      "phoneNumber": "Phone number",
+      "gender": "Gender",
+      "genderMale": "Male",
+      "genderFemale": "Female",
       "password": "Your Password",
       "rememberMe": "Remember Me",
       "forgotPassword": "Forgot Password?",
@@ -89,10 +95,16 @@
       "createAccount": "Create Account"
     },
     "validate": {
-      "required": "This field is required"
+      "required": "This field is required",
+      "name": "Input your name",
+      "email": "Input your email address",
+      "emailAddress": "Please input correct email address",
+      "gender": "Choose male or female gender"
     },
     "placeholder": {
-      "email": "Enter Your Email Address",
+      "name": "Your name",
+      "email": "Your email address",
+      "phoneNumber": "08xxxxx",
       "password": "Enter your password"
     }
   }

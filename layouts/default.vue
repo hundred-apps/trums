@@ -56,7 +56,7 @@ const handleMenuClick = (menuKey: string) => {
       <div class="toolbar flex gap-3 items-center">
         <TrumsSwitcherTheme />
         <TrumsSwitcherLang />
-        <el-dropdown trigger="click" class="hover:text-primary-500">
+        <el-dropdown trigger="click" class="hover:text-blue-500">
           <span class="text-base flex items-center gap-2">
             {{ userdata?.name }}
             <div class="h-[30px] w-[30px]">
@@ -69,12 +69,14 @@ const handleMenuClick = (menuKey: string) => {
           </span>
           <template #dropdown>
             <el-dropdown-menu>
-              <el-dropdown-item>Profile</el-dropdown-item>
-              <el-dropdown-item>
+              <el-dropdown-item class="hover:text-blue-500"
+                >Profile</el-dropdown-item
+              >
+              <el-dropdown-item class="hover:text-blue-500">
                 <TrumsLink to="/setting">
                   {{ $t("menu.setting") }}
                 </TrumsLink></el-dropdown-item
-              ><el-dropdown-item>
+              ><el-dropdown-item class="hover:text-blue-500">
                 <TrumsLink to="/">
                   {{ $t("buttons.logout") }}
                 </TrumsLink></el-dropdown-item
@@ -191,12 +193,12 @@ const handleMenuClick = (menuKey: string) => {
 <style scoped>
 .layout-container-demo .el-header {
   position: relative;
-  background-color: var(--el-color-primary-light-7);
+  background-color: var(--el-color-blue-light-7);
   color: var(--el-text-color-primary);
 }
 .layout-container-demo .el-aside {
   color: var(--el-text-color-primary);
-  background: var(--el-color-primary-light-8);
+  background: var(--el-color-blue-light-8);
 }
 .layout-container-demo .el-menu {
   border-right: none;

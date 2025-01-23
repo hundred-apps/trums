@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 const route = useRequestURL();
 const base_url = route.origin;
+const { t } = useI18n();
 </script>
 
 <template>
@@ -40,8 +41,10 @@ const base_url = route.origin;
           <TrumsButtons
             @click="$oidc.logout()"
             type="button"
-            class="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-4 py-2 text-center dark:bg-blue-600 dark:hover:bg-blue-700 dark:focus:ring-blue-800"
-            >Keluar</TrumsButtons
+            size="sm"
+            padding="sm"
+            class="text-white bg-red-700 hover:bg-red-800 focus:ring-4 focus:outline-none focus:ring-red-300 text-center dark:bg-red-600 dark:hover:bg-red-700 dark:focus:ring-red-800"
+            >{{ t("buttons.logout") }}</TrumsButtons
           >
         </div>
       </div>

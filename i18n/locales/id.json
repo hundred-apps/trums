@@ -55,7 +55,8 @@
     "getstarted": "Mulai Sekarang!",
     "login": "Masuk",
     "logout": "Keluar",
-    "send": "Kirim"
+    "send": "Kirim",
+    "save": "Simpan"
   },
   "tabs": {
     "usecc": {
@@ -81,7 +82,12 @@
   },
   "form": {
     "label": {
-      "email": "Email Anda",
+      "name": "Nama",
+      "email": "Email",
+      "phoneNumber": "Nomor telepon",
+      "gender": "Jenis kelamin",
+      "genderMale": "Laki-laki",
+      "genderFemale": "Wanita",
       "password": "Kata Sandi",
       "rememberMe": "Ingatkan Saya",
       "forgotPassword": "Lupa Kata Sandi?",
@@ -89,11 +95,17 @@
       "createAccount": "Buat Akun"
     },
     "validate": {
-      "required": "Field ini wajib di isi"
+      "required": "Field ini wajib di isi",
+      "name": "Masukan nama anda",
+      "email": "Masukan alamat email anda",
+      "emailAddress": "Silakan masukkan alamat email yang benar",
+      "gender": "Pilih laki-laki atau wanita"
     },
 
     "placeholder": {
-      "email": "Masukkan alamat email",
+      "name": "Nama anda",
+      "email": "Alamat email anda",
+      "phoneNumber": "08xxxxx",
       "password": "Masukkan kata sandi"
     }
   }
