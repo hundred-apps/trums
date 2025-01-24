@@ -68,17 +68,7 @@ const deleteData = async (unique_id: number) => {
   <TrumsWrapper>
     <div class="flex flex-col gap-4">
       <div class="flex justify-between items-center w-full pb-4">
-        <div class="flex gap-4 items-center">
-          <h2 class="text-gray-700 dark:text-white text-4xl">Asset</h2>
-          <TrumsButtons
-            type="primary"
-            padding="sm"
-            size="sm"
-            class="flex gap-1 items-center"
-            @click="navigateToForm('insert')"
-            ><Icon name="mdi:plus" size="20" /> Asset</TrumsButtons
-          >
-        </div>
+        <h2 class="text-gray-700 dark:text-white text-4xl">Asset</h2>
         <div class="flex gap-4 w-full justify-end items-center">
           <el-tooltip
             :content="showTable ? 'Show grid' : 'Show Table'"

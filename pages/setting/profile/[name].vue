@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { ref, onMounted, watch } from "vue";
+import { ref, onMounted } from "vue";
 import { type User as userData } from "~/types/user";
 import {
   type ComponentSize,
@@ -8,8 +8,13 @@ import {
   ElMessage,
   type UploadProps,
   type UploadUserFile,
+  ElNotification,
 } from "element-plus";
 import { useApi } from "~/composables/useApi";
+
+definePageMeta({
+  middleware: "app",
+});
 
 interface RuleForm {
   name: string;
@@ -26,6 +31,7 @@ const api = useApi();
 const userdata = ref<userData | null>(null);
 const imageUrl = ref("");
 const fileList = ref<UploadUserFile[]>([]);
+const user = localStorage.getItem("oidc._user");
 
 const config = useRuntimeConfig();
 const imageApiUrl = config.public.baseImageURL;
@@ -61,11 +67,11 @@ const rules = reactive<FormRules<RuleForm>>({
     },
   ],
   phone: [
-    { required: true, message: "Masukan Nomor Telepon anda", trigger: "blur" },
+    { required: true, message: `${t("form.validate.phone")}`, trigger: "blur" },
     {
       min: 11,
       max: 13,
-      message: "Nomer Telepon antara 11 atau 13 angka",
+      message: `${t("form.validate.phoneLength")}`,
       trigger: ["blur", "change"],
     },
   ],
@@ -107,6 +113,7 @@ const beforeAvatarUpload: UploadProps["beforeUpload"] = (rawFile) => {
 };
 
 const submitForm = async (formEl: FormInstance | undefined) => {
+  console.log("submit:", fileList);
   if (!formEl) return;
   await formEl.validate(async (valid, fields) => {
     if (valid) {
@@ -115,7 +122,9 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       formData.append("email", ruleForm.email);
       formData.append("phone", ruleForm.phone);
       formData.append("gender", ruleForm.gender);
-      formData.append("photo", fileList.value[0].raw);
+      if (fileList?.value?.length > 0) {
+        formData.append("photo", fileList?.value[0].raw);
+      }
 
       const jsonUser = JSON.parse(user ?? "");
 
@@ -129,11 +138,16 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         });
 
         if (response.status == 201) {
-          const dataUser: User = response.data.data;
+          const dataUser: userData = response.data.data;
           appUserData.value = JSON.stringify(dataUser);
           userToken.value = response.data.token;
-
-          window.location.href = `/setting/profile/${userdata.value?.name}`;
+          ElNotification({
+            title: "Success",
+            message: "Update user",
+            type: "success",
+            duration: 2000,
+          });
+          window.location.href = `/setting/profile/${ruleForm.name}`;
         } else {
           ElMessage.error(response?.data?.message);
         }
@@ -143,6 +157,12 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         loading.value = false;
       }
     } else {
+      ElNotification({
+        title: "Error!",
+        type: "error",
+        message: "Silahkan isi dengan benar!",
+        duration: 2000,
+      });
       console.log("error submit!", fields);
     }
   });
@@ -162,8 +182,13 @@ const resetForm = (formEl: FormInstance | undefined) => {
   ruleForm.email = formEl.email;
   ruleForm.phone = formEl.phone;
   ruleForm.gender = formEl.gender;
+  imageUrl.value = "";
 };
-
+const cancelForm = (formEl: FormInstance | undefined) => {
+  resetForm(formEl);
+  toggleEdit();
+};
+console.log("test:", fileList);
 onMounted(() => {
   userdata.value = appUserData.value as unknown as userData;
   srcList.value.push(imageApiUrl + "/" + userdata.value?.photo?.filename);
@@ -205,6 +230,7 @@ onMounted(() => {
           :min-scale="0.2"
           :preview-src-list="srcList"
           :initial-index="0"
+          loading="lazy"
           fit="contain"
         />
       </div>
@@ -267,7 +293,7 @@ onMounted(() => {
             <div v-if="isEdit" class="flex justify-end">
               <el-button
                 type="danger"
-                @click="toggleEdit()"
+                @click="cancelForm(ruleFormRef)"
                 :loading="loading"
                 >{{ t("buttons.cancel") }}</el-button
               ><el-button @click="resetForm(ruleFormRef)" :loading="loading"

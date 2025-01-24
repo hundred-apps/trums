@@ -80,7 +80,9 @@
       "name": "Masukan nama anda",
       "email": "Masukan alamat email anda",
       "emailAddress": "Silakan masukkan alamat email yang benar",
-      "gender": "Pilih laki-laki atau wanita"
+      "gender": "Pilih laki-laki atau wanita",
+      "phone": "Masukan nomer telepon",
+      "phoneLength": "Silahkan masukan nomer telepon antara 11 atau 13 angka"
     },
 
     "placeholder": {

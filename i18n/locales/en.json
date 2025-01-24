@@ -80,7 +80,9 @@
       "name": "Input your name",
       "email": "Input your email address",
       "emailAddress": "Please input correct email address",
-      "gender": "Choose male or female gender"
+      "gender": "Choose male or female gender",
+      "phone": "Input your phone number",
+      "phoneLength": "Please input a phone number 11 or 13 characters"
     },
     "placeholder": {
       "name": "Your name",

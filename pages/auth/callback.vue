@@ -63,11 +63,11 @@ const rules = reactive<FormRules<RuleForm>>({
     },
   ],
   phone: [
-    { required: true, message: "Masukan Nomor Telepon anda", trigger: "blur" },
+    { required: true, message: `${t("form.validate.phone")}`, trigger: "blur" },
     {
       min: 11,
       max: 13,
-      message: "Nomer Telepon antara 11 atau 13 angka",
+      message: `${t("form.validate.phoneLength")}`,
       trigger: ["blur", "change"],
     },
   ],

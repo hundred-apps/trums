@@ -1,30 +1,28 @@
 <script lang="ts" setup>
-import { ref, onMounted } from 'vue'
+import { ref } from "vue";
 
 // Use SSR-safe IDs for Headless UI
 provideHeadlessUseId(() => useId());
 
-const theme = ref('')
+const theme = ref("");
 
-const mode = useCookie('color-mode')
+const mode = useCookie("color-mode");
 
 console.log(mode);
 
 // onMounted(() => {
 //   const savedTheme = localStorage.getItem('theme')
-  // if (savedTheme) {
-  //   theme.value = savedTheme
-  //   document.documentElement.classList.toggle('dark', savedTheme === 'dark')
-  // } else {
-  //   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
-  //   theme.value = prefersDark ? 'dark' : 'light'
-  //   document.documentElement.classList.toggle('dark', prefersDark)
-  // }
-  
+// if (savedTheme) {
+//   theme.value = savedTheme
+//   document.documentElement.classList.toggle('dark', savedTheme === 'dark')
+// } else {
+//   const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
+//   theme.value = prefersDark ? 'dark' : 'light'
+//   document.documentElement.classList.toggle('dark', prefersDark)
+// }
+
 // })
-
 </script>
-
 
 <template>
   <Body
