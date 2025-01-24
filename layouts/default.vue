@@ -111,9 +111,13 @@ const handleMenuClick = (menuKey: string) => {
               <el-menu-item index="/inventory-management/inventories"
                 >Inventory</el-menu-item
               >
-              <el-menu-item index="2-2">Inquiry</el-menu-item>
-              <el-menu-item index="2-3">Check In</el-menu-item>
-              <el-menu-item index="2-4">Check Out</el-menu-item>
+              <el-menu-item index="/inventory-management/inqueiries"
+                >Inquiry</el-menu-item
+              >
+              <el-menu-item index="2-3">Check In/Out</el-menu-item>
+              <el-menu-item index="/inventory-management/location"
+                >Lokasi</el-menu-item
+              >
             </el-menu-item-group>
           </el-sub-menu>
           <el-sub-menu index="3">
@@ -121,7 +125,9 @@ const handleMenuClick = (menuKey: string) => {
               <el-icon><DocumentChecked /></el-icon>Inspection & Maintenance
             </template>
             <el-menu-item-group>
-              <el-menu-item index="3-1">Inspection</el-menu-item>
+              <el-menu-item index="/inspection-maintenance/inspection"
+                >Inspection</el-menu-item
+              >
               <el-menu-item index="3-2">Maintenance</el-menu-item>
             </el-menu-item-group>
           </el-sub-menu>

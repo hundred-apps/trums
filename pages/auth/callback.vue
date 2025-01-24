@@ -20,6 +20,7 @@ const appUserData = useCookie("userdata");
 const userToken = useCookie("token");
 
 const { t } = useI18n();
+const config = useRuntimeConfig();
 
 definePageMeta({
   middleware: "auth",
@@ -126,7 +127,10 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       formData.append("email", ruleForm.email);
       formData.append("phone", ruleForm.phone);
       formData.append("gender", ruleForm.gender);
-      formData.append("photo", fileList.value[0].raw);
+
+      if (fileList.value.length > 0) {
+        formData.append("photo", fileList.value[0].raw);
+      }
 
       const jsonUser = JSON.parse(user ?? "");
 
@@ -148,7 +152,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         } else {
           ElMessage.error(response?.data?.message);
         }
-      } catch (error) {
+      } catch (error: any) {
         ElMessage.error(error.response?.data?.message);
       } finally {
         loading.value = false;
@@ -164,9 +168,30 @@ const resetForm = (formEl: FormInstance | undefined) => {
   formEl.resetFields();
 };
 
+const getUser = async () => {
+  loading.value = true;
+  try {
+    const jsonUser = JSON.parse(user || "");
+    const response = await api.get(`people-read/${jsonUser.id}`);
+
+    console.log(config.public.baseBE);
+    ruleForm.phone = response.data.data.phone;
+    ruleForm.gender = response.data.data.gender;
+    ruleForm.name = response.data.data.name;
+    imageUrl.value = `${config.public.baseBE}${response.data.data.photo.image_path}/${response.data.data.photo.filename}`;
+
+    console.log(imageUrl.value);
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.message);
+  } finally {
+    loading.value = false;
+  }
+};
+
 onMounted(() => {
   const jsonUser = JSON.parse(user || "");
   ruleForm.email = jsonUser.email;
+  getUser();
 });
 </script>
 
