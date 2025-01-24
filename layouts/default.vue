@@ -99,7 +99,7 @@ const handleMenuClick = (menuKey: string) => {
     >
       <el-scrollbar>
         <el-menu @select="handleMenuClick">
-          <el-menu-item index="2">
+          <el-menu-item index="/dashboard">
             <el-icon><icon-menu /></el-icon>
             <span>Dashboard</span>
           </el-menu-item>

@@ -10,6 +10,7 @@ import {
   type UploadUserFile,
   ElNotification,
 } from "element-plus";
+import { Plus } from "@element-plus/icons-vue";
 import { useApi } from "~/composables/useApi";
 
 definePageMeta({
@@ -24,7 +25,8 @@ interface RuleForm {
 }
 
 const { t } = useI18n();
-
+const route = useRequestURL();
+const base_url = route.origin;
 const appUserData = useCookie("userdata");
 const userToken = useCookie("token");
 const api = useApi();
@@ -38,6 +40,10 @@ const imageApiUrl = config.public.baseImageURL;
 const loading = ref<boolean>(false);
 
 const srcList = ref([]);
+const filenamePhoto = ref("");
+const srcPhotoApi = ref("");
+const srcPhotoDefault = base_url + "/images/default/profile.jpg";
+const srcPhoto = ref("");
 
 const isEdit = ref(false);
 
@@ -113,7 +119,6 @@ const beforeAvatarUpload: UploadProps["beforeUpload"] = (rawFile) => {
 };
 
 const submitForm = async (formEl: FormInstance | undefined) => {
-  console.log("submit:", fileList);
   if (!formEl) return;
   await formEl.validate(async (valid, fields) => {
     if (valid) {
@@ -163,7 +168,6 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         message: "Silahkan isi dengan benar!",
         duration: 2000,
       });
-      console.log("error submit!", fields);
     }
   });
 };
@@ -184,18 +188,82 @@ const resetForm = (formEl: FormInstance | undefined) => {
   ruleForm.gender = formEl.gender;
   imageUrl.value = "";
 };
+
 const cancelForm = (formEl: FormInstance | undefined) => {
   resetForm(formEl);
   toggleEdit();
 };
-console.log("test:", fileList);
+
+const deleteUser = () => {
+  const jsonUser = JSON.parse(user ?? "");
+  api
+    .delete(`/people-delete/${jsonUser.id}`, {
+      headers: {
+        Authorization: `Bearer ${userToken.value}`,
+      },
+    })
+    .then((response) => {
+      if (response.status === 200) {
+        ElNotification({
+          title: "Success",
+          message: "Delete user",
+          type: "success",
+          duration: 2000,
+        });
+        localStorage.removeItem("oidc._user");
+        window.location.href = "/";
+      } else {
+        ElMessage.error(response?.data?.message);
+      }
+    });
+};
+
+const deletePhoto = () => {
+  api
+    .delete(`/file-delete/${userdata.value?.photo?.unique_id}`, {
+      headers: {
+        Authorization: `Bearer ${userToken.value}`,
+      },
+    })
+    .then((response) => {
+      if (response.status === 200) {
+        ElNotification({
+          title: "Success",
+          message: "Delete photo",
+          type: "success",
+          duration: 2000,
+        });
+        imageUrl.value = "";
+        refreshNuxtData();
+      } else {
+        ElMessage.error(response?.data?.message);
+      }
+    });
+};
+
 onMounted(() => {
   userdata.value = appUserData.value as unknown as userData;
-  srcList.value.push(imageApiUrl + "/" + userdata.value?.photo?.filename);
   ruleForm.name = userdata.value?.name;
   ruleForm.email = userdata.value?.email;
   ruleForm.phone = userdata.value?.phone;
   ruleForm.gender = userdata.value?.gender;
+
+  if (userdata.value?.photo !== null) {
+    filenamePhoto.value = userdata.value?.photo?.filename;
+    srcPhotoApi.value = imageApiUrl + "/" + filenamePhoto.value;
+  }
+
+  if (filenamePhoto.value === undefined) {
+    srcPhoto.value = srcPhotoDefault;
+    srcList.value.push(srcPhotoDefault);
+  } else {
+    srcPhoto.value = srcPhotoApi.value;
+    srcList.value.push(srcPhotoApi).value;
+  }
+  console.log("src:", srcPhoto);
+  console.log("srcapi:", srcPhotoApi);
+  console.log("srcdef:", srcPhotoDefault);
+  console.log("filename", filenamePhoto);
 });
 </script>
 <template>
@@ -211,20 +279,27 @@ onMounted(() => {
           :on-change="handleChange"
         >
           <img v-if="imageUrl" :src="imageUrl" class="avatar" />
-          <img
-            v-else
-            :src="`${imageApiUrl}/${userdata?.photo?.filename}`"
-            class="avatar"
-          />
+          <el-icon
+            v-else-if="filenamePhoto === undefined"
+            class="avatar-uploader-icon"
+            ><Plus
+          /></el-icon>
+          <img v-else :src="srcPhotoApi" class="avatar" />
           <div class="overlay">
-            <div class="text-overlay">Change Image</div>
+            <div
+              v-if="filenamePhoto === undefined && !imageUrl"
+              class="text-overlay"
+            >
+              Add Image
+            </div>
+            <div v-else class="text-overlay">Change Image</div>
           </div>
         </el-upload>
       </div>
       <div v-else class="flex justify-center mb-4">
         <el-image
           class="profile rounded-lg"
-          :src="`${imageApiUrl}/${userdata?.photo?.filename}`"
+          :src="srcPhoto"
           :zoom-rate="1.2"
           :max-scale="7"
           :min-scale="0.2"
@@ -233,6 +308,15 @@ onMounted(() => {
           loading="lazy"
           fit="contain"
         />
+        <TrumsButtons
+          v-if="filenamePhoto !== undefined"
+          type="danger"
+          class="absolute ml-[230px]"
+          padding="xs"
+          size="sm"
+          @click="deletePhoto()"
+          ><Icon name="uil:trash"
+        /></TrumsButtons>
       </div>
       <el-form
         :inline="true"
