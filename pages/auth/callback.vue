@@ -11,6 +11,7 @@ const api = useApi();
 const user = localStorage.getItem('oidc._user');
 const appUserData = useCookie('userdata')
 const userToken = useCookie('token')
+const config = useRuntimeConfig();
 
 definePageMeta({
     middleware: "auth",
@@ -32,10 +33,10 @@ const loading = ref<boolean>(false);
 const formSize = ref<ComponentSize>('default')
 const ruleFormRef = ref<FormInstance>()
 const ruleForm = reactive<RuleForm>({
-  name: null,
-  phone: null,
-  gender: null,
-  email: null,
+  name: '',
+  phone: '',
+  gender: '',
+  email: '',
 })
 
 const genderOptions = ['Pria', 'Wanita'];
@@ -98,7 +99,12 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       formData.append("email", ruleForm.email);
       formData.append("phone", ruleForm.phone);
       formData.append("gender", ruleForm.gender);
-      formData.append("photo", fileList.value[0].raw);
+
+      if(fileList.value.length > 0){
+        formData.append("photo", fileList.value[0].raw);
+      }
+
+      
       
 
       const jsonUser = JSON.parse(user ?? '');
@@ -127,7 +133,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 
 
 
-      } catch (error) {
+      } catch (error: any) {
         ElMessage.error(error.response?.data?.message);
       } finally {
         loading.value = false;
@@ -145,9 +151,31 @@ const resetForm = (formEl: FormInstance | undefined) => {
   formEl.resetFields()
 }
 
+const getUser = async () => {
+  loading.value = true;
+  try {
+    const jsonUser = JSON.parse(user || '');
+    const response = await api.get(`people-read/${jsonUser.id}`);
+
+    console.log(config.public.baseBE);
+    ruleForm.phone = response.data.data.phone;
+    ruleForm.gender = response.data.data.gender;
+    ruleForm.name = response.data.data.name;
+    imageUrl.value = `${config.public.baseBE}${response.data.data.photo.image_path}/${response.data.data.photo.filename}`
+
+    console.log(imageUrl.value);
+
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.message);
+  } finally {
+    loading.value = false;
+  }
+}
+
 onMounted(() => {
   const jsonUser = JSON.parse(user || '');
   ruleForm.email = jsonUser.email;
+  getUser();
 })
 
 </script>
@@ -171,32 +199,34 @@ onMounted(() => {
           </el-upload>
         </div>
         <el-form
+            
             ref="ruleFormRef"
             :model="ruleForm"
             :rules="rules"
             label-width="auto"
             :size="formSize"
             status-icon
+
           >
 
             <el-form-item label="Nama" prop="name" class="p-0">
-              <el-input v-model="ruleForm.name" class="p-0" />
+              <el-input v-model="ruleForm.name" class="p-0" :disabled="loading" />
             </el-form-item>
             <el-form-item label="Email" prop="email" class="p-0">
-              <el-input v-model="ruleForm.email" class="p-0" />
+              <el-input v-model="ruleForm.email" class="p-0" :disabled="loading"/>
             </el-form-item>
             <el-form-item label="Nomor Telepon" prop="phone" class="p-0">
-              <el-input v-model="ruleForm.phone" class="p-0" />
+              <el-input v-model="ruleForm.phone" class="p-0" :disabled="loading" />
             </el-form-item>
             <el-form-item label="Gender" prop="gender">
-              <el-radio-group v-model="ruleForm.gender">
+              <el-radio-group v-model="ruleForm.gender" :disabled="loading">
                 <el-radio value="pria">Pria</el-radio>
                 <el-radio value="wanita">Wanita</el-radio>
               </el-radio-group>
             </el-form-item>
             <el-form-item>
               <el-button type="primary" @click="submitForm(ruleFormRef)" :loading="loading">
-                Create
+                Simpan
               </el-button>
               <el-button @click="resetForm(ruleFormRef)" :loading="loading">Reset</el-button>
             </el-form-item>

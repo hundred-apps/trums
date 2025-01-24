@@ -1,4 +1,7 @@
 <script lang="ts" setup>
+  definePageMeta({
+    middleware: ["auth", "app"],
+  });
   import { ref, onMounted } from 'vue';
   import type { Catalogue } from '~/types/catalogue';
   import { type Inventory } from '~/types/inventory';
@@ -59,18 +62,22 @@
 
   const fetchData = async () => {
     const catalogue: Catalogue = {
-            id: 1,
-            unique_id: '1',
-            unique_code: '001111',
-            name: 'Macbook pro 2017',
-            brand_id:null,
-            year: null,
-            sn: null,
-            description: null,
-            berat:null,
-            volume:null,
-            is_asset: null,
-            version: null
+      id: 1,
+      unique_id: '1',
+      unique_code: '001111',
+      name: 'Macbook pro 2017',
+      brand_id: null,
+      year: null,
+      sn: null,
+      description: null,
+      berat: null,
+      volume: null,
+      is_asset: null,
+      version: null,
+      created_at: null,
+      created_by: null,
+      updated_at: null,
+      file_catalogues: []
     }
 
     inventories.value = [
@@ -120,7 +127,7 @@
 <template>
   <el-row :gutter="20" class="mb-3">
     <el-col :span="6"><el-input v-model="search" size="large" placeholder="Type to search" /></el-col>
-    <el-button size="large" @click="$router.push('inventories/add')">Contact</el-button>
+    <el-button size="large" @click="$router.push('inventories/add')">New Inventory</el-button>
   </el-row>
   <el-table class="w-screen" @selection-change="handleSelectionChange" :lazy="true" :loading="loading" :data="filterTableData">
       <el-table-column type="selection" width="55"  />
@@ -130,7 +137,7 @@
         :prop="col.prop"
         :label="col.label"
         :sortable="col.sortable"
-        >
+      >
       </el-table-column>
       <el-table-column label="Operations">
         <template #default="scope">
