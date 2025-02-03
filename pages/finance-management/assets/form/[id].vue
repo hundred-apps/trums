@@ -5,7 +5,6 @@ import { Form, useForm } from "vee-validate";
 import * as yup from "yup";
 import { useI18n } from "vue-i18n";
 import { useApi } from "~/composables/useApi";
-import Swal from "sweetalert2";
 
 const { t } = useI18n();
 const route = useRoute();
@@ -132,11 +131,6 @@ const onSubmit = (values) => {
     .then((response) => {
       isLoading.value = false;
       console.log("Data berhasil dikirim!", response);
-      Swal.fire({
-        title: mode === "insert" ? "Berhasil Menambahkan" : "Berhasil Update",
-        // text: "kedashboard",
-        icon: "success",
-      });
       router.push({ path: "/finance-management/assets" });
     })
     .catch((error) => {

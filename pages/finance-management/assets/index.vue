@@ -2,7 +2,6 @@
 import { ref, onMounted } from "vue";
 import { useApi } from "~/composables/useApi";
 import { useRouter } from "vue-router";
-import Swal from "sweetalert2";
 
 const router = useRouter();
 
@@ -43,26 +42,6 @@ const fetchData = async () => {
 onMounted(async () => {
   await fetchData();
 });
-
-const deleteData = async (unique_id: number) => {
-  try {
-    const result = await Swal.fire({
-      title: "Are you sure?",
-      text: "You won't be able to revert this!",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Yes, delete it!",
-    });
-    if (result.isConfirmed) {
-      await api.delete(`/catalogues-delete/${unique_id}`);
-      Swal.fire("Deleted!", "The data has been deleted.", "success");
-      await fetchData();
-    }
-  } catch (error) {
-    console.error("Gagal menghapus data:", error);
-    Swal.fire("Error", "Failed to delete data.", "error");
-  }
-};
 </script>
 <template>
   <TrumsWrapper>
@@ -200,10 +179,7 @@ const deleteData = async (unique_id: number) => {
                 >
                   Edit
                 </button>
-                <button
-                  class="px-4 py-2 bg-red-500 text-white rounded"
-                  @click="deleteData(asset.unique_id)"
-                >
+                <button class="px-4 py-2 bg-red-500 text-white rounded">
                   Delete
                 </button>
                 <el-button type="primary">Primary</el-button>
