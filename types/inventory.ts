@@ -6,12 +6,13 @@ export type Inventory = {
     unique_code: string,
     catalogue_id: string,
     catalogue: Catalogue,
-    location_id: number,
-    is_traceable: number,
+    location_id: string,
+    is_traceable: boolean,
     sn: string,
     unit_id: number,
     unit_name: string,
     quantity: number,
     cost: number,
+    location: Catalogue|null
 
 }

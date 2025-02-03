@@ -6,27 +6,73 @@
   import type { Catalogue } from '~/types/catalogue';
   import { type Inventory } from '~/types/inventory';
   import { InfoFilled } from '@element-plus/icons-vue'
+  import type { RequestSearch } from '~/types/request_search';
+  import type { ResponsePagination } from '~/types/response_pagination';
+  const config = useRuntimeConfig()
+  
+  const fetchData = async () => {
+    loading.value = true;
+    try {
+      const response = await useFetch<ResponsePagination<Inventory[]>>(`${config.public.baseURL}/search`, {
+        key: 'inventories',
+        method: 'post',
+        body: request_search.value,
+      })
 
-  const inventories = ref<Inventory[]>([]);
+  
+      if(response.status.value == 'success'){
+        data.value = response.data.value;
+      }
+    } catch (error: any) {
+      ElMessage.error(`${error.response?.data?.message ?? 'Gagal Mengambil Data!'}`);
+      return [];
+    } finally {
+      loading.value = false;
+    }
+    
+  }
+
+  
+
   const loading = ref<boolean>(false);
+  const request_search = ref<RequestSearch>({
+    keyword: '',
+    column: null,
+    sort: null,
+    limit: "10",
+    offset: "1",
+    table: 'inventories',
+  });
   const search = ref('')
+  const axios = useApi();
+  const limit = ref(10);
+  const offset = ref(1);
 
+  const router = useRouter();
 
-  const filterTableData = computed(() =>
-    inventories.value.filter(
-      (data) =>
-        !search.value ||
-        data.unique_code.toLowerCase().includes(search.value.toLowerCase()) ||
-        data.unique_id.toLowerCase().includes(search.value.toLowerCase()) ||
-        data.catalogue.name?.toLowerCase().includes(search.value.toLowerCase())
-    )
-  )
+  // const filterTableData = computed(() => 
+    // (data.value ?? []).filter(
+    //   (value) =>
+    //     !search.value ||
+    //     value.unique_code.toLowerCase().includes(search.value.toLowerCase()) ||
+    //     value.unique_id.toLowerCase().includes(search.value.toLowerCase()) ||
+    //     value.catalogue.name?.toLowerCase().includes(search.value.toLowerCase())
+    // )
+  // )
+
+  // const { data } = await useAsyncData('inventories', fetchData);
+  const { data } = await useFetch<ResponsePagination<Inventory[]>>(`${config.public.baseURL}/search`, {
+    key: 'inventories',
+    method: 'post',
+    body: request_search.value,
+  });
+
 
 
   const columns = [
     {
-      label: 'Unique Code', 
-      prop: 'unique_code',
+      label: 'Serial Number', 
+      prop: 'sn',
       sortable: true,
     },
     {
@@ -35,7 +81,7 @@
     },
     {
       label: 'Location', 
-      prop: 'location'
+      prop: 'location.name'
     },
     {
       label: 'Quantity', 
@@ -48,88 +94,66 @@
     
   ]
 
-  const handleEdit = (row: any) => {
+  const handleEdit = (row: Inventory) => {
     console.log("Editing:", row);
+    const id = useCookie('unique_id');
+    id.value = row.unique_id;
+    router.push('inventories/add');
   };
 
-  const handleDelete = (row: any) => {
-    console.log("Deleting:", row);
+  const handleDelete = async (row: Inventory) => {
+    loading.value = true;
+    try {
+      const response = await useFetch(`${config.public.baseURL}/inventories-delete`, {
+        method: 'delete',
+        body: [row.unique_id],
+        lazy: true,
+      });
+      if(response.status.value == 'success'){
+        await refreshNuxtData('inventories');
+        ElMessage.success('Data Berhasil Dihapus');
+      }
+    } catch (error: any) {
+      ElMessage.error(`${error.response?.data?.message}`);
+    } finally {
+      loading.value = false;
+    }
   };
 
   const handleSelectionChange = (selection: any[]) => {
     console.log("Selected Rows:", selection);
   };
 
-  const fetchData = async () => {
-    const catalogue: Catalogue = {
-      id: 1,
-      unique_id: '1',
-      unique_code: '001111',
-      name: 'Macbook pro 2017',
-      brand_id: null,
-      year: null,
-      sn: null,
-      description: null,
-      berat: null,
-      volume: null,
-      is_asset: null,
-      version: null,
-      created_at: null,
-      created_by: null,
-      updated_at: null,
-      file_catalogues: []
-    }
+  
+  const onSearch = async(value: string) => {
+    console.log(request_search.value);
+    const data:RequestSearch = {...request_search.value};
+    data.keyword = value;
+    request_search.value = data;
 
-    inventories.value = [
-      {
-        id: 1,
-        catalogue: catalogue,
-        unique_id: '1',
-        unique_code: '001',
-        catalogue_id: '1',
-        location_id: 1,
-        is_traceable: 1,
-        sn: 'KDN12134124',
-        unit_id: 1,
-        unit_name: 'unit',
-        quantity: 1,
-        cost: 20.000000,
-      },
-      {
-        id: 1,
-        catalogue: catalogue,
-        unique_id: '1',
-        unique_code: '002',
-        catalogue_id: '1',
-        location_id: 1,
-        is_traceable: 1,
-        sn: 'KDN12134124',
-        unit_id: 1,
-        unit_name: 'unit',
-        quantity: 1,
-        cost: 20.000000,
-      }
-    ]
   }
 
+  watch(request_search, async (newValue) => {
+    console.log(newValue);
+  }, {immediate: true});
+  
 
   onMounted(() => {
-    
-    loading.value = true;
-    setTimeout(() => {
-      fetchData();
-      loading.value = false;
-    }, 2000);
+    // fetchData();
   })
   
 
 </script>
 <template>
   <el-row :gutter="20" class="mb-3">
-    <el-col :span="6"><el-input v-model="search" size="large" placeholder="Type to search" /></el-col>
-    <el-button size="large" @click="$router.push('inventories/add')">New Inventory</el-button>
+    <el-col :span="6"><el-input v-model="request_search.keyword"  size="large" placeholder="Type to search" /></el-col>
+    <el-button size="large" @click="() => {
+      const unique_id = useCookie('unique_id');
+      unique_id.value = null;
+      $router.push('inventories/add');
+    }">New Inventory</el-button>
   </el-row>
-  <el-table class="w-screen" @selection-change="handleSelectionChange" :lazy="true" :loading="loading" :data="filterTableData">
+  <el-table class="w-screen" @selection-change="handleSelectionChange" :data="data?.data" :loading="loading">
       <el-table-column type="selection" width="55"  />
       <el-table-column 
         v-for="col in columns" 

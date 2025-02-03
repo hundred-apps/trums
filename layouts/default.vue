@@ -1,8 +1,7 @@
 
 
 <template>
-    <div class="common-layout">
-        <el-container class="h-screen dark:bg-zinc-900 bg-white">
+    <el-container class="h-screen dark:bg-zinc-900 bg-white">
             <el-header class="flex items-center justify-between" style="text-align: right;">
                 <div class="flex items-center gap-3">
                     <img
@@ -64,7 +63,8 @@
                                 </template>
                                 <el-menu-item-group>
                                     <el-menu-item index="/inspection-maintenance/inspection">Inspection</el-menu-item>
-                                    <el-menu-item index="3-2">Maintenance</el-menu-item>
+                                    <el-menu-item index="/inspection-maintenance/inspection/kanban">Kanban</el-menu-item>
+                                    <el-menu-item index="/inspection-maintenance/maintenance">Maintenance</el-menu-item>
                                 </el-menu-item-group>
                                 
                             </el-sub-menu>
@@ -73,11 +73,11 @@
                                     <el-icon><DataAnalysis /></el-icon>Supply Chain Management
                                 </template>
                                 <el-menu-item-group>
-                                    <el-menu-item index="4-1">Purchase Request</el-menu-item>
-                                    <el-menu-item index="4-2">Canvassing</el-menu-item>
-                                    <el-menu-item index="4-3">Purchase Order</el-menu-item>
-                                    <el-menu-item index="4-4">Delivery</el-menu-item>
-                                    <el-menu-item index="4-5">Receive</el-menu-item>
+                                    <el-menu-item index="/supply-chain-management/purchase/request">Purchase Request</el-menu-item>
+                                    <el-menu-item index="/supply-chain-management/canvassing">Canvassing</el-menu-item>
+                                    <el-menu-item index="/supply-chain-management/purchase/order">Purchase Order</el-menu-item>
+                                    <el-menu-item index="/supply-chain-management/delivery">Delivery</el-menu-item>
+                                    <el-menu-item index="/supply-chain-management/receive">Receive</el-menu-item>
                                 </el-menu-item-group>
                                 
                             </el-sub-menu>
@@ -136,15 +136,12 @@
                     </el-scrollbar>
                 </el-aside>
                 <el-container>
-                    <el-main class="dark:bg-black bg-white">
-                        <el-scrollbar>
-                            <slot/>
-                        </el-scrollbar>
+                    <el-main class="dark:bg-black bg-white" >
+                        <slot/>
                     </el-main>
                 </el-container>
             </el-container>
         </el-container>
-    </div>
   </template>
   
   <script lang="ts" setup>

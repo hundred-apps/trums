@@ -1,17 +1,17 @@
 <script lang="tsx" setup>
-  definePageMeta({
-    middleware: ["auth", "app"],
-  });
+  
   import { ref, onMounted } from 'vue';
-  import { InfoFilled } from '@element-plus/icons-vue';
+  import { Eleme } from '@element-plus/icons-vue';
   import { type Column, type CheckboxValueType, type InputInstance, type MainInstance, ElButton, ElTag, ElText, ElCheckbox } from 'element-plus';
   import type { Inspection } from '~/types/inspection';
   import { formatDate } from '@vueuse/core';
   import type { FunctionalComponent } from 'vue'
-import CustomTable from '~/components/trums/table/customTable.vue';
-import type { Pagination } from '~/types/pagination';
+  import CustomTable from '~/components/trums/table/customTable.vue';
+  import type { Pagination } from '~/types/pagination';
 
-
+  definePageMeta({
+    middleware: ["auth", "app"],
+  });
 
   const inspections = ref<Inspection[]>([]);
   const inspectionsPaginate = ref<Pagination<Inspection[]>>();
@@ -180,13 +180,16 @@ import type { Pagination } from '~/types/pagination';
 
 </script>
 <template>
-  <el-row :gutter="20" class="mb-3">
-    <el-col :span="6"><el-input v-model="search" size="large" placeholder="Type to search" /></el-col>
-    <el-button size="large" @click="$router.push('inspection/add')">New Inspection</el-button>
-  </el-row>
-  <CustomTable :columns="columnInspection" :data="inspections" />
-  <div class="flex justify-end mt-3">
-    <el-pagination background layout="prev, pager, next" :total="inspectionsPaginate?.total_page" />
+  <div class="w-auto">
+    <el-row :gutter="20" class="mb-3">
+      <el-col :span="6"><el-input v-model="search" size="large" placeholder="Type to search" /></el-col>
+      <el-button size="large" @click="$router.push('inspection/add')">New Inspection</el-button>
+      <el-button size="large" @click="fetchData" :loading-icon="Eleme" :loading="loading">Reload Data</el-button>
+    </el-row>
+    <CustomTable :columns="columnInspection" :data="inspections" :loading="loading" />
+    <div class="flex justify-end mt-3">
+      <el-pagination background layout="prev, pager, next" :total="inspectionsPaginate?.total_page" />
+    </div>
   </div>
 </template>
 
