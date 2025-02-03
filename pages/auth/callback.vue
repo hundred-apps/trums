@@ -210,6 +210,10 @@ onMounted(() => {
           >
             <img v-if="imageUrl" :src="imageUrl" class="avatar" />
             <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
+            <div class="overlay">
+              <div v-if="!imageUrl" class="text-overlay">Add Image</div>
+              <div v-else class="text-overlay">Change Image</div>
+            </div>
           </el-upload>
         </div>
         <el-form

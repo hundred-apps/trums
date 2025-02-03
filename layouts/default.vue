@@ -62,7 +62,7 @@ const handleMenuClick = (menuKey: string) => {
       <div class="toolbar flex gap-3 items-center">
         <TrumsSwitcherTheme type="element" />
         <TrumsSwitcherLang type="element" />
-        <el-dropdown trigger="click" class="hover:text-blue-500">
+        <el-dropdown class="hover:text-blue-500">
           <span class="text-base flex items-center gap-2">
             {{ userdata?.name }}
             <div class="h-[30px] w-[30px]">
