@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+const { t } = useI18n();
+const colorMode = useColorMode();
 const props = defineProps({
   type: {
     type: String,
@@ -22,8 +24,8 @@ const availableThemes = [
   },
 ];
 
-const changeTheme = (theme) => {
-  console.log(theme);
+const handleThemeChange = (theme: string) => {
+  colorMode.preference = theme;
 };
 </script>
 
@@ -70,7 +72,7 @@ const changeTheme = (theme) => {
             <Icon v-else-if="theme.key === 'dark'" name="uil:moon" />
             <Icon v-else-if="theme.key === 'system'" name="uil:laptop" />
           </span>
-          {{ $t(`mode.${theme.text}`) }}
+          {{ t(`mode.${theme.text}`) }}
         </HeadlessListboxOption>
       </HeadlessListboxOptions>
     </HeadlessListbox>
@@ -84,8 +86,52 @@ const changeTheme = (theme) => {
         :key="theme.key"
         :value="theme.key"
       >
-        {{ $t(`mode.${theme.text}`) }}
+        {{ t(`mode.${theme.text}`) }}
       </option>
     </select>
+    <el-dropdown
+      placement="bottom"
+      v-if="currentStyle === 'element'"
+      v-model="$colorMode.preference"
+    >
+      <TrumsLink
+        class="dark:text-gray-400 text-gray-600 text-xl el-dropdown-link"
+      >
+        <span
+          class="transition-all flex justify-center items-center dark:hidden"
+        >
+          <Icon name="uil:sun" />
+        </span>
+        <span
+          class="transition-all justify-center items-center hidden dark:flex"
+        >
+          <Icon name="uil:moon" />
+        </span>
+      </TrumsLink>
+      <template #dropdown>
+        <el-dropdown-menu>
+          <el-dropdown-item
+            v-for="theme in availableThemes"
+            :key="theme.key"
+            :value="theme.key"
+            @click="handleThemeChange(theme.key)"
+            :class="{
+              'py-2 px-2 flex items-center cursor-pointer': true,
+              'text-blue-500 bg-gray-100 dark:bg-gray-600/30':
+                $colorMode.preference === theme.key,
+              'hover:bg-gray-50 dark:hover:bg-gray-700/30':
+                $colorMode.preference !== theme.key,
+            }"
+          >
+            <span class="text-sm mr-2 flex items-center">
+              <Icon v-if="theme.key === 'light'" name="uil:sun" />
+              <Icon v-else-if="theme.key === 'dark'" name="uil:moon" />
+              <Icon v-else-if="theme.key === 'system'" name="uil:laptop" />
+            </span>
+            {{ t(`mode.${theme.text}`) }}
+          </el-dropdown-item>
+        </el-dropdown-menu>
+      </template>
+    </el-dropdown>
   </div>
 </template>

@@ -36,8 +36,8 @@ const { t } = useI18n();
         <div
           class="flex gap-3 md:order-2 space-x-3 md:space-x-0 rtl:space-x-reverse"
         >
-          <TrumsSwitcherTheme />
-          <TrumsSwitcherLang />
+          <TrumsSwitcherTheme type="element" />
+          <TrumsSwitcherLang type="element" />
           <TrumsButtons
             @click="$oidc.logout()"
             type="button"

@@ -35,21 +35,13 @@ export default defineNuxtConfig({
     "@element-plus/nuxt",
   ],
 
-<<<<<<< HEAD
-  css: ["element-plus/theme-chalk/dark/css-vars.css"],
-  // build: {
-  //   transpile: ['element-plus']
-  // },
-=======
   build: {
-    babel: {
-      plugins: ['@vue/babel-plugin-jsx'],
-    },
+    // babel: {
+    //   plugins: ['@vue/babel-plugin-jsx'],
+    // },
   },
 
-  css: ['element-plus/theme-chalk/dark/css-vars.css'],
-
->>>>>>> faizal
+  css: ["element-plus/theme-chalk/dark/css-vars.css"],
 
   tailwindcss: {
     cssPath: ["~/assets/css/input.css", { injectPosition: "first" }],
@@ -79,7 +71,7 @@ export default defineNuxtConfig({
     lazy: true,
     langDir: "i18n/locales/",
     defaultLocale: "en",
-    skipSettingLocaleOnNavigate: true,
+    skipSettingLocaleOnNavigate: false,
     detectBrowserLanguage: {
       useCookie: true,
       cookieKey: "language",

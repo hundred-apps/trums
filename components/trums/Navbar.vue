@@ -303,8 +303,8 @@ onMounted(async () => {
             </svg>
           </button>
         </div>
-        <TrumsSwitcherTheme />
-        <TrumsSwitcherLang />
+        <TrumsSwitcherTheme type="element" />
+        <TrumsSwitcherLang type="element" />
       </div>
     </div>
     <div

@@ -35,8 +35,8 @@ const { t } = useI18n();
           </TrumsButtons>
         </div>
         <div class="flex gap-2 justify-center items-center">
-          <TrumsSwitcherTheme />
-          <TrumsSwitcherLang />
+          <TrumsSwitcherTheme type="element" />
+          <TrumsSwitcherLang type="element" />
         </div>
       </form>
     </div>

@@ -60,8 +60,8 @@ const handleMenuClick = (menuKey: string) => {
         <p class="text-3xl">TRUMS</p>
       </div>
       <div class="toolbar flex gap-3 items-center">
-        <TrumsSwitcherTheme />
-        <TrumsSwitcherLang />
+        <TrumsSwitcherTheme type="element" />
+        <TrumsSwitcherLang type="element" />
         <el-dropdown trigger="click" class="hover:text-blue-500">
           <span class="text-base flex items-center gap-2">
             {{ userdata?.name }}

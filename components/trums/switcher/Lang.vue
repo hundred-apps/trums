@@ -3,6 +3,8 @@ import { ref, toRef, watch } from "vue";
 import { useI18n } from "vue-i18n";
 import { useRouter } from "vue-router";
 
+const { t } = useI18n();
+
 const props = defineProps({
   type: {
     type: String,
@@ -75,7 +77,7 @@ watch(locale, (newLocale) => {
             }
           "
         >
-          {{ $t(`languages.${lang.text}`) }}
+          {{ t(`languages.${lang.text}`) }}
         </HeadlessListboxOption>
       </HeadlessListboxOptions>
     </HeadlessListbox>
@@ -92,8 +94,44 @@ watch(locale, (newLocale) => {
         :value="lang.key"
         @click.prevent.stop="setLocaleCookie(lang.key)"
       >
-        {{ $t(`languages.${lang.text}`) }}
+        {{ t(`languages.${lang.text}`) }}
       </option>
     </select>
+    <el-dropdown
+      placement="bottom"
+      v-if="currentStyle === 'element'"
+      v-model="selectedLang"
+    >
+      <TrumsLink class="dark:text-gray-400 text-gray-600">
+        <span class="flex justify-center items-center text-xl">
+          <Icon name="uil:language" />
+        </span>
+      </TrumsLink>
+      <template #dropdown>
+        <el-dropdown-menu>
+          <el-dropdown-item
+            v-for="lang in availableLang"
+            :key="lang.key"
+            :value="lang.key"
+            :class="{
+              'py-2 px-2 flex items-center cursor-pointer': true,
+              'text-blue-500 bg-gray-100 dark:bg-gray-600/30':
+                selectedLang === lang.key,
+              'hover:bg-gray-50 dark:hover:bg-gray-700/30':
+                selectedLang !== lang.key,
+            }"
+            @click="
+              () => {
+                setLocaleCookie(lang.key);
+                router.push(switchLocalePath(lang.key));
+                console.log('pushed to');
+              }
+            "
+          >
+            {{ t(`languages.${lang.text}`) }}
+          </el-dropdown-item>
+        </el-dropdown-menu>
+      </template>
+    </el-dropdown>
   </div>
 </template>

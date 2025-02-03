@@ -31,19 +31,19 @@ console.log("(injected) isLoggedIn:", $oidc.isLoggedIn);
         <h5
           class="text-xl font-medium text-center text-gray-900 dark:text-white"
         >
-          {{ $t("title.welcome") }} <Twemoji emoji="1F44B" />
+          {{ t("title.welcome") }} <Twemoji emoji="1F44B" />
         </h5>
         <div class="flex justify-center">
           <TrumsButtons
             @click="oidc.login('auth/callback')"
             class="w-full text-white bg-blue-500 hover:bg-blue-600 focus:ring-4 focus:outline-none focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-blue-500 dark:hover:bg-blue-600 dark:focus:ring-blue-600"
           >
-            {{ $t("buttons.getstarted") }}
+            {{ t("buttons.getstarted") }}
           </TrumsButtons>
         </div>
         <div class="flex gap-2 justify-center items-center">
-          <TrumsSwitcherTheme />
-          <TrumsSwitcherLang />
+          <TrumsSwitcherTheme type="element" />
+          <TrumsSwitcherLang type="element" />
         </div>
       </form>
     </div>
