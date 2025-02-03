@@ -1,9 +1,6 @@
 <script lang="tsx" setup>
-definePageMeta({
-  middleware: ["auth", "app"],
-});
 import { ref, onMounted } from "vue";
-import { InfoFilled } from "@element-plus/icons-vue";
+import { Eleme } from "@element-plus/icons-vue";
 import {
   type Column,
   type CheckboxValueType,
@@ -19,6 +16,10 @@ import { formatDate } from "@vueuse/core";
 import type { FunctionalComponent } from "vue";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import type { Pagination } from "~/types/pagination";
+
+definePageMeta({
+  middleware: ["auth", "app"],
+});
 
 const inspections = ref<Inspection[]>([]);
 const inspectionsPaginate = ref<Pagination<Inspection[]>>();
@@ -194,8 +195,19 @@ onMounted(() => {
       <el-button size="large" @click="$router.push('inspection/add')"
         >New Inspection</el-button
       >
+      <el-button
+        size="large"
+        @click="fetchData"
+        :loading-icon="Eleme"
+        :loading="loading"
+        >Reload Data</el-button
+      >
     </el-row>
-    <CustomTable :columns="columnInspection" :data="inspections" />
+    <CustomTable
+      :columns="columnInspection"
+      :data="inspections"
+      :loading="loading"
+    />
     <div class="flex justify-end mt-3">
       <el-pagination
         background

@@ -1,4 +1,5 @@
 import type { Catalogue } from "./catalogue";
+import type { People } from "./people";
 
 export type Maintenance = {
     id: number;
@@ -8,6 +9,7 @@ export type Maintenance = {
     maintenance_date: number;
     team_id: string | null;
     responsible_id: string | null;
+    responsible: People | null,
     duration: number | null;
     start_date: number | null;
     end_date: number | null;

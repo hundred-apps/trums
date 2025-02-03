@@ -35,10 +35,21 @@ export default defineNuxtConfig({
     "@element-plus/nuxt",
   ],
 
+<<<<<<< HEAD
   css: ["element-plus/theme-chalk/dark/css-vars.css"],
   // build: {
   //   transpile: ['element-plus']
   // },
+=======
+  build: {
+    babel: {
+      plugins: ['@vue/babel-plugin-jsx'],
+    },
+  },
+
+  css: ['element-plus/theme-chalk/dark/css-vars.css'],
+
+>>>>>>> faizal
 
   tailwindcss: {
     cssPath: ["~/assets/css/input.css", { injectPosition: "first" }],

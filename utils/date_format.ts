@@ -3,5 +3,5 @@ export function formatLocalDate(date: number, locale = 'id-ID') {
       year: 'numeric',
       month: 'long',
       day: 'numeric',
-    }).format(date);
+    }).format(date * 1000);
 }

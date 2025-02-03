@@ -21,6 +21,8 @@
     import type { Contact } from '~/types/contact';
 import type { Catalogue } from '~/types/catalogue';
 import type { Unit } from '~/types/unit';
+import type { RequestSearch } from '~/types/request_search';
+import type { ResponsePagination } from '~/types/response_pagination';
     
     
     const axios = useApi();
@@ -28,22 +30,32 @@ import type { Unit } from '~/types/unit';
     const router = useRouter();
 
     const goBack = () => router.back();
+    const loading = ref<boolean>(false);
     const dialogContacts = ref<boolean>(false);
     const dialogRepair = ref<boolean>(false);
     const formSize = ref<ComponentSize>('default')
     const ruleFormRef = ref<FormInstance>()
     const maintenances = ref<Maintenance[]>([]);
     const contacts = ref<Contact[]>([]);
+    const request_search = ref<RequestSearch>({
+      keyword: '',
+      table: '',
+      column: null,
+      limit: '100',
+      offset: '1',
+      sort: null,
+    })
 
     const dataTable = ref(
         Array.from({ length: 5 }, (_, i) => ({
-        id: i + 1,
-        item: '',
-        item_id: '',
-        quantity: '1',
-        unit_id: '',
-        unit_name: '',
-      }))
+          id: i + 1,
+          item: 'ban mobil',
+          item_id: null,
+          quantity: '1',
+          sn: null,
+          unit_id: '',
+          unit_name: '',
+        }))
     );
     
     const ruleForm = reactive<ruleForm>({
@@ -193,12 +205,40 @@ import type { Unit } from '~/types/unit';
       }
     }
 
+
+    const onSubmit = async () => {
+      try {
+        const dateObject = new Date(ruleForm.date);
+        const data = {
+            "date": dateObject.getTime(),
+            "reference": ruleForm.reference,
+            "reference_id": ruleForm.reference_id,
+            "status": "draft",
+            "priority": ruleForm.priority,
+            "description": ruleForm.description,
+            "items": dataTable.value.map((value) => ({
+              catalogue_id: value.item_id,
+              catalogue_name: value.item,
+              unit_id: value.unit_id,
+              unit_name: value.unit_name,
+              quantity: value.quantity,
+              sn: value.sn,
+            })),
+        }
+        console.log(data);
+      } catch (error) {
+        
+      } finally {
+        loading
+      }
+    }
+
     const submitForm = async (formEl: FormInstance | undefined) => {
       console.log(dataTable.value);
       if (!formEl) return
       await formEl.validate((valid, fields) => {
         if (valid) {
-          console.log('submit!')
+          onSubmit();
         } else {
           console.log('error submit!', fields)
         }
@@ -225,7 +265,7 @@ import type { Unit } from '~/types/unit';
       try {
         const response = await axios.get('/maintenances-read');
         if(response.status == 200){
-          maintenances.value = response.data.data;
+          maintenances.value = response.data.data.query;
         }
       } catch (error: any) {
         console.log(`Gagal Mengambil Data Maintenance ${error.response.data.message}`)
@@ -250,20 +290,25 @@ import type { Unit } from '~/types/unit';
 
     const querySearchAsync = (queryString: string, cb: (arg: any) => void) => {
       
+        request_search.value.keyword = queryString,
+        request_search.value.table = 'catalogues';
+        request_search.value.column = [
+          {
+              "type": ['item']
+          }
+        ]
 
-        axios.get('/catalogues-read').then((response) => {
+        axios.post('/search', request_search.value).then((response) => {
           if(response.status == 200){
-            const catalogues = response.data.data.filter(
-                                (data: Catalogue) =>
-                                  !queryString ||
-                                  data.unique_code?.toLowerCase().includes(queryString.toLowerCase()) ||
-                                  data.unique_id?.toLowerCase().includes(queryString.toLowerCase()) ||
-                                  data.name?.toLowerCase().includes(queryString.toLowerCase())
-                              )
-            const results = catalogues.map((data: Catalogue) => {
-                return {value: `${data.name}-${data.sn}`, unique_id: data.unique_id};
-            });    
-            cb(results)
+            const resultApi: ResponsePagination<Catalogue[]> = response.data;
+            if(resultApi.data.length > 0){
+              const results = response.data.data.map((data: Catalogue) => {
+                  return {...data, value: `${data.name} - ${data.sn}`}
+              });    
+              cb(results)
+            }else{
+              cb([{value: `Tambahkan ${queryString}`, unique_id: queryString, label: `Tambahkan ${queryString}`}])
+            }
           }else{
             ElMessage.error(response.data.message);
           }
@@ -298,8 +343,17 @@ import type { Unit } from '~/types/unit';
 
     const onHandleSelectItemAutocomplete = (item: Record<string, any>, scope: any) => {
       console.log(item)
-      dataTable.value[scope.$index].item = item.value;
-      dataTable.value[scope.$index].item_id = item.unique_id;
+      if(item.unique_id == undefined){
+        dataTable.value[scope.$index].item = item.unique_id;
+        dataTable.value[scope.$index].item_id = null;
+      }else{
+        dataTable.value[scope.$index].item = item.value;
+        dataTable.value[scope.$index].item_id = item.unique_id;
+        dataTable.value[scope.$index].sn = item.sn;
+        dataTable.value[scope.$index].unit_id = item.unit_id;
+        dataTable.value[scope.$index].unit_name = item.unit_name;
+      }
+      
     }
 
     const onHandleSelectItemAutocompleteUnit = (item: Record<string, any>, scope: any) => {
@@ -339,7 +393,15 @@ import type { Unit } from '~/types/unit';
             status-icon
         >
     <el-card class="my-3">
-            
+      <template #header>
+                <div class="card-header">
+                  <el-form-item>
+                    <el-button type="primary" @click="submitForm(ruleFormRef)">Simpan</el-button>
+                    <el-button @click="resetForm(ruleFormRef)">Batal</el-button>
+                  </el-form-item>
+                </div>
+      </template>
+     
         <el-form-item label="Tanggal Permintaan" prop="date">
           <el-date-picker
             v-model="ruleForm.date!"
@@ -374,21 +436,28 @@ import type { Unit } from '~/types/unit';
             <el-radio-button value="hight">Hight</el-radio-button>
           </el-radio-group>
         </el-form-item>
-        
+        <el-form-item label="Note">
+          <el-input v-model="ruleForm.description" type="textarea" />
+        </el-form-item>
     </el-card>
 
     <el-card class="mb-3">
       
         <el-table :data="dataTable">
-          <el-table-column prop="name" label="item" >
+          <el-table-column prop="item" label="item" >
             <template #default="scope">
               <el-autocomplete
                 :fetch-suggestions="querySearchAsync"
-                v-model="scope.row.name"
+                v-model="scope.row.item"
                 
                 placeholder="Please input"
                 @select="(item) => onHandleSelectItemAutocomplete(item, scope)"
               />
+            </template>
+          </el-table-column>
+          <el-table-column prop="sn" label="Serial Number" >
+            <template #default="scope">
+              <el-input v-model="scope.row.sn" placeholder="Serial Number" />
             </template>
           </el-table-column>
           <el-table-column prop="quantity" label="Quantity">
@@ -414,12 +483,6 @@ import type { Unit } from '~/types/unit';
           </el-table-column>
         </el-table>
       
-    </el-card>
-    <el-card>
-      <el-form-item>
-        <el-button type="primary" @click="submitForm(ruleFormRef)">Simpan</el-button>
-        <el-button @click="resetForm(ruleFormRef)">Batal</el-button>
-      </el-form-item>
     </el-card>
   </el-form>
     <el-dialog v-model="dialogContacts" title="Contacts" width="800">
