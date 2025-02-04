@@ -175,4 +175,6 @@ const onSubmit = async () => {
 onMounted(() => {
   fetchData();
 });
+
+console.log(locations);
 </script>

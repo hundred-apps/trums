@@ -114,6 +114,9 @@ const handleMenuClick = (menuKey: string) => {
               <el-menu-item index="2-2">Inquiry</el-menu-item>
               <el-menu-item index="2-3">Check In</el-menu-item>
               <el-menu-item index="2-4">Check Out</el-menu-item>
+              <el-menu-item index="/inventory-management/location"
+                >Location</el-menu-item
+              >
             </el-menu-item-group>
           </el-sub-menu>
           <el-sub-menu index="3">
