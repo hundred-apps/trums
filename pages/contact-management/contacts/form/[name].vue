@@ -59,6 +59,7 @@
             <el-input-tag
               v-model="ruleForm.tags"
               :max="3"
+              clearable
               placeholder="enter up to 3 tags"
             />
           </el-form-item>
@@ -148,6 +149,20 @@ const rules = reactive<FormRules<RuleForm>>({
       trigger: ["blur", "change"],
     },
   ],
+  tax_id: [
+    {
+      pattern: /^(\d{10}|\d{15}|\d{16})$/,
+      message: "masukan format npwp",
+      trigger: ["blur", "change"],
+    },
+  ],
+  website: [
+    {
+      type: "url",
+      message: `url yaaa`,
+      trigger: ["blur", "change"],
+    },
+  ],
 });
 
 const formSize = ref<ComponentSize>("default");
@@ -180,11 +195,10 @@ const submit = async (formEl: FormInstance | undefined) => {
       unique_id: ruleForm.unique_id,
     });
     if (response.status == 201) {
-      ElMessage.success(`Berhasil Menambahkan contact`);
       if (unique_id == null) {
-        resetForm(formEl);
+        ElMessage.success(`Berhasil Menambahkan contact`);
       } else {
-        detail();
+        ElMessage.success(`Berhasil Mengedit contact`);
       }
       router.push("/contact-management/contacts");
     }
