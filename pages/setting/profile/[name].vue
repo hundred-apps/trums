@@ -14,7 +14,7 @@ import { Plus } from "@element-plus/icons-vue";
 import { useApi } from "~/composables/useApi";
 
 definePageMeta({
-  middleware: "app",
+  middleware: ["app", "auth"],
 });
 
 interface RuleForm {
@@ -260,10 +260,6 @@ onMounted(() => {
     srcPhoto.value = srcPhotoApi.value;
     srcList.value.push(srcPhotoApi).value;
   }
-  console.log("src:", srcPhoto);
-  console.log("srcapi:", srcPhotoApi);
-  console.log("srcdef:", srcPhotoDefault);
-  console.log("filename", filenamePhoto);
 });
 </script>
 <template>

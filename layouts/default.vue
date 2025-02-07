@@ -176,10 +176,19 @@ const handleMenuClick = (menuKey: string) => {
               <el-menu-item index="7-4">Recruitmen</el-menu-item>
             </el-menu-item-group>
           </el-sub-menu>
-          <el-menu-item index="8">
-            <el-icon><Notebook /></el-icon>
-            <span>Contact Management</span>
-          </el-menu-item>
+          <el-sub-menu index="8">
+            <template #title>
+              <el-icon><Notebook /></el-icon>Contact Management
+            </template>
+            <el-menu-item-group>
+              <el-menu-item index="/contact-management/categories"
+                >Categories</el-menu-item
+              >
+              <el-menu-item index="/contact-management/contacts"
+                >Contact</el-menu-item
+              >
+            </el-menu-item-group>
+          </el-sub-menu>
           <el-sub-menu index="9">
             <template #title>
               <el-icon><IconMenu /></el-icon>Master
