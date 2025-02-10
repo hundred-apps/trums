@@ -85,7 +85,7 @@ const handleMenuClick = (menuKey: string) => {
                   {{ t("menu.setting") }}
                 </TrumsLink></el-dropdown-item
               ><el-dropdown-item>
-                <TrumsLink to="/">
+                <TrumsLink @click="$oidc.logout()">
                   {{ t("buttons.logout") }}
                 </TrumsLink></el-dropdown-item
               >
@@ -170,9 +170,15 @@ const handleMenuClick = (menuKey: string) => {
               <el-icon><User /></el-icon>Human Capital
             </template>
             <el-menu-item-group>
-              <el-menu-item index="7-1">People</el-menu-item>
-              <el-menu-item index="7-2">Departement</el-menu-item>
-              <el-menu-item index="7-3">Position</el-menu-item>
+              <el-menu-item index="/human-capital-management/people"
+                >People</el-menu-item
+              >
+              <el-menu-item index="/human-capital-management/departement"
+                >Departement</el-menu-item
+              >
+              <el-menu-item index="/human-capital-management/position"
+                >Position</el-menu-item
+              >
               <el-menu-item index="7-4">Recruitmen</el-menu-item>
             </el-menu-item-group>
           </el-sub-menu>

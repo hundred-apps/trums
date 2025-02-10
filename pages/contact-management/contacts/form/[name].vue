@@ -175,6 +175,12 @@ const resetForm = (formEl: FormInstance | undefined) => {
   ruleForm.name = "";
   ruleForm.email = "";
   ruleForm.phone = "";
+  ruleForm.tax_id = "";
+  ruleForm.website = "";
+  ruleForm.title = "";
+  ruleForm.is_personal = false;
+  ruleForm.is_company = false;
+  ruleForm.tags = "";
 };
 
 const unique_id = route.query.unique_id;

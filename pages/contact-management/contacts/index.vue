@@ -87,7 +87,7 @@ const handleSelectionChange = (selection: any[]) => {
 
 const api = useApi();
 
-const contact = ref<Pagination<Contact[]>>();
+// const contact = ref<Pagination<Contact[]>>();
 const limit = ref(10);
 const currentPage = ref(1);
 
@@ -134,14 +134,14 @@ watch(
   },
   { immediate: true }
 );
-const fetchData = async () => {
-  try {
-    const response = await api.get(`/contact-read`);
-    contact.value = response.data.data;
-  } catch (error) {
-    console.error("Gagal memuat data:", error);
-  }
-};
+// const fetchData = async () => {
+//   try {
+//     const response = await api.get(`/contact-read`);
+//     contact.value = response.data.data;
+//   } catch (error) {
+//     console.error("Gagal memuat data:", error);
+//   }
+// };
 const handleSizeChange = (val: number) => {
   loading.value = true;
 };
@@ -149,9 +149,9 @@ const handleCurrentChange = (val: number) => {
   currentPage.value = val;
 };
 
-onMounted(async () => {
-  await fetchData();
-});
+// onMounted(async () => {
+//   await fetchData();
+// });
 
 console.log("data:", data);
 </script>
@@ -168,8 +168,6 @@ console.log("data:", data);
         size="large"
         @click="
           () => {
-            const unique_id = useCookie('unique_id');
-            unique_id.value = null;
             navigateToForm('add');
           }
         "
@@ -238,7 +236,7 @@ console.log("data:", data);
         :page-sizes="[10, 20, 30, 40]"
         background
         layout="total, sizes, prev, pager, next"
-        :total="contact?.total_data"
+        :total="data?.total_data"
         @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
       />
