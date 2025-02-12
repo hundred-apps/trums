@@ -24,6 +24,14 @@
         :prop="col.prop"
         :label="col.label"
       >
+        <template #default="scope">
+          <TrumsLink
+            v-if="col.prop === 'name'"
+            @click="navigateToList(scope.row[col.prop], scope.row['unique_id'])"
+            >{{ scope.row[col.prop] }}</TrumsLink
+          >
+          <span v-else>{{ scope.row[col.prop] }}</span>
+        </template>
       </el-table-column>
       <el-table-column label="Operations" width="150">
         <template #default="scope">
@@ -108,6 +116,8 @@ import {
 
 const config = useRuntimeConfig();
 const api = useApi();
+const token = useCookie("token");
+const router = useRouter();
 
 const formSize = ref<ComponentSize>("default");
 const ruleFormRef = ref<FormInstance>();
@@ -125,7 +135,10 @@ const request_search = ref<RequestSearch>({
   offset: currentPage,
   table: "departements",
 });
-
+const navigateToList = (name = "", unique_id = null) => {
+  const path = `/human-capital-management/departement/list/${name}`;
+  router.push({ path, query: { unique_id } });
+};
 interface RuleForm {
   unique_id: string;
   name: string;
@@ -141,16 +154,18 @@ const { data } = await useFetch<ResponsePagination<Departement[]>>(
     key: "",
     method: "post",
     body: request_search.value,
+    headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
   }
 );
 
 const fetchData = async () => {
-  const { data: newData } = await useFetch<ResponsePagination<Position[]>>(
+  const { data: newData } = await useFetch<ResponsePagination<Departement[]>>(
     `${config.public.baseURL}/search`,
     {
       key: "fetchData",
       method: "post",
       body: request_search.value,
+      headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
     }
   );
   data.value = newData.value;
@@ -253,6 +268,7 @@ const handleDelete = async (row: Departement) => {
       {
         method: "delete",
         body: [row.unique_id],
+        headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
         lazy: true,
       }
     );

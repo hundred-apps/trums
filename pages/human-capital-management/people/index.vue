@@ -1,12 +1,11 @@
 <script lang="ts" setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, watch } from "vue";
 import { type People } from "~/types/people";
 import { useApi } from "~/composables/useApi";
 import type { RequestSearch } from "~/types/request_search";
 import { useRouter } from "vue-router";
 import { InfoFilled } from "@element-plus/icons-vue";
 import type { ResponsePagination } from "~/types/response_pagination";
-import type { Pagination } from "~/types/pagination";
 const config = useRuntimeConfig();
 
 definePageMeta({
@@ -14,6 +13,7 @@ definePageMeta({
 });
 
 const router = useRouter();
+const token = useCookie("token");
 
 const navigateToForm = (mode = "", name = "", unique_id = null) => {
   const path = name
@@ -35,6 +35,14 @@ const columns = [
     prop: "name",
     sortable: true,
     fixed: true,
+  },
+  {
+    label: "Departement",
+    prop: "departement_name",
+  },
+  {
+    label: "Position",
+    prop: "position_name",
   },
 ];
 
@@ -63,25 +71,49 @@ const { data } = await useFetch<ResponsePagination<People[]>>(
     key: "",
     method: "post",
     body: request_search.value,
+    headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
   }
 );
+const fetchData = async () => {
+  const { data: newData } = await useFetch<ResponsePagination<People[]>>(
+    `${config.public.baseURL}/search`,
+    {
+      key: "fetchData",
+      method: "post",
+      body: request_search.value,
+      headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
+    }
+  );
+  data.value = newData.value;
+};
 
 const handleDelete = async (row: People) => {
   loading.value = true;
-  try {
-    const response = await useFetch(`${config.public.baseURL}/people-delete`, {
-      method: "delete",
-      body: [row.unique_id],
-      lazy: true,
-    });
-    if (response.status.value == "success") {
-      await refreshNuxtData("people");
-      ElMessage.success("Data Berhasil Dihapus");
+  if (row.gid === null) {
+    try {
+      const response = await useFetch(
+        `${config.public.baseURL}/people-delete`,
+        {
+          method: "delete",
+          body: [row.unique_id],
+          lazy: true,
+          headers: token.value
+            ? { Authorization: `Bearer ${token.value}` }
+            : {},
+        }
+      );
+      if (response.status.value == "success") {
+        await refreshNuxtData("people");
+        await fetchData();
+        ElMessage.success("Data Berhasil Dihapus");
+      }
+    } catch (error: any) {
+      ElMessage.error(`${error.response?.data?.message}`);
+    } finally {
+      loading.value = false;
     }
-  } catch (error: any) {
-    ElMessage.error(`${error.response?.data?.message}`);
-  } finally {
-    loading.value = false;
+  } else {
+    ElMessage.error("Data tidak dapat dihapus karena memiliki oidc");
   }
 };
 watch(
@@ -109,8 +141,6 @@ const handleCurrentChange = (val: number) => {
 // onMounted(async () => {
 //   await fetchData();
 // });
-
-console.log("data:", data);
 </script>
 <template>
   <TrumsWrapper>

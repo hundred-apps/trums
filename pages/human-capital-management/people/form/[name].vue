@@ -27,28 +27,58 @@
             </el-form-item>
           </div>
         </template>
-        <el-form-item label="Nama Departemen" prop="departement_id">
+        <el-form-item label="Nama" prop="name">
+          <el-input v-model="ruleForm.name" placeholder="Masukan Nama" />
+        </el-form-item>
+        <el-form-item label="Email" prop="email">
+          <el-input v-model="ruleForm.email" placeholder="Masukan Email" />
+        </el-form-item>
+        <el-form-item label="Phone" prop="phone">
+          <el-input v-model="ruleForm.phone" placeholder="Masukan Telepon" />
+        </el-form-item>
+        <el-form-item label="Password" prop="password">
+          <el-input v-model="ruleForm.password" type="password" show-password />
+        </el-form-item>
+        <el-form-item :label="`${t('form.label.gender')}`" prop="gender">
+          <el-radio-group v-model="ruleForm.gender">
+            <el-radio value="pria">{{ t("form.label.genderMale") }}</el-radio>
+            <el-radio value="wanita">{{
+              t("form.label.genderFemale")
+            }}</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item label="Nama Departemen" prop="departement">
           <el-autocomplete
-            v-model="ruleForm.departement_id"
+            v-model="ruleForm.departement"
             :fetch-suggestions="querySearchDepartement"
             :trigger-on-focus="false"
             clearable
             class="inline-input w-50"
-            placeholder="Masukan Nama Item"
+            placeholder="Masukan Nama Departemen"
             @select="handleSelectDepartement"
           />
         </el-form-item>
-        <el-form-item label="Nama Posisi" prop="position_id">
+        <el-input
+          v-model="ruleForm.departement_id"
+          prop="departement_id"
+          type="hidden"
+        />
+        <el-form-item label="Nama Posisi" prop="position">
           <el-autocomplete
-            v-model="ruleForm.position_id"
+            v-model="ruleForm.position"
             :fetch-suggestions="querySearchPosition"
             :trigger-on-focus="false"
             clearable
             class="inline-input w-50"
-            placeholder="Pilih Lokasi"
+            placeholder="Pilih Posisi"
             @select="handleSelectPosition"
           />
         </el-form-item>
+        <el-input
+          v-model="ruleForm.position_id"
+          prop="position_id"
+          type="hidden"
+        />
 
         <!-- <el-form-item label="Cost" prop="tmp_cost">
           <el-input
@@ -117,15 +147,16 @@ interface RuleForm {
   password: string | null;
   join_date: number;
   gender: string | null;
-  departement_id: number | null;
-  position_id: number | null;
+  departement_id: string | null;
+  position_id: string | null;
   file_id: number | null;
   parent_people: string | null;
   position: string | null;
+  departement: string | null;
   photo: string | null;
 }
 
-import { reactive, ref, onMounted } from "vue";
+import { reactive, ref, onMounted, watch } from "vue";
 import {
   type Column,
   type ComponentSize,
@@ -144,8 +175,11 @@ import { toPascalCase } from "~/utils/string_format";
 
 const router = useRouter();
 const route = useRoute();
+const token = useCookie("token");
+const { t } = useI18n();
 
-const mode = toPascalCase(route.params.mode);
+const mode = toPascalCase(route.query.mode);
+const unique_id = route.query.unique_id;
 
 const goBack = () => router.back();
 
@@ -156,7 +190,7 @@ const requestSearch = ref<RequestSearch>({
   table: "",
   column: null,
   sort: null,
-  limit: "50",
+  limit: "10",
   offset: "1",
 });
 
@@ -174,35 +208,36 @@ const ruleForm = reactive<RuleForm>({
   password: "",
   join_date: 1,
   gender: "",
-  departement_id: 1,
-  position_id: 1,
+  departement_id: "",
+  position_id: "",
   file_id: 1,
   parent_people: "",
   position: "",
+  departement: "",
   photo: "",
 });
 
 const api = useApi();
 
-const createFilterLocation = (queryString: string) => {
-  return (people: People) => {
-    return people.name?.toLowerCase().indexOf(queryString.toLowerCase()) === 0;
-  };
-};
+// const createFilterLocation = (queryString: string) => {
+//   return (people: People) => {
+//     return people.name?.toLowerCase().indexOf(queryString.toLowerCase()) === 0;
+//   };
+// };
 
-const createFilterUnit = (queryString: string) => {
-  return (unit: Unit) => {
-    return unit.name?.toLowerCase().indexOf(queryString.toLowerCase()) === 0;
-  };
-};
+// const createFilterUnit = (queryString: string) => {
+//   return (position: Position) => {
+//     return (
+//       position.name?.toLowerCase().indexOf(queryString.toLowerCase()) === 0
+//     );
+//   };
+// };
 
 const rules = reactive<FormRules<RuleForm>>({
-  departement_id: [
-    { required: true, message: "Masukan Item", trigger: "blur" },
+  departement: [
+    { required: true, message: "Masukan departemen", trigger: "blur" },
   ],
-  position_id: [
-    { required: true, message: "Masukan Lokasi Item", trigger: "blur" },
-  ],
+  position: [{ required: true, message: "Masukan posisi", trigger: "blur" }],
   // quantity: [{ required: true, message: "Masukan Quantity", trigger: "blur" }],
   // cost: [{ required: true, message: "Masukan Lokasi Item", trigger: "blur" }],
   // unit_name: [
@@ -218,14 +253,21 @@ const querySearchDepartement = (
   requestSearch.value.keyword = queryString;
   requestSearch.value.table = "departements";
   api
-    .post("/search", requestSearch.value)
+    .post("/search", requestSearch.value, {
+      headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
+    })
     .then((response) => {
       if (response.status == 200) {
         const resultApi: Departement[] = response.data.data;
         if (resultApi.length > 0) {
           cb(resultApi.map((value) => ({ ...value, value: value.name })));
         } else {
-          cb([{ value: `Tambahkan ${queryString}`, id: `${queryString}` }]);
+          cb([
+            {
+              value: `Tambahkan "${queryString}"`,
+              name: `${queryString}`,
+            },
+          ]);
         }
       }
     })
@@ -238,7 +280,9 @@ const querySearchPosition = (queryString: string, cb: (arg: any) => void) => {
   requestSearch.value.keyword = queryString;
   requestSearch.value.table = "positions";
   api
-    .post("/search", requestSearch.value)
+    .post("/search", requestSearch.value, {
+      headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
+    })
     .then((response) => {
       if (response.status == 200) {
         const resultApi: Position[] = response.data.data;
@@ -246,7 +290,12 @@ const querySearchPosition = (queryString: string, cb: (arg: any) => void) => {
         if (resultApi.length > 0) {
           cb(resultApi.map((value) => ({ ...value, value: value.name })));
         } else {
-          cb([{ value: `Tambahkan ${queryString}`, id: `${queryString}` }]);
+          cb([
+            {
+              value: `Tambahkan "${queryString}"`,
+              name: `${queryString}`,
+            },
+          ]);
         }
       }
     })
@@ -255,62 +304,97 @@ const querySearchPosition = (queryString: string, cb: (arg: any) => void) => {
     });
 };
 
-const handleSelectDepartement = (item: Record<string, any>) => {
-  console.log(item);
-
-  // if (item.unique_id == undefined) {
-  //   ruleForm.catalogue = item.id;
-  //   ruleForm.catalogue_id = null;
-  // } else {
-  //   ruleForm.catalogue = item.value;
-  //   ruleForm.catalogue_id = item.unique_id;
-  // }
+const handleSelectDepartement = async (item: Record<string, any>) => {
+  if (item.unique_id === undefined) {
+    ruleForm.departement = item.name;
+    try {
+      const response = await api.post(
+        "/departement-create",
+        {
+          name: item.name,
+          unique_id: null, // Let the backend generate a new unique_id
+        },
+        {
+          headers: token.value
+            ? { Authorization: `Bearer ${token.value}` }
+            : {},
+        }
+      );
+      if (response.status === 201) {
+        ruleForm.departement_id = response.data.data.unique_id;
+        ElMessage.success("Berhasil menambahkan departemen.");
+      }
+    } catch (error) {
+      ElMessage.error("Gagal menambahkan departemen baru.");
+      console.error(error);
+    }
+  } else {
+    ruleForm.departement = item.name;
+    ruleForm.departement_id = item.unique_id;
+  }
 };
-const handleSelectPosition = (item: Record<string, any>) => {
-  console.log(item);
-
-  // if (item.unique_id == undefined) {
-  //   ruleForm.location_name = item.id;
-  //   ruleForm.location_id = null;
-  // } else {
-  //   ruleForm.location_name = item.value;
-  //   ruleForm.location_id = item.unique_id;
-  // }
+const handleSelectPosition = async (item: Record<string, any>) => {
+  if (item.unique_id === undefined) {
+    ruleForm.position = item.name;
+    try {
+      const response = await api.post(
+        "/position-create",
+        {
+          name: item.name,
+          unique_id: null,
+        },
+        {
+          headers: token.value
+            ? { Authorization: `Bearer ${token.value}` }
+            : {},
+        }
+      );
+      if (response.status === 201) {
+        ruleForm.position_id = response.data.data.unique_id;
+        ElMessage.success("Berhasil menambahkan posisi");
+      }
+    } catch (error) {
+      ElMessage.error("Gagal menambahakan posisi");
+      console.log(error);
+    }
+  } else {
+    ruleForm.position = item.name;
+    ruleForm.position_id = item.unique_id;
+  }
 };
 
 const submit = async (formEl: FormInstance | undefined) => {
-  // loading.value = true;
-  // try {
-  //   ruleForm.is_traceable = ruleForm.traceable == "0" ? false : true;
-  //   ruleForm.cost = parseInt(ruleForm.tmp_cost);
-  //   ruleForm.quantity = parseInt(ruleForm.qty);
-  //   const response = await api.post("/inventories-create", {
-  //     catalogue_id: ruleForm.catalogue_id,
-  //     catalogue_name: ruleForm.catalogue,
-  //     location_id: ruleForm.location_id,
-  //     location_name: ruleForm.location_name,
-  //     is_traceable: ruleForm.is_traceable,
-  //     sn: ruleForm.sn,
-  //     unit_id: ruleForm.unit_id,
-  //     unit_name: ruleForm.unit_name,
-  //     quantity: ruleForm.quantity,
-  //     cost: ruleForm.cost,
-  //     unique_id: ruleForm.unique_id ?? null,
-  //   });
-  //   if (response.status == 201) {
-  //     ElMessage.success(`Berhasil Menambahkan Inventori`);
-  //     const unique_id = useCookie("unique_id");
-  //     if (unique_id.value == null) {
-  //       resetForm(formEl);
-  //     } else {
-  //       detail();
-  //     }
-  //   }
-  // } catch (error: any) {
-  //   ElMessage.error(`${error.response?.data?.message}`);
-  // } finally {
-  //   loading.value = false;
-  // }
+  loading.value = true;
+  try {
+    const response = await api.post(
+      "/people-create",
+      {
+        name: ruleForm.name,
+        email: ruleForm.email,
+        phone: ruleForm.phone,
+        gender: ruleForm.gender,
+        password: ruleForm.password,
+        position_id: ruleForm.position_id,
+        departement_id: ruleForm.departement_id,
+        unique_id: ruleForm.unique_id ?? null,
+      },
+      {
+        headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
+      }
+    );
+    if (response.status == 201) {
+      if (unique_id !== null) {
+        ElMessage.success(`Berhasil Mengedit People`);
+      } else {
+        ElMessage.success(`Berhasil Menambahkan People`);
+      }
+      router.push("/human-capital-management/people");
+    }
+  } catch (error: any) {
+    ElMessage.error(`${error.response?.data?.message}`);
+  } finally {
+    loading.value = false;
+  }
 };
 
 const submitForm = async (formEl: FormInstance | undefined) => {
@@ -327,53 +411,55 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 
 const resetForm = (formEl: FormInstance | undefined) => {
   formEl?.resetFields();
-  // ruleForm.catalogue = "";
-  // ruleForm.location_name = "";
-  // ruleForm.catalogue_id = null;
-  // ruleForm.location_id = "";
-  // ruleForm.is_traceable = false;
-  // ruleForm.sn = "";
-  // ruleForm.unit_id = null;
-  // ruleForm.unit_name = "";
-  // ruleForm.quantity = 0;
-  // ruleForm.cost = 0;
-  // ruleForm.qty = "0";
-  // ruleForm.tmp_cost = "0";
-  // ruleForm.traceable = "0";
+  if (unique_id === null) {
+    ruleForm.name = "";
+    ruleForm.email = "";
+    ruleForm.phone = "";
+    ruleForm.password = "";
+    ruleForm.gender = "";
+    ruleForm.position = "";
+    ruleForm.position_id = "";
+    ruleForm.departement_id = "";
+  } else {
+    detail();
+  }
 };
 
 const detail = async () => {
-  // loading.value = true;
-  // try {
-  //   const unique_id = useCookie("unique_id");
-  //   const response = await api.get(`/inventories-read/${unique_id.value}`);
-  //   if (response.status == 200) {
-  //     const inventory: Inventory = response.data.data;
-  //     ruleForm.catalogue = inventory.catalogue?.name ?? "";
-  //     ruleForm.catalogue_id = inventory.catalogue.unique_id;
-  //     ruleForm.is_traceable = inventory.is_traceable;
-  //     ruleForm.traceable = inventory.is_traceable ? "1" : "0";
-  //     ruleForm.cost = inventory.cost;
-  //     ruleForm.location_id = inventory.location_id ?? "";
-  //     ruleForm.location_name = inventory.location?.name ?? "";
-  //     ruleForm.qty = (inventory.quantity ?? "").toString();
-  //     ruleForm.quantity = inventory.quantity;
-  //     ruleForm.sn = inventory.sn;
-  //     ruleForm.tmp_cost = (inventory.cost ?? "").toString();
-  //     ruleForm.unique_id = inventory.unique_id;
-  //   }
-  // } catch (error: any) {
-  //   ElMessage.error(`${error.response?.data?.message}`);
-  // } finally {
-  //   loading.value = false;
-  // }
+  loading.value = true;
+  try {
+    const response = await api.get(`/people-read/${unique_id}`);
+    if (response.status == 200) {
+      const people: People = response.data.data;
+      ruleForm.name = people.name ?? "";
+      ruleForm.email = people.email;
+      ruleForm.phone = people.phone;
+      ruleForm.password = people.password;
+      ruleForm.gender = people.gender;
+      ruleForm.position_id = people.position_id ?? "";
+      ruleForm.position = people.position_name ?? "";
+      ruleForm.departement = people.departement_name;
+      ruleForm.departement_id = people.departement_id;
+      ruleForm.unique_id = people.unique_id;
+    }
+  } catch (error: any) {
+    ElMessage.error(`${error.response?.data?.message}`);
+  } finally {
+    loading.value = false;
+  }
 };
 
-// onMounted(() => {
-//   const unique_id = useCookie("unique_id");
+watch(
+  requestSearch,
+  async (newValue) => {
+    console.log("new", newValue);
+  },
+  { immediate: true }
+);
 
-//   if (unique_id.value != null) {
-//     detail();
-//   }
-// });
+onMounted(() => {
+  if (unique_id !== null) {
+    detail();
+  }
+});
 </script>

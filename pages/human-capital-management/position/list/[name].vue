@@ -3,7 +3,7 @@
     <el-page-header @back="goBack">
       <template #content>
         <span class="text-large font-600 mr-3">
-          {{ nameDepartement }} People
+          {{ namePosition }} People
         </span>
       </template>
     </el-page-header>
@@ -65,7 +65,7 @@ const router = useRouter();
 const route = useRoute();
 const token = useCookie("token");
 const unique_id = route.query.unique_id;
-const nameDepartement = route.params.name;
+const namePosition = route.params.name;
 const goBack = () => router.back();
 
 const columns = [
@@ -85,7 +85,7 @@ const request_search = ref<RequestSearch>({
   keyword: "",
   column: [
     {
-      departement_id: [unique_id],
+      position_id: [unique_id],
     },
   ],
   sort: null,

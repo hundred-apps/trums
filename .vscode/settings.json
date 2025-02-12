@@ -59,8 +59,10 @@
   "terminal.integrated.cursorBlinking": true,
 
   /** ------------ Additional Configurations ------------ **/
-  "vscode_custom_css.imports": [
-    "file:///Users/developer02/.vscode/vscode-custom/style.css",
-    "file:///Users/developer02/.vscode/vscode-custom/script.js"
-  ]
+  // "vscode_custom_css.imports": [
+  //   "file:///Users/developer02/.vscode/vscode-custom/style.css",
+  //   "file:///Users/developer02/.vscode/vscode-custom/script.js"
+  // ],
+
+  "vscode-pets.theme": "beach"
 }

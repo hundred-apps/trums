@@ -175,10 +175,9 @@ const getUser = async () => {
     const jsonUser = JSON.parse(user || "");
     const response = await api.get(`people-read/${jsonUser.id}`);
 
-    // console.log(config.public.baseBE);
-    ruleForm.phone = response.data.data.phone;
-    ruleForm.gender = response.data.data.gender;
-    ruleForm.name = response.data.data.name;
+    ruleForm.phone = response.data.data.phone || "";
+    ruleForm.gender = response.data.data.gender || "pria";
+    ruleForm.name = response.data.data.name || "";
     imageUrl.value = `${config.public.baseBE}${response.data.data.photo.image_path}/${response.data.data.photo.filename}`;
 
     // console.log(imageUrl.value);
@@ -190,23 +189,22 @@ const getUser = async () => {
 };
 onMounted(() => {
   const jsonUser = JSON.parse(user || "");
-  ruleForm.email = jsonUser.email;
+  console.log("json: ", jsonUser);
+  ruleForm.email = jsonUser.email || "";
   getUser();
 });
 
-const oidc = useOidc();
-const loginSuccess = oidc.isLoggedIn;
-if (loginSuccess) {
-  setInterval(() => router.push("/dashboard"), 3000);
-}
-console.log("(composable)", loginSuccess);
-console.log("(name)", name);
+// const oidc = useOidc();
+// const loginSuccess = oidc.isLoggedIn;
+// if (loginSuccess) {
+//   setInterval(() => router.push("/dashboard"), 3000);
+// }
 </script>
 
 <template>
   <NuxtLayout :name="layout">
     <div class="w-full h-screen flex items-center justify-center">
-      <el-card v-if="!loginSuccess" class="bg-red-800 dark:bg-slate-800 w-1/2">
+      <el-card class="bg-red-800 dark:bg-slate-800 w-1/2">
         <div class="flex justify-center mb-3">
           <el-upload
             class="avatar-uploader flex flex-col items-center gap-2"
@@ -291,13 +289,13 @@ console.log("(name)", name);
           </el-form-item>
         </el-form>
       </el-card>
-      <el-card v-else class="bg-red-800 dark:bg-slate-800 w-1/2">
+      <!-- <el-card v-else class="bg-red-800 dark:bg-slate-800 w-1/2">
         <div class="flex justify-center items-center">
           <div class="text-white text-xl font-bold">
             Welcome back {{ ruleForm.name }} <Twemoji emoji="1F44B" />
           </div>
         </div>
-      </el-card>
+      </el-card> -->
     </div>
   </NuxtLayout>
 </template>

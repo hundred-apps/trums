@@ -24,7 +24,16 @@
         :key="col.prop || col.label"
         :prop="col.prop"
         :label="col.label"
-      />
+      >
+        <template #default="scope">
+          <TrumsLink
+            v-if="col.prop === 'name'"
+            @click="navigateToList(scope.row[col.prop], scope.row['unique_id'])"
+            >{{ scope.row[col.prop] }}</TrumsLink
+          >
+          <span v-else>{{ scope.row[col.prop] }}</span>
+        </template>
+      </el-table-column>
       <el-table-column label="Operations" width="150">
         <template #default="scope">
           <el-button size="small" @click="handleEdit(scope.row)">
@@ -112,6 +121,8 @@ import {
 
 const config = useRuntimeConfig();
 const api = useApi();
+const token = useCookie("token");
+const router = useRouter();
 
 const formSize = ref<ComponentSize>("default");
 const ruleFormRef = ref<FormInstance>();
@@ -130,6 +141,11 @@ const request_search = ref<RequestSearch>({
   table: "positions",
 });
 
+const navigateToList = (name = "", unique_id = null) => {
+  const path = `/human-capital-management/position/list/${name}`;
+  router.push({ path, query: { unique_id } });
+};
+
 interface RuleForm {
   unique_id: string;
   name: string;
@@ -145,6 +161,11 @@ const { data } = await useFetch<ResponsePagination<Position[]>>(
     key: "fetchData",
     method: "post",
     body: request_search.value,
+    headers: token.value
+      ? {
+          Authorization: `Bearer ${token.value}`,
+        }
+      : {},
   }
 );
 
@@ -176,6 +197,7 @@ const fetchData = async () => {
       key: "fetchData",
       method: "post",
       body: request_search.value,
+      headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
     }
   );
   data.value = newData.value;
@@ -187,10 +209,18 @@ const submit = async (formEl: FormInstance | undefined) => {
     let response;
     if (editingUniqueId.value) {
       // Mode edit
-      response = await api.post(`/position-create`, {
-        name: ruleForm.name,
-        unique_id: editingUniqueId.value,
-      });
+      response = await api.post(
+        `/position-create`,
+        {
+          name: ruleForm.name,
+          unique_id: editingUniqueId.value,
+        },
+        {
+          headers: token.value
+            ? { Authorization: `Bearer ${token.value}` }
+            : {},
+        }
+      );
       ElMessage.success(`Berhasil Mengedit posisi`);
     } else {
       // Mode tambah baru
