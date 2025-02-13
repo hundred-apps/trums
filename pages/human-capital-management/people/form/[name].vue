@@ -79,53 +79,130 @@
           prop="position_id"
           type="hidden"
         />
-
-        <!-- <el-form-item label="Cost" prop="tmp_cost">
-          <el-input
-            v-model="ruleForm.tmp_cost"
-            placeholder="Harga"
-            :formatter="(value: any) => `${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
-            :parser="(value: any) => value.replace(/[^0-9]/g, '')"
-          />
+        <el-form-item label="contact" prop="contact">
+          <div class="flex flex-col gap-4 w-full">
+            <el-button
+              v-if="selectContact.length < 1"
+              plain
+              @click="outerVisible = true"
+            >
+              Select Contact
+            </el-button>
+            <el-button v-else plain @click="outerVisible = true">
+              Change Contact
+            </el-button>
+            <div class="grid grid-cols-2 gap-4">
+              <el-tooltip
+                placement="top"
+                v-for="contact in selectContact"
+                v-key="contact.id"
+              >
+                <template #content>
+                  {{ contact.phone }}<br />{{ contact.email }}
+                </template>
+                <el-card shadow="hover">{{ contact.name }}</el-card>
+              </el-tooltip>
+            </div>
+          </div>
+          <el-dialog v-model="outerVisible" title="Select Contact" width="800">
+            <el-table
+              class="w-screen"
+              height="400"
+              @selection-change="handleSelectionChangeContact"
+              :data="dataContact?.data"
+              :loading="loading"
+              ref="tableContact"
+              lazy
+            >
+              <el-table-column type="selection" width="55" />
+              <el-table-column
+                v-for="col in columnsContact"
+                :key="col.prop || col.label"
+                :prop="col.prop"
+                :label="col.label"
+                :sortable="col.sortable"
+                :fixed="col.fixed"
+                :width="col.width"
+              >
+              </el-table-column>
+            </el-table>
+            <div class="flex justify-end">
+              <el-pagination
+                class="my-3"
+                v-model:page-size="limit"
+                :page-sizes="[10, 20, 30, 40]"
+                background
+                layout="total, sizes, prev, pager, next"
+                :total="dataContact?.total_data"
+                @size-change="handleSizeChangeContact"
+                @current-change="handleCurrentChangeContact"
+              />
+            </div>
+            <el-dialog
+              v-model="innerVisible"
+              width="500"
+              title="Add New Contact"
+              append-to-body
+            >
+              <el-form
+                ref="ruleFormRef"
+                style="max-width: 600px"
+                :model="ruleFormContact"
+                :rules="rulesContact"
+                label-width="auto"
+                class="demo-ruleForm"
+                :size="formSize"
+                status-icon
+                :disabled="loading"
+              >
+                <el-form-item label="Name" prop="name">
+                  <el-input v-model="ruleFormContact.name" placeholder="Nama" />
+                </el-form-item>
+                <el-form-item label="Email" prop="email">
+                  <el-input
+                    v-model="ruleFormContact.email"
+                    placeholder="Email"
+                  />
+                </el-form-item>
+                <el-form-item label="Phone" prop="phone">
+                  <el-input
+                    v-model="ruleFormContact.phone"
+                    placeholder="Phone"
+                  />
+                </el-form-item>
+              </el-form>
+              <template #footer>
+                <div class="dialog-footer">
+                  <el-button type="danger" @click="innerVisible = false"
+                    >Cancel</el-button
+                  >
+                  <el-button
+                    type="primary"
+                    @click="submitFormContact(ruleFormRef)"
+                    >Submit</el-button
+                  >
+                </div>
+              </template>
+            </el-dialog>
+            <template #footer>
+              <div class="dialog-footer">
+                <el-button @click="innerVisible = true">
+                  New Contact
+                </el-button>
+                <el-button type="danger" @click="handleCancelContact()"
+                  >Cancel</el-button
+                >
+                <el-button
+                  type="primary"
+                  @click=""
+                  :disabled="selectContact.length < 1"
+                >
+                  Submit
+                </el-button>
+              </div>
+            </template>
+          </el-dialog>
         </el-form-item>
-
-        <el-form-item
-          v-if="ruleForm.traceable == '0'"
-          label="Quantity"
-          prop="qty"
-        >
-          <el-input
-            v-model="ruleForm.qty"
-            :parser="(value: any) => value.replace(/[^0-9]/g, '')"
-            placeholder="Quantity"
-          />
-        </el-form-item>
-
-        <el-form-item label="Unit" prop="unit_name">
-          <el-autocomplete
-            v-model="ruleForm.unit_name"
-            :trigger-on-focus="false"
-            clearable
-            class="inline-input w-50"
-            placeholder="Pilih Unit"
-            @select="handleSelect"
-          />
-        </el-form-item>
-
-        <el-form-item label="Track Inventory" prop="is_traceable">
-          <el-radio-group v-model="ruleForm.traceable">
-            <el-radio value="1">Ya</el-radio>
-            <el-radio value="0">Tidak</el-radio>
-          </el-radio-group>
-        </el-form-item>
-
-        <el-form-item
-          v-if="ruleForm.traceable == '1'"
-          label="Serial Number"
-          prop="sn"
-        >
-          <el-input v-model="ruleForm.sn" placeholder="Masukan Serial Number" />
-        </el-form-item> -->
       </el-card>
     </el-form>
   </TrumsWrapper>
@@ -135,7 +212,56 @@
 definePageMeta({
   middleware: ["auth", "app"],
 });
+import { reactive, ref, onMounted, watch } from "vue";
+import {
+  type Column,
+  type ComponentSize,
+  type FormInstance,
+  type FormRules,
+  ElMessage,
+} from "element-plus";
+import { useApi } from "#imports";
+import { type People } from "~/types/people";
+import type { RequestSearch } from "~/types/request_search";
+import type { Unit } from "~/types/unit";
+import type { ResponsePagination } from "~/types/response_pagination";
+import type { Departement } from "~/types/departement";
+import type { Position } from "~/types/position";
+import type { Contact } from "~/types/contact";
+import { toPascalCase } from "~/utils/string_format";
 
+const router = useRouter();
+const route = useRoute();
+const token = useCookie("token");
+const { t } = useI18n();
+const config = useRuntimeConfig();
+const api = useApi();
+
+const mode = toPascalCase(route.query.mode);
+const unique_id = route.query.unique_id;
+
+const goBack = () => router.back();
+const outerVisible = ref<boolean>(false);
+const innerVisible = ref<boolean>(false);
+
+const loading = ref<boolean>(false);
+const people = ref<People[]>([]);
+const limit = ref(10);
+const currentPage = ref(1);
+const formSize = ref<ComponentSize>("default");
+const ruleFormRef = ref<FormInstance>();
+const selectContact = ref<Contact[]>([]);
+
+// request data people start
+
+const requestSearch = ref<RequestSearch>({
+  keyword: "",
+  table: "",
+  column: null,
+  sort: null,
+  limit: limit,
+  offset: currentPage,
+});
 interface RuleForm {
   id: number;
   unique_id: string;
@@ -155,48 +281,6 @@ interface RuleForm {
   departement: string | null;
   photo: string | null;
 }
-
-import { reactive, ref, onMounted, watch } from "vue";
-import {
-  type Column,
-  type ComponentSize,
-  type FormInstance,
-  type FormRules,
-  ElMessage,
-} from "element-plus";
-import { useApi } from "#imports";
-import { type People } from "~/types/people";
-import type { RequestSearch } from "~/types/request_search";
-import type { Unit } from "~/types/unit";
-import type { ResponsePagination } from "~/types/response_pagination";
-import type { Departement } from "~/types/departement";
-import type { Position } from "~/types/position";
-import { toPascalCase } from "~/utils/string_format";
-
-const router = useRouter();
-const route = useRoute();
-const token = useCookie("token");
-const { t } = useI18n();
-
-const mode = toPascalCase(route.query.mode);
-const unique_id = route.query.unique_id;
-
-const goBack = () => router.back();
-
-const loading = ref<boolean>(false);
-const people = ref<People[]>([]);
-const requestSearch = ref<RequestSearch>({
-  keyword: "",
-  table: "",
-  column: null,
-  sort: null,
-  limit: "10",
-  offset: "1",
-});
-
-const formSize = ref<ComponentSize>("default");
-const ruleFormRef = ref<FormInstance>();
-
 const ruleForm = reactive<RuleForm>({
   id: 1,
   unique_id: "",
@@ -216,8 +300,18 @@ const ruleForm = reactive<RuleForm>({
   departement: "",
   photo: "",
 });
-
-const api = useApi();
+const rules = reactive<FormRules<RuleForm>>({
+  departement: [
+    { required: true, message: "Masukan departemen", trigger: "blur" },
+  ],
+  position: [{ required: true, message: "Masukan posisi", trigger: "blur" }],
+  // quantity: [{ required: true, message: "Masukan Quantity", trigger: "blur" }],
+  // cost: [{ required: true, message: "Masukan Lokasi Item", trigger: "blur" }],
+  // unit_name: [
+  //   { required: true, message: "Masukan Jenis Unit", trigger: "blur" },
+  // ],
+  // sn: [{ required: true, message: "Masukan Serial Number", trigger: "blur" }],
+});
 
 // const createFilterLocation = (queryString: string) => {
 //   return (people: People) => {
@@ -233,19 +327,77 @@ const api = useApi();
 //   };
 // };
 
-const rules = reactive<FormRules<RuleForm>>({
-  departement: [
-    { required: true, message: "Masukan departemen", trigger: "blur" },
-  ],
-  position: [{ required: true, message: "Masukan posisi", trigger: "blur" }],
-  // quantity: [{ required: true, message: "Masukan Quantity", trigger: "blur" }],
-  // cost: [{ required: true, message: "Masukan Lokasi Item", trigger: "blur" }],
-  // unit_name: [
-  //   { required: true, message: "Masukan Jenis Unit", trigger: "blur" },
-  // ],
-  // sn: [{ required: true, message: "Masukan Serial Number", trigger: "blur" }],
+// request data people end
+
+// request data contact start
+const requestSearchContact = ref<RequestSearch>({
+  keyword: "",
+  table: "contacts",
+  column: null,
+  sort: null,
+  limit: limit,
+  offset: currentPage,
 });
 
+interface RuleFormContact {
+  id: number;
+  unique_id: string;
+  unique_code: string;
+  is_personal: boolean;
+  is_company: boolean | null;
+  internal_id: number;
+  name: string;
+  email: string;
+  phone: string | null;
+  tax_id: string | null;
+  website: string | null;
+  title: string | null;
+  tags: string | [] | null;
+}
+const ruleFormContact = reactive<RuleFormContact>({
+  id: 1,
+  unique_code: "",
+  is_personal: false,
+  is_company: false,
+  internal_id: 1,
+  name: "",
+  email: "",
+  phone: "",
+  tax_id: "",
+  website: "",
+  title: "",
+  tags: "",
+});
+
+const rulesContact = reactive<FormRules<RuleFormContact>>({
+  name: [
+    {
+      required: true,
+      message: `${t("form.validate.name")}`,
+      trigger: "blur",
+    },
+  ],
+  email: [
+    { required: true, message: `${t("form.validate.email")}`, trigger: "blur" },
+    {
+      type: "email",
+      message: `${t("form.validate.emailAddress")}`,
+      trigger: ["blur", "change"],
+    },
+  ],
+  phone: [
+    { required: true, message: `${t("form.validate.phone")}`, trigger: "blur" },
+    {
+      min: 11,
+      max: 13,
+      message: `${t("form.validate.phoneLength")}`,
+      trigger: ["blur", "change"],
+    },
+  ],
+});
+// request data contact end
+
+// data autocomplete departemen start
 const querySearchDepartement = (
   queryString: string,
   cb: (arg: any) => void
@@ -275,35 +427,6 @@ const querySearchDepartement = (
       ElMessage.error(error.response?.data?.message);
     });
 };
-
-const querySearchPosition = (queryString: string, cb: (arg: any) => void) => {
-  requestSearch.value.keyword = queryString;
-  requestSearch.value.table = "positions";
-  api
-    .post("/search", requestSearch.value, {
-      headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
-    })
-    .then((response) => {
-      if (response.status == 200) {
-        const resultApi: Position[] = response.data.data;
-
-        if (resultApi.length > 0) {
-          cb(resultApi.map((value) => ({ ...value, value: value.name })));
-        } else {
-          cb([
-            {
-              value: `Tambahkan "${queryString}"`,
-              name: `${queryString}`,
-            },
-          ]);
-        }
-      }
-    })
-    .catch((error: any) => {
-      ElMessage.error(error.response?.data?.message);
-    });
-};
-
 const handleSelectDepartement = async (item: Record<string, any>) => {
   if (item.unique_id === undefined) {
     ruleForm.departement = item.name;
@@ -332,6 +455,36 @@ const handleSelectDepartement = async (item: Record<string, any>) => {
     ruleForm.departement = item.name;
     ruleForm.departement_id = item.unique_id;
   }
+};
+//data autocomplete departemen end
+
+// data autocomplete posisi start
+const querySearchPosition = (queryString: string, cb: (arg: any) => void) => {
+  requestSearch.value.keyword = queryString;
+  requestSearch.value.table = "positions";
+  api
+    .post("/search", requestSearch.value, {
+      headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
+    })
+    .then((response) => {
+      if (response.status == 200) {
+        const resultApi: Position[] = response.data.data;
+
+        if (resultApi.length > 0) {
+          cb(resultApi.map((value) => ({ ...value, value: value.name })));
+        } else {
+          cb([
+            {
+              value: `Tambahkan "${queryString}"`,
+              name: `${queryString}`,
+            },
+          ]);
+        }
+      }
+    })
+    .catch((error: any) => {
+      ElMessage.error(error.response?.data?.message);
+    });
 };
 const handleSelectPosition = async (item: Record<string, any>) => {
   if (item.unique_id === undefined) {
@@ -362,10 +515,18 @@ const handleSelectPosition = async (item: Record<string, any>) => {
     ruleForm.position_id = item.unique_id;
   }
 };
+// data autocomplete posisi end
+
+// submit people start
 
 const submit = async (formEl: FormInstance | undefined) => {
   loading.value = true;
+
   try {
+    const arrayContact = ref([]);
+    Object.values(selectContact.value).forEach((contact) => {
+      arrayContact.value.push(contact.unique_id);
+    });
     const response = await api.post(
       "/people-create",
       {
@@ -376,11 +537,12 @@ const submit = async (formEl: FormInstance | undefined) => {
         password: ruleForm.password,
         position_id: ruleForm.position_id,
         departement_id: ruleForm.departement_id,
+        contacts: arrayContact.value,
         unique_id: ruleForm.unique_id ?? null,
-      },
-      {
-        headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
       }
+      // {
+      //   headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
+      // }
     );
     if (response.status == 201) {
       if (unique_id !== null) {
@@ -409,6 +571,47 @@ const submitForm = async (formEl: FormInstance | undefined) => {
   });
 };
 
+// submit people end
+
+// submit contact start
+const submitContact = async (formEl: FormInstance | undefined) => {
+  try {
+    const response = await api.post(
+      "/contact-create",
+      {
+        name: ruleFormContact.name,
+        email: ruleFormContact.email,
+        phone: ruleFormContact.phone,
+        unique_id: ruleFormContact.unique_id ?? null,
+      },
+      {
+        headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
+      }
+    );
+    if (response.status == 201) {
+      ElMessage.success(`Berhasil Menambahkan Contact`);
+      await fetchDataContact();
+    }
+  } catch (error: any) {
+    ElMessage.error(`${error.response?.data?.message}`);
+  } finally {
+    innerVisible.value = false;
+  }
+};
+
+const submitFormContact = async (formEl: FormInstance | undefined) => {
+  if (!formEl) return;
+  await formEl.validate((valid, fields) => {
+    if (valid) {
+      submitContact(formEl);
+    } else {
+      console.log(ruleForm);
+      ElMessage.error(`${fields}`);
+    }
+  });
+};
+// submit contact end
+
 const resetForm = (formEl: FormInstance | undefined) => {
   formEl?.resetFields();
   if (unique_id === null) {
@@ -424,6 +627,95 @@ const resetForm = (formEl: FormInstance | undefined) => {
     detail();
   }
 };
+
+//data table contact selection start
+
+const columnsContact = [
+  {
+    label: "Name",
+    prop: "name",
+    sortable: true,
+    fixed: true,
+    width: 200,
+  },
+  {
+    label: "Phone",
+    prop: "phone",
+  },
+  {
+    label: "Email",
+    prop: "email",
+  },
+];
+const { data: dataContact } = await useFetch<ResponsePagination<Contact[]>>(
+  `${config.public.baseURL}/search`,
+  {
+    key: "",
+    method: "post",
+    body: requestSearchContact.value,
+    headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
+  }
+);
+const fetchDataContact = async () => {
+  const { data: newDataContact } = await useFetch<
+    ResponsePagination<Contact[]>
+  >(`${config.public.baseURL}/search`, {
+    key: "fetchData",
+    method: "post",
+    body: requestSearchContact.value,
+    headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
+  });
+  dataContact.value = newDataContact.value;
+};
+const handleSelectionChangeContact = (selection: Contact[]) => {
+  if (selection.length <= 2) {
+    selectContact.value = selection;
+  } else {
+    ElMessage.warning("Pilih maksimal 2 orang contact.");
+    selectContact.value = selection.slice(0, 2);
+  }
+};
+const tableContact = ref([]);
+
+const handleCancelContact = () => {
+  selectContact.value = [];
+  outerVisible.value = false;
+  tableContact.value.clearSelection();
+};
+
+const selectRowsByUniqueId = () => {
+  console.log("data COntacnt:", dataContact.value?.data.length);
+
+  console.log("data Unique:", selectContact.value?.length);
+
+  if (dataContact.value?.data.length > 0 && selectContact.value?.length > 0) {
+    dataContact.value?.data.forEach((row) => {
+      console.log("row", row);
+      if (selectContact.includes(row.unique_id)) {
+        tableContact.value.toggleRowSelection(row, true);
+      }
+    });
+  }
+};
+
+const handleSizeChangeContact = (val: number) => {
+  // loading.value = true;
+};
+const handleCurrentChangeContact = (val: number) => {
+  currentPage.value = val;
+};
+
+//data table contact selection end
+
+// watch setiap ada perubahan data start
+
+watch(requestSearch, async (newValue) => {}, { immediate: true });
+watch(requestSearchContact, async (newValue) => {}, { immediate: true });
+watch(selectContact, async (newValue) => {}, { immediate: true });
+
+// watch end
+
+// mounted data edit start
 
 const detail = async () => {
   loading.value = true;
@@ -441,25 +733,21 @@ const detail = async () => {
       ruleForm.departement = people.departement_name;
       ruleForm.departement_id = people.departement_id;
       ruleForm.unique_id = people.unique_id;
+      selectContact.value = people.contacts;
     }
+    console.log("res:", response);
   } catch (error: any) {
     ElMessage.error(`${error.response?.data?.message}`);
   } finally {
     loading.value = false;
   }
 };
-
-watch(
-  requestSearch,
-  async (newValue) => {
-    console.log("new", newValue);
-  },
-  { immediate: true }
-);
-
 onMounted(() => {
   if (unique_id !== null) {
     detail();
+    selectRowsByUniqueId();
   }
 });
+
+//mounted data edit end
 </script>

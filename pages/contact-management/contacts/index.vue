@@ -24,6 +24,7 @@ const navigateToForm = (mode = "", name = "", unique_id = null) => {
 
 const showTable = ref<boolean>(true);
 const loading = ref<boolean>(false);
+const token = useCookie("token");
 
 const toggleView = () => {
   showTable.value = !showTable.value;
@@ -106,6 +107,7 @@ const { data } = await useFetch<ResponsePagination<Contact[]>>(
     key: "contacts",
     method: "post",
     body: request_search.value,
+    headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
   }
 );
 
