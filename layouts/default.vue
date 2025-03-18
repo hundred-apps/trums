@@ -27,10 +27,13 @@ const navigateToSetting = (name = "") => {
 };
 
 const user = useCookie("userdata");
+const nameFront = ref("");
 
 onMounted(() => {
   userdata.value = user.value as unknown as userData;
   // console.log()
+
+  nameFront.value = userdata.value?.name.split(" ")[0] || "";
 });
 
 const handleMenuClick = (menuKey: string) => {
@@ -64,10 +67,10 @@ const handleMenuClick = (menuKey: string) => {
         <TrumsSwitcherLang type="element" />
         <el-dropdown class="hover:text-blue-500">
           <span class="text-base flex items-center gap-2">
-            {{ userdata?.name }}
+            {{ nameFront }}
             <div class="h-[30px] w-[30px]">
               <img
-                class="rounded-full w-full h-full"
+                class="rounded-full w-full h-full avatar border border-gray-300"
                 :src="`${imageUrl}/${userdata?.photo?.filename}`"
                 :alt="`${userdata?.photo?.filename}`"
               />

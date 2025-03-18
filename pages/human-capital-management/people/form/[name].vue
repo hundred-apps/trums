@@ -81,18 +81,39 @@
         />
         <el-form-item label="contact" prop="contact">
           <div class="flex flex-col gap-4 w-full">
-            <el-button
-              v-if="selectContact.length < 1"
-              plain
-              @click="outerVisible = true"
+            <el-popconfirm
+              v-if="selectContactApi.length === 2"
+              width="250"
+              confirm-button-text="Yes"
+              cancel-button-text="No"
+              :icon="InfoFilled"
+              icon-color="#626AEF"
+              title="Are you sure to change selected contact?"
+              @confirm="handleDeleteSelectedContact(selectContactApi)"
+              @cancel="() => {}"
             >
-              Select Contact
-            </el-button>
+              <template #reference>
+                <el-button plain> Change Selected Contact </el-button>
+              </template>
+            </el-popconfirm>
+
             <el-button v-else plain @click="outerVisible = true">
               Change Contact
             </el-button>
             <div class="grid grid-cols-2 gap-4">
               <el-tooltip
+                v-if="selectContactApi !== null"
+                placement="top"
+                v-for="contact in selectContactApi"
+                v-key="contact.id"
+              >
+                <template #content>
+                  {{ contact.phone }}<br />{{ contact.email }}
+                </template>
+                <el-card shadow="hover">{{ contact.name }}</el-card>
+              </el-tooltip>
+              <el-tooltip
+                v-if="selectContact !== null"
                 placement="top"
                 v-for="contact in selectContact"
                 v-key="contact.id"
@@ -104,7 +125,19 @@
               </el-tooltip>
             </div>
           </div>
-          <el-dialog v-model="outerVisible" title="Select Contact" width="800">
+          <el-dialog
+            v-model="outerVisible"
+            title="Select Contact"
+            width="800"
+            :before-close="handleCloseOuterVisible"
+          >
+            <el-col :span="6"
+              ><el-input
+                :prefix-icon="Search"
+                v-model="requestSearchContact.keyword"
+                size="large"
+                placeholder="Type to search Contact"
+            /></el-col>
             <el-table
               class="w-screen"
               height="400"
@@ -126,6 +159,7 @@
               >
               </el-table-column>
             </el-table>
+
             <div class="flex justify-end">
               <el-pagination
                 class="my-3"
@@ -189,12 +223,9 @@
                 <el-button @click="innerVisible = true">
                   New Contact
                 </el-button>
-                <el-button type="danger" @click="handleCancelContact()"
-                  >Cancel</el-button
-                >
                 <el-button
                   type="primary"
-                  @click=""
+                  @click="handleSubmitSelectContact()"
                   :disabled="selectContact.length < 1"
                 >
                   Submit
@@ -220,6 +251,8 @@ import {
   type FormRules,
   ElMessage,
 } from "element-plus";
+import { InfoFilled, Search } from "@element-plus/icons-vue";
+
 import { useApi } from "#imports";
 import { type People } from "~/types/people";
 import type { RequestSearch } from "~/types/request_search";
@@ -251,6 +284,7 @@ const currentPage = ref(1);
 const formSize = ref<ComponentSize>("default");
 const ruleFormRef = ref<FormInstance>();
 const selectContact = ref<Contact[]>([]);
+const selectContactApi = ref<Contact[]>([]);
 
 // request data people start
 
@@ -623,6 +657,7 @@ const resetForm = (formEl: FormInstance | undefined) => {
     ruleForm.position = "";
     ruleForm.position_id = "";
     ruleForm.departement_id = "";
+    selectContact.value = [];
   } else {
     detail();
   }
@@ -668,34 +703,46 @@ const fetchDataContact = async () => {
   dataContact.value = newDataContact.value;
 };
 const handleSelectionChangeContact = (selection: Contact[]) => {
-  if (selection.length <= 2) {
-    selectContact.value = selection;
+  if (selectContactApi.value?.length === 2) {
+    ElMessage.error("Hapus dahulu jika ingin mengubah data kontaknya");
+  } else if (selectContactApi.value?.length === 1) {
+    if (selection.length <= 1) {
+      selectContact.value = selection;
+    } else {
+      ElMessage.warning(
+        "Pilih maksimal 1 orang contact karena sudah ada 1 data yang lain"
+      );
+      selectContact.value = selection.slice(0, 1);
+    }
   } else {
-    ElMessage.warning("Pilih maksimal 2 orang contact.");
-    selectContact.value = selection.slice(0, 2);
+    if (selection.length <= 2) {
+      selectContact.value = selection;
+    } else {
+      ElMessage.warning("Pilih maksimal 2 orang contact.");
+      selectContact.value = selection.slice(0, 2);
+    }
   }
 };
 const tableContact = ref([]);
 
-const handleCancelContact = () => {
-  selectContact.value = [];
-  outerVisible.value = false;
-  tableContact.value.clearSelection();
-};
-
-const selectRowsByUniqueId = () => {
-  console.log("data COntacnt:", dataContact.value?.data.length);
-
-  console.log("data Unique:", selectContact.value?.length);
-
-  if (dataContact.value?.data.length > 0 && selectContact.value?.length > 0) {
-    dataContact.value?.data.forEach((row) => {
-      console.log("row", row);
-      if (selectContact.includes(row.unique_id)) {
-        tableContact.value.toggleRowSelection(row, true);
-      }
+const handleDeleteSelectedContact = async (row: Contact) => {
+  for (const contact of row) {
+    await api.post("/contact-create", {
+      internal_id: null,
+      unique_id: contact.unique_id,
     });
   }
+  await detail();
+  // selectContact.value = [];
+  // tableContact.value!.clearSelection();
+};
+const handleCloseOuterVisible = (done: () => void) => {
+  outerVisible.value = false;
+  tableContact.value!.clearSelection();
+};
+
+const handleSubmitSelectContact = () => {
+  outerVisible.value = false;
 };
 
 const handleSizeChangeContact = (val: number) => {
@@ -712,6 +759,7 @@ const handleCurrentChangeContact = (val: number) => {
 watch(requestSearch, async (newValue) => {}, { immediate: true });
 watch(requestSearchContact, async (newValue) => {}, { immediate: true });
 watch(selectContact, async (newValue) => {}, { immediate: true });
+watch(selectContactApi, async (newValue) => {}, { immediate: true });
 
 // watch end
 
@@ -733,9 +781,8 @@ const detail = async () => {
       ruleForm.departement = people.departement_name;
       ruleForm.departement_id = people.departement_id;
       ruleForm.unique_id = people.unique_id;
-      selectContact.value = people.contacts;
+      selectContactApi.value = people.contacts;
     }
-    console.log("res:", response);
   } catch (error: any) {
     ElMessage.error(`${error.response?.data?.message}`);
   } finally {
@@ -745,9 +792,9 @@ const detail = async () => {
 onMounted(() => {
   if (unique_id !== null) {
     detail();
-    selectRowsByUniqueId();
   }
 });
 
+console.log("select", selectContactApi);
 //mounted data edit end
 </script>

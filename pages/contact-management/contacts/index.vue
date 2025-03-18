@@ -80,6 +80,11 @@ const columns = [
     prop: "tags",
     width: 200,
   },
+  {
+    label: "People Contact",
+    prop: "people_internal",
+    width: 200,
+  },
 ];
 
 const handleSelectionChange = (selection: any[]) => {
@@ -201,8 +206,9 @@ console.log("data:", data);
             "
             :style="scope.row[col.prop] ? 'color: green' : 'color: red'"
           />
-          <!-- Untuk kolom lainnya -->
-          <span v-else>{{ scope.row[col.prop] }}</span>
+          <span v-if="col.prop === 'people_internal'">{{
+            scope.row[col.prop]
+          }}</span>
         </template>
       </el-table-column>
       <el-table-column fixed="right" label="Operations" width="150">
