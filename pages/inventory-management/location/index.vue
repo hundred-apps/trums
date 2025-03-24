@@ -3,39 +3,9 @@
         <el-col :span="6"><el-input v-model="search" size="large" placeholder="Type to search" /></el-col>
         <el-button size="large" @click="() => dialogFormVisible = true">New Location</el-button>
     </el-row>
-    <el-table class="w-screen" @selection-change="handleSelectionChange" :lazy="true" :loading="disable" :data="filterTableData">
-        <el-table-column type="selection" width="55"  />
-        <el-table-column 
-            v-for="col in columns" 
-            :key="col.prop || col.label" 
-            :prop="col.prop"
-            :label="col.label"
-            :sortable="col.sortable"
-            >
-        </el-table-column>
-        <el-table-column label="Operations">
-            <template #default="scope">
-            <el-button size="small" @click="handleEdit(scope.row)">
-                Edit
-            </el-button>
-            <el-popconfirm
-                confirm-button-text="Yes"
-                cancel-button-text="No"
-                :icon="InfoFilled"
-                icon-color="#626AEF"
-                title="Are you sure to delete this?"
-                @confirm="handleDelete(scope.row)"
-                @cancel="() => {}"
-            >
-                <template #reference>
-                <el-button size="small" type="danger">Delete</el-button>
-                </template>
-            </el-popconfirm>
-            </template>
-        </el-table-column>
-    </el-table>
+    <CustomTable :columns="columns" :data="data?.data ?? []" />
     <div class="flex justify-end">
-      <el-pagination class="my-3" background layout="prev, pager, next" :total="locations?.total_page" />
+      <el-pagination class="my-3" background layout="prev, pager, next" :total="data?.total_page" />
     </div>
     <el-dialog v-model="dialogFormVisible" title="Lokasi Baru" width="500">
         <el-form :model="form" :rules="rules">
@@ -54,24 +24,73 @@
     </el-dialog>
 </template>
 
-<script lang="ts" setup>
+<script lang="tsx" setup>
+
+  
   import { ref, onMounted } from 'vue';
   import type { Catalogue } from '~/types/catalogue';
   import { InfoFilled } from '@element-plus/icons-vue'
-  import type { FormRules } from 'element-plus';
+  import { ElButton, type Column, type FormRules } from 'element-plus';
   import { useApi } from '#imports';
-import type { Pagination } from '~/types/pagination';
+  import type { Pagination } from '~/types/pagination';
+  import type { ResponsePagination } from '~/types/response_pagination';
+  import { OrderColumn, type RequestSearch } from '~/types/request_search';
+import CustomTable from '~/components/trums/table/customTable.vue';
+import { column } from 'element-plus/es/components/table-v2/src/common.mjs';
 
-  const locations = ref<Pagination<Catalogue[]>>();
+  const config = useRuntimeConfig()
+
+  const fetchData = async () => {
+    loading.value = true;
+    try {
+      const response = await useFetch<ResponsePagination<Catalogue[]>>(`${config.public.baseURL}/search`, {
+        key: 'catalogues',
+        method: 'post',
+        body: request_search.value,
+      })
+
   
+      if(response.status.value == 'success'){
+        data.value = response.data.value;
+      }
+    } catch (error: any) {
+      ElMessage.error(`${error.response?.data?.message ?? 'Gagal Mengambil Data!'}`);
+      return [];
+    } finally {
+      loading.value = false;
+    }
+    
+  }
+
+  const request_search = ref<RequestSearch>({
+    keyword: '',
+    column: [{type: ["place"]}],
+    limit: "10",
+    offset: "1",
+    table: 'catalogues',
+    sort: {
+      column: 'created_at',
+      order: OrderColumn.ASC,
+    }
+  });
+
+  const { data } = await useFetchApi<ResponsePagination<Catalogue[]>>(`/search`, 'catalogues', 'post', request_search.value);
+
+
+  const loading = ref<boolean>(false);
   const disable = ref<boolean>(false);
   const search = ref('')
   const dialogFormVisible = ref(false)
-  const formLabelWidth = '140px'
+  const formLabelWidth = '140px';
 
   const axios = useApi();
 
-  const form = reactive({
+  interface formInterface {
+    name: string,
+    unique_id?: string,
+  }
+
+  const form = reactive<formInterface>({
     name: '',
   })
 
@@ -82,68 +101,90 @@ import type { Pagination } from '~/types/pagination';
   })
 
 
-  const filterTableData = computed(() =>
-    locations.value?.query.filter(
-      (data) =>
-        !search.value ||
-        data.unique_code?.toLowerCase().includes(search.value.toLowerCase()) ||
-        data.unique_id?.toLowerCase().includes(search.value.toLowerCase()) ||
-        data.name?.toLowerCase().includes(search.value.toLowerCase())
-    )
-  )
 
-
-  const columns = [
+  const columns: Column<Catalogue>[] = [
     {
-      label: 'Unique Code', 
-      prop: 'unique_code',
+      title: 'Unique Code', 
+      key: 'unique_code',
+      dataKey: 'unique_code',
       sortable: true,
+      width: 250,
     },
     {
-      label: 'Name', 
-      prop: 'name'
+      title: 'Name', 
+      key: 'name',
+      dataKey: 'name',
+      width: 250,
     },
     {
-      label: 'Total Item', 
-      prop: 'quantity'
+      title: 'Total Item', 
+      key: 'quantity',
+      dataKey: 'quantity',
+      width: 250,
     },
-    
+    {
+      title: 'Operasi',
+      key: '',
+      width: 250,
+      cellRenderer: ({rowData: row}) => (
+        <>
+          <ElButton size="small" onClick={() => handleEdit(row)}>
+            Edit
+          </ElButton>
+          <ElButton size="small" type="danger" onClick={() => handleDelete(row)}>Delete</ElButton>
+          
+        </>
+      ),
+    }
   ]
 
-  const handleEdit = (row: any) => {
-    console.log("Editing:", row);
+  const handleEdit = (row: Catalogue) => {
+    form.unique_id = row.unique_id!;
+    form.name = row.name!;
+    dialogFormVisible.value = true;
   };
 
-  const handleDelete = (row: any) => {
-    console.log("Deleting:", row);
+  const handleDelete = async (row: Catalogue) => {
+    loading.value = false;
+    try {
+      const response = await useFetch(`${config.public.baseBE}api/catalogues-delete/${row.unique_id}`, {
+        method: 'delete',
+        body: [
+          row.unique_id
+        ]
+      });
+      if(response.status.value == "success"){
+        await refreshNuxtData('catalogues');
+      }
+    } catch (error: any) {
+      ElMessage.error(`${error.response?.data?.message}`);
+    }finally{
+      loading.value = false;
+    }
   };
 
   const handleSelectionChange = (selection: any[]) => {
     console.log("Selected Rows:", selection);
   };
 
-  const fetchData = async () => {
-    disable.value = true;
-    try {
-        const response = await axios.get('/catalogues-read');
-        if(response.status == 200){
-            locations.value = response.data.data;
-        }
-
-    } catch (error: any) {
-        ElMessage.error(error.response?.data?.message);
-    } finally {
-      disable.value = false;
-    }
-  }
-
+  
 
   const onSubmit = async () => {
+    console.log(form);
     disable.value = true;
     try {
-      const response = await axios.post('/catalogues-create', {'name': form.name, 'type': 'place'});
+      const formData = new FormData();
+      
+      formData.append("name", form.name);
+      formData.append("type", 'place');
+
+      if(form.unique_id){
+        formData.append("unique_id", form.unique_id);
+      }
+
+      const response = await axios.post('/catalogues-create', formData);
       if(response.status == 201){
-        fetchData();
+        await refreshNuxtData('catalogues');
         dialogFormVisible.value = false
       }
     } catch (error: any) {
@@ -154,10 +195,10 @@ import type { Pagination } from '~/types/pagination';
   }
 
 
-  onMounted(() => {
+  // onMounted(() => {
     
-    fetchData();
-  })
+  //   fetchData();
+  // })
   
 
 </script>

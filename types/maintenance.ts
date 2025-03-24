@@ -1,4 +1,5 @@
 import type { Catalogue } from "./catalogue";
+import type { InspectionItem } from "./inspection";
 import type { People } from "./people";
 
 export type Maintenance = {
@@ -6,6 +7,7 @@ export type Maintenance = {
     unique_id: string;
     unique_code: string;
     inspection_item_id: string;
+    inspection_item: InspectionItem|null,
     maintenance_date: number;
     team_id: string | null;
     responsible_id: string | null;
@@ -23,4 +25,5 @@ export type Maintenance = {
     created_by: string;
     updated_at: number;
     catalogues: Catalogue | null,
+    version: number,
 };

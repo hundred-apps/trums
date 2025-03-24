@@ -50,9 +50,9 @@
                                     <el-icon><Box /></el-icon>Inventory Management
                                 </template>
                                 <el-menu-item-group>
-                                    <el-menu-item  index="/inventory-management/inventories">Inventory</el-menu-item>
+                                    <el-menu-item index="/inventory-management/inventories">Inventory</el-menu-item>
                                     <el-menu-item index="/inventory-management/inqueiries">Inquiry</el-menu-item>
-                                    <el-menu-item index="2-3">Check In/Out</el-menu-item>
+                                    <el-menu-item index="/inventory-management/checkin">Check In/Out</el-menu-item>
                                     <el-menu-item index="/inventory-management/location">Lokasi</el-menu-item>
                                 </el-menu-item-group>
                                 

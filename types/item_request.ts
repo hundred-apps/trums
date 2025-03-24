@@ -24,4 +24,5 @@ export type ItemRequest = {
     created_at: number | null,
     created_by: People | null,
     updated_at: number | null,
+    checked: boolean,
 }
