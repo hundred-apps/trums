@@ -10,6 +10,8 @@
         status: string
         priority: string
         description: string | null
+        location_id: string,
+        location_view: string,
     }
 
     import { reactive, ref, onMounted } from 'vue';
@@ -19,10 +21,11 @@
     import { Search, Timer } from '@element-plus/icons-vue'
     import type { Maintenance } from '~/types/maintenance';
     import type { Contact } from '~/types/contact';
-import type { Catalogue } from '~/types/catalogue';
-import type { Unit } from '~/types/unit';
-import type { RequestSearch } from '~/types/request_search';
-import type { ResponsePagination } from '~/types/response_pagination';
+    import type { Catalogue } from '~/types/catalogue';
+    import type { Unit } from '~/types/unit';
+    import type { RequestSearch } from '~/types/request_search';
+    import type { ResponsePagination } from '~/types/response_pagination';
+    import type { Pagination } from '~/types/pagination';
     
     
     const axios = useApi();
@@ -36,7 +39,7 @@ import type { ResponsePagination } from '~/types/response_pagination';
     const formSize = ref<ComponentSize>('default')
     const ruleFormRef = ref<FormInstance>()
     const maintenances = ref<Maintenance[]>([]);
-    const contacts = ref<Contact[]>([]);
+    const contacts = ref<Pagination<Contact[]>>();
     const request_search = ref<RequestSearch>({
       keyword: '',
       table: '',
@@ -49,12 +52,13 @@ import type { ResponsePagination } from '~/types/response_pagination';
     const dataTable = ref(
         Array.from({ length: 5 }, (_, i) => ({
           id: i + 1,
-          item: 'ban mobil',
+          item: '',
           item_id: null,
           quantity: '1',
           sn: null,
           unit_id: '',
           unit_name: '',
+          is_traceable: false,
         }))
     );
     
@@ -65,6 +69,8 @@ import type { ResponsePagination } from '~/types/response_pagination';
         reference_view: '',
         status: '',
         priority: 'low',
+        location_id: '',
+        location_view: '',
         description: null
     })
     
@@ -96,6 +102,13 @@ import type { ResponsePagination } from '~/types/response_pagination';
         {
           required: true,
           message: 'Pilih Referensi Sumber Permintaan',
+          trigger: 'change',
+        },
+      ],
+      location_view: [
+        {
+          required: true,
+          message: 'Pilih permintaan ke gudang mana',
           trigger: 'change',
         },
       ],
@@ -207,29 +220,55 @@ import type { ResponsePagination } from '~/types/response_pagination';
 
 
     const onSubmit = async () => {
+      loading.value = true;
       try {
         const dateObject = new Date(ruleForm.date);
+        
+
+        const item_request: {
+              catalogue_id: string;
+              catalogue_name: string;
+              unit_id: string;
+              unit_name: string,
+              quantity: number,
+              sn: string,
+            }[] = [];
+
+        dataTable.value.forEach(element => {
+          if(element.item != ''){
+            item_request.push({
+              catalogue_id: element.item_id ?? '',
+              catalogue_name: element.item ?? '',
+              unit_id: element.unit_id ?? '',
+              unit_name: element.unit_name ?? '',
+              quantity: parseInt(element.quantity),
+              sn: element.sn ?? '',
+            });
+          }
+        });
+
         const data = {
-            "date": dateObject.getTime(),
+            "date": dateObject.getTime() / 1000,
             "reference": ruleForm.reference,
             "reference_id": ruleForm.reference_id,
             "status": "draft",
+            "location_id": ruleForm.location_id,
             "priority": ruleForm.priority,
             "description": ruleForm.description,
-            "items": dataTable.value.map((value) => ({
-              catalogue_id: value.item_id,
-              catalogue_name: value.item,
-              unit_id: value.unit_id,
-              unit_name: value.unit_name,
-              quantity: value.quantity,
-              sn: value.sn,
-            })),
+            "item_request": item_request,
         }
+
         console.log(data);
-      } catch (error) {
-        
+
+        const response = await axios.post('/inquiries-create', data);
+
+        if(response.status == 201){
+          ElMessage.success("Berhasil");
+        }
+      } catch (error: any) {
+        ElMessage.error(`${error.response?.data?.message}`);
       } finally {
-        loading
+        loading.value = false;
       }
     }
 
@@ -294,7 +333,12 @@ import type { ResponsePagination } from '~/types/response_pagination';
         request_search.value.table = 'catalogues';
         request_search.value.column = [
           {
-              "type": ['item']
+              "type": ['item'],
+              "inventories_catalogue": [
+                {
+                  "location_id": ruleForm.location_id,
+                }
+              ]
           }
         ]
 
@@ -303,7 +347,36 @@ import type { ResponsePagination } from '~/types/response_pagination';
             const resultApi: ResponsePagination<Catalogue[]> = response.data;
             if(resultApi.data.length > 0){
               const results = response.data.data.map((data: Catalogue) => {
-                  return {...data, value: `${data.name} - ${data.sn}`}
+                  return {...data, value: `${data.name}${data.sn ? ' - ' + data.sn : ''}`}
+              });    
+              cb(results)
+            }else{
+              cb([{ value: `Tambahkan ${queryString}`, label: `${queryString}`}])
+            }
+          }else{
+            ElMessage.error(response.data.message);
+          }
+        }).catch((error: any) => {
+          ElMessage.error(error.response.data.message);
+        });
+    }
+
+    const querySearchAsyncLocation = (queryString: string, cb: (arg: any) => void) => {
+      
+        request_search.value.keyword = queryString,
+        request_search.value.table = 'catalogues';
+        request_search.value.column = [
+          {
+              "type": ['place']
+          }
+        ]
+
+        axios.post('/search', request_search.value).then((response) => {
+          if(response.status == 200){
+            const resultApi: ResponsePagination<Catalogue[]> = response.data;
+            if(resultApi.data.length > 0){
+              const results = response.data.data.map((data: Catalogue) => {
+                  return {...data, value: `${data.name}${data.sn ? ' - ' + data.sn : ''}`}
               });    
               cb(results)
             }else{
@@ -326,40 +399,66 @@ import type { ResponsePagination } from '~/types/response_pagination';
     }
 
     let timeout: ReturnType<typeof setTimeout>
-    const querySearchAsyncUnit = (queryString: string, cb: (arg: any) => void) => {
-      const filters = queryString
-      ? units.value.filter(createFilter(queryString))
-      : units.value
-
-      const results = filters.map((data: Unit) => {
-                return {value: `${data.name}`, id: data.id};
-            });
-
-      clearTimeout(timeout)
-      timeout = setTimeout(() => {
-        cb(results)
-      }, 3000 * Math.random())
+    const querySearchUnit = (queryString: string, cb: (arg: any) => void) => {
+      var params = {...request_search.value};
+      params.keyword = queryString;
+      params.table = 'units';
+      params.column = [];
+      axios.post('/search', params).then((response) => {
+          if(response.status == 200){
+              const resultApi: Unit[]  = response.data.data;
+              
+              if(resultApi.length > 0){
+                  cb(resultApi.map((value) => ({...value, value: value.name})));
+              }else{
+                  cb([{value: `Tambahkan ${queryString}`, label: `${queryString}`}]);
+              }
+          }
+      }).catch((error: any) => {
+          ElMessage.error(error.response?.data?.message);
+      })
     }
 
     const onHandleSelectItemAutocomplete = (item: Record<string, any>, scope: any) => {
-      console.log(item)
+      
       if(item.unique_id == undefined){
-        dataTable.value[scope.$index].item = item.unique_id;
+        dataTable.value[scope.$index].item = item.label;
         dataTable.value[scope.$index].item_id = null;
+        console.log(dataTable.value[scope.$index]);
       }else{
         dataTable.value[scope.$index].item = item.value;
         dataTable.value[scope.$index].item_id = item.unique_id;
         dataTable.value[scope.$index].sn = item.sn;
         dataTable.value[scope.$index].unit_id = item.unit_id;
         dataTable.value[scope.$index].unit_name = item.unit_name;
+
+        console.log(dataTable.value[scope.$index]);
+        // dataTable.value[scope.$index].unit_name = item.t;
+      }
+      
+    }
+
+    const onHandleSelectLocationAutocomplete = (item: Record<string, any>) => {
+      console.log(item)
+      if(item.unique_id == undefined){
+        ruleForm.location_view = item.unique_id;
+        ruleForm.location_id = '';
+      }else{
+        ruleForm.location_view = item.name;
+        ruleForm.location_id = item.unique_id;
       }
       
     }
 
     const onHandleSelectItemAutocompleteUnit = (item: Record<string, any>, scope: any) => {
       console.log(scope.$index)
-      dataTable.value[scope.$index].unit_name = item.value;
-      dataTable.value[scope.$index].unit_id = `${item.id}`;
+      if(item.unique_id == undefined){
+        dataTable.value[scope.$index].unit_name = item.label;
+        dataTable.value[scope.$index].unit_id = '';
+      }else{
+        dataTable.value[scope.$index].unit_name = item.value;
+        dataTable.value[scope.$index].unit_id = `${item.id}`;
+      }
     }
 
     const validateDecimal = (value: string, scope: any) => {
@@ -402,6 +501,14 @@ import type { ResponsePagination } from '~/types/response_pagination';
                 </div>
       </template>
      
+        <el-form-item label="Lokasi" prop="location_view">
+          <el-autocomplete
+                :fetch-suggestions="querySearchAsyncLocation"
+                v-model="ruleForm.location_view"
+                placeholder="Please input"
+                @select="(item: Record<string, any>) => onHandleSelectLocationAutocomplete(item)"
+              />
+        </el-form-item>  
         <el-form-item label="Tanggal Permintaan" prop="date">
           <el-date-picker
             v-model="ruleForm.date!"
@@ -451,7 +558,7 @@ import type { ResponsePagination } from '~/types/response_pagination';
                 v-model="scope.row.item"
                 
                 placeholder="Please input"
-                @select="(item) => onHandleSelectItemAutocomplete(item, scope)"
+                @select="(item: Record<string, any>) => onHandleSelectItemAutocomplete(item, scope)"
               />
             </template>
           </el-table-column>
@@ -466,7 +573,7 @@ import type { ResponsePagination } from '~/types/response_pagination';
                 :step="0.01"
                 :min="0"
                 v-model="scope.row.quantity"
-                @input="(value) => validateDecimal(value, scope)"
+                @input="(value: string) => validateDecimal(value, scope)"
                 placeholder="Masukkan item"
               />
             </template>
@@ -474,10 +581,10 @@ import type { ResponsePagination } from '~/types/response_pagination';
           <el-table-column prop="unit" label="Unit">
             <template #default="scope">
               <el-autocomplete
-                :fetch-suggestions="querySearchAsyncUnit"
+                :fetch-suggestions="querySearchUnit"
                 v-model="scope.row.unit_name"
                 placeholder="Input Units"
-                @select="(item) => onHandleSelectItemAutocompleteUnit(item, scope)"
+                @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteUnit(item, scope)"
               />
             </template>
           </el-table-column>
@@ -489,7 +596,7 @@ import type { ResponsePagination } from '~/types/response_pagination';
       
       <el-table-v2
         :columns="columnsContact"
-        :data="contacts"
+        :data="contacts?.query ?? []"
         :width="760"
         :height="400"
         fixed

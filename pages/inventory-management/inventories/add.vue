@@ -74,11 +74,12 @@
         <el-form-item label="Unit" prop="unit_name">
           <el-autocomplete
             v-model="ruleForm.unit_name"
+            :fetch-suggestions="querySearchUnit"
             :trigger-on-focus="false"
             clearable
             class="inline-input w-50"
             placeholder="Pilih Unit"
-            @select="handleSelect"
+            @select="handleSelectUnit"
           />
         </el-form-item>
 
@@ -241,20 +242,6 @@ const ruleForm = reactive<RuleForm>({
 
 const api = useApi();
 
-const createFilterLocation = (queryString: string) => {
-  return (catalogue: Catalogue) => {
-    return (
-      catalogue.name?.toLowerCase().indexOf(queryString.toLowerCase()) === 0
-    );
-  };
-};
-
-const createFilterUnit = (queryString: string) => {
-  return (unit: Unit) => {
-    return unit.name?.toLowerCase().indexOf(queryString.toLowerCase()) === 0;
-  };
-};
-
 const rules = reactive<FormRules<RuleForm>>({
   catalogue: [{ required: true, message: "Masukan Item", trigger: "blur" }],
   location_name: [
@@ -271,6 +258,7 @@ const rules = reactive<FormRules<RuleForm>>({
 const querySearchAsync = (queryString: string, cb: (arg: any) => void) => {
   requestSearch.value.keyword = queryString;
   requestSearch.value.table = "catalogues";
+  requestSearch.value.column = [{ type: ["item"] }];
   api
     .post("/search", requestSearch.value)
     .then((response) => {
@@ -314,6 +302,29 @@ const querySearchLocation = (queryString: string, cb: (arg: any) => void) => {
     });
 };
 
+const querySearchUnit = (queryString: string, cb: (arg: any) => void) => {
+  var params = { ...requestSearch.value };
+  params.keyword = queryString;
+  params.table = "units";
+  params.column = [];
+  api
+    .post("/search", params)
+    .then((response) => {
+      if (response.status == 200) {
+        const resultApi: Unit[] = response.data.data;
+
+        if (resultApi.length > 0) {
+          cb(resultApi.map((value) => ({ ...value, value: value.name })));
+        } else {
+          cb([{ value: `Tambahkan ${queryString}`, id: `${queryString}` }]);
+        }
+      }
+    })
+    .catch((error: any) => {
+      ElMessage.error(error.response?.data?.message);
+    });
+};
+
 const handleSelect = (item: Record<string, any>) => {
   console.log(item);
 
@@ -323,6 +334,17 @@ const handleSelect = (item: Record<string, any>) => {
   } else {
     ruleForm.catalogue = item.value;
     ruleForm.catalogue_id = item.unique_id;
+  }
+};
+const handleSelectUnit = (item: Record<string, any>) => {
+  console.log(item);
+
+  if (item.unique_id == undefined) {
+    ruleForm.unit_name = item.id;
+    ruleForm.unit_id = null;
+  } else {
+    ruleForm.unit_name = item.value;
+    ruleForm.unit_id = item.unique_id;
   }
 };
 const handleSelectLocation = (item: Record<string, any>) => {

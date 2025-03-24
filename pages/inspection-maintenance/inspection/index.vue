@@ -16,6 +16,7 @@ import { formatDate } from "@vueuse/core";
 import type { FunctionalComponent } from "vue";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import type { Pagination } from "~/types/pagination";
+import { NuxtLink } from "#components";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -28,6 +29,7 @@ const loading = ref<boolean>(false);
 const search = ref("");
 
 const axios = useApi();
+const router = useRouter();
 
 type SelectionCellProps = {
   value: boolean;
@@ -55,7 +57,11 @@ const columnInspection: Column<Inspection>[] = [
     title: "Nomor",
     dataKey: "unique_code",
     width: 150,
-    align: "center",
+    cellRenderer: ({ rowData: row }) => (
+      <NuxtLink href={`inspection/${row.unique_id}`} class={"text-blue-500"}>
+        {row.unique_code}
+      </NuxtLink>
+    ),
   },
   {
     key: "inspection_date",
@@ -158,7 +164,10 @@ const onDelete = async (value: Inspection) => {
   console.log("deleted", value);
 };
 const onEdit = async (value: Inspection) => {
-  console.log("edited", value);
+  const unique_id = useCookie("unique_id");
+  unique_id.value = value.unique_id;
+  router.push(`inspection/add`);
+  // console.log('edited',value);
 };
 
 const handleSelectionChange = (selection: any[]) => {

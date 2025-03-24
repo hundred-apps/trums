@@ -4,3 +4,9 @@ export type Pagination<T> = {
     total_data: number,
     query: T
 }
+
+export type DefaultResponse<T> = {
+    success: boolean,
+    message: string,
+    data: T,
+}

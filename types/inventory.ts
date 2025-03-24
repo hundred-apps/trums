@@ -1,4 +1,5 @@
 import type { Catalogue } from "./catalogue"
+import type { Unit } from "./unit"
 
 export type Inventory = {
     id: number,
@@ -14,5 +15,7 @@ export type Inventory = {
     quantity: number,
     cost: number,
     location: Catalogue|null
+    checked?: boolean,
+    unit: Unit|null;
 
 }

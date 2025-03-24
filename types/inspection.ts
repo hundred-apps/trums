@@ -1,4 +1,5 @@
 import type { Inventory } from "./inventory"
+import type { People } from "./people"
 
 export type Inspection = {
     id: number,
@@ -11,7 +12,7 @@ export type Inspection = {
     created_at: number|null,
     created_by: string|null,
     updated_at: number|null,
-    items: InspectionItem[],
+    inspection_item: InspectionItem[],
 }
 
 export type InspectionItem = {
@@ -19,8 +20,8 @@ export type InspectionItem = {
     unique_id: string,
     unique_code: string,
     inventory_id: string|null,
-    inventory: Inventory|null,
-    pic: string|null,
+    inventories: Inventory|null,
+    pic: People|null,
     condition: string|null,
     created_at: number|null,
     created_by: string|null,

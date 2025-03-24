@@ -2,11 +2,11 @@
   <el-table-v2
         :columns="columns"
         :data="data"
-        :height="400"
+        :height="height ?? 400"
         :width="1100"
         :max-width="2000"
         :sort-state="sortState"
-        
+        class="px-3"
         @column-sort="columnSort"
         fixed
       >
@@ -23,10 +23,12 @@
       </el-table-v2>
 </template>
 
-<script lang="ts" setup>
+<script lang="tsx" setup>
   import type { AnyColumn } from 'element-plus/es/components/table-v2/src/common.mjs';
   import type { ColumnSortHandler } from 'element-plus/es/components/table-v2/src/table.mjs';
   import { Loading as LoadingIcon } from '@element-plus/icons-vue'
+import { ElCheckbox, type CheckboxValueType } from 'element-plus';
+import type { FunctionalComponent } from 'vue';
 
 
   const props = defineProps({
@@ -34,6 +36,7 @@
       type: Array<AnyColumn>,
       required: true
     },
+    
     data: {
       type: Array,
       required: true,
@@ -45,10 +48,13 @@
     loading: {
       type: Boolean,
       required: false,
-      
     },
     columnSort: {
       type: Function as PropType<ColumnSortHandler<any>>,
+      required: false,
+    },
+    height: {
+      type: Number,
       required: false,
     }
   })
@@ -58,19 +64,50 @@
     
   }
 
+  type SelectionCellProps = {
+    value: boolean
+    intermediate?: boolean
+    onChange: (value: CheckboxValueType) => void
+  }
+
+  const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
+    value,
+    intermediate = false,
+    onChange,
+  }) => {
+    return (
+      <ElCheckbox
+        onChange={onChange}
+        modelValue={value}
+        indeterminate={intermediate}
+      />
+    )
+  }
+  
+
+  const checkIfExistCheckbox = () => {
+    const newColumn = [...props.columns];
+    
+  }
+
   // const scollbar_thumb = document.getElementsByClassName('el-scrollbar__thumb');
   // for(var i = 0; i < scollbar_thumb.length; i++){
   //   scollbar_thumb[i].remove();
   // }
+
+  onMounted(() => {
+    
+    
+  })
   
 
 </script>
 
 <style>
 
-/* .el-table-v2__root, .el-table-v2__main {
+.el-table-v2__root, .el-table-v2__main {
   width: 100% !important;
-} */
+}
 
 /* .el-table-v2__root, .el-table-v2__main, .el-table-v2__header-wrapper, .el-table-v2__header{
   width: auto !important;

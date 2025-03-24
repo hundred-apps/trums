@@ -15,4 +15,5 @@ export type Contact = {
     created_at: number;
     created_by: string;
     updated_at: number;
+    version: number;
 };
