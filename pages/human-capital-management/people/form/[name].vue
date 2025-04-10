@@ -5,38 +5,31 @@
         <span class="text-large font-600 mr-3"> {{ mode }} People </span>
       </template>
     </el-page-header>
-    <el-form
-      ref="ruleFormRef"
-      style="max-width: 600px"
-      :model="ruleForm"
-      :rules="rules"
-      label-width="auto"
-      class="demo-ruleForm"
-      :size="formSize"
-      status-icon
-      :disabled="loading"
-    >
-      <el-card class="my-3">
-        <template #header>
-          <div class="card-header">
-            <el-form-item>
-              <el-button type="primary" @click="submitForm(ruleFormRef)">
-                Simpan
-              </el-button>
-              <el-button @click="resetForm(ruleFormRef)">Reset</el-button>
-            </el-form-item>
-          </div>
-        </template>
-        <el-form-item label="Nama" prop="name">
+    <el-card class="my-3">
+      <el-form
+        ref="ruleFormRef"
+        style="max-width: 600px"
+        :model="ruleForm"
+        :rules="rules"
+        label-width="auto"
+        class="demo-ruleForm"
+        :size="formSize"
+        status-icon
+        :disabled="loading"
+      >
+        <el-form-item :label="`${t('form.label.name')}`" prop="name">
           <el-input v-model="ruleForm.name" placeholder="Masukan Nama" />
         </el-form-item>
-        <el-form-item label="Email" prop="email">
+        <el-form-item :label="`${t('form.label.email')}`" prop="email">
           <el-input v-model="ruleForm.email" placeholder="Masukan Email" />
         </el-form-item>
-        <el-form-item label="Phone" prop="phone">
-          <el-input v-model="ruleForm.phone" placeholder="Masukan Telepon" />
+        <el-form-item :label="`${t('form.label.phoneNumber')}`" prop="phone">
+          <el-input
+            v-model="ruleForm.phone"
+            :placeholder="`${t('form.placeholder.phoneNumber')}`"
+          />
         </el-form-item>
-        <el-form-item label="Password" prop="password">
+        <el-form-item :label="`${t('form.label.password')}`" prop="password">
           <el-input v-model="ruleForm.password" type="password" show-password />
         </el-form-item>
         <el-form-item :label="`${t('form.label.gender')}`" prop="gender">
@@ -54,7 +47,7 @@
             :trigger-on-focus="false"
             clearable
             class="inline-input w-50"
-            placeholder="Masukan Nama Departemen"
+            :placeholder="`${t('form.placeholder.departement')}`"
             @select="handleSelectDepartement"
           />
         </el-form-item>
@@ -70,7 +63,7 @@
             :trigger-on-focus="false"
             clearable
             class="inline-input w-50"
-            placeholder="Pilih Posisi"
+            :placeholder="`${t('form.placeholder.position')}`"
             @select="handleSelectPosition"
           />
         </el-form-item>
@@ -79,7 +72,7 @@
           prop="position_id"
           type="hidden"
         />
-        <el-form-item label="contact" prop="contact">
+        <el-form-item label="Contact" prop="contact">
           <div class="flex flex-col gap-4 w-full">
             <el-popconfirm
               v-if="selectContactApi.length === 2"
@@ -131,12 +124,13 @@
             width="800"
             :before-close="handleCloseOuterVisible"
           >
-            <el-col :span="6"
+            <el-col
               ><el-input
                 :prefix-icon="Search"
                 v-model="requestSearchContact.keyword"
                 size="large"
                 placeholder="Type to search Contact"
+                clearable
             /></el-col>
             <el-table
               class="w-screen"
@@ -234,10 +228,34 @@
             </template>
           </el-dialog>
         </el-form-item>
-      </el-card>
-    </el-form>
+      </el-form>
+      <template #footer>
+        <div class="flex justify-end align-center">
+          <el-button type="info" plain @click="resetForm(ruleFormRef)"
+            >Reset</el-button
+          >
+          <el-button type="primary" @click="submitForm(ruleFormRef)">
+            Simpan
+          </el-button>
+        </div>
+      </template>
+    </el-card>
   </TrumsWrapper>
 </template>
+
+<style lang="css" scoped>
+.el-form-item__content {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  font-size: var(--font-size);
+  line-height: 32px;
+  min-width: 0;
+  position: inherit;
+  justify-content: flex-end;
+}
+</style>
 
 <script lang="ts" setup>
 definePageMeta({
@@ -450,7 +468,7 @@ const querySearchDepartement = (
         } else {
           cb([
             {
-              value: `Tambahkan "${queryString}"`,
+              value: `Tambahkan "${queryString}" di Departemen`,
               name: `${queryString}`,
             },
           ]);
@@ -509,7 +527,7 @@ const querySearchPosition = (queryString: string, cb: (arg: any) => void) => {
         } else {
           cb([
             {
-              value: `Tambahkan "${queryString}"`,
+              value: `Tambahkan "${queryString}" di Posisi`,
               name: `${queryString}`,
             },
           ]);

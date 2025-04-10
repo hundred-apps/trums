@@ -351,37 +351,39 @@ onMounted(() => {
 });
 </script>
 <template>
-  <div class="w-auto">
-    <el-row :gutter="20" class="mb-3">
-      <el-col :span="6"
-        ><el-input
-          v-model="request_search.keyword"
+  <TrumsWrapper>
+    <div class="w-auto">
+      <el-row :gutter="20" class="mb-3">
+        <el-col :span="6"
+          ><el-input
+            v-model="request_search.keyword"
+            size="large"
+            placeholder="Type to search"
+        /></el-col>
+        <el-button
           size="large"
-          placeholder="Type to search"
-      /></el-col>
-      <el-button
-        size="large"
-        @click="
-          () => {
-            const unique_id = useCookie('unique_id');
-            unique_id.value = null;
-            $router.push('inventories/add');
-          }
-        "
-        >New Inventory</el-button
-      >
-    </el-row>
-    <CustomTable
-      :column-sort="onSort"
-      :columns="filteredColumn"
-      :data="data?.data ?? []"
-    />
-    <div class="flex justify-end mt-3">
-      <el-pagination
-        background
-        layout="prev, pager, next"
-        :total="data?.total_data"
+          @click="
+            () => {
+              const unique_id = useCookie('unique_id');
+              unique_id.value = null;
+              $router.push('inventories/add');
+            }
+          "
+          >New Inventory</el-button
+        >
+      </el-row>
+      <CustomTable
+        :column-sort="onSort"
+        :columns="filteredColumn"
+        :data="data?.data ?? []"
       />
+      <div class="flex justify-end mt-3">
+        <el-pagination
+          background
+          layout="prev, pager, next"
+          :total="data?.total_data"
+        />
+      </div>
     </div>
-  </div>
+  </TrumsWrapper>
 </template>

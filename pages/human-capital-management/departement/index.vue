@@ -23,6 +23,7 @@
         :key="col.prop || col.label"
         :prop="col.prop"
         :label="col.label"
+        sortable
       >
         <template #default="scope">
           <TrumsLink
@@ -35,9 +36,16 @@
       </el-table-column>
       <el-table-column label="Operations" width="150">
         <template #default="scope">
-          <el-button size="small" @click="handleEdit(scope.row)">
-            Edit
-          </el-button>
+          <el-tooltip placement="top">
+            <template #content>Edit</template>
+            <el-button
+              type="warning"
+              :icon="Edit"
+              circle
+              @click="handleEdit(scope.row)"
+              plain
+            />
+          </el-tooltip>
           <el-popconfirm
             confirm-button-text="Yes"
             cancel-button-text="No"
@@ -48,7 +56,10 @@
             @cancel="() => {}"
           >
             <template #reference>
-              <el-button size="small" type="danger">Delete</el-button>
+              <el-tooltip placement="top">
+                <template #content>Delete</template>
+                <el-button type="danger" :icon="Delete" circle plain />
+              </el-tooltip>
             </template>
           </el-popconfirm>
         </template>
@@ -101,7 +112,7 @@
 
 <script lang="ts" setup>
 import { ref, onMounted, watch } from "vue";
-import { InfoFilled } from "@element-plus/icons-vue";
+import { InfoFilled, Delete, Edit } from "@element-plus/icons-vue";
 import { useApi } from "#imports";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { RequestSearch } from "~/types/request_search";

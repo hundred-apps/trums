@@ -127,8 +127,12 @@ const handleMenuClick = (menuKey: string) => {
               <el-icon><DocumentChecked /></el-icon>Inspection & Maintenance
             </template>
             <el-menu-item-group>
-              <el-menu-item index="3-1">Inspection</el-menu-item>
-              <el-menu-item index="3-2">Maintenance</el-menu-item>
+              <el-menu-item index="/inspection-maintenance/inspection"
+                >Inspection</el-menu-item
+              >
+              <el-menu-item index="/inspection-maintenance/maintenance"
+                >Maintenance</el-menu-item
+              >
             </el-menu-item-group>
           </el-sub-menu>
           <el-sub-menu index="4">

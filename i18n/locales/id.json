@@ -89,7 +89,9 @@
       "name": "Nama anda",
       "email": "Alamat email anda",
       "phoneNumber": "08xxxxx",
-      "password": "Masukkan kata sandi"
+      "password": "Masukkan kata sandi",
+      "departement": "Ketik Nama Departemen",
+      "position": "Ketik Nama Posisi"
     }
   },
 

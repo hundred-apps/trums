@@ -69,7 +69,7 @@
       "gender": "Gender",
       "genderMale": "Male",
       "genderFemale": "Female",
-      "password": "Your Password",
+      "password": "Set Password",
       "rememberMe": "Remember Me",
       "forgotPassword": "Forgot Password?",
       "notRegistered": "Not Registered?",
@@ -88,7 +88,9 @@
       "name": "Your name",
       "email": "Your email address",
       "phoneNumber": "08xxxxx",
-      "password": "Enter your password"
+      "password": "Enter your password",
+      "departement": "Type Departement Name",
+      "position": "Type Position Name"
     }
   },
 

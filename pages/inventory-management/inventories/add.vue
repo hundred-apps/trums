@@ -5,28 +5,18 @@
         <span class="text-large font-600 mr-3"> New Inventory </span>
       </template>
     </el-page-header>
-    <el-form
-      ref="ruleFormRef"
-      style="max-width: 600px"
-      :model="ruleForm"
-      :rules="rules"
-      label-width="auto"
-      class="demo-ruleForm"
-      :size="formSize"
-      status-icon
-      :disabled="loading"
-    >
-      <el-card class="my-3">
-        <template #header>
-          <div class="card-header">
-            <el-form-item>
-              <el-button type="primary" @click="submitForm(ruleFormRef)">
-                Simpan
-              </el-button>
-              <el-button @click="resetForm(ruleFormRef)">Reset</el-button>
-            </el-form-item>
-          </div>
-        </template>
+    <el-card class="my-3">
+      <el-form
+        ref="ruleFormRef"
+        style="max-width: 600px"
+        :model="ruleForm"
+        :rules="rules"
+        label-width="auto"
+        class="demo-ruleForm"
+        :size="formSize"
+        status-icon
+        :disabled="loading"
+      >
         <el-form-item label="Nama Item" prop="catalogue">
           <el-autocomplete
             v-model="ruleForm.catalogue"
@@ -49,7 +39,6 @@
             @select="handleSelectLocation"
           />
         </el-form-item>
-
         <el-form-item label="Cost" prop="tmp_cost">
           <el-input
             v-model="ruleForm.tmp_cost"
@@ -58,7 +47,6 @@
             :parser="(value: any) => value.replace(/[^0-9]/g, '')"
           />
         </el-form-item>
-
         <el-form-item
           v-if="ruleForm.traceable == '0'"
           label="Quantity"
@@ -70,7 +58,6 @@
             placeholder="Quantity"
           />
         </el-form-item>
-
         <el-form-item label="Unit" prop="unit_name">
           <el-autocomplete
             v-model="ruleForm.unit_name"
@@ -82,14 +69,12 @@
             @select="handleSelectUnit"
           />
         </el-form-item>
-
         <el-form-item label="Track Inventory" prop="is_traceable">
           <el-radio-group v-model="ruleForm.traceable">
             <el-radio value="1">Ya</el-radio>
             <el-radio value="0">Tidak</el-radio>
           </el-radio-group>
         </el-form-item>
-
         <el-form-item
           v-if="ruleForm.traceable == '1'"
           label="Serial Number"
@@ -97,49 +82,18 @@
         >
           <el-input v-model="ruleForm.sn" placeholder="Masukan Serial Number" />
         </el-form-item>
-      </el-card>
-      <!-- <el-card class="mb-3">
-            <el-table :data="[]">
-                <el-table-column prop="item" label="item" >
-                    <template #default="scope">
-                        <el-autocomplete
-                        :fetch-suggestions="querySearchAsync"
-                        v-model="scope.row.item"
-                        
-                        placeholder="Please input"
-                        @select="(item) => onHandleSelectItemAutocomplete(item, scope)"
-                        />
-                    </template>
-                </el-table-column>
-                <el-table-column prop="sn" label="Serial Number" >
-                    <template #default="scope">
-                        <el-input v-model="scope.row.sn" placeholder="Serial Number" />
-                    </template>
-                </el-table-column>
-                <el-table-column prop="quantity" label="Quantity">
-                    <template #default="scope">
-                        <el-input
-                        :step="0.01"
-                        :min="0"
-                        v-model="scope.row.quantity"
-                        @input="(value) => validateDecimal(value, scope)"
-                        placeholder="Masukkan item"
-                        />
-                    </template>
-                </el-table-column>
-                <el-table-column prop="unit" label="Unit">
-                    <template #default="scope">
-                        <el-autocomplete
-                        :fetch-suggestions="querySearchAsyncUnit"
-                        v-model="scope.row.unit_name"
-                        placeholder="Input Units"
-                        @select="(item) => onHandleSelectItemAutocompleteUnit(item, scope)"
-                        />
-                    </template>
-                </el-table-column>
-            </el-table>
-        </el-card> -->
-    </el-form>
+      </el-form>
+      <template #footer>
+        <div class="flex justify-end align-center">
+          <el-button type="info" plain @click="resetForm(ruleFormRef)"
+            >Reset</el-button
+          >
+          <el-button type="primary" @click="submitForm(ruleFormRef)">
+            Simpan
+          </el-button>
+        </div>
+      </template>
+    </el-card>
   </TrumsWrapper>
 </template>
 

@@ -4,7 +4,7 @@ import { type People } from "~/types/people";
 import { useApi } from "~/composables/useApi";
 import type { RequestSearch } from "~/types/request_search";
 import { useRouter } from "vue-router";
-import { InfoFilled } from "@element-plus/icons-vue";
+import { InfoFilled, Delete, Edit } from "@element-plus/icons-vue";
 import type { ResponsePagination } from "~/types/response_pagination";
 const config = useRuntimeConfig();
 
@@ -179,14 +179,19 @@ const handleCurrentChange = (val: number) => {
       </el-table-column>
       <el-table-column fixed="right" label="Operations" width="150">
         <template #default="scope">
-          <el-button
-            size="small"
-            @click="
-              navigateToForm('update', scope.row.name, scope.row.unique_id)
-            "
-          >
-            Edit
-          </el-button>
+          <el-tooltip placement="top">
+            <template #content>Edit</template>
+            <el-button
+              type="warning"
+              :icon="Edit"
+              circle
+              @click="
+                navigateToForm('update', scope.row.name, scope.row.unique_id)
+              "
+              plain
+            />
+          </el-tooltip>
+
           <el-popconfirm
             confirm-button-text="Yes"
             cancel-button-text="No"
@@ -197,7 +202,10 @@ const handleCurrentChange = (val: number) => {
             @cancel="() => {}"
           >
             <template #reference>
-              <el-button size="small" type="danger">Delete</el-button>
+              <el-tooltip placement="top">
+                <template #content>Delete</template>
+                <el-button type="danger" :icon="Delete" circle plain />
+              </el-tooltip>
             </template>
           </el-popconfirm>
         </template>
