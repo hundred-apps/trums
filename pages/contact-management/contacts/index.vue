@@ -4,7 +4,7 @@ import { type Contact } from "~/types/contact";
 import { useApi } from "~/composables/useApi";
 import type { RequestSearch } from "~/types/request_search";
 import { useRouter } from "vue-router";
-import { InfoFilled } from "@element-plus/icons-vue";
+import { InfoFilled, Delete, Edit } from "@element-plus/icons-vue";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { Pagination } from "~/types/pagination";
 const config = useRuntimeConfig();
@@ -204,7 +204,7 @@ console.log("data:", data);
             :name="
               scope.row[col.prop] ? 'mdi:check-circle' : 'mdi:close-circle'
             "
-            :style="scope.row[col.prop] ? 'color: green' : 'color: red'"
+            :style="scope.row[col.prop] ? 'color: #67c23a' : 'color: #f56c6c'"
           />
           <span v-if="col.prop === 'people_internal'">{{
             scope.row[col.prop]
@@ -213,14 +213,19 @@ console.log("data:", data);
       </el-table-column>
       <el-table-column fixed="right" label="Operations" width="150">
         <template #default="scope">
-          <el-button
-            size="small"
-            @click="
-              navigateToForm('update', scope.row.name, scope.row.unique_id)
-            "
-          >
-            Edit
-          </el-button>
+          <el-tooltip placement="top">
+            <template #content>Edit</template>
+            <el-button
+              type="warning"
+              :icon="Edit"
+              circle
+              @click="
+                navigateToForm('update', scope.row.name, scope.row.unique_id)
+              "
+              plain
+            >
+            </el-button>
+          </el-tooltip>
           <el-popconfirm
             confirm-button-text="Yes"
             cancel-button-text="No"
@@ -231,7 +236,10 @@ console.log("data:", data);
             @cancel="() => {}"
           >
             <template #reference>
-              <el-button size="small" type="danger">Delete</el-button>
+              <el-tooltip placement="top">
+                <template #content>Delete</template>
+                <el-button type="danger" :icon="Delete" circle plain />
+              </el-tooltip>
             </template>
           </el-popconfirm>
         </template>

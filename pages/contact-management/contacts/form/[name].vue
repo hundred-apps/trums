@@ -5,67 +5,64 @@
         <span class="text-large font-600 mr-3"> {{ mode }} Contact </span>
       </template>
     </el-page-header>
-    <el-form
-      ref="ruleFormRef"
-      style="max-width: 600px"
-      :model="ruleForm"
-      :rules="rules"
-      label-width="auto"
-      class="demo-ruleForm"
-      :size="formSize"
-      status-icon
-      :disabled="loading"
-    >
-      <el-card class="my-3">
-        <template #header>
-          <div class="card-header">
-            <el-form-item>
-              <el-button type="primary" @click="submitForm(ruleFormRef)">
-                Simpan
-              </el-button>
-              <el-button @click="resetForm(ruleFormRef)">Reset</el-button>
-            </el-form-item>
-          </div>
-          <el-form-item label="Name" prop="name">
-            <el-input v-model="ruleForm.name" placeholder="Nama" />
-          </el-form-item>
-          <el-form-item label="Email" prop="email">
-            <el-input v-model="ruleForm.email" placeholder="Email" />
-          </el-form-item>
-          <el-form-item label="Phone" prop="phone">
-            <el-input v-model="ruleForm.phone" placeholder="Phone" />
-          </el-form-item>
-          <el-form-item label="NPWP" prop="tax_id">
-            <el-input v-model="ruleForm.tax_id" placeholder="NPWP" />
-          </el-form-item>
-          <el-form-item label="Website" prop="website">
-            <el-input v-model="ruleForm.website" placeholder="Website" />
-          </el-form-item>
-          <el-form-item label="Title" prop="title">
-            <el-input v-model="ruleForm.title" placeholder="Title" />
-          </el-form-item>
-          <el-checkbox
-            v-model="ruleForm.is_personal"
-            label="Personal"
-            size="large"
-          />
-
+    <el-card class="my-3">
+      <el-form
+        ref="ruleFormRef"
+        style="max-width: 600px"
+        :model="ruleForm"
+        :rules="rules"
+        label-width="auto"
+        class="demo-ruleForm"
+        :size="formSize"
+        status-icon
+        :disabled="loading"
+      >
+        <el-form-item label="Name" prop="name">
+          <el-input v-model="ruleForm.name" placeholder="Nama" />
+        </el-form-item>
+        <el-form-item label="Email" prop="email">
+          <el-input v-model="ruleForm.email" placeholder="Email" />
+        </el-form-item>
+        <el-form-item label="Phone" prop="phone">
+          <el-input v-model="ruleForm.phone" placeholder="Phone" />
+        </el-form-item>
+        <el-form-item label="NPWP" prop="tax_id">
+          <el-input v-model="ruleForm.tax_id" placeholder="NPWP" />
+        </el-form-item>
+        <el-form-item label="Website" prop="website">
+          <el-input v-model="ruleForm.website" placeholder="Website" />
+        </el-form-item>
+        <el-form-item label="Title" prop="title">
+          <el-input v-model="ruleForm.title" placeholder="Title" />
+        </el-form-item>
+        <el-form-item label="Tipe">
+          <el-checkbox v-model="ruleForm.is_personal" label="Personal" border />
           <el-checkbox
             v-model="ruleForm.is_company"
-            label="Perusaahan"
-            size="large"
+            label="Perusahaan"
+            border
           />
-          <el-form-item label="Tags" prop="tags">
-            <el-input-tag
-              v-model="ruleForm.tags"
-              :max="3"
-              clearable
-              placeholder="enter up to 3 tags"
-            />
-          </el-form-item>
-        </template>
-      </el-card>
-    </el-form>
+        </el-form-item>
+        <el-form-item label="Tags" prop="tags">
+          <el-input-tag
+            v-model="ruleForm.tags"
+            :max="3"
+            clearable
+            placeholder="enter up to 3 tags"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="flex justify-start align-center">
+          <el-button type="primary" @click="submitForm(ruleFormRef)">
+            Simpan
+          </el-button>
+          <el-button type="info" plain @click="resetForm(ruleFormRef)"
+            >Reset</el-button
+          >
+        </div>
+      </template>
+    </el-card>
   </TrumsWrapper>
 </template>
 

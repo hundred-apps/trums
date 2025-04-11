@@ -230,13 +230,13 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <div class="flex justify-end align-center">
-          <el-button type="info" plain @click="resetForm(ruleFormRef)"
-            >Reset</el-button
-          >
+        <div class="flex justify-start align-center">
           <el-button type="primary" @click="submitForm(ruleFormRef)">
             Simpan
           </el-button>
+          <el-button type="info" plain @click="resetForm(ruleFormRef)"
+            >Reset</el-button
+          >
         </div>
       </template>
     </el-card>
