@@ -1,11 +1,11 @@
 <script lang="tsx" setup>
   import { ref, onMounted, type FunctionalComponent } from 'vue';
-  import { type Column, type CheckboxValueType, type InputInstance, type MainInstance, ElButton, ElTag, ElText, ElCheckbox, paginationEmits, type SortBy, TableV2SortOrder, type SortState, ElPopover, type HeaderCellSlotProps, ElIcon } from 'element-plus';
+  import { type Column, type CheckboxValueType, type InputInstance, type MainInstance, ElButton, ElTag, ElText, ElCheckbox, paginationEmits, type SortBy, TableV2SortOrder, type SortState, ElPopover, type HeaderCellSlotProps, ElIcon, TableV2FixedDir } from 'element-plus';
   import type { Maintenance } from '~/types/maintenance';
   import type { Pagination } from '~/types/pagination';
-  import { CircleCheckFilled, CircleClose, Eleme, Filter } from '@element-plus/icons-vue'
+  import { CircleCheckFilled, CircleClose, Eleme, Filter, SetUp } from '@element-plus/icons-vue'
   import CustomTable from '~/components/trums/table/customTable.vue';
-import type { SelectionCellProps } from '~/types/selection_cell_prop';
+  import type { SelectionCellProps } from '~/types/selection_cell_prop';
   definePageMeta({
         middleware: ["auth", "app"],
   });
@@ -26,8 +26,13 @@ import type { SelectionCellProps } from '~/types/selection_cell_prop';
 
   const axios = useApi();
 
+  const column_selected = ref<string[]>(['selection', 'unique_code', 'catalogue', 'responsible', 'priority', 'status', 'operation', 'setup']);
+
+  const filteredColumn = computed(() => {
+    return columnMaintenance.filter(col => column_selected.value.includes(col.key!.toString()));
+  });
+
   const columnMaintenance: Column<any>[] = [
-    
       {
         key: 'unique_code',
         title: 'Unique Code',
@@ -55,17 +60,44 @@ import type { SelectionCellProps } from '~/types/selection_cell_prop';
         cellRenderer: ({rowData: row}) => (<ElText>{row.maintenance_date == null ? '-' :formatLocalDate(row.maintenance_date)}</ElText>)
       },
       {
+        key: 'duration',
+        title: 'Durasi',
+        dataKey: 'duration',
+        width: 250,
+        sortable: true,
+        cellRenderer: ({rowData: row}) => (<ElText>{row.duration}</ElText>)
+      },
+      {
+        key: 'priority',
+        title: 'Prioritas',
+        dataKey: 'priority',
+        width: 250,
+        sortable: true,
+        cellRenderer: ({rowData: row}) => (<ElText>{row.priority}</ElText>)
+      },
+      {
+        key: 'type',
+        title: 'Type Maintenance',
+        dataKey: 'type',
+        width: 250,
+        sortable: true,
+        cellRenderer: ({rowData: row}) => (<ElText>{row.type}</ElText>)
+      },
+      {
+        key: 'start_date',
         title: 'Tgl Mulai',
         width: 250,
         cellRenderer: ({rowData: row}) => (<ElText>{row.start_date == null ? '-' :formatLocalDate(row.start_date)}</ElText>)
       },
       {
+        key: 'end_date',
         title: 'Tgl Selesai',
         width: 250,
         cellRenderer: ({rowData: row}) => (<ElText>{row.end_date == null ? '-' : formatLocalDate(row.end_date)}</ElText>)
       },
       
       {
+        key: 'is_repeate',
         title: 'Rutin',
         width: 250,
         cellRenderer: ({rowData: row}) => (
@@ -73,6 +105,7 @@ import type { SelectionCellProps } from '~/types/selection_cell_prop';
         )
       },
       {
+        key: 'is_repeate',
         title: 'Maintenance',
         width: 250,
         cellRenderer: ({rowData: row}) => (
@@ -186,6 +219,12 @@ import type { SelectionCellProps } from '~/types/selection_cell_prop';
         width: 150,
         align: 'center',
       },
+      {
+        title: '',
+        key: 'setup',
+        width: 50,
+        fixed: TableV2FixedDir.RIGHT,
+      }
   ]
 
   const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
@@ -230,7 +269,33 @@ import type { SelectionCellProps } from '~/types/selection_cell_prop';
     },
   })
   
-
+  columnMaintenance[columnMaintenance.length - 1].headerCellRenderer = () => {
+    return (<div class="flex items-center justify-center">
+      <span class="mr-2 text-xs"></span>
+      <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
+        {{
+          default: () => (
+            <div class="filter-wrapper">
+              <div class="filter-group flex flex-col">
+                {
+                  columnMaintenance.map((value) => (
+                    value.key != 'selection' && value.key != 'setup' ? <ElCheckbox onChange={() => console.log("ok")} value={value.key!.toString()} v-model={column_selected.value}>
+                      {value.title}
+                    </ElCheckbox> : <></>
+                ))
+                }
+              </div>
+            </div>
+          ),
+          reference: () => (
+            <ElIcon class="cursor-pointer">
+              <SetUp />
+            </ElIcon>
+          ),
+        }}
+      </ElPopover>
+    </div>)
+  }
  
 
   const onFilter = () => {
@@ -291,7 +356,7 @@ import type { SelectionCellProps } from '~/types/selection_cell_prop';
     <el-button size="large" @click="$router.push('maintenance/add')">New Maintenance</el-button>
     <el-button size="large" @click="fetchMaintenances" :loading-icon="Eleme" :loading="loading">Reload Data</el-button>
   </el-row>
-  <CustomTable :columns="columnMaintenance" :data="paginations?.query ?? []" :column-sort="onSort" :sort-state="sortState" />
+  <CustomTable :columns="filteredColumn" :data="paginations?.query ?? []" :column-sort="onSort" :sort-state="sortState" />
   <div class="flex justify-end mt-3">
     <el-pagination background layout="prev, pager, next" :total="paginations?.total_page" />
   </div>

@@ -1,14 +1,14 @@
 <script lang="tsx" setup>
   
   import { ref, onMounted } from 'vue';
-  import { Eleme } from '@element-plus/icons-vue';
-  import { type Column, type CheckboxValueType, type InputInstance, type MainInstance, ElButton, ElTag, ElText, ElCheckbox } from 'element-plus';
+  import { Eleme, SetUp } from '@element-plus/icons-vue';
+  import { type Column, type CheckboxValueType, type InputInstance, type MainInstance, ElButton, ElTag, ElText, ElCheckbox, TableV2FixedDir, ElPopover, ElIcon } from 'element-plus';
   import type { Inspection } from '~/types/inspection';
   import { formatDate } from '@vueuse/core';
   import type { FunctionalComponent } from 'vue'
   import CustomTable from '~/components/trums/table/customTable.vue';
   import type { Pagination } from '~/types/pagination';
-import { NuxtLink } from '#components';
+  import { NuxtLink } from '#components';
 
   definePageMeta({
     middleware: ["auth", "app"],
@@ -19,9 +19,10 @@ import { NuxtLink } from '#components';
   const tmpInspections = ref<Inspection[]>([]);
   const loading = ref<boolean>(false);
   const search = ref('')
-
+  const popoverRef = ref();
   const axios = useApi();
   const router = useRouter();
+  const column_selected = ref<string[]>(['selection', 'unique_code', 'inspection_date', 'condition', 'status', 'operation', 'setup']);
 
   type SelectionCellProps = {
     value: boolean
@@ -41,6 +42,9 @@ import { NuxtLink } from '#components';
     )
   )
 
+  const filteredColumn = computed(() => {
+    return columnInspection.filter(col => column_selected.value.includes(col.key!.toString()));
+  });
 
   const columnInspection: Column<Inspection>[] = [
       {
@@ -95,11 +99,18 @@ import { NuxtLink } from '#components';
         width: 150,
         align: 'center',
       },
+      {
+        title: '',
+        key: 'setup',
+        width: 50,
+        fixed: TableV2FixedDir.RIGHT,
+      }
   ]
 
   columnInspection.unshift({
     key: 'selection',
-    width: 5,
+    width: 50,
+    maxWidth: 50,
     align: 'center',
     cellRenderer: ({ rowData }) => {
       const onChange = (value: CheckboxValueType) => (rowData.checked = value)
@@ -124,6 +135,34 @@ import { NuxtLink } from '#components';
       )
     },
   })
+
+  columnInspection[columnInspection.length - 1].headerCellRenderer = () => {
+    return (<div class="flex items-center justify-center">
+      <span class="mr-2 text-xs"></span>
+      <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
+        {{
+          default: () => (
+            <div class="filter-wrapper">
+              <div class="filter-group flex flex-col">
+                {
+                  columnInspection.map((value) => (
+                    value.key != 'selection' && value.key != 'setup' ? <ElCheckbox onChange={() => console.log("ok")} value={value.key!.toString()} v-model={column_selected.value}>
+                      {value.title}
+                    </ElCheckbox> : <></>
+                ))
+                }
+              </div>
+            </div>
+          ),
+          reference: () => (
+            <ElIcon class="cursor-pointer">
+              <SetUp />
+            </ElIcon>
+          ),
+        }}
+      </ElPopover>
+    </div>)
+  }
 
   const onSelection = (event: CheckboxValueType) => {
     console.log(event);
@@ -191,7 +230,7 @@ import { NuxtLink } from '#components';
       <el-button size="large" @click="$router.push('inspection/add')">New Inspection</el-button>
       <el-button size="large" @click="fetchData" :loading-icon="Eleme" :loading="loading">Reload Data</el-button>
     </el-row>
-    <CustomTable :columns="columnInspection" :data="inspections" :loading="loading" />
+    <CustomTable :columns="filteredColumn" :data="inspections" :loading="loading" />
     <div class="flex justify-end mt-3">
       <el-pagination background layout="prev, pager, next" :total="inspectionsPaginate?.total_page" />
     </div>

@@ -13,7 +13,7 @@
   import { Filter } from '@element-plus/icons-vue';
 
 
-  const column_selected = ref<string[]>(['selection', 'sn', 'catalogue.name', 'location.name', 'quantity']);
+  const column_selected = ref<string[]>(['selection', 'sn', 'catalogue.name', 'location.name', 'quantity', 'setup']);
 
   const popoverRef = ref();
   const config = useRuntimeConfig();
@@ -104,6 +104,16 @@
       </>)
     },
     {
+      title: 'Cost', 
+      key: 'cost',
+      dataKey: 'cost',
+      sortable: true,
+      width: 100,
+      cellRenderer: ({rowData: row}) => (<>
+        <p>{currency(row.cost)}</p>
+      </>)
+    }, 
+    {
       title: 'Traceable',
       key: 'is_traceable',
       dataKey: 'is_traceable',
@@ -163,7 +173,7 @@
     }
   ]
 
-  availableColumn[6].headerCellRenderer = () => {
+  availableColumn[availableColumn.length - 1].headerCellRenderer = () => {
     return (<div class="flex items-center justify-center">
       <span class="mr-2 text-xs"></span>
       <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
@@ -292,6 +302,14 @@
 
   watch(request_search, fetchData, {immediate: true});
   
+  const paginationClick = (val: number) => {
+    const data:RequestSearch = {...request_search.value};
+    data.offset = val.toString();
+    request_search.value = data;
+
+  }
+
+  
 
   onMounted(() => {
     // fetchData();
@@ -311,7 +329,7 @@
     </el-row>
     <CustomTable :column-sort="onSort" :columns="filteredColumn" :data="data?.data ?? []"  />
     <div class="flex justify-end mt-3">
-      <el-pagination background layout="prev, pager, next" :total="data?.total_data" />
+      <el-pagination background layout="prev, pager, next" :total="data?.total_data" @next-click="paginationClick" @prev-click="paginationClick" @change="paginationClick" />
     </div>
   </div>
 </template>

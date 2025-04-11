@@ -1,36 +1,51 @@
 <template>
     <el-page-header @back="goBack">
         <template #content>
-            <span class="text-large font-600 mr-3"> Detail </span>
+            <span class="text-large font-600 mr-3"> Detail - {{ checkData?.unique_code }} </span>
         </template>
     </el-page-header>
     <el-card class="my-3">
-        <el-form :inline="true" :model="formInline" class="demo-form-inline">
-            <el-form-item label="Approved by">
-                <el-input v-model="formInline.user" placeholder="Approved by" clearable />
-            </el-form-item>
-            <el-form-item label="Activity zone">
-                <el-select
-                    v-model="formInline.region"
-                    placeholder="Activity zone"
-                    clearable
+        <!-- <el-button type="primary" @click="onCheckout" :loading="loading">Proses</el-button> -->
+        <div class="flex gap-3 my-3">
+            <div class="flex-1">
+                <el-descriptions
+                    title=""
+                    :column="1"
+                    size="large"
+                    border
                 >
-                    <el-option label="Zone one" value="shanghai" />
-                    <el-option label="Zone two" value="beijing" />
-                </el-select>
-            </el-form-item>
-            <el-form-item label="Activity time">
-                <el-date-picker
-                    v-model="formInline.date"
-                    type="date"
-                    placeholder="Pick a date"
-                    clearable
-                />
-            </el-form-item>
-            <el-form-item>
-                <el-button type="primary" @click="onSubmit">Query</el-button>
-            </el-form-item>
-        </el-form>
+                <el-descriptions-item label="Lokasi Awal">{{checkData?.from_name}}</el-descriptions-item>
+                <el-descriptions-item label="Tanggal">{{formatLocalDate(checkData?.created_at ?? 0)}}</el-descriptions-item>
+                <el-descriptions-item label="Status">{{ checkData!.status }}</el-descriptions-item>
+                </el-descriptions>
+            </div>
+            <div class="flex-1">
+                <el-descriptions
+                    title=""
+                    :column="1"
+                    size="large"
+                    border
+                >
+                    <el-descriptions-item label="Nomor Permintaan">{{checkData?.reference ?? '-'}}</el-descriptions-item>
+                    <!-- <el-descriptions-item label="Alamat">
+                        -
+                    </el-descriptions-item> -->
+                    <el-descriptions-item label="Tujuan">{{checkData?.to_name}}</el-descriptions-item>
+                </el-descriptions>
+            </div>
+        </div>
+        <el-descriptions title="Note">
+            <el-descriptions-item label="">sdsd</el-descriptions-item>
+        </el-descriptions>
+    </el-card>
+    <el-card>
+        <h1 class="mb-4">Item Permintaan</h1>
+        <el-table :data="[]" style="width: 100%">
+            <el-table-column prop="catalogue_name" label="Nama Item" width="180" />
+            <el-table-column prop="sn" label="Serial/Part Number" width="180" />
+            <el-table-column prop="quantity" label="Quantity" />
+            <el-table-column prop="unit_name" label="UOM" />
+        </el-table>
     </el-card>
 </template>
 
@@ -48,7 +63,7 @@
 
     const id = ref<string>((router.currentRoute.value.params.id as string) ?? '')
     const {data} = await useFetchApi<BaseResponse<InventoryMovement>>(`/inventory-movement-read/${id.value}`, 'movement', 'get', null);
-
+    const checkData = (data as Ref<BaseResponse<InventoryMovement> | null>).value?.data;
     const formInline = reactive({
         user: '',
         region: '',
