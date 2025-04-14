@@ -398,6 +398,8 @@ const detail = async () => {
       ruleForm.sn = inventory.sn;
       ruleForm.tmp_cost = (inventory.cost ?? "").toString();
       ruleForm.unique_id = inventory.unique_id;
+      ruleForm.unit_name = inventory.unit_name;
+      ruleForm.unit_id = inventory.unit_id;
     }
   } catch (error: any) {
     ElMessage.error(`${error.response?.data?.message}`);

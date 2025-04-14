@@ -304,7 +304,7 @@ const availableColumn: Column<Inquiry>[] = [
   },
 ];
 
-availableColumn[7].headerCellRenderer = () => {
+availableColumn[8].headerCellRenderer = () => {
   return (
     <div class="flex items-center justify-center">
       <span class="mr-2 text-xs"></span>
@@ -434,6 +434,12 @@ const deleteBulk = async () => {
   dialogConfirmDelete.value = false;
 };
 
+const paginationClick = (val: number) => {
+  const data: RequestSearch = { ...request_search.value };
+  data.offset = val.toString();
+  request_search.value = data;
+};
+
 const onSort = (sortBy: SortBy) => {
   console.log("sort", sortBy.key);
   console.log(request_search.value);
@@ -483,6 +489,9 @@ onMounted(() => {
       background
       layout="prev, pager, next"
       :total="data?.total_data"
+      @next-click="paginationClick"
+      @prev-click="paginationClick"
+      @change="paginationClick"
     />
   </div>
   <el-dialog v-model="dialogConfirmDelete" title="Tips" width="500">

@@ -1,35 +1,28 @@
 <script lang="tsx" setup>
-import { ref, onMounted } from "vue";
-import { Eleme } from "@element-plus/icons-vue";
-import {
-  type Column,
-  type CheckboxValueType,
-  type InputInstance,
-  type MainInstance,
-  ElButton,
-  ElTag,
-  ElText,
-  ElCheckbox,
-} from "element-plus";
-import type { Inspection } from "~/types/inspection";
-import { formatDate } from "@vueuse/core";
-import type { FunctionalComponent } from "vue";
-import CustomTable from "~/components/trums/table/customTable.vue";
-import type { Pagination } from "~/types/pagination";
-import { NuxtLink } from "#components";
+
+  import { ref, onMounted } from 'vue';
+  import { Eleme, SetUp } from '@element-plus/icons-vue';
+  import { type Column, type CheckboxValueType, type InputInstance, type MainInstance, ElButton, ElTag, ElText, ElCheckbox, TableV2FixedDir, ElPopover, ElIcon } from 'element-plus';
+  import type { Inspection } from '~/types/inspection';
+  import { formatDate } from '@vueuse/core';
+  import type { FunctionalComponent } from 'vue'
+  import CustomTable from '~/components/trums/table/customTable.vue';
+  import type { Pagination } from '~/types/pagination';
+  import { NuxtLink } from '#components';
 
 definePageMeta({
   middleware: ["auth", "app"],
 });
 
-const inspections = ref<Inspection[]>([]);
-const inspectionsPaginate = ref<Pagination<Inspection[]>>();
-const tmpInspections = ref<Inspection[]>([]);
-const loading = ref<boolean>(false);
-const search = ref("");
-
-const axios = useApi();
-const router = useRouter();
+  const inspections = ref<Inspection[]>([]);
+  const inspectionsPaginate = ref<Pagination<Inspection[]>>();
+  const tmpInspections = ref<Inspection[]>([]);
+  const loading = ref<boolean>(false);
+  const search = ref('')
+  const popoverRef = ref();
+  const axios = useApi();
+  const router = useRouter();
+  const column_selected = ref<string[]>(['selection', 'unique_code', 'inspection_date', 'condition', 'status', 'operation', 'setup']);
 
 type SelectionCellProps = {
   value: boolean;
@@ -49,98 +42,128 @@ const filterTableData = computed(() =>
         .toLowerCase()
         .includes(search.value.toLowerCase())
   )
-);
 
-const columnInspection: Column<Inspection>[] = [
-  {
-    key: "selection",
-    title: "Nomor",
-    dataKey: "unique_code",
-    width: 150,
-    cellRenderer: ({ rowData: row }) => (
-      <NuxtLink href={`inspection/${row.unique_id}`} class={"text-blue-500"}>
-        {row.unique_code}
-      </NuxtLink>
-    ),
-  },
-  {
-    key: "inspection_date",
-    title: "Tanggal Inspeksi",
-    dataKey: "inspection_date",
-    width: 250,
-    cellRenderer: ({ rowData: row }) => (
-      <ElText>{formatLocalDate(row.inspection_date)}</ElText>
-    ),
-  },
-  {
-    key: "condition",
-    title: "Kondisi",
-    dataKey: "condition",
-    width: 250,
-  },
-  {
-    key: "status",
-    title: "Status",
-    dataKey: "status",
-    width: 150,
-    cellRenderer: ({ rowData: row }) =>
-      row.status == "draft" ? (
-        <ElTag type="info">{row.status.toUpperCase()}</ElTag>
-      ) : row.status == "progress" ? (
-        <ElTag type="success">{row.status.toUpperCase()}</ElTag>
-      ) : row.status == "repair" ? (
-        <ElTag type="warning">{row.status.toUpperCase()}</ElTag>
-      ) : row.status == "cancel" ? (
-        <ElTag type="danger">{row.status.toUpperCase()}</ElTag>
-      ) : (
-        <ElTag type="primary">{row.status.toUpperCase()}</ElTag>
-      ),
-  },
-  {
-    key: "operations",
-    title: "Operations",
-    cellRenderer: ({ rowData: row }) => (
-      <>
-        <ElButton size="small" onClick={() => onEdit(row)}>
-          Edit
-        </ElButton>
-        <ElButton size="small" type="danger" onClick={() => onDelete(row)}>
-          Hapus
-        </ElButton>
-      </>
-    ),
-    width: 150,
-    align: "center",
-  },
-];
+  const filteredColumn = computed(() => {
+    return columnInspection.filter(col => column_selected.value.includes(col.key!.toString()));
+  });
 
-columnInspection.unshift({
-  key: "selection",
-  width: 5,
-  align: "center",
-  cellRenderer: ({ rowData }) => {
-    const onChange = (value: CheckboxValueType) => (rowData.checked = value);
-    return <SelectionCell value={rowData.checked} onChange={onChange} />;
-  },
-  headerCellRenderer: () => {
-    const _data = unref(inspections);
-    const onChange = (value: CheckboxValueType) =>
-      (inspections.value = _data.map((row: any) => {
-        row.checked = value;
-        return row;
-      }));
-    const allSelected = _data.every((row: any) => row.checked);
-    const containsChecked = _data.some((row: any) => row.checked);
+  const columnInspection: Column<Inspection>[] = [
+      {
+        key: 'selection',
+        title: 'Nomor',
+        dataKey: 'unique_code',
+        width: 150,
+        cellRenderer: ({rowData: row}) => (<NuxtLink href={`inspection/${row.unique_id}`} class={"text-blue-500"} >{row.unique_code}</NuxtLink>)
+      },
+      {
+        key: 'inspection_date',
+        title: 'Tanggal Inspeksi',
+        dataKey: 'inspection_date',
+        width: 250,
+        cellRenderer: ({rowData: row}) => (<ElText>{formatLocalDate(row.inspection_date)}</ElText>)
+      },
+      {
+        key: 'condition',
+        title: 'Kondisi',
+        dataKey: 'condition',
+        width: 250,
+      },
+      {
+        key: 'status',
+        title: 'Status',
+        dataKey: 'status',
+        width: 150,
+        cellRenderer: ({rowData: row}) => (
 
-    return (
-      <SelectionCell
-        value={allSelected}
-        intermediate={containsChecked && !allSelected}
-        onChange={onChange}
-      />
-    );
-  },
-});
+          row.status == 'draft' ?
+          <ElTag type="info">{row.status.toUpperCase()}</ElTag> :
+          row.status == 'progress' ?
+          <ElTag type="success">{row.status.toUpperCase()}</ElTag> :
+          row.status == 'repair' ?
+          <ElTag type="warning">{row.status.toUpperCase()}</ElTag> :
+          row.status == 'cancel' ?
+          <ElTag type="danger">{row.status.toUpperCase()}</ElTag> :
+          <ElTag type="primary">{row.status.toUpperCase()}</ElTag>
+
+
+        ),
+      },
+      {
+        key: 'operations',
+        title: 'Operations',
+        cellRenderer: ({rowData: row}) => (
+          <>
+            <ElButton size="small" onClick={() => onEdit(row)} >Edit</ElButton>
+            <ElButton size="small" type='danger' onClick={() => onDelete(row)} >Hapus</ElButton>
+          </>
+        ),
+        width: 150,
+        align: 'center',
+      },
+      {
+        title: '',
+        key: 'setup',
+        width: 50,
+        fixed: TableV2FixedDir.RIGHT,
+      }
+  ]
+
+  columnInspection.unshift({
+    key: 'selection',
+    width: 50,
+    maxWidth: 50,
+    align: 'center',
+    cellRenderer: ({ rowData }) => {
+      const onChange = (value: CheckboxValueType) => (rowData.checked = value)
+      return <SelectionCell value={rowData.checked} onChange={onChange} />
+    },
+    headerCellRenderer: () => {
+      const _data = unref(inspections);
+      const onChange = (value: CheckboxValueType) =>
+        (inspections.value = _data.map((row: any) => {
+          row.checked = value
+          return row
+        }))
+      const allSelected = _data.every((row: any) => row.checked)
+      const containsChecked = _data.some((row: any) => row.checked)
+
+      return (
+        <SelectionCell
+          value={allSelected}
+          intermediate={containsChecked && !allSelected}
+          onChange={onChange}
+        />
+      )
+    },
+  })
+
+  columnInspection[columnInspection.length - 1].headerCellRenderer = () => {
+    return (<div class="flex items-center justify-center">
+      <span class="mr-2 text-xs"></span>
+      <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
+        {{
+          default: () => (
+            <div class="filter-wrapper">
+              <div class="filter-group flex flex-col">
+                {
+                  columnInspection.map((value) => (
+                    value.key != 'selection' && value.key != 'setup' ? <ElCheckbox onChange={() => console.log("ok")} value={value.key!.toString()} v-model={column_selected.value}>
+                      {value.title}
+                    </ElCheckbox> : <></>
+                ))
+                }
+              </div>
+            </div>
+          ),
+          reference: () => (
+            <ElIcon class="cursor-pointer">
+              <SetUp />
+            </ElIcon>
+          ),
+        }}
+      </ElPopover>
+    </div>)
+  }
 
 const onSelection = (event: CheckboxValueType) => {
   console.log(event);
@@ -213,7 +236,7 @@ onMounted(() => {
       >
     </el-row>
     <CustomTable
-      :columns="columnInspection"
+      :columns="filteredColumn"
       :data="inspections"
       :loading="loading"
     />

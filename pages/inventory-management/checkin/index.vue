@@ -358,7 +358,14 @@
     const request = {...request_search.value};
     request.keyword = value;
     request_search.value = request;
-  } 
+  }
+  
+  const paginationClick = (val: number) => {
+    const data:RequestSearch = {...request_search.value};
+    data.offset = val.toString();
+    request_search.value = data;
+
+  }
 
   onMounted(() => {
     
@@ -400,9 +407,9 @@
       </template>
     </el-popconfirm>
   </el-row>
-  <CustomTable :column-sort="onSort" :columns="filteredColumn" :data="data?.data ?? []"  />
+  <CustomTable :column-sort="onSort" :columns="filteredColumn" :data="data?.data ?? []"   />
   <div class="flex justify-end mt-3">
-    <el-pagination background layout="prev, pager, next" :total="data?.total_data" />
+    <el-pagination background layout="prev, pager, next" :total="data?.total_data" @next-click="paginationClick" @prev-click="paginationClick" @change="paginationClick" />
   </div>
   
 </template>

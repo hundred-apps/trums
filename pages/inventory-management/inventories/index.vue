@@ -23,13 +23,8 @@ import {
 import CustomTable from "~/components/trums/table/customTable.vue";
 import { Filter } from "@element-plus/icons-vue";
 
-const column_selected = ref<string[]>([
-  "selection",
-  "sn",
-  "catalogue.name",
-  "location.name",
-  "quantity",
-]);
+
+  const column_selected = ref<string[]>(['selection', 'sn', 'catalogue.name', 'location.name', 'quantity', 'setup']);
 
 const popoverRef = ref();
 const config = useRuntimeConfig();
@@ -100,49 +95,54 @@ const { data } = await useFetchApi<ResponsePagination<Inventory[]>>(
   request_search.value
 );
 
-const availableColumn: Column<Inventory>[] = [
-  {
-    title: "Serial Number",
-    key: "sn",
-    dataKey: "sn",
-    width: 200,
-  },
-  {
-    title: "Item",
-    key: "catalogue.name",
-    dataKey: "catalogue.name",
-    width: 200,
-  },
-  {
-    title: "Location",
-    key: "location.name",
-    dataKey: "location.name",
-    width: 200,
-  },
-  {
-    title: "Quantity",
-    key: "quantity",
-    dataKey: "quantity",
-    sortable: true,
-    width: 100,
-    cellRenderer: ({ rowData: row }) => (
-      <>
-        <p>
-          {row.quantity} {row.unit_name}
-        </p>
-      </>
-    ),
-  },
-  {
-    title: "Traceable",
-    key: "is_traceable",
-    dataKey: "is_traceable",
-    width: 100,
-    cellRenderer: ({ rowData: row }) =>
-      row.is_traceable ? (
-        <ElTag type="primary">{"Yes"}</ElTag>
-      ) : (
-        <ElTag type="info">{"No"}</ElTag>
+  const availableColumn: Column<Inventory>[] = [
+    {
+      title: 'Serial Number',
+      key: 'sn',
+      dataKey: 'sn',
+      width: 200,
+    },
+    {
+      title: 'Item', 
+      key: 'catalogue.name',
+      dataKey: 'catalogue.name',
+      width: 200,
+    },
+    {
+      title: 'Location', 
+      key: 'location.name',
+      dataKey: 'location.name',
+      width: 200,
+    },
+    {
+      title: 'Quantity', 
+      key: 'quantity',
+      dataKey: 'quantity',
+      sortable: true,
+      width: 100,
+      cellRenderer: ({rowData: row}) => (<>
+        <p>{row.quantity} {row.unit_name}</p>
+      </>)
+    },
+    {
+      title: 'Cost', 
+      key: 'cost',
+      dataKey: 'cost',
+      sortable: true,
+      width: 100,
+      cellRenderer: ({rowData: row}) => (<>
+        <p>{currency(row.cost)}</p>
+      </>)
+    }, 
+    {
+      title: 'Traceable',
+      key: 'is_traceable',
+      dataKey: 'is_traceable',
+      width: 100,
+      cellRenderer: ({rowData: row}) => (
+        row.is_traceable ? 
+          <ElTag type="primary">{'Yes'}</ElTag> : 
+          <ElTag type="info">{'No'}</ElTag>
       ),
     headerCellRenderer: () => (
       <div class="flex items-center justify-center">
@@ -200,9 +200,8 @@ const availableColumn: Column<Inventory>[] = [
   },
 ];
 
-availableColumn[6].headerCellRenderer = () => {
-  return (
-    <div class="flex items-center justify-center">
+  availableColumn[availableColumn.length - 1].headerCellRenderer = () => {
+    return (<div class="flex items-center justify-center">
       <span class="mr-2 text-xs"></span>
       <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
         {{
@@ -330,60 +329,46 @@ const onSearch = async (value: string) => {
   request_search.value = data;
 };
 
-const onSort = (sortBy: SortBy) => {
-  console.log("sort", sortBy.key);
-  console.log(request_search.value);
-  const data: RequestSearch = { ...request_search.value };
-  data.sort = {
-    column: sortBy.key.toString(),
-    order:
-      request_search.value.sort?.order == OrderColumn.ASC
-        ? OrderColumn.DESC
-        : OrderColumn.ASC,
-  };
-  request_search.value = data;
-};
+  const onSort = (sortBy: SortBy) => {
+    console.log('sort', sortBy.key);
+    console.log(request_search.value);
+    const data:RequestSearch = {...request_search.value};
+    data.sort = {
+      column: sortBy.key.toString(),
+      order: request_search.value.sort?.order == OrderColumn.ASC ? OrderColumn.DESC : OrderColumn.ASC
+    };
+    request_search.value = data;
 
-watch(request_search, fetchData, { immediate: true });
+  }
+
+  watch(request_search, fetchData, {immediate: true});
+  
+  const paginationClick = (val: number) => {
+    const data:RequestSearch = {...request_search.value};
+    data.offset = val.toString();
+    request_search.value = data;
+
+  }
+
+  
 
 onMounted(() => {
   // fetchData();
 });
 </script>
 <template>
-  <TrumsWrapper>
-    <div class="w-auto">
-      <el-row :gutter="20" class="mb-3">
-        <el-col :span="6"
-          ><el-input
-            v-model="request_search.keyword"
-            size="large"
-            placeholder="Type to search"
-        /></el-col>
-        <el-button
-          size="large"
-          @click="
-            () => {
-              const unique_id = useCookie('unique_id');
-              unique_id.value = null;
-              $router.push('inventories/add');
-            }
-          "
-          >New Inventory</el-button
-        >
-      </el-row>
-      <CustomTable
-        :column-sort="onSort"
-        :columns="filteredColumn"
-        :data="data?.data ?? []"
-      />
-      <div class="flex justify-end mt-3">
-        <el-pagination
-          background
-          layout="prev, pager, next"
-          :total="data?.total_data"
-        />
-      </div>
+  <div class="w-auto">
+    <el-row :gutter="20" class="mb-3">
+      <el-col :span="6"><el-input v-model="request_search.keyword"  size="large" placeholder="Type to search" /></el-col>
+      <el-button size="large" @click="() => {
+        const unique_id = useCookie('unique_id');
+        unique_id.value = null;
+        $router.push('inventories/add');
+      }">New Inventory</el-button>
+    </el-row>
+    <CustomTable :column-sort="onSort" :columns="filteredColumn" :data="data?.data ?? []"  />
+    <div class="flex justify-end mt-3">
+      <el-pagination background layout="prev, pager, next" :total="data?.total_data" @next-click="paginationClick" @prev-click="paginationClick" @change="paginationClick" />
     </div>
   </TrumsWrapper>
 </template>
