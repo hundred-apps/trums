@@ -200,6 +200,9 @@ const handleMenuClick = (menuKey: string) => {
               <el-menu-item index="/contact-management/contacts"
                 >Contact</el-menu-item
               >
+              <el-menu-item index="/contact-management/company"
+                >Company</el-menu-item
+              >
             </el-menu-item-group>
           </el-sub-menu>
           <el-sub-menu index="9">
