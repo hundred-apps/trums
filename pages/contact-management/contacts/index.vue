@@ -1,13 +1,21 @@
-<script lang="ts" setup>
-import { ref, onMounted, h } from "vue";
+<script lang="tsx" setup>
+import { ref } from "vue";
 import { type Contact } from "~/types/contact";
 import { useApi } from "~/composables/useApi";
 import type { RequestSearch } from "~/types/request_search";
 import { useRouter } from "vue-router";
-import { InfoFilled, Delete, Edit } from "@element-plus/icons-vue";
-import { RefreshRight, Loading } from "@element-plus/icons-vue";
+import { RefreshRight } from "@element-plus/icons-vue";
 import type { ResponsePagination } from "~/types/response_pagination";
-import type { Pagination } from "~/types/pagination";
+import CustomTable from "~/components/trums/table/customTable.vue";
+import {
+  ElButton,
+  type Column,
+  TableV2FixedDir,
+  ElTooltip,
+  ElPopconfirm,
+  ElMessage,
+  ElMessageBox,
+} from "element-plus";
 
 const config = useRuntimeConfig();
 
@@ -32,60 +40,113 @@ const toggleView = () => {
   showTable.value = !showTable.value;
 };
 
-const columns = [
+const columns: Column<Contact>[] = [
   {
-    label: "Name",
-    prop: "name",
+    title: "Name",
+    key: "name",
+    dataKey: "name",
     sortable: true,
+    width: 200,
     fixed: true,
-    width: 200,
   },
   {
-    label: "Phone",
-    prop: "phone",
+    title: "Phone",
+    key: "phone",
+    dataKey: "phone",
     width: 150,
   },
   {
-    label: "Email",
-    prop: "email",
+    title: "Email",
+    key: "email",
+    dataKey: "email",
     width: 150,
   },
   {
-    label: "NPWP",
-    prop: "tax_id",
+    title: "NPWP",
+    key: "tax_id",
+    dataKey: "tax_id",
     width: 150,
   },
   {
-    label: "Website",
-    prop: "website",
+    title: "Website",
+    key: "website",
+    dataKey: "website",
     width: 150,
   },
   {
-    label: "Title",
-    prop: "title",
+    title: "Title",
+    key: "title",
+    dataKey: "title",
     width: 100,
   },
   {
-    label: "Personal",
-    prop: `is_personal`,
+    title: "Personal",
+    key: "is_personal",
+    dataKey: "is_personal",
     width: 100,
+    cellRenderer: ({ rowData: row }) =>
+      row.is_personal === true ? (
+        <Icon name="mdi:check-circle" style="color: #67c23a" />
+      ) : (
+        <Icon name="mdi:close-circle" style="color: #f56c6c" />
+      ),
     align: "center",
   },
   {
-    label: "Company",
-    prop: `is_company`,
+    title: "Company",
+    key: "is_company",
+    dataKey: "is_company",
     width: 100,
+    cellRenderer: ({ rowData: row }) =>
+      row.is_company === true ? (
+        <Icon name="mdi:check-circle" style="color: #67c23a" />
+      ) : (
+        <Icon name="mdi:close-circle" style="color: #f56c6c" />
+      ),
     align: "center",
   },
   {
-    label: "Tags",
-    prop: "tags",
+    title: "Tags",
+    key: "tags",
+    dataKey: "tags",
     width: 200,
   },
   {
-    label: "People Contact",
-    prop: "people_internal",
+    title: "People Contact",
+    key: "people_internal",
+    dataKey: "people_internal",
     width: 200,
+  },
+  {
+    title: "Operation",
+    key: "",
+    dataKey: "",
+    width: 150,
+    fixed: TableV2FixedDir.RIGHT,
+    cellRenderer: ({ rowData: row }) => (
+      <>
+        <ElTooltip placement="top" content="Edit">
+          <ElButton
+            type="warning"
+            circle
+            onClick={() => navigateToForm("update", row.name, row.unique_id)}
+            plain
+          >
+            <Icon name="material-symbols:edit-square-outline-rounded" />
+          </ElButton>
+        </ElTooltip>
+        <ElTooltip placement="top" content="Delete">
+          <ElButton
+            type="danger"
+            circle
+            plain
+            onClick={() => messageBoxDelete(row)}
+          >
+            <Icon name="material-symbols:delete-outline" />
+          </ElButton>
+        </ElTooltip>
+      </>
+    ),
   },
 ];
 
@@ -118,24 +179,60 @@ const { data } = await useFetch<ResponsePagination<Contact[]>>(
   }
 );
 
-const handleDelete = async (row: Contact) => {
-  loading.value = true;
-  try {
-    const response = await useFetch(`${config.public.baseURL}/contact-delete`, {
-      method: "delete",
-      body: [row.unique_id],
-      lazy: true,
-    });
-    if (response.status.value == "success") {
-      await refreshNuxtData("contacts");
-      ElMessage.success("Data Berhasil Dihapus");
+const messageBoxDelete = async (row: Contact) => {
+  ElMessageBox.confirm(
+    "Data Contact ini akan dihapus. Lanjutkan?",
+    "Peringatan!!!",
+    {
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
+      type: "warning",
     }
-  } catch (error: any) {
-    ElMessage.error(`${error.response?.data?.message}`);
-  } finally {
-    loading.value = false;
-  }
+  )
+    .then(async () => {
+      const response = await useFetch(
+        `${config.public.baseURL}/contact-delete`,
+        {
+          method: "post",
+          body: [row.unique_id],
+          lazy: true,
+          headers: token.value
+            ? { Authorization: `Bearer ${token.value}` }
+            : {},
+        }
+      );
+      if (response.status.value == "success") {
+        await refreshNuxtData();
+        ElMessage.success("Data Berhasil Dihapus");
+        loading.value = false;
+      }
+    })
+    .catch(() => {
+      ElMessage({
+        type: "info",
+        message: "Delete canceled",
+      });
+    });
 };
+
+// const handleDelete = async (row: Contact) => {
+//   loading.value = true;
+//   try {
+//     const response = await useFetch(`${config.public.baseURL}/contact-delete`, {
+//       method: "delete",
+//       body: [row.unique_id],
+//       lazy: true,
+//     });
+//     if (response.status.value == "success") {
+//       await refreshNuxtData("contacts");
+//       ElMessage.success("Data Berhasil Dihapus");
+//     }
+//   } catch (error: any) {
+//     ElMessage.error(`${error.response?.data?.message}`);
+//   } finally {
+//     loading.value = false;
+//   }
+// };
 watch(
   request_search,
   async (newValue) => {
@@ -155,6 +252,13 @@ const fetchData = async () => {
 };
 const handleSizeChange = (val: number) => {
   loading.value = true;
+  try {
+    refreshNuxtData();
+  } catch (error) {
+    console.error("Gagal memuat data:", error);
+  }
+  loading.value = false;
+  ElMessage.success("Data Berhasil Diubah");
 };
 const handleCurrentChange = (val: number) => {
   currentPage.value = val;
@@ -199,7 +303,9 @@ const handleCurrentChange = (val: number) => {
         >
       </el-tooltip>
     </el-row>
-    <el-table
+
+    <CustomTable :data="data?.data ?? []" :columns="columns" />
+    <!-- <el-table
       class="w-screen"
       @selection-change="handleSelectionChange"
       :data="data?.data"
@@ -262,7 +368,7 @@ const handleCurrentChange = (val: number) => {
           </el-popconfirm>
         </template>
       </el-table-column>
-    </el-table>
+    </el-table> -->
     <div class="flex justify-end">
       <el-pagination
         class="my-3"
