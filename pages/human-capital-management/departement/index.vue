@@ -17,7 +17,9 @@
       :lazy="true"
       :loading="disable"
       :data="data?.data"
+      height="400"
     >
+      <el-table-column type="selection" width="55" />
       <el-table-column
         v-for="col in columns"
         :key="col.prop || col.label"

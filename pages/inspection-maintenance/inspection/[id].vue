@@ -78,7 +78,10 @@ definePageMeta({
   middleware: ["auth", "app"],
   name: "Inspection Detail",
 });
+const token = useCookie("token");
 const router = useRouter();
+const param = router.currentRoute.value.params.id;
+console.log("parameter:", param);
 
 const goBack = () => router.back();
 const id = ref<string>((router.currentRoute.value.params.id as string) ?? "");
@@ -90,6 +93,7 @@ const { data } = await useFetch<DefaultResponse<Inspection>>(
   {
     key: "inventories",
     method: "get",
+    headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
   }
 );
 

@@ -1,12 +1,14 @@
 <script lang="ts" setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, h } from "vue";
 import { type Contact } from "~/types/contact";
 import { useApi } from "~/composables/useApi";
 import type { RequestSearch } from "~/types/request_search";
 import { useRouter } from "vue-router";
 import { InfoFilled, Delete, Edit } from "@element-plus/icons-vue";
+import { RefreshRight, Loading } from "@element-plus/icons-vue";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { Pagination } from "~/types/pagination";
+
 const config = useRuntimeConfig();
 
 definePageMeta({
@@ -141,14 +143,16 @@ watch(
   },
   { immediate: true }
 );
-// const fetchData = async () => {
-//   try {
-//     const response = await api.get(`/contact-read`);
-//     contact.value = response.data.data;
-//   } catch (error) {
-//     console.error("Gagal memuat data:", error);
-//   }
-// };
+const fetchData = async () => {
+  loading.value = true;
+  try {
+    await refreshNuxtData();
+  } catch (error) {
+    console.error("Gagal memuat data:", error);
+  }
+  loading.value = false;
+  ElMessage.success("Data Berhasil DiReload");
+};
 const handleSizeChange = (val: number) => {
   loading.value = true;
 };
@@ -159,27 +163,41 @@ const handleCurrentChange = (val: number) => {
 // onMounted(async () => {
 //   await fetchData();
 // });
-
-console.log("data:", data);
 </script>
 <template>
   <TrumsWrapper>
-    <el-row :gutter="20" class="mb-3">
-      <el-col :span="6"
-        ><el-input
-          v-model="request_search.keyword"
+    <el-row :gutter="20" class="w-full flex justify-between items-center mb-3">
+      <div class="flex gap-3">
+        <el-col
+          ><el-input
+            v-model="request_search.keyword"
+            size="large"
+            placeholder="Type to search"
+        /></el-col>
+        <el-button
           size="large"
-          placeholder="Type to search"
-      /></el-col>
-      <el-button
-        size="large"
-        @click="
-          () => {
-            navigateToForm('add');
-          }
-        "
-        >New Contact</el-button
-      >
+          @click="
+            () => {
+              navigateToForm('add');
+            }
+          "
+          >New Contact</el-button
+        >
+      </div>
+      <el-tooltip content="Reload Data" placement="top">
+        <el-button
+          size="large"
+          @click="fetchData"
+          :loading-icon="RefreshRight"
+          :loading="loading"
+          ><Icon
+            name="material-symbols:refresh"
+            size="1.5em"
+            :hidden="loading"
+          />
+          <span :hidden="!loading">Load</span></el-button
+        >
+      </el-tooltip>
     </el-row>
     <el-table
       class="w-screen"

@@ -114,8 +114,12 @@ const handleMenuClick = (menuKey: string) => {
               <el-menu-item index="/inventory-management/inventories"
                 >Inventory</el-menu-item
               >
-              <el-menu-item index="2-2">Inquiry</el-menu-item>
-              <el-menu-item index="2-3">Check In</el-menu-item>
+              <el-menu-item index="/inventory-management/inqueiries"
+                >Inquiry</el-menu-item
+              >
+              <el-menu-item index="/inventory-management/checkin"
+                >Check In</el-menu-item
+              >
               <el-menu-item index="2-4">Check Out</el-menu-item>
               <el-menu-item index="/inventory-management/location"
                 >Location</el-menu-item
@@ -140,10 +144,16 @@ const handleMenuClick = (menuKey: string) => {
               <el-icon><DataAnalysis /></el-icon>Supply Chain Management
             </template>
             <el-menu-item-group>
-              <el-menu-item index="4-1">Purchase Request</el-menu-item>
-              <el-menu-item index="4-2">Canvassing</el-menu-item>
+              <el-menu-item index="/supply-chain-management/purchase/request"
+                >Purchase Request</el-menu-item
+              >
+              <el-menu-item index="/supply-chain-management/canvassing"
+                >Canvassing</el-menu-item
+              >
               <el-menu-item index="4-3">Purchase Order</el-menu-item>
-              <el-menu-item index="4-4">Delivery</el-menu-item>
+              <el-menu-item index="/supply-chain-management/delivery"
+                >Delivery</el-menu-item
+              >
               <el-menu-item index="4-5">Receive</el-menu-item>
             </el-menu-item-group>
           </el-sub-menu>
