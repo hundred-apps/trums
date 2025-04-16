@@ -2,7 +2,7 @@
   
   import { ref, onMounted } from 'vue';
   import { Eleme, SetUp } from '@element-plus/icons-vue';
-  import { type Column, type CheckboxValueType, type InputInstance, type MainInstance, ElButton, ElTag, ElText, ElCheckbox, TableV2FixedDir, ElPopover, ElIcon } from 'element-plus';
+  import { type Column, type CheckboxValueType, type InputInstance, type MainInstance, ElButton, ElTag, ElText, ElCheckbox, TableV2FixedDir, ElPopover, ElIcon, ElMessage } from 'element-plus';
   import type { Inspection } from '~/types/inspection';
   import { formatDate } from '@vueuse/core';
   import type { FunctionalComponent } from 'vue'

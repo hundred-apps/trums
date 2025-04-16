@@ -9,7 +9,7 @@
   
   import { OrderColumn, type RequestSearch } from '~/types/request_search';
   import type { ResponsePagination } from '~/types/response_pagination';
-  import { ElButton, ElCheckbox, ElIcon, ElPopconfirm, ElPopover, ElTag, TableV2FixedDir, type CheckboxValueType, type Column, type SortBy } from 'element-plus';
+  import { ElButton, ElCheckbox, ElIcon, ElPopconfirm, ElPopover, ElTag, TableV2FixedDir, type CheckboxValueType, type Column, type ComponentSize, type FormInstance, type FormRules, type SortBy } from 'element-plus';
   import CustomTable from '~/components/trums/table/customTable.vue';
   import { Filter } from '@element-plus/icons-vue';
 import type { Unit } from '~/types/unit';
@@ -197,11 +197,11 @@ import { NuxtLink } from '#components';
       </>)
     },
     {
-      title: 'Quantity', 
+      title: 'Stok Saat ini', 
       key: 'quantity',
       dataKey: 'quantity',
       sortable: true,
-      width: 100,
+      width: 200,
       cellRenderer: ({rowData: row}) => (<>
         <p>{row.quantity}</p>
       </>)
@@ -459,16 +459,107 @@ import { NuxtLink } from '#components';
 
   }
 
-  watch(request_search, fetchData, {immediate: true});
-  
-  const paginationClick = (val: number) => {
-    const data:RequestSearch = {...request_search.value};
-    data.offset = val.toString();
-    request_search.value = data;
+  const handleSelectLocation = (item: Record<string, any>) => {
+        ruleForm.location_id = item.unique_id;
+        request_search.value.column.push({location_id: item.unique_id});
+    }
 
-  }
+    watch(request_search, fetchData, {immediate: true});
 
-  
+    const request_search_location = ref<RequestSearch>({
+      keyword: '',
+      table: '',
+      column: null,
+      limit: '100',
+      offset: '1',
+      sort: null,
+    })
+    
+    const paginationClick = (val: number) => {
+        const data:RequestSearch = {...request_search.value};
+        data.offset = val.toString();
+        request_search.value = data;
+
+    }
+
+
+    const goBack = () => router.back();
+
+    const ruleFormRef = ref<FormInstance>();
+
+    const axios = useApi();
+
+    interface RuleForm {
+        id?: number,
+        location_id?: string,
+        date?: string,
+        status?: string, 
+    }
+
+    const ruleForm = reactive<RuleForm>({
+        status: 'Progress', 
+    })
+
+    const rules = reactive<FormRules<RuleForm>>({
+        location_id: [
+            { required: true, message: 'Pilih Lokasi Terlebih Dahulu!', trigger: 'blur' },
+        ],
+        date: [
+            {
+            type: 'date',
+            required: true,
+            message: 'Pilih Tanggal',
+            trigger: 'change',
+            },
+        ],
+        status: [
+            { required: true, message: 'Pilih Status', trigger: 'blur' },
+        ],
+    })
+
+    const formSize = ref<ComponentSize>('default')
+    const submitForm = async (formEl: FormInstance | undefined) => {
+      
+      if (!formEl) return
+      await formEl.validate((valid, fields) => {
+        if (valid) {
+          console.log(ruleForm)
+        } else {
+          console.log('error submit!', fields)
+        }
+      })
+    }
+
+    const resetForm = (formEl: FormInstance | undefined) => {
+      if (!formEl) return
+      formEl.resetFields()
+    }
+
+    const querySearchAsyncLocation = (queryString: string, cb: (arg: any) => void) => {
+      
+        request_search_location.value.keyword = queryString;
+        request_search_location.value.table = 'catalogues';
+        request_search_location.value.column = [
+            {
+                "type": ['place']
+            }
+        ]
+        axios.post('/search', request_search_location.value).then((response) => {
+            if(response.status == 200){
+                const resultApi: Catalogue[]  = response.data.data;
+                
+                if(resultApi.length > 0){
+                    cb(resultApi.map((value) => ({...value, value: value.name})));
+                }else{
+                    cb([{value: `Tambahkan ${queryString}`, id: `${queryString}`}]);
+                }
+            }
+        }).catch((error: any) => {
+            ElMessage.error(error.response?.data?.message);
+        })
+    }
+
+    
 
   onMounted(() => {
     fetchLocation();
@@ -478,24 +569,54 @@ import { NuxtLink } from '#components';
 
 </script>
 <template>
-  <div class="w-auto">
-    <el-row :gutter="20" class="mb-3">
-      <el-col :span="6"><el-input v-model="request_search.keyword"  size="large" placeholder="Type to search" /></el-col>
-      <el-button size="large" @click="() => {
-        const unique_id = useCookie('unique_id');
-        unique_id.value = null;
-        $router.push('inventories/add');
-      }">New Inventory</el-button>
-      <el-button size="large" @click="() => {
-        fetchData();
-      }"><el-icon class="mr-3"><RefreshLeft /></el-icon> Muat Ulang</el-button>
-      <NuxtLink class="el-button el-button--large" href="/inventory-management/inventories/opname">Stok Opname</NuxtLink>
-    </el-row>
-    <CustomTable :column-sort="onSort" :columns="filteredColumn" :data="data?.data ?? []"  />
-    <div class="flex justify-end mt-3">
-      <el-pagination background layout="prev, pager, next" :total="data?.total_data" @next-click="paginationClick" @prev-click="paginationClick" @change="paginationClick" />
+    <el-page-header @back="goBack">
+            <template #content>
+            <span class="text-large font-600 mr-3"> Stok Opname </span>
+        </template>
+    </el-page-header>
+    <div class="w-auto my-3">
+        <el-form ref="ruleFormRef"
+            
+            :model="ruleForm"
+            :rules="rules"
+            label-width="auto"
+            class="demo-ruleForm"
+            :size="formSize"
+            status-icon
+        >
+            <el-card class="my-3">
+                <template #header>
+                        <div class="card-header">
+                            <el-form-item>
+                            <el-button type="primary" @click="submitForm(ruleFormRef)">Simpan</el-button>
+                            <el-button @click="resetForm(ruleFormRef)">Batal</el-button>
+                            </el-form-item>
+                        </div>
+                </template>
+            
+                <el-form-item label="Lokasi" prop="location_id">
+                <el-autocomplete
+                        :fetch-suggestions="querySearchAsyncLocation"
+                        v-model="ruleForm.location_id"
+                        placeholder="Please input"
+                        @select="(item: Record<string, any>) => handleSelectLocation(item)"
+                    />
+                </el-form-item>  
+                <el-form-item label="Tanggal" prop="date">
+                <el-date-picker
+                    v-model="ruleForm.date!"
+                    type="date"
+                    placeholder="Tanggal Opname"
+                />
+                </el-form-item>  
+                
+            </el-card>
+        </el-form>
+        <CustomTable :column-sort="onSort" :columns="filteredColumn" :data="data?.data ?? []"  />
+        <div class="flex justify-end mt-3">
+            <el-pagination background layout="prev, pager, next" :total="data?.total_data" @next-click="paginationClick" @prev-click="paginationClick" @change="paginationClick" />
+        </div>
     </div>
-  </div>
 </template>
 
 

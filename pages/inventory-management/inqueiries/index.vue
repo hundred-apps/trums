@@ -8,7 +8,7 @@
   import customTable from '~/components/trums/table/customTable.vue';
   import { OrderColumn, type RequestSearch } from '~/types/request_search';
   import type { ResponsePagination } from '~/types/response_pagination';
-  import { ElButton, ElCheckbox, ElIcon, ElPopover, ElTag, TableV2FixedDir, type CheckboxValueType, type Column, type MainInstance, type SortBy } from 'element-plus';
+  import { ElButton, ElCheckbox, ElIcon, ElMessage, ElPopover, ElTag, TableV2FixedDir, type CheckboxValueType, type Column, type MainInstance, type SortBy } from 'element-plus';
   import type { Contact } from '~/types/contact';
   import type { Maintenance } from '~/types/maintenance';
   import type { CellRendererParams } from 'element-plus/es/components/table-v2/src/types.mjs';
@@ -420,5 +420,3 @@ const column_selected = ref<string[]>(['selection', 'unique_code', 'date', 'refe
     </template>
   </el-dialog>
 </template>
-
-

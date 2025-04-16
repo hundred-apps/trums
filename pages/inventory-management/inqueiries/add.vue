@@ -201,9 +201,30 @@
     ]
 
     const units = ref<Unit[]>([
-      {id: 1, name: 'unit', slug: 'unit'},
-      {id: 2, name: 'box', slug: 'box'},
-      {id: 3, name: 'container', slug: 'container'}
+      {
+        id: 1, name: 'unit', slug: 'unit',
+        unique_id: '',
+        created_at: 0,
+        created_by: '',
+        updated_at: 0,
+        version: 0
+      },
+      {
+        id: 2, name: 'box', slug: 'box',
+        unique_id: '',
+        created_at: 0,
+        created_by: '',
+        updated_at: 0,
+        version: 0
+      },
+      {
+        id: 3, name: 'container', slug: 'container',
+        unique_id: '',
+        created_at: 0,
+        created_by: '',
+        updated_at: 0,
+        version: 0
+      }
     ])
 
 
@@ -492,14 +513,14 @@
             status-icon
         >
     <el-card class="my-3">
-      <template #header>
-                <div class="card-header">
-                  <el-form-item>
-                    <el-button type="primary" @click="submitForm(ruleFormRef)">Simpan</el-button>
-                    <el-button @click="resetForm(ruleFormRef)">Batal</el-button>
-                  </el-form-item>
-                </div>
-      </template>
+        <template #header>
+                  <div class="card-header">
+                    <el-form-item>
+                      <el-button type="primary" @click="submitForm(ruleFormRef)">Simpan</el-button>
+                      <el-button @click="resetForm(ruleFormRef)">Batal</el-button>
+                    </el-form-item>
+                  </div>
+        </template>
      
         <el-form-item label="Lokasi" prop="location_view">
           <el-autocomplete

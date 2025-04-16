@@ -6,9 +6,28 @@
     </el-page-header>
     <el-card class="my-3">
         <el-form :inline="true" ref="ruleFormRef" :disabled="loading" :model="formInline" class="demo-form-inline" :rules="rules" label-width="auto" >
-            <el-form-item>
-                <el-button type="primary" @click="() => submitForm(ruleFormRef)">Simpan</el-button>
-            </el-form-item>
+            <div class="flex">
+                <div class="flex flex-1">
+                    <el-form-item>
+                        <el-button type="primary" @click="() => submitForm(ruleFormRef)">Simpan</el-button>
+                    </el-form-item>
+                </div>
+                <div class="flex flex-1">
+                    <el-form-item label="Status" prop="status">
+                        <el-radio-group
+                            v-model="formInline.status"
+                            aria-label="status"
+                            size="small"
+                        >
+                            <el-radio-button value="draft">Draft</el-radio-button>
+                            <el-radio-button value="waiting">Waiting</el-radio-button>
+                            <el-radio-button value="ready">Ready</el-radio-button>
+                            <el-radio-button value="delivery">Delivery</el-radio-button>
+                            <el-radio-button value="done">Done</el-radio-button>
+                        </el-radio-group>
+                    </el-form-item>
+                </div>
+            </div>
             
             <div class="flex">
                 <div class="flex flex-col flex-1">
@@ -49,21 +68,29 @@
                     </el-form-item>
                 </div>
                 <div class="flex flex-col flex-1 justify-start">
-                    <el-form-item label="Status" prop="status">
-                        <el-radio-group
-                            v-model="formInline.status"
-                            aria-label="status"
-                            size="small"
-                        >
-                            <el-radio-button value="draft">Draft</el-radio-button>
-                            <el-radio-button value="waiting">Waiting</el-radio-button>
-                            <el-radio-button value="ready">Ready</el-radio-button>
-                            <el-radio-button value="delivery">Delivery</el-radio-button>
-                            <el-radio-button value="done">Done</el-radio-button>
-                        </el-radio-group>
+                    
+                    <el-form-item label="Nomor Dokumen" prop="source_document">
+                        <el-input v-model="formInline.source_document" placeholder="Nomor Dokumen" clearable />
                     </el-form-item>
-                    <el-form-item label="Dokumen Lainya" prop="source_document">
-                        <el-input v-model="formInline.source_document" placeholder="Dokumen Lain" clearable />
+                    <el-form-item label="Upload Dokumen" prop="source_document">
+                        <el-upload
+                            v-model:file-list="fileList"
+                            class="upload-demo"
+                            action=""
+                            multiple
+                            :on-preview="handlePreview"
+                            :on-remove="handleRemove"
+                            :before-remove="beforeRemove"
+                            :limit="1"
+                            :on-exceed="handleExceed"
+                        >
+                            <el-button type="primary">Click to upload</el-button>
+                            <template #tip>
+                                <div class="el-upload__tip">
+                                    jpg/png files with a size less than 500KB.
+                                </div>
+                            </template>
+                        </el-upload>
                     </el-form-item>
                 </div>
             </div>
@@ -74,20 +101,35 @@
     <el-card class="mb-3">
         <el-table :data="tableItem">
             <el-table-column prop="name" label="item" >
-            <template #default="scope">
-                <el-autocomplete
-                    :disabled="loading"
-                    :fetch-suggestions="querySearchAsyncInventories"
-                    v-model="scope.row.name"
-                    
-                    placeholder="Cari item"
-                    @select="(item: Record<string, any>) => onHandleSelectItemAutocomplete(item, scope)"
-                />
-            </template>
+                <template #default="scope">
+                    <el-autocomplete
+                        :disabled="loading"
+                        :fetch-suggestions="querySearchAsyncInventories"
+                        v-model="scope.row.name"
+                        
+                        placeholder="Cari item"
+                        @select="(item: Record<string, any>) => onHandleSelectItemAutocomplete(item, scope)"
+                    />
+                </template>
+            </el-table-column>
+            <el-table-column prop="sn" label="Serial Number">
+                <template #default="scope">
+                    <el-input v-model="scope.row.sn" @change="(e) => onChangeSerialNumber(e, scope)" :disabled="loading" placeholder="Masukan Serial Number" />
+                </template>
             </el-table-column>
             <el-table-column prop="quantity" label="Quantity">
                 <template #default="scope">
                     <el-input v-model="scope.row.quantity" @change="(e) => onChangeQuantity(e, scope)" :disabled="loading" placeholder="Masukan quantity" />
+                </template>
+            </el-table-column>
+            <el-table-column prop="cost" label="Harga Beli">
+                <template #default="scope">
+                    <el-input v-model="scope.row.cost" @change="(e) => onChangeCost(e, scope)" :disabled="loading" placeholder="Masukan Harga Beli" />
+                </template>
+            </el-table-column>
+            <el-table-column prop="selling_price" label="Harga Jual">
+                <template #default="scope">
+                    <el-input v-model="scope.row.selling_price" @change="(e) => onChangeCost(e, scope)" :disabled="loading" placeholder="Masukan Harga Jual" />
                 </template>
             </el-table-column>
             <el-table-column prop="unit_name" label="Unit">
@@ -128,7 +170,8 @@
     import type { Contact } from '~/types/contact';
     import type { Maintenance } from '~/types/maintenance';
     import type { Inventory } from '~/types/inventory';
-    
+    import type { UploadProps, UploadUserFile } from 'element-plus'
+
     definePageMeta({
         middleware:['auth', 'app'],
         name: "Check In/Out",
@@ -153,6 +196,9 @@
         id: number,
         inventory_id: string,
         quantity: number|null,
+        cost: number|null,
+        selling_price: number|null,
+        sn: string,
         unit_name: string,
     }
 
@@ -178,6 +224,33 @@
         schedule_date: string|null,
         source_document: string|null,
         status: string,
+    }
+
+    const fileList = ref<UploadUserFile[]>([])
+
+    const handleRemove: UploadProps['onRemove'] = (file, uploadFiles) => {
+        console.log(file, uploadFiles)
+    }
+
+    const handlePreview: UploadProps['onPreview'] = (uploadFile) => {
+        console.log(uploadFile)
+    }
+
+    const handleExceed: UploadProps['onExceed'] = (files, uploadFiles) => {
+        ElMessage.warning(
+            `The limit is 3, you selected ${files.length} files this time, add up to ${
+                files.length + uploadFiles.length
+            } totally`
+        )
+    }
+
+    const beforeRemove: UploadProps['beforeRemove'] = (uploadFile, uploadFiles) => {
+        return ElMessageBox.confirm(
+            `Cancel the transfer of ${uploadFile.name} ?`
+        ).then(
+            () => true,
+            () => false
+        )
     }
 
     const querySearchAsyncInventories = (queryString: string, cb: (arg: any) => void) => {
@@ -426,6 +499,15 @@
     const onChangeQuantity = (e: string, scope: any) => {
 
     }
+    const onChangeSerialNumber = (e: string, scope: any) => {
+        tableItem.value[scope.$index].sn = e;
+    }
+    const onChangeSellingPrice = (e: string, scope: any) => {
+        tableItem.value[scope.$index].selling_price = parseInt(e ?? '0');
+    }
+    const onChangeCost = (e: string, scope: any) => {
+        tableItem.value[scope.$index].cost = parseInt(e ?? '0');
+    }
 
     const handleSelectInquiries = (record: Record<string, any>) => {
         console.log(record);
@@ -489,7 +571,10 @@
                 movement_item: tableItem.value.map((value) => {
                     return {
                         'inventory_id': value.inventory_id,
-                        'quantity': value.quantity,
+                        'quantity': parseInt(value.quantity?.toString() ?? "1"),
+                        'cost': value.cost,
+                        'selling_price': value.selling_price,
+                        'sn': value.sn,
                     }
                 }),
             }
@@ -527,6 +612,9 @@
             inventory_id: '',
             quantity: 1,
             unit_name: '',
+            cost: 0,
+            selling_price: 0,
+            sn: '',
         }));
     }
 
@@ -536,6 +624,9 @@
             inventory_id: '',
             quantity: 1,
             unit_name: '',
+            cost: 0,
+            selling_price: 0,
+            sn: '',
         }];
 
         tableItem.value = newItem;
