@@ -41,7 +41,8 @@
       "purchaseOrder": "Purchase Order",
       "purchaseRequest": "Purchase Request",
       "receive": "Receive"
-    }
+    },
+    "back": "Back"
   },
   "languages": {
     "id": "Indonesian",
@@ -59,13 +60,14 @@
     "send": "Send",
     "save": "Save",
     "cancel": "Cancel",
-    "edit": "Edit"
+    "edit": "Edit",
+    "reset": "Reset"
   },
   "form": {
     "label": {
       "name": "Name",
       "email": "Email",
-      "phoneNumber": "Phone number",
+      "phoneNumber": "Phone Number",
       "gender": "Gender",
       "genderMale": "Male",
       "genderFemale": "Female",
@@ -73,7 +75,15 @@
       "rememberMe": "Remember Me",
       "forgotPassword": "Forgot Password?",
       "notRegistered": "Not Registered?",
-      "createAccount": "Create Account"
+      "createAccount": "Create Account",
+      "taxId": "Tax Id",
+      "website": "Website",
+      "title": "Title",
+      "type": "Type",
+      "personal": "Personal",
+      "company": "Company",
+      "tags": "Tags",
+      "departementName": "Departement Name"
     },
     "validate": {
       "required": "This field is required",
@@ -85,35 +95,21 @@
       "phoneLength": "Please input a phone number 11 or 13 characters"
     },
     "placeholder": {
-      "name": "Your name",
-      "email": "Your email address",
+      "name": "Ex: John Doe",
+      "email": "Ex: johnxxxx@xxxx.xxx",
       "phoneNumber": "08xxxxx",
       "password": "Enter your password",
-      "departement": "Type Departement Name",
-      "position": "Type Position Name"
+      "departement": "Ex: Marketing",
+      "position": "Ex: Leader"
+    },
+    "type": {
+      "new": "New",
+      "update": "Update"
     }
   },
-
-  "tabs": {
-    "usecc": {
-      "organization": {
-        "button": "For Organization",
-        "header": { "title": "", "subtitle": "" },
-        "body": { "title": "", "text": "" },
-        "footer": { "title": "", "subtitle": "" }
-      },
-      "home": {
-        "button": "For Home",
-        "header": { "title": "", "subtitle": "" },
-        "body": { "title": "", "text": "" },
-        "footer": { "title": "", "subtitle": "" }
-      },
-      "education": {
-        "button": "For Education",
-        "header": { "title": "", "subtitle": "" },
-        "body": { "title": "", "text": "" },
-        "footer": { "title": "", "subtitle": "" }
-      }
-    }
+  "tooltip": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "infoTags": "Press enter for new tag"
   }
 }

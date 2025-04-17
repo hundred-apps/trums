@@ -1,14 +1,16 @@
 <template>
   <TrumsWrapper>
-    <el-page-header @back="goBack">
+    <el-page-header @back="goBack" :title="`${t('menu.back')}`">
       <template #content>
-        <span class="text-large font-600 mr-3"> {{ mode }} Contact </span>
+        <span class="text-large font-600 mr-3">
+          {{ mode === "update" ? t("form.type.update") : t("form.type.new") }}
+          {{ t("menu.contact") }}
+        </span>
       </template>
     </el-page-header>
     <el-card class="my-3">
       <el-form
         ref="ruleFormRef"
-        style="max-width: 600px"
         :model="ruleForm"
         :rules="rules"
         label-width="auto"
@@ -17,49 +19,99 @@
         status-icon
         :disabled="loading"
       >
-        <el-form-item label="Name" prop="name">
-          <el-input v-model="ruleForm.name" placeholder="Nama" />
-        </el-form-item>
-        <el-form-item label="Email" prop="email">
-          <el-input v-model="ruleForm.email" placeholder="Email" />
-        </el-form-item>
-        <el-form-item label="Phone" prop="phone">
-          <el-input v-model="ruleForm.phone" placeholder="Phone" />
-        </el-form-item>
-        <el-form-item label="NPWP" prop="tax_id">
-          <el-input v-model="ruleForm.tax_id" placeholder="NPWP" />
-        </el-form-item>
-        <el-form-item label="Website" prop="website">
-          <el-input v-model="ruleForm.website" placeholder="Website" />
-        </el-form-item>
-        <el-form-item label="Title" prop="title">
-          <el-input v-model="ruleForm.title" placeholder="Title" />
-        </el-form-item>
-        <el-form-item label="Tipe">
-          <el-checkbox v-model="ruleForm.is_personal" label="Personal" border />
-          <el-checkbox
-            v-model="ruleForm.is_company"
-            label="Perusahaan"
-            border
-          />
-        </el-form-item>
-        <el-form-item label="Tags" prop="tags">
-          <el-input-tag
-            v-model="ruleForm.tags"
-            :max="3"
-            clearable
-            placeholder="enter up to 3 tags"
-          />
-        </el-form-item>
+        <div class="lg:flex lg:gap-2 lg:justify-between lg:items-center">
+          <el-form-item
+            :label="`${t('form.label.name')}`"
+            prop="name"
+            class="w-full"
+          >
+            <el-input v-model="ruleForm.name" placeholder="Nama" />
+          </el-form-item>
+          <el-form-item
+            :label="`${t('form.label.email')}`"
+            prop="email"
+            class="w-full"
+          >
+            <el-input v-model="ruleForm.email" placeholder="Email" />
+          </el-form-item>
+        </div>
+        <div class="lg:flex lg:gap-2 lg:justify-between lg:items-center">
+          <el-form-item
+            :label="`${t('form.label.phoneNumber')}`"
+            prop="phone"
+            class="w-full"
+          >
+            <el-input v-model="ruleForm.phone" placeholder="Phone" />
+          </el-form-item>
+          <el-form-item
+            :label="`${t('form.label.taxId')}`"
+            prop="tax_id"
+            class="w-full"
+          >
+            <el-input v-model="ruleForm.tax_id" placeholder="NPWP" />
+          </el-form-item>
+        </div>
+        <div class="lg:flex lg:gap-2 lg:justify-between lg:items-center">
+          <el-form-item
+            :label="`${t('form.label.website')}`"
+            prop="website"
+            class="w-full"
+          >
+            <el-input v-model="ruleForm.website" placeholder="Website" />
+          </el-form-item>
+          <el-form-item
+            :label="`${t('form.label.title')}`"
+            prop="title"
+            class="w-full"
+          >
+            <el-input v-model="ruleForm.title" placeholder="Title" />
+          </el-form-item>
+        </div>
+        <div class="lg:flex lg:gap-2 lg:justify-between lg:items-center">
+          <el-form-item :label="`${t('form.label.type')}`" class="w-full">
+            <el-checkbox
+              v-model="ruleForm.is_personal"
+              :label="`${t('form.label.personal')}`"
+              border
+            />
+            <el-checkbox
+              v-model="ruleForm.is_company"
+              :label="`${t('form.label.company')}`"
+              border
+            />
+          </el-form-item>
+          <el-form-item
+            :label="`${t('form.label.tags')}`"
+            prop="tags"
+            class="w-full"
+          >
+            <el-input-tag
+              v-model="ruleForm.tags"
+              :max="3"
+              clearable
+              placeholder="enter up to 3 tags"
+              class="flex-1"
+            >
+              <template #suffix>
+                <el-tooltip
+                  :content="`${t('tooltip.infoTags')}`"
+                  placement="top"
+                >
+                  <Icon name="material-symbols:info" />
+                </el-tooltip>
+              </template>
+            </el-input-tag>
+          </el-form-item>
+        </div>
       </el-form>
       <template #footer>
-        <div class="flex justify-start align-center">
+        <div class="flex justify-end align-center">
+          <el-button type="info" plain @click="resetForm(ruleFormRef)">{{
+            t("buttons.reset")
+          }}</el-button>
           <el-button type="primary" @click="submitForm(ruleFormRef)">
-            Simpan
+            {{ t("buttons.save") }}
           </el-button>
-          <el-button type="info" plain @click="resetForm(ruleFormRef)"
-            >Reset</el-button
-          >
         </div>
       </template>
     </el-card>
@@ -72,9 +124,7 @@ definePageMeta({
 });
 
 import { reactive, ref, onMounted } from "vue";
-import { toPascalCase } from "~/utils/string_format";
 import {
-  type Column,
   type ComponentSize,
   type FormInstance,
   type FormRules,
@@ -86,8 +136,9 @@ import { type Contact } from "~/types/contact";
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
+const unique_id = route.query.unique_id;
 
-const mode = toPascalCase(route.query.mode);
+const mode = route.query.mode;
 
 const goBack = () => router.back();
 
@@ -169,18 +220,20 @@ const loading = ref<boolean>(false);
 
 const resetForm = (formEl: FormInstance | undefined) => {
   formEl?.resetFields();
-  ruleForm.name = "";
-  ruleForm.email = "";
-  ruleForm.phone = "";
-  ruleForm.tax_id = "";
-  ruleForm.website = "";
-  ruleForm.title = "";
-  ruleForm.is_personal = false;
-  ruleForm.is_company = false;
-  ruleForm.tags = "";
+  if (unique_id == null) {
+    ruleForm.name = "";
+    ruleForm.email = "";
+    ruleForm.phone = "";
+    ruleForm.tax_id = "";
+    ruleForm.website = "";
+    ruleForm.title = "";
+    ruleForm.is_personal = false;
+    ruleForm.is_company = false;
+    ruleForm.tags = "";
+  } else {
+    detail();
+  }
 };
-
-const unique_id = route.query.unique_id;
 
 const submit = async (formEl: FormInstance | undefined) => {
   loading.value = true;

@@ -41,7 +41,8 @@
       "purchaseOrder": "Pesanan pembelian",
       "purchaseRequest": "Permintaan pembelian",
       "receive": "Terima"
-    }
+    },
+    "back": "Kembali"
   },
   "languages": {
     "id": "Indonesia",
@@ -59,7 +60,8 @@
     "send": "Kirim",
     "save": "Simpan",
     "cancel": "Batal",
-    "edit": "Ubah"
+    "edit": "Ubah",
+    "reset": "Atur Ulang"
   },
   "form": {
     "label": {
@@ -73,7 +75,15 @@
       "rememberMe": "Ingatkan Saya",
       "forgotPassword": "Lupa Kata Sandi?",
       "notRegistered": "Belum Daftar?",
-      "createAccount": "Buat Akun"
+      "createAccount": "Buat Akun",
+      "taxId": "NPWP",
+      "website": "Situs Web",
+      "title": "Gelar",
+      "type": "Tipe",
+      "personal": "Pribadi",
+      "company": "Perusahaan",
+      "tags": "Tag",
+      "departementName": "Nama Departemen"
     },
     "validate": {
       "required": "Field ini wajib di isi",
@@ -84,37 +94,22 @@
       "phone": "Masukan nomer telepon",
       "phoneLength": "Silahkan masukan nomer telepon antara 11 atau 13 angka"
     },
-
     "placeholder": {
-      "name": "Nama anda",
-      "email": "Alamat email anda",
+      "name": "Contoh: John Doe",
+      "email": "Contoh: johnxxxx@xxxx.xxx",
       "phoneNumber": "08xxxxx",
       "password": "Masukkan kata sandi",
-      "departement": "Ketik Nama Departemen",
-      "position": "Ketik Nama Posisi"
+      "departement": "Contoh: Pemasaran",
+      "position": "Contoh: Pemimpin"
+    },
+    "type": {
+      "new": "Baru",
+      "update": "Perbarui"
     }
   },
-
-  "tabs": {
-    "usecc": {
-      "organization": {
-        "button": "Untuk Perusahaan",
-        "header": { "title": "", "subtitle": "" },
-        "body": { "title": "", "text": "" },
-        "footer": { "title": "", "subtitle": "" }
-      },
-      "home": {
-        "button": "Untuk Rumah",
-        "header": { "title": "", "subtitle": "" },
-        "body": { "title": "", "text": "" },
-        "footer": { "title": "", "subtitle": "" }
-      },
-      "education": {
-        "button": "Untuk Pendidikan",
-        "header": { "title": "", "subtitle": "" },
-        "body": { "title": "", "text": "" },
-        "footer": { "title": "", "subtitle": "" }
-      }
-    }
+  "tooltip": {
+    "edit": "Perbarui",
+    "delete": "Hapus",
+    "infoTags": "Tekan enter untuk tag baru"
   }
 }
