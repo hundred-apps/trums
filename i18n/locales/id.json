@@ -92,15 +92,21 @@
       "emailAddress": "Silakan masukkan alamat email yang benar",
       "gender": "Pilih laki-laki atau wanita",
       "phone": "Masukan nomer telepon",
-      "phoneLength": "Silahkan masukan nomer telepon antara 11 atau 13 angka"
+      "phoneLength": "Silahkan masukan nomer telepon antara 11 - 13 angka",
+      "taxId": "Masukan format NPWP/NIK",
+      "website": "Masukan URL dengan benar"
     },
     "placeholder": {
       "name": "Contoh: John Doe",
-      "email": "Contoh: johnxxxx@xxxx.xxx",
+      "email": "Contoh: johnxxxx{'@'}xxxx.xxx",
       "phoneNumber": "08xxxxx",
       "password": "Masukkan kata sandi",
       "departement": "Contoh: Pemasaran",
-      "position": "Contoh: Pemimpin"
+      "position": "Contoh: Pemimpin",
+      "taxId": "Contoh: 1234xxxxxxxxxxx",
+      "website": "Contoh: https://www.johnxxx.com",
+      "title": "Contoh: S.Pd/S.Si",
+      "tags": "Masukan sampai 3 tag"
     },
     "type": {
       "new": "Baru",
@@ -110,6 +116,7 @@
   "tooltip": {
     "edit": "Perbarui",
     "delete": "Hapus",
-    "infoTags": "Tekan enter untuk tag baru"
+    "infoTags": "Tekan enter untuk tag baru",
+    "infoTaxId": "No NPWP atau KTP"
   }
 }

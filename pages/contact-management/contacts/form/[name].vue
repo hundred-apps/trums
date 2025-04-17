@@ -25,14 +25,20 @@
             prop="name"
             class="w-full"
           >
-            <el-input v-model="ruleForm.name" placeholder="Nama" />
+            <el-input
+              v-model="ruleForm.name"
+              :placeholder="`${t('form.placeholder.name')}`"
+            />
           </el-form-item>
           <el-form-item
             :label="`${t('form.label.email')}`"
             prop="email"
             class="w-full"
           >
-            <el-input v-model="ruleForm.email" placeholder="Email" />
+            <el-input
+              v-model="ruleForm.email"
+              :placeholder="`${t('form.placeholder.email')}`"
+            />
           </el-form-item>
         </div>
         <div class="lg:flex lg:gap-2 lg:justify-between lg:items-center">
@@ -41,14 +47,29 @@
             prop="phone"
             class="w-full"
           >
-            <el-input v-model="ruleForm.phone" placeholder="Phone" />
+            <el-input
+              v-model="ruleForm.phone"
+              :placeholder="`${t('form.placeholder.phoneNumber')}`"
+            />
           </el-form-item>
           <el-form-item
             :label="`${t('form.label.taxId')}`"
             prop="tax_id"
             class="w-full"
           >
-            <el-input v-model="ruleForm.tax_id" placeholder="NPWP" />
+            <el-input
+              v-model="ruleForm.tax_id"
+              :placeholder="`${t('form.placeholder.taxId')}`"
+            >
+              <template #suffix>
+                <el-tooltip
+                  :content="`${t('tooltip.infoTaxId')}`"
+                  placement="top"
+                >
+                  <Icon name="material-symbols:info" />
+                </el-tooltip>
+              </template>
+            </el-input>
           </el-form-item>
         </div>
         <div class="lg:flex lg:gap-2 lg:justify-between lg:items-center">
@@ -57,14 +78,20 @@
             prop="website"
             class="w-full"
           >
-            <el-input v-model="ruleForm.website" placeholder="Website" />
+            <el-input
+              v-model="ruleForm.website"
+              :placeholder="`${t('form.placeholder.website')}`"
+            />
           </el-form-item>
           <el-form-item
             :label="`${t('form.label.title')}`"
             prop="title"
             class="w-full"
           >
-            <el-input v-model="ruleForm.title" placeholder="Title" />
+            <el-input
+              v-model="ruleForm.title"
+              :placeholder="`${t('form.placeholder.title')}`"
+            />
           </el-form-item>
         </div>
         <div class="lg:flex lg:gap-2 lg:justify-between lg:items-center">
@@ -89,8 +116,9 @@
               v-model="ruleForm.tags"
               :max="3"
               clearable
-              placeholder="enter up to 3 tags"
+              :placeholder="`${t('form.placeholder.tags')}`"
               class="flex-1"
+              dragable
             >
               <template #suffix>
                 <el-tooltip
@@ -137,9 +165,11 @@ const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
 const unique_id = route.query.unique_id;
-
+const formSize = ref<ComponentSize>("default");
+const ruleFormRef = ref<FormInstance>();
+const api = useApi();
+const loading = ref<boolean>(false);
 const mode = route.query.mode;
-
 const goBack = () => router.back();
 
 interface RuleForm {
@@ -157,6 +187,7 @@ interface RuleForm {
   title: string | null;
   tags: string | [] | null;
 }
+
 const ruleForm = reactive<RuleForm>({
   id: 1,
   unique_code: "",
@@ -200,23 +231,44 @@ const rules = reactive<FormRules<RuleForm>>({
   tax_id: [
     {
       pattern: /^(\d{10}|\d{15}|\d{16})$/,
-      message: "masukan format npwp",
+      message: `${t("form.validate.taxId")}`,
       trigger: ["blur", "change"],
     },
   ],
   website: [
     {
       type: "url",
-      message: `url yaaa`,
+      message: `${t("form.validate.website")}`,
       trigger: ["blur", "change"],
     },
   ],
 });
 
-const formSize = ref<ComponentSize>("default");
-const ruleFormRef = ref<FormInstance>();
-const api = useApi();
-const loading = ref<boolean>(false);
+const detail = async () => {
+  loading.value = true;
+  try {
+    const response = await api.get(`/contact-read/${unique_id}`);
+    if (response.status == 200) {
+      const contact: Contact = response.data.data;
+      ruleForm.name = contact.name ?? "";
+      ruleForm.email = contact.email ?? "";
+      ruleForm.phone = contact.phone;
+      ruleForm.tax_id = contact.tax_id;
+      ruleForm.website = contact.website;
+      ruleForm.title = contact.title;
+      ruleForm.is_personal = contact.is_personal;
+      ruleForm.is_company = contact.is_company;
+      ruleForm.tags = contact.tags ? contact.tags.split(",") : [];
+      ruleForm.unique_id = contact.unique_id;
+    }
+  } catch (error: any) {
+    if (unique_id !== null) {
+      ElMessage.error(`${error.response?.data?.message}`);
+    }
+  } finally {
+    loading.value = false;
+  }
+};
 
 const resetForm = (formEl: FormInstance | undefined) => {
   formEl?.resetFields();
@@ -278,31 +330,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
     }
   });
 };
-const detail = async () => {
-  loading.value = true;
-  try {
-    const response = await api.get(`/contact-read/${unique_id}`);
-    if (response.status == 200) {
-      const contact: Contact = response.data.data;
-      ruleForm.name = contact.name ?? "";
-      ruleForm.email = contact.email ?? "";
-      ruleForm.phone = contact.phone;
-      ruleForm.tax_id = contact.tax_id;
-      ruleForm.website = contact.website;
-      ruleForm.title = contact.title;
-      ruleForm.is_personal = contact.is_personal;
-      ruleForm.is_company = contact.is_company;
-      ruleForm.tags = contact.tags ? contact.tags.split(",") : [];
-      ruleForm.unique_id = contact.unique_id;
-    }
-  } catch (error: any) {
-    if (unique_id !== null) {
-      ElMessage.error(`${error.response?.data?.message}`);
-    }
-  } finally {
-    loading.value = false;
-  }
-};
+
 onMounted(() => {
   if (unique_id !== null) {
     detail();

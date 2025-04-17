@@ -89,18 +89,24 @@
       "required": "This field is required",
       "name": "Input your name",
       "email": "Input your email address",
-      "emailAddress": "Please input correct email address",
+      "emailAddress": "Please input email address correctly",
       "gender": "Choose male or female gender",
       "phone": "Input your phone number",
-      "phoneLength": "Please input a phone number 11 or 13 characters"
+      "phoneLength": "Please input a phone number 11 - 13 characters",
+      "taxId": "Input format Tax Id/Card Id",
+      "website": "Input the URL correctly"
     },
     "placeholder": {
       "name": "Ex: John Doe",
-      "email": "Ex: johnxxxx@xxxx.xxx",
+      "email": "Ex: johnxxxx{'@'}xxxx.xxx",
       "phoneNumber": "08xxxxx",
       "password": "Enter your password",
       "departement": "Ex: Marketing",
-      "position": "Ex: Leader"
+      "position": "Ex: Leader",
+      "taxId": "Ex: 1234xxxxxxxxxxx",
+      "website": "Ex: https://www.johnxxx.com",
+      "title": "Ex: B.A./LL.B.",
+      "tags": "Enter up to 3 tags"
     },
     "type": {
       "new": "New",
@@ -110,6 +116,7 @@
   "tooltip": {
     "edit": "Edit",
     "delete": "Delete",
-    "infoTags": "Press enter for new tag"
+    "infoTags": "Press enter for new tag",
+    "infoTaxId": "No of tax id or id card"
   }
 }
