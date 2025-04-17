@@ -498,4 +498,3 @@ import { NuxtLink } from '#components';
   </div>
 </template>
 
-

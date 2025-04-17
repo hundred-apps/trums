@@ -1,111 +1,104 @@
 <template>
   <el-table-v2
-        :columns="columns"
-        :data="data"
-        :height="height ?? 400"
-        :width="1100"
-        :max-width="2000"
-        :sort-state="sortState"
-        class="px-3"
-        @column-sort="columnSort"
-        fixed
+    :columns="columns"
+    :data="data"
+    :height="height ?? 400"
+    :width="1100"
+    :max-width="2000"
+    :sort-state="sortState"
+    class="px-3"
+    @column-sort="columnSort"
+    fixed
+  >
+    <template v-if="loading" #overlay>
+      <div
+        class="el-loading-mask"
+        style="display: flex; align-items: center; justify-content: center"
       >
-      <template v-if="loading" #overlay>
-        <div
-          class="el-loading-mask"
-          style="display: flex; align-items: center; justify-content: center"
-        >
-          <el-icon class="is-loading" color="var(--el-color-primary)" :size="26">
-            <loading-icon />
-          </el-icon>
-        </div>
-      </template>
-      </el-table-v2>
+        <el-icon class="is-loading" color="var(--el-color-primary)" :size="26">
+          <loading-icon />
+        </el-icon>
+      </div>
+    </template>
+  </el-table-v2>
 </template>
 
 <script lang="tsx" setup>
-  import type { AnyColumn } from 'element-plus/es/components/table-v2/src/common.mjs';
-  import type { ColumnSortHandler } from 'element-plus/es/components/table-v2/src/table.mjs';
-  import { Loading as LoadingIcon } from '@element-plus/icons-vue'
-import { ElCheckbox, type CheckboxValueType } from 'element-plus';
-import type { FunctionalComponent } from 'vue';
+import type { AnyColumn } from "element-plus/es/components/table-v2/src/common.mjs";
+import type { ColumnSortHandler } from "element-plus/es/components/table-v2/src/table.mjs";
+import { Loading as LoadingIcon } from "@element-plus/icons-vue";
+import { ElCheckbox, type CheckboxValueType } from "element-plus";
+import type { FunctionalComponent } from "vue";
 
+const props = defineProps({
+  columns: {
+    type: Array<AnyColumn>,
+    required: true,
+  },
 
-  const props = defineProps({
-    columns: {
-      type: Array<AnyColumn>,
-      required: true
-    },
-    
-    data: {
-      type: Array,
-      required: true,
-    },
-    sortState: {
-      type: Object,
-      required: false,
-    },
-    loading: {
-      type: Boolean,
-      required: false,
-    },
-    columnSort: {
-      type: Function as PropType<ColumnSortHandler<any>>,
-      required: false,
-    },
-    height: {
-      type: Number,
-      required: false,
-    }
-  })
+  data: {
+    type: Array,
+    required: true,
+  },
+  sortState: {
+    type: Object,
+    required: false,
+  },
+  loading: {
+    type: Boolean,
+    required: false,
+  },
+  columnSort: {
+    type: Function as PropType<ColumnSortHandler<any>>,
+    required: false,
+  },
+  height: {
+    type: Number,
+    required: false,
+  },
+});
 
+// const handleSelectionChange = (selection: any[]) => {
+//   console.log("Selected Rows:", selection);
+// };
 
-  const hallo = () => {
-    
-  }
+const hallo = () => {};
 
-  type SelectionCellProps = {
-    value: boolean
-    intermediate?: boolean
-    onChange: (value: CheckboxValueType) => void
-  }
+type SelectionCellProps = {
+  value: boolean;
+  intermediate?: boolean;
+  onChange: (value: CheckboxValueType) => void;
+};
 
-  const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
-    value,
-    intermediate = false,
-    onChange,
-  }) => {
-    return (
-      <ElCheckbox
-        onChange={onChange}
-        modelValue={value}
-        indeterminate={intermediate}
-      />
-    )
-  }
-  
+const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
+  value,
+  intermediate = false,
+  onChange,
+}) => {
+  return (
+    <ElCheckbox
+      onChange={onChange}
+      modelValue={value}
+      indeterminate={intermediate}
+    />
+  );
+};
 
-  const checkIfExistCheckbox = () => {
-    const newColumn = [...props.columns];
-    
-  }
+const checkIfExistCheckbox = () => {
+  const newColumn = [...props.columns];
+};
 
-  // const scollbar_thumb = document.getElementsByClassName('el-scrollbar__thumb');
-  // for(var i = 0; i < scollbar_thumb.length; i++){
-  //   scollbar_thumb[i].remove();
-  // }
+// const scollbar_thumb = document.getElementsByClassName('el-scrollbar__thumb');
+// for(var i = 0; i < scollbar_thumb.length; i++){
+//   scollbar_thumb[i].remove();
+// }
 
-  onMounted(() => {
-    
-    
-  })
-  
-
+onMounted(() => {});
 </script>
 
 <style>
-
-.el-table-v2__root, .el-table-v2__main {
+.el-table-v2__root,
+.el-table-v2__main {
   width: 100% !important;
 }
 
@@ -130,5 +123,4 @@ import type { FunctionalComponent } from 'vue';
 .example-showcase .el-table-v2__overlay {
   z-index: 9;
 }
-
 </style>

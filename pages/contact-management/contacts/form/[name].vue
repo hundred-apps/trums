@@ -108,6 +108,7 @@ interface RuleForm {
 }
 const ruleForm = reactive<RuleForm>({
   id: 1,
+  unique_id: "",
   unique_code: "",
   is_personal: false,
   is_company: false,
@@ -119,7 +120,6 @@ const ruleForm = reactive<RuleForm>({
   website: "",
   title: "",
   tags: "",
-  unique_id: ""
 });
 
 const rules = reactive<FormRules<RuleForm>>({

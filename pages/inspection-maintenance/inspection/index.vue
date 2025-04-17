@@ -164,77 +164,83 @@
     </div>)
   }
 
-  const onSelection = (event: CheckboxValueType) => {
-    console.log(event);
-  }
+const onSelection = (event: CheckboxValueType) => {
+  console.log(event);
+};
 
-  const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
-    value,
-    intermediate = false,
-    onChange,
-  }) => {
-    return (
-      <ElCheckbox
-        onChange={onChange}
-        modelValue={value}
-        indeterminate={intermediate}
-      />
-    )
-  }
+const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
+  value,
+  intermediate = false,
+  onChange,
+}) => {
+  return (
+    <ElCheckbox
+      onChange={onChange}
+      modelValue={value}
+      indeterminate={intermediate}
+    />
+  );
+};
 
-  
-    
+const onDelete = async (value: Inspection) => {
+  console.log("deleted", value);
+};
+const onEdit = async (value: Inspection) => {
+  const unique_id = useCookie("unique_id");
+  unique_id.value = value.unique_id;
+  router.push(`inspection/add`);
+  // console.log('edited',value);
+};
 
-  const onDelete = async (value: Inspection) => {
-    console.log('deleted',value);
-  }  
-  const onEdit = async (value: Inspection) => {
-    const unique_id = useCookie('unique_id');
-    unique_id.value = value.unique_id;
-    router.push(`inspection/add`);
-    // console.log('edited',value);
-  }  
+const handleSelectionChange = (selection: any[]) => {
+  console.log("Selected Rows:", selection);
+};
 
-  const handleSelectionChange = (selection: any[]) => {
-    console.log("Selected Rows:", selection);
-  };
-
-  const fetchData = async () => {
-    loading.value = true;
-    try {
-      const response = await axios.get('/inspection-read');
-      if(response.status == 200){
-        inspectionsPaginate.value = response.data.data;
-        inspections.value = response.data.data.query;
-        
-      }else{
-        ElMessage.warning(response.data?.message);
-      }
-    } catch (error: any) {
-      ElMessage.error(error.response?.data?.message);
-    } finally {
-      loading.value = false;
+const fetchData = async () => {
+  loading.value = true;
+  try {
+    const response = await axios.get("/inspection-read");
+    if (response.status == 200) {
+      inspectionsPaginate.value = response.data.data;
+      inspections.value = response.data.data.query;
+    } else {
+      ElMessage.warning(response.data?.message);
     }
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.message);
+  } finally {
+    loading.value = false;
   }
+};
 
-  onMounted(() => {
-    fetchData();
-  })
-  
-
+onMounted(() => {
+  fetchData();
+});
 </script>
 <template>
-  <div class="w-auto">
+  <TrumsWrapper>
     <el-row :gutter="20" class="mb-3">
-      <el-col :span="6"><el-input v-model="search" size="large" placeholder="Type to search" /></el-col>
-      <el-button size="large" @click="$router.push('inspection/add')">New Inspection</el-button>
-      <el-button size="large" @click="fetchData" :loading-icon="Eleme" :loading="loading">Reload Data</el-button>
+      <el-col :span="6"
+        ><el-input v-model="search" size="large" placeholder="Type to search"
+      /></el-col>
+      <el-button size="large" @click="$router.push('inspection/add')"
+        >New Inspection</el-button
+      >
+      <el-button
+        size="large"
+        @click="fetchData"
+        :loading-icon="Eleme"
+        :loading="loading"
+        >Reload Data</el-button
+      >
     </el-row>
     <CustomTable :columns="filteredColumn" :data="inspections" :loading="loading" />
     <div class="flex justify-end mt-3">
-      <el-pagination background layout="prev, pager, next" :total="inspectionsPaginate?.total_page" />
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :total="inspectionsPaginate?.total_page"
+      />
     </div>
-  </div>
+  </TrumsWrapper>
 </template>
-
-

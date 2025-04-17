@@ -2,7 +2,6 @@
 import { ref, onMounted } from "vue";
 import { useApi } from "~/composables/useApi";
 import { useRouter } from "vue-router";
-import { initFlowbite } from "flowbite";
 
 const router = useRouter();
 
@@ -42,40 +41,34 @@ const fetchData = async () => {
 
 onMounted(async () => {
   await fetchData();
-  initFlowbite();
 });
 </script>
 <template>
   <TrumsWrapper>
     <div class="flex flex-col gap-4">
       <div class="flex justify-between items-center w-full pb-4">
-        <div class="flex gap-4 items-center">
-          <h2 class="text-gray-700 dark:text-white text-4xl">Asset</h2>
-          <TrumsButtons
-            type="primary"
-            padding="sm"
-            size="sm"
-            class="flex gap-1 items-center"
-            @click="navigateToForm('insert')"
-            ><Icon name="mdi:plus" size="20" /> Asset</TrumsButtons
-          >
-        </div>
+        <h2 class="text-gray-700 dark:text-white text-4xl">Asset</h2>
         <div class="flex gap-4 w-full justify-end items-center">
-          <TrumsButtons
-            type="secondary"
-            padding="sm"
-            size="sm"
-            data-tooltip-target="tooltip-show"
-            data-tooltip-placement="left"
-            @click="toggleView"
+          <el-tooltip
+            :content="showTable ? 'Show grid' : 'Show Table'"
+            placement="left"
           >
-            <Icon
-              :name="
-                showTable ? 'si:grid-view-fill' : 'material-symbols:data-table'
-              "
-              size="30"
-            />
-          </TrumsButtons>
+            <TrumsButtons
+              type="secondary"
+              padding="sm"
+              size="sm"
+              @click="toggleView"
+            >
+              <Icon
+                :name="
+                  showTable
+                    ? 'si:grid-view-fill'
+                    : 'material-symbols:data-table'
+                "
+                size="30"
+              />
+            </TrumsButtons>
+          </el-tooltip>
 
           <div
             id="tooltip-show"
@@ -189,6 +182,7 @@ onMounted(async () => {
                 <button class="px-4 py-2 bg-red-500 text-white rounded">
                   Delete
                 </button>
+                <el-button type="primary">Primary</el-button>
               </td>
             </tr>
           </tbody>

@@ -35,7 +35,7 @@ const availableOs = [
           :href="os.to"
           target="_blank"
           rel="noopener noreferrer"
-          class="py-2 px-2 flex items-center cursor-pointer hover:bg-gray-50 hover:text-primary-500 dark:hover:bg-gray-700/30"
+          class="py-2 px-2 flex items-center cursor-pointer hover:bg-gray-50 hover:text-blue-500 dark:hover:bg-gray-700/30"
         >
           <span class="text-sm mr-2 flex items-center">
             <Icon :name="os.icon" />

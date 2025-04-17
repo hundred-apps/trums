@@ -62,7 +62,7 @@ const {
       :type="!multiline ? type : undefined"
       v-model="inputValue"
       :placeholder="placeholder"
-      class="w-full rounded-md border-2 px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-primary-500 focus:border-primary-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:placeholder-gray-400 dark:focus:ring-primary-500 dark:focus:border-primary-500"
+      class="w-full rounded-md border-2 px-4 py-2 text-sm outline-none transition focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-100 dark:bg-gray-700 dark:text-gray-300 dark:placeholder-gray-400 dark:focus:ring-blue-500 dark:focus:border-blue-500"
       :class="{
         '': !errorMessage && !meta.valid,
         'border-red-500 bg-red-50 text-red-700': errorMessage,

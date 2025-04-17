@@ -4,10 +4,10 @@ const { t } = useI18n();
 
 <style scoped>
 .router-link-active {
-  @apply text-primary-500;
+  @apply text-blue-500;
 }
 .router-link-active:hover {
-  @apply text-primary-600;
+  @apply text-blue-600;
 }
 </style>
 

@@ -13,9 +13,14 @@ const ids = route.params.id;
 const mode = route.query.mode;
 const unique_id = route.query.unique_id;
 
+const strUnique_id = String(unique_id);
+
+const test = ref("");
+
 const api = useApi();
 
 const assets = ref([]);
+const isLoading = ref(false);
 
 const fetchData = async () => {
   try {
@@ -96,7 +101,12 @@ const removeFile = (index) => {
 };
 
 const onSubmit = (values) => {
+  isLoading.value = true;
   const formData = new FormData();
+
+  if (unique_id !== null) {
+    formData.append("unique_id", values.unique_id);
+  }
 
   formData.append("unique_code", values.unique_code);
   formData.append("name", values.name);
@@ -119,6 +129,7 @@ const onSubmit = (values) => {
       },
     })
     .then((response) => {
+      isLoading.value = false;
       console.log("Data berhasil dikirim!", response);
       router.push({ path: "/finance-management/assets" });
     })
@@ -142,6 +153,7 @@ onMounted(async () => {
 
     <Form :validation-schema="schema" @submit="onSubmit" class="flex flex-col">
       <div class="flex justify-between items-center gap-4">
+        <!-- <TrumsFormInput name="unique_id" type="text" label="unique id" /> -->
         <TrumsFormInput
           name="unique_code"
           type="text"
@@ -269,7 +281,9 @@ onMounted(async () => {
         size="sm"
         padding="xs"
         class="w-fit"
-      ></TrumsButtons>
+        :loading="isLoading"
+      >
+      </TrumsButtons>
     </Form>
   </TrumsWrapper>
 </template>
