@@ -1,60 +1,39 @@
 <template>
   <TrumsWrapper>
-    <el-row :gutter="20" class="mb-3">
-      <el-col :span="6">
-        <el-input
-          v-model="request_search.keyword"
-          size="large"
-          placeholder="Type to search"
-        />
-      </el-col>
-      <el-button size="large" @click="() => (dialogFormVisible = true)">
-        New Position
-      </el-button>
-    </el-row>
-    <el-table
-      class="w-screen"
-      @selection-change="handleSelectionChange"
-      :lazy="true"
-      :loading="disable"
-      :data="data?.data"
-    >
-      <el-table-column
-        v-for="col in columns"
-        :key="col.prop || col.label"
-        :prop="col.prop"
-        :label="col.label"
-      >
-        <template #default="scope">
-          <TrumsLink
-            v-if="col.prop === 'name'"
-            @click="navigateToList(scope.row[col.prop], scope.row['unique_id'])"
-            >{{ scope.row[col.prop] }}</TrumsLink
+    <el-row :gutter="20" class="mb-3 w-full flex justify-between items-center">
+      <div class="flex gap-3">
+        <el-col
+          ><el-input
+            v-model="request_search.keyword"
+            size="large"
+            :placeholder="`${t('form.placeholder.search')}`"
           >
-          <span v-else>{{ scope.row[col.prop] }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="Operations" width="150">
-        <template #default="scope">
-          <el-button size="small" @click="handleEdit(scope.row)">
-            Edit
-          </el-button>
-          <el-popconfirm
-            confirm-button-text="Yes"
-            cancel-button-text="No"
-            :icon="InfoFilled"
-            icon-color="#626AEF"
-            title="Are you sure to delete this?"
-            @confirm="handleDelete(scope.row)"
-            @cancel="() => {}"
-          >
-            <template #reference>
-              <el-button size="small" type="danger">Delete</el-button>
+            <template #prefix>
+              <Icon name="lineicons:magnifier" />
             </template>
-          </el-popconfirm>
-        </template>
-      </el-table-column>
-    </el-table>
+          </el-input>
+        </el-col>
+        <el-button size="large" @click="() => (dialogFormVisible = true)">{{
+          t("buttons.newPosition")
+        }}</el-button>
+      </div>
+      <el-tooltip :content="`${t('tooltip.reloadData')}`" placement="top">
+        <el-button
+          size="large"
+          @click="fetchData"
+          :loading-icon="RefreshRight"
+          :loading="loading"
+          ><Icon
+            name="material-symbols:refresh"
+            size="1.5em"
+            :hidden="loading"
+          />
+          <span :hidden="!loading">{{ t("buttons.load") }}</span></el-button
+        >
+      </el-tooltip>
+    </el-row>
+    <CustomTable :data="data?.data ?? []" :columns="columns" />
+
     <div class="flex justify-end mt-3">
       <el-pagination
         v-model:page-size="limit"
@@ -62,12 +41,13 @@
         background
         layout="total, sizes, prev, pager, next"
         :total="data?.total_data"
+        @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
       />
     </div>
     <el-dialog
       v-model="dialogFormVisible"
-      :title="editingUniqueId ? 'Edit Posisi' : 'Posisi Baru'"
+      :title="editingUniqueId ? t('text.editPosition') : t('text.newPosition')"
       width="500"
     >
       <el-form
@@ -77,10 +57,11 @@
         :size="formSize"
         status-icon
       >
-        <el-form-item label="Nama" prop="name">
+        <el-form-item :label="`${t('form.label.name')}`" prop="name">
           <el-input
             v-model="ruleForm.name"
             :disabled="disable"
+            :placeholder="`${t('form.placeholder.position')}`"
             autocomplete="off"
             clearable
           />
@@ -89,14 +70,14 @@
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="dialogFormVisible = false" :loading="disable">
-            Cancel
+            {{ t("buttons.cancel") }}
           </el-button>
           <el-button
             type="primary"
             @click="submitForm(ruleFormRef)"
             :loading="disable"
           >
-            Submit
+            {{ t("buttons.save") }}
           </el-button>
         </div>
       </template>
@@ -104,33 +85,39 @@
   </TrumsWrapper>
 </template>
 
-<script lang="ts" setup>
-import { ref, onMounted, watch } from "vue";
-import { InfoFilled } from "@element-plus/icons-vue";
+<script lang="tsx" setup>
+import { ref } from "vue";
+import { RefreshRight } from "@element-plus/icons-vue";
 import { useApi } from "#imports";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { RequestSearch } from "~/types/request_search";
 import type { Position } from "~/types/position";
+import CustomTable from "~/components/trums/table/customTable.vue";
 import {
   type Column,
   type ComponentSize,
   type FormInstance,
   type FormRules,
   ElMessage,
+  ElLink,
+  TableV2FixedDir,
+  ElTooltip,
+  ElButton,
 } from "element-plus";
 
-const config = useRuntimeConfig();
 const api = useApi();
 const token = useCookie("token");
-const router = useRouter();
-
+const { t } = useI18n();
+const localePath = useLocalePath();
 const formSize = ref<ComponentSize>("default");
 const ruleFormRef = ref<FormInstance>();
 const loading = ref<boolean>(false);
-
 const limit = ref(10);
 const currentPage = ref(1);
 const editingUniqueId = ref<string | null>(null);
+const disable = ref<boolean>(false);
+const search = ref("");
+const dialogFormVisible = ref(false);
 
 const request_search = ref<RequestSearch>({
   keyword: "",
@@ -142,8 +129,8 @@ const request_search = ref<RequestSearch>({
 });
 
 const navigateToList = (name = "", unique_id = null) => {
-  const path = `/human-capital-management/position/list/${name}`;
-  router.push({ path, query: { unique_id } });
+  const path = localePath(`/human-capital-management/position/list/${name}`);
+  navigateTo({ path, query: { unique_id } });
 };
 
 interface RuleForm {
@@ -155,52 +142,77 @@ const ruleForm = reactive<RuleForm>({
   name: "",
 });
 
-const { data } = await useFetch<ResponsePagination<Position[]>>(
-  `${config.public.baseURL}/search`,
-  {
-    key: "fetchData",
-    method: "post",
-    body: request_search.value,
-    headers: token.value
-      ? {
-          Authorization: `Bearer ${token.value}`,
-        }
-      : {},
-  }
+const { data } = await useFetchApi<ResponsePagination<Position[]>>(
+  "/search",
+  "position",
+  "post",
+  request_search.value
 );
-
-const disable = ref<boolean>(false);
-const search = ref("");
-const dialogFormVisible = ref(false);
 
 const rules = reactive<FormRules<RuleForm>>({
   name: [
     {
       required: true,
-      message: "Masukan Nama Posisi",
+      message: `${t("form.validate.required")}`,
       trigger: ["blur", "change"],
     },
   ],
 });
 
-const columns = [
+const columns: Column<Position>[] = [
   {
-    label: "Name",
-    prop: "name",
+    title: `${t("form.label.name")}`,
+    key: "name",
+    dataKey: "name",
+    width: 200,
+    cellRenderer: ({ rowData: row }) => (
+      <>
+        <ElLink
+          underline={false}
+          onClick={() => navigateToList(row.name, row.unique_id)}
+        >
+          {row.name}
+        </ElLink>
+      </>
+    ),
+  },
+  {
+    title: `${t("form.label.operation")}`,
+    key: "",
+    dataKey: "",
+    width: 100,
+    fixed: TableV2FixedDir.RIGHT,
+    cellRenderer: ({ rowData: row }) => (
+      <>
+        <ElTooltip placement="top" content={t("tooltip.edit")}>
+          <ElButton type="warning" circle onClick={() => handleEdit(row)} plain>
+            <Icon name="material-symbols:edit-square-outline-rounded" />
+          </ElButton>
+        </ElTooltip>
+        <ElTooltip placement="top" content={t("tooltip.delete")}>
+          <ElButton
+            type="danger"
+            circle
+            plain
+            onClick={() => messageBoxDelete(row)}
+          >
+            <Icon name="material-symbols:delete-outline" />
+          </ElButton>
+        </ElTooltip>
+      </>
+    ),
   },
 ];
 
 const fetchData = async () => {
-  const { data: newData } = await useFetch<ResponsePagination<Position[]>>(
-    `${config.public.baseURL}/search`,
-    {
-      key: "fetchData",
-      method: "post",
-      body: request_search.value,
-      headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
-    }
-  );
-  data.value = newData.value;
+  loading.value = true;
+  try {
+    await refreshNuxtData();
+  } catch (error) {
+    console.error("Gagal memuat data:", error);
+  }
+  loading.value = false;
+  ElMessage.success(`${t("message.reloadData")}`);
 };
 
 const submit = async (formEl: FormInstance | undefined) => {
@@ -221,18 +233,18 @@ const submit = async (formEl: FormInstance | undefined) => {
             : {},
         }
       );
-      ElMessage.success(`Berhasil Mengedit posisi`);
+      ElMessage.success(`${t("message.submitUpdatePosition")}`);
     } else {
       // Mode tambah baru
       response = await api.post("/position-create", {
         name: ruleForm.name,
         unique_id: ruleForm.unique_id,
       });
-      ElMessage.success(`Berhasil Menambahkan posisi`);
+      ElMessage.success(`${t("message.submitNewPosition")}`);
     }
 
     if (response.status === 201 || response.status === 200) {
-      await fetchData(); // Memuat ulang data setelah berhasil
+      refreshNuxtData(); // Memuat ulang data setelah berhasil
       dialogFormVisible.value = false; // Tutup dialog
       editingUniqueId.value = null;
       resetForm(formEl); // Reset editingUniqueId
@@ -255,34 +267,12 @@ const submitForm = async (formEl: FormInstance | undefined) => {
     }
   });
 };
+
 const resetForm = (formEl: FormInstance | undefined) => {
   formEl?.resetFields();
   ruleForm.name = "";
+  ElMessage.info(`${t("message.resetForm")}`);
 };
-
-watch(search, async (newSearch) => {
-  request_search.value.keyword = newSearch;
-  await fetchData(); // Memuat ulang data saat pencarian berubah
-});
-watch(dialogFormVisible, (newVisible) => {
-  if (!newVisible) {
-    editingUniqueId.value = null;
-  }
-});
-
-watch(currentPage, async (newPage) => {
-  request_search.value.offset = newPage;
-  await fetchData(); // Memuat ulang data saat halaman berubah
-});
-
-watch(limit, async (newLimit) => {
-  request_search.value.limit = newLimit;
-  await fetchData(); // Memuat ulang data saat limit berubah
-});
-
-onMounted(async () => {
-  await fetchData();
-});
 
 const handleEdit = (row: Position) => {
   editingUniqueId.value = row.unique_id;
@@ -290,26 +280,46 @@ const handleEdit = (row: Position) => {
   dialogFormVisible.value = true;
 };
 
-const handleDelete = async (row: Position) => {
+const messageBoxDelete = async (row: Position) => {
+  ElMessageBox.confirm(
+    `${t("message.box.deletePosition")}`,
+    `${t("message.box.title.warning")}`,
+    {
+      confirmButtonText: `${t("buttons.delete")}`,
+      cancelButtonText: `${t("buttons.cancel")}`,
+      type: "warning",
+    }
+  )
+    .then(async () => {
+      const response = await useFetchApi(
+        "/position-delete",
+        "positions",
+        "post",
+        [row.unique_id]
+      );
+      if (response.status.value == "success") {
+        refreshNuxtData();
+        ElMessage.success(`${t("message.successDeleted")}`);
+        loading.value = false;
+      }
+    })
+    .catch(() => {
+      ElMessage({
+        type: "info",
+        message: `${t("message.cancelDelete")}`,
+      });
+    });
+};
+
+const handleSizeChange = (val: number) => {
   loading.value = true;
   try {
-    const response = await useFetch(
-      `${config.public.baseURL}/position-delete`,
-      {
-        method: "delete",
-        body: [row.unique_id],
-        lazy: true,
-      }
-    );
-    if (response.status.value == "success") {
-      await fetchData();
-      ElMessage.success("Data Berhasil Dihapus");
-    }
-  } catch (error: any) {
-    ElMessage.error(`${error.response?.data?.message}`);
-  } finally {
-    loading.value = false;
+    refreshNuxtData();
+  } catch (error) {
+    console.error("Gagal memuat data:", error);
   }
+  loading.value = false;
+  ElMessage.info(`${t("message.handleSizeChange")}`);
 };
 
 const handleSelectionChange = (selection: any[]) => {

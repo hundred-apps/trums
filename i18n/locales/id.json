@@ -73,6 +73,12 @@
     "newDepartement": "Departemen Baru",
     "newPosition": "Posisi Baru"
   },
+  "text": {
+    "newDepartement": "Departemen Baru",
+    "newPosition": "Posisi Baru",
+    "editDepartement": "Ubah Departemen",
+    "editPosition": "Ubah Posisi"
+  },
   "form": {
     "label": {
       "name": "Nama",
@@ -114,7 +120,7 @@
     "placeholder": {
       "name": "Contoh: John Doe",
       "email": "Contoh: johnxxxx{'@'}xxxx.xxx",
-      "phoneNumber": "08xxxxx",
+      "phoneNumber": "Contoh: 08xxxxx",
       "password": "Masukkan kata sandi",
       "departement": "Contoh: Pemasaran",
       "position": "Contoh: Pemimpin",
@@ -141,6 +147,12 @@
     "resetForm": "Formulir berhasil diatur ulang",
     "submitNewContact": "Berhasil menambahkan kontak baru",
     "submitUpdateContact": "Berhasil memperbarui kontak",
+    "submitNewPeople": "Berhasil menambahkan orang baru",
+    "submitUpdatePeople": "Berhasil memperbarui orang",
+    "submitNewDepartement": "Berhasil menambahkan departemen baru",
+    "submitUpdateDepartement": "Berhasil memperbarui departemen",
+    "submitNewPosition": "Berhasil menambahkan posisi baru",
+    "submitUpdatePosition": "Berhasil memperbarui posisi",
     "handleSizeChange": "Jumlah data pada tabel berubah",
     "successDeleted": "Data berhasil dihapus",
     "cancelDelete": "Hapus data dibatalkan",
@@ -153,6 +165,8 @@
     "box": {
       "deleteContact": "Kontak ini akan dihapus. Lanjutkan?",
       "deletePeople": "Data orang ini akan dihapus. Lanjutkan?",
+      "deleteDepartement": "Data departemen ini akan dihapus. Lanjutkan?",
+      "deletePosition": "Data posisi ini akan dihapus. Lanjutkan?",
       "title": {
         "warning": "Peringatan"
       }

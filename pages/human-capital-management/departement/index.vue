@@ -44,7 +44,11 @@
         @current-change="handleCurrentChange"
       />
     </div>
-    <el-dialog v-model="dialogFormVisible" title="Departemen Baru" width="500">
+    <el-dialog
+      v-model="dialogFormVisible"
+      :title="`${t('buttons.newDepartement')}`"
+      width="500"
+    >
       <el-form
         :model="ruleForm"
         ref="ruleFormRef"
@@ -52,10 +56,11 @@
         :size="formSize"
         status-icon
       >
-        <el-form-item label="Nama" prop="name">
+        <el-form-item :label="`${t('form.label.name')}`" prop="name">
           <el-input
             v-model="ruleForm.name"
             :disabled="disable"
+            :placeholder="`${t('form.placeholder.departement')}`"
             autocomplete="off"
             clearable
           />
@@ -63,15 +68,15 @@
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="dialogFormVisible = false" :loading="disable"
-            >Cancel</el-button
-          >
+          <el-button @click="dialogFormVisible = false" :loading="disable">{{
+            t("buttons.cancel")
+          }}</el-button>
           <el-button
             type="primary"
             @click="submitForm(ruleFormRef)"
             :loading="disable"
           >
-            Submit
+            {{ t("buttons.save") }}
           </el-button>
         </div>
       </template>
@@ -80,7 +85,7 @@
 </template>
 
 <script lang="tsx" setup>
-import { ref, watch } from "vue";
+import { ref } from "vue";
 import { RefreshRight } from "@element-plus/icons-vue";
 import { useApi } from "#imports";
 import type { ResponsePagination } from "~/types/response_pagination";
@@ -100,17 +105,18 @@ import {
 } from "element-plus";
 
 const { t } = useI18n();
-const config = useRuntimeConfig();
 const localePath = useLocalePath();
 const api = useApi();
 const token = useCookie("token");
-const router = useRouter();
 const formSize = ref<ComponentSize>("default");
 const ruleFormRef = ref<FormInstance>();
 const loading = ref<boolean>(false);
 const limit = ref(10);
 const currentPage = ref(1);
 const editingUniqueId = ref<string | null>(null);
+const disable = ref<boolean>(false);
+const search = ref("");
+const dialogFormVisible = ref(false);
 
 const request_search = ref<RequestSearch>({
   keyword: "",
@@ -154,15 +160,11 @@ const fetchData = async () => {
   ElMessage.success(`${t("message.reloadData")}`);
 };
 
-const disable = ref<boolean>(false);
-const search = ref("");
-const dialogFormVisible = ref(false);
-
 const rules = reactive<FormRules<RuleForm>>({
   name: [
     {
       required: true,
-      message: "Masukan Nama Departemen",
+      message: `${t("form.validate.required")}`,
       trigger: ["blur", "change"],
     },
   ],
@@ -176,7 +178,10 @@ const columns: Column<Departement>[] = [
     width: 200,
     cellRenderer: ({ rowData: row }) => (
       <>
-        <ElLink onClick={() => navigateToList(row.name, row.unique_id)}>
+        <ElLink
+          underline={false}
+          onClick={() => navigateToList(row.name, row.unique_id)}
+        >
           {row.name}
         </ElLink>
       </>
@@ -200,7 +205,7 @@ const columns: Column<Departement>[] = [
             type="danger"
             circle
             plain
-            onClick={() => handleDelete(row)}
+            onClick={() => messageBoxDelete(row)}
           >
             <Icon name="material-symbols:delete-outline" />
           </ElButton>
@@ -219,18 +224,18 @@ const submit = async (formEl: FormInstance | undefined) => {
         name: ruleForm.name,
         unique_id: editingUniqueId.value,
       });
-      ElMessage.success(`Berhasil Mengedit departemen`);
+      ElMessage.success(`${t("message.submitUpdateDepartement")}`);
     } else {
       // Mode tambah baru
       response = await api.post("/departement-create", {
         name: ruleForm.name,
         unique_id: ruleForm.unique_id,
       });
-      ElMessage.success(`Berhasil Menambahkan departemen`);
+      ElMessage.success(`${t("message.submitNewDepartement")}`);
     }
 
     if (response.status === 201 || response.status === 200) {
-      await fetchData(); // Memuat ulang data setelah berhasil
+      await refreshNuxtData(); // Memuat ulang data setelah berhasil
       dialogFormVisible.value = false; // Tutup dialog
       editingUniqueId.value = null;
       resetForm(formEl);
@@ -257,6 +262,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 const resetForm = (formEl: FormInstance | undefined) => {
   formEl?.resetFields();
   ruleForm.name = "";
+  ElMessage.info(`${t("message.resetForm")}`);
 };
 
 const handleEdit = (row: Departement) => {
@@ -265,28 +271,56 @@ const handleEdit = (row: Departement) => {
   dialogFormVisible.value = true;
 };
 
-const handleDelete = async (row: Departement) => {
-  loading.value = true;
-  try {
-    const response = await useFetch(
-      `${config.public.baseURL}/departement-delete`,
-      {
-        method: "delete",
-        body: [row.unique_id],
-        headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
-        lazy: true,
-      }
-    );
-    if (response.status.value == "success") {
-      await fetchData();
-      ElMessage.success("Data Berhasil Dihapus");
+const messageBoxDelete = async (row: Departement) => {
+  ElMessageBox.confirm(
+    `${t("message.box.deleteDepartement")}`,
+    `${t("message.box.title.warning")}`,
+    {
+      confirmButtonText: `${t("buttons.delete")}`,
+      cancelButtonText: `${t("buttons.cancel")}`,
+      type: "warning",
     }
-  } catch (error: any) {
-    ElMessage.error(`${error.response?.data?.message}`);
-  } finally {
-    loading.value = false;
-  }
+  )
+    .then(async () => {
+      const response = await useFetchApi(
+        "/departement-delete",
+        "departements",
+        "post",
+        [row.unique_id]
+      );
+      if (response.status.value == "success") {
+        refreshNuxtData();
+        ElMessage.success(`${t("message.successDeleted")}`);
+        loading.value = false;
+      }
+    })
+    .catch(() => {
+      ElMessage({
+        type: "info",
+        message: `${t("message.cancelDelete")}`,
+      });
+    });
 };
+
+// const handleDelete = async (row: Departement) => {
+//   loading.value = true;
+//   try {
+//     const response = await useFetchApi(
+//       "/departement-delete",
+//       "departements",
+//       "post",
+//       [row.unique_id]
+//     );
+//     if (response.status.value == "success") {
+//       ElMessage.success(`${t("message.successDeleted")}`);
+//       refreshNuxtData();
+//     }
+//   } catch (error: any) {
+//     ElMessage.error(`${error.response?.data?.message}`);
+//   } finally {
+//     loading.value = false;
+//   }
+// };
 
 const handleSizeChange = (val: number) => {
   loading.value = true;
@@ -306,17 +340,4 @@ const handleSelectionChange = (selection: any[]) => {
 const handleCurrentChange = (val: number) => {
   currentPage.value = val;
 };
-
-watch(search, async (newSearch) => {
-  request_search.value.keyword = newSearch;
-  await fetchData(); // Memuat ulang data saat pencarian berubah
-});
-
-watch(
-  request_search,
-  async (newValue) => {
-    console.log("new", newValue);
-  },
-  { immediate: true }
-);
 </script>

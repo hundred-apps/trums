@@ -73,6 +73,12 @@
     "newDepartement": "New Departement",
     "newPosition": "New Position"
   },
+  "text": {
+    "newDepartement": "New Departement",
+    "newPosition": "New Position",
+    "editDepartement": "Edit Departement",
+    "editPosition": "Edit Position"
+  },
   "form": {
     "label": {
       "name": "Name",
@@ -114,7 +120,7 @@
     "placeholder": {
       "name": "Ex: John Doe",
       "email": "Ex: johnxxxx{'@'}xxxx.xxx",
-      "phoneNumber": "08xxxxx",
+      "phoneNumber": "Ex: 08xxxxx",
       "password": "Enter your password",
       "departement": "Ex: Marketing",
       "position": "Ex: Leader",
@@ -141,6 +147,12 @@
     "resetForm": "Form successfully reset",
     "submitNewContact": "Successfully added new contact",
     "submitUpdateContact": "Successfully edited contact",
+    "submitNewPeople": "Successfully added new people",
+    "submitUpdatePeople": "Successfully edited people",
+    "submitNewDepartement": "Successfully added new departement",
+    "submitUpdateDepartement": "Successfully edited departement",
+    "submitNewPosition": "Successfully added new position",
+    "submitUpdatePosition": "Successfully edited position",
     "handleSizeChange": "Size of table changed",
     "successDeleted": "Data successfully deleted",
     "cancelDelete": "Delete canceled",
@@ -153,6 +165,8 @@
     "box": {
       "deleteContact": "This contact will be deleted. Continue?",
       "deletePeople": "This people will be deleted. Continue?",
+      "deleteDepartement": "This departement will be deleted. Continue?",
+      "deletePosition": "This position will be deleted. Continue?",
       "title": {
         "warning": "Warning"
       }

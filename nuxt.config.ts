@@ -39,9 +39,13 @@ export default defineNuxtConfig({
     // babel: {
     //   plugins: ['@vue/babel-plugin-jsx'],
     // },
+    transpile: ["element-plus"],
   },
 
-  css: ["element-plus/theme-chalk/dark/css-vars.css"],
+  css: [
+    "element-plus/theme-chalk/dark/css-vars.css",
+    "element-plus/dist/index.css",
+  ],
 
   tailwindcss: {
     cssPath: ["~/assets/css/input.css", { injectPosition: "first" }],

@@ -1,8 +1,15 @@
 <template>
   <TrumsWrapper>
-    <el-page-header @back="goBack">
+    <el-page-header @back="goBack" :title="`${t('menu.back')}`">
       <template #content>
-        <span class="text-large font-600 mr-3"> {{ mode }} People </span>
+        <span class="text-large font-600 mr-3" v-if="lang === 'en'">
+          {{ mode === "update" ? t("form.type.update") : t("form.type.new") }}
+          {{ t("menu.submenu.people") }}
+        </span>
+        <span class="text-large font-600 mr-3" v-else>
+          {{ t("menu.submenu.people") }}
+          {{ mode === "update" ? t("form.type.update") : t("form.type.new") }}
+        </span>
       </template>
     </el-page-header>
     <el-card class="my-3">
@@ -22,14 +29,20 @@
             prop="name"
             class="w-full"
           >
-            <el-input v-model="ruleForm.name" placeholder="Masukan Nama" />
+            <el-input
+              v-model="ruleForm.name"
+              :placeholder="`${t('form.placeholder.name')}`"
+            />
           </el-form-item>
           <el-form-item
             :label="`${t('form.label.email')}`"
             prop="email"
             class="w-full"
           >
-            <el-input v-model="ruleForm.email" placeholder="Masukan Email" />
+            <el-input
+              v-model="ruleForm.email"
+              :placeholder="`${t('form.placeholder.email')}`"
+            />
           </el-form-item>
         </div>
         <div class="lg:flex lg:gap-2 lg:justify-between lg:items-center">
@@ -51,6 +64,7 @@
             <el-input
               v-model="ruleForm.password"
               type="password"
+              :placeholder="`${t('form.placeholder.password')}`"
               show-password
             />
           </el-form-item>
@@ -314,7 +328,6 @@ import { InfoFilled, Search } from "@element-plus/icons-vue";
 import { useApi } from "#imports";
 import { type People } from "~/types/people";
 import type { RequestSearch } from "~/types/request_search";
-import type { Unit } from "~/types/unit";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { Departement } from "~/types/departement";
 import type { Position } from "~/types/position";
@@ -330,8 +343,9 @@ const route = useRoute();
 const token = useCookie("token");
 const { t } = useI18n();
 const config = useRuntimeConfig();
+const lang = useCookie("language");
 const api = useApi();
-const mode = toPascalCase(route.query.mode);
+const mode = route.query.mode;
 const unique_id = route.query.unique_id;
 const goBack = () => router.back();
 const outerVisible = ref<boolean>(false);
