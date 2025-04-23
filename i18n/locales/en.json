@@ -61,7 +61,17 @@
     "save": "Save",
     "cancel": "Cancel",
     "edit": "Edit",
-    "reset": "Reset"
+    "reset": "Reset",
+    "delete": "Delete",
+    "yes": "Yes",
+    "no": "No",
+    "load": "Load",
+    "addImage": "Add Image",
+    "changeImage": "Change Image",
+    "newContact": "New Contact",
+    "newPeople": "New People",
+    "newDepartement": "New Departement",
+    "newPosition": "New Position"
   },
   "form": {
     "label": {
@@ -83,7 +93,12 @@
       "personal": "Personal",
       "company": "Company",
       "tags": "Tags",
-      "departementName": "Departement Name"
+      "departementName": "Departement Name",
+      "departement": "Departement",
+      "positionName": "Position Name",
+      "position": "Position",
+      "contact": "Contact",
+      "operation": "Operation"
     },
     "validate": {
       "required": "This field is required",
@@ -106,7 +121,8 @@
       "taxId": "Ex: 1234xxxxxxxxxxx",
       "website": "Ex: https://www.johnxxx.com",
       "title": "Ex: B.A./LL.B.",
-      "tags": "Enter up to 3 tags"
+      "tags": "Enter up to 3 tags",
+      "search": "Type to search"
     },
     "type": {
       "new": "New",
@@ -117,6 +133,29 @@
     "edit": "Edit",
     "delete": "Delete",
     "infoTags": "Press enter for new tag",
-    "infoTaxId": "No of tax id or id card"
+    "infoTaxId": "No of tax id or id card",
+    "reloadData": "Reload Data"
+  },
+  "message": {
+    "reloadData": "Data successfully loaded",
+    "resetForm": "Form successfully reset",
+    "submitNewContact": "Successfully added new contact",
+    "submitUpdateContact": "Successfully edited contact",
+    "handleSizeChange": "Size of table changed",
+    "successDeleted": "Data successfully deleted",
+    "cancelDelete": "Delete canceled",
+    "cancelChange": "Change canceled",
+    "cantDeleteOidc": "Can't delete because have OIDC",
+    "image": {
+      "format": "Avatar picture must be {format} format!",
+      "size": "Avatar picture size can not exceed {size}MB!"
+    },
+    "box": {
+      "deleteContact": "This contact will be deleted. Continue?",
+      "deletePeople": "This people will be deleted. Continue?",
+      "title": {
+        "warning": "Warning"
+      }
+    }
   }
 }

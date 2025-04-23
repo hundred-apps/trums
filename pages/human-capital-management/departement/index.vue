@@ -1,72 +1,38 @@
 <template>
   <TrumsWrapper>
-    <el-row :gutter="20" class="mb-3">
-      <el-col :span="6"
-        ><el-input
-          v-model="request_search.keyword"
-          size="large"
-          placeholder="Type to search"
-      /></el-col>
-      <el-button size="large" @click="() => (dialogFormVisible = true)"
-        >New Departement</el-button
-      >
-    </el-row>
-    <el-table
-      class="w-screen"
-      @selection-change="handleSelectionChange"
-      :lazy="true"
-      :loading="disable"
-      :data="data?.data"
-      height="400"
-    >
-      <el-table-column type="selection" width="55" />
-      <el-table-column
-        v-for="col in columns"
-        :key="col.prop || col.label"
-        :prop="col.prop"
-        :label="col.label"
-        sortable
-      >
-        <template #default="scope">
-          <TrumsLink
-            v-if="col.prop === 'name'"
-            @click="navigateToList(scope.row[col.prop], scope.row['unique_id'])"
-            >{{ scope.row[col.prop] }}</TrumsLink
+    <el-row :gutter="20" class="mb-3 w-full flex justify-between items-center">
+      <div class="flex gap-3">
+        <el-col
+          ><el-input
+            v-model="request_search.keyword"
+            size="large"
+            :placeholder="`${t('form.placeholder.search')}`"
           >
-          <span v-else>{{ scope.row[col.prop] }}</span>
-        </template>
-      </el-table-column>
-      <el-table-column label="Operations" width="150">
-        <template #default="scope">
-          <el-tooltip placement="top">
-            <template #content>Edit</template>
-            <el-button
-              type="warning"
-              :icon="Edit"
-              circle
-              @click="handleEdit(scope.row)"
-              plain
-            />
-          </el-tooltip>
-          <el-popconfirm
-            confirm-button-text="Yes"
-            cancel-button-text="No"
-            :icon="InfoFilled"
-            icon-color="#626AEF"
-            title="Are you sure to delete this?"
-            @confirm="handleDelete(scope.row)"
-            @cancel="() => {}"
-          >
-            <template #reference>
-              <el-tooltip placement="top">
-                <template #content>Delete</template>
-                <el-button type="danger" :icon="Delete" circle plain />
-              </el-tooltip>
+            <template #prefix>
+              <Icon name="lineicons:magnifier" />
             </template>
-          </el-popconfirm>
-        </template>
-      </el-table-column>
-    </el-table>
+          </el-input>
+        </el-col>
+        <el-button size="large" @click="() => (dialogFormVisible = true)">{{
+          t("buttons.newDepartement")
+        }}</el-button>
+      </div>
+      <el-tooltip :content="`${t('tooltip.reloadData')}`" placement="top">
+        <el-button
+          size="large"
+          @click="fetchData"
+          :loading-icon="RefreshRight"
+          :loading="loading"
+          ><Icon
+            name="material-symbols:refresh"
+            size="1.5em"
+            :hidden="loading"
+          />
+          <span :hidden="!loading">{{ t("buttons.load") }}</span></el-button
+        >
+      </el-tooltip>
+    </el-row>
+    <CustomTable :data="data?.data ?? []" :columns="columns" />
     <div class="flex justify-end mt-3">
       <el-pagination
         v-model:page-size="limit"
@@ -74,6 +40,7 @@
         background
         layout="total, sizes, prev, pager, next"
         :total="data?.total_data"
+        @size-change="handleSizeChange"
         @current-change="handleCurrentChange"
       />
     </div>
@@ -112,30 +79,35 @@
   </TrumsWrapper>
 </template>
 
-<script lang="ts" setup>
-import { ref, onMounted, watch } from "vue";
-import { InfoFilled, Delete, Edit } from "@element-plus/icons-vue";
+<script lang="tsx" setup>
+import { ref, watch } from "vue";
+import { RefreshRight } from "@element-plus/icons-vue";
 import { useApi } from "#imports";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { RequestSearch } from "~/types/request_search";
 import type { Departement } from "~/types/departement";
+import CustomTable from "~/components/trums/table/customTable.vue";
 import {
   type Column,
   type ComponentSize,
   type FormInstance,
   type FormRules,
   ElMessage,
+  ElTooltip,
+  ElButton,
+  TableV2FixedDir,
+  ElLink,
 } from "element-plus";
 
+const { t } = useI18n();
 const config = useRuntimeConfig();
+const localePath = useLocalePath();
 const api = useApi();
 const token = useCookie("token");
 const router = useRouter();
-
 const formSize = ref<ComponentSize>("default");
 const ruleFormRef = ref<FormInstance>();
 const loading = ref<boolean>(false);
-
 const limit = ref(10);
 const currentPage = ref(1);
 const editingUniqueId = ref<string | null>(null);
@@ -148,40 +120,38 @@ const request_search = ref<RequestSearch>({
   offset: currentPage,
   table: "departements",
 });
+
 const navigateToList = (name = "", unique_id = null) => {
-  const path = `/human-capital-management/departement/list/${name}`;
-  router.push({ path, query: { unique_id } });
+  const path = localePath(`/human-capital-management/departement/list/${name}`);
+  navigateTo({ path, query: { unique_id } });
 };
+
 interface RuleForm {
   unique_id: string;
   name: string;
 }
+
 const ruleForm = reactive<RuleForm>({
   unique_id: "",
   name: "",
 });
 
-const { data } = await useFetch<ResponsePagination<Departement[]>>(
-  `${config.public.baseURL}/search`,
-  {
-    key: "",
-    method: "post",
-    body: request_search.value,
-    headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
-  }
+const { data } = await useFetchApi<ResponsePagination<Departement[]>>(
+  "/search",
+  "departements",
+  "post",
+  request_search.value
 );
 
 const fetchData = async () => {
-  const { data: newData } = await useFetch<ResponsePagination<Departement[]>>(
-    `${config.public.baseURL}/search`,
-    {
-      key: "fetchData",
-      method: "post",
-      body: request_search.value,
-      headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
-    }
-  );
-  data.value = newData.value;
+  loading.value = true;
+  try {
+    await refreshNuxtData();
+  } catch (error) {
+    console.error("Gagal memuat data:", error);
+  }
+  loading.value = false;
+  ElMessage.success(`${t("message.reloadData")}`);
 };
 
 const disable = ref<boolean>(false);
@@ -198,10 +168,45 @@ const rules = reactive<FormRules<RuleForm>>({
   ],
 });
 
-const columns = [
+const columns: Column<Departement>[] = [
   {
-    label: "Name",
-    prop: "name",
+    title: `${t("form.label.name")}`,
+    key: "name",
+    dataKey: "name",
+    width: 200,
+    cellRenderer: ({ rowData: row }) => (
+      <>
+        <ElLink onClick={() => navigateToList(row.name, row.unique_id)}>
+          {row.name}
+        </ElLink>
+      </>
+    ),
+  },
+  {
+    title: `${t("form.label.operation")}`,
+    key: "",
+    dataKey: "",
+    width: 100,
+    fixed: TableV2FixedDir.RIGHT,
+    cellRenderer: ({ rowData: row }) => (
+      <>
+        <ElTooltip placement="top" content={t("tooltip.edit")}>
+          <ElButton type="warning" circle onClick={() => handleEdit(row)} plain>
+            <Icon name="material-symbols:edit-square-outline-rounded" />
+          </ElButton>
+        </ElTooltip>
+        <ElTooltip placement="top" content={t("tooltip.delete")}>
+          <ElButton
+            type="danger"
+            circle
+            plain
+            onClick={() => handleDelete(row)}
+          >
+            <Icon name="material-symbols:delete-outline" />
+          </ElButton>
+        </ElTooltip>
+      </>
+    ),
   },
 ];
 
@@ -254,19 +259,6 @@ const resetForm = (formEl: FormInstance | undefined) => {
   ruleForm.name = "";
 };
 
-watch(search, async (newSearch) => {
-  request_search.value.keyword = newSearch;
-  await fetchData(); // Memuat ulang data saat pencarian berubah
-});
-
-watch(
-  request_search,
-  async (newValue) => {
-    console.log("new", newValue);
-  },
-  { immediate: true }
-);
-
 const handleEdit = (row: Departement) => {
   editingUniqueId.value = row.unique_id;
   ruleForm.name = row.name;
@@ -296,10 +288,35 @@ const handleDelete = async (row: Departement) => {
   }
 };
 
+const handleSizeChange = (val: number) => {
+  loading.value = true;
+  try {
+    refreshNuxtData();
+  } catch (error) {
+    console.error("Gagal memuat data:", error);
+  }
+  loading.value = false;
+  ElMessage.info(`${t("message.handleSizeChange")}`);
+};
+
 const handleSelectionChange = (selection: any[]) => {
   console.log("Selected Rows:", selection);
 };
+
 const handleCurrentChange = (val: number) => {
   currentPage.value = val;
 };
+
+watch(search, async (newSearch) => {
+  request_search.value.keyword = newSearch;
+  await fetchData(); // Memuat ulang data saat pencarian berubah
+});
+
+watch(
+  request_search,
+  async (newValue) => {
+    console.log("new", newValue);
+  },
+  { immediate: true }
+);
 </script>

@@ -16,14 +16,14 @@ import { useRouter } from "vue-router";
 
 const config = useRuntimeConfig();
 const { t } = useI18n();
-
+const localePath = useLocalePath();
 const router = useRouter();
 const userdata = ref<userData | null>(null);
 const imageUrl = config.public.baseImageURL;
 
 const navigateToSetting = (name = "") => {
-  const path = `/setting/profile/${name}`;
-  router.push({ path });
+  const path = localePath(`/setting/profile/${name}`);
+  navigateTo({ path });
 };
 
 const user = useCookie("userdata");
@@ -37,7 +37,7 @@ onMounted(() => {
 });
 
 const handleMenuClick = (menuKey: string) => {
-  router.push(menuKey);
+  navigateTo(localePath(menuKey));
 };
 </script>
 

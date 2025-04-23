@@ -21,6 +21,7 @@ definePageMeta({
 });
 
 const config = useRuntimeConfig();
+const localePath = useLocalePath();
 const router = useRouter();
 const showTable = ref<boolean>(true);
 const loading = ref<boolean>(false);
@@ -29,12 +30,13 @@ const api = useApi();
 // const contact = ref<Pagination<Contact[]>>();
 const limit = ref(10);
 const currentPage = ref(1);
+const { t } = useI18n();
 
 const navigateToForm = (mode = "", name = "", unique_id = null) => {
   const path = name
-    ? `/contact-management/contacts/form/${name}`
-    : "/contact-management/contacts/form/add";
-  router.push({ path, query: { mode, unique_id } });
+    ? localePath(`/contact-management/contacts/form/${name}`)
+    : localePath("/contact-management/contacts/form/add");
+  navigateTo({ path, query: { mode, unique_id } });
 };
 
 const toggleView = () => {
@@ -43,7 +45,7 @@ const toggleView = () => {
 
 const columns: Column<Contact>[] = [
   {
-    title: "Name",
+    title: `${t("form.label.name")}`,
     key: "name",
     dataKey: "name",
     sortable: true,
@@ -51,37 +53,37 @@ const columns: Column<Contact>[] = [
     fixed: true,
   },
   {
-    title: "Phone",
+    title: `${t("form.label.phoneNumber")}`,
     key: "phone",
     dataKey: "phone",
     width: 150,
   },
   {
-    title: "Email",
+    title: `${t("form.label.email")}`,
     key: "email",
     dataKey: "email",
     width: 150,
   },
   {
-    title: "NPWP",
+    title: `${t("form.label.taxId")}`,
     key: "tax_id",
     dataKey: "tax_id",
     width: 150,
   },
   {
-    title: "Website",
+    title: `${t("form.label.website")}`,
     key: "website",
     dataKey: "website",
     width: 150,
   },
   {
-    title: "Title",
+    title: `${t("form.label.title")}`,
     key: "title",
     dataKey: "title",
     width: 100,
   },
   {
-    title: "Personal",
+    title: `${t("form.label.personal")}`,
     key: "is_personal",
     dataKey: "is_personal",
     width: 100,
@@ -94,7 +96,7 @@ const columns: Column<Contact>[] = [
     align: "center",
   },
   {
-    title: "Company",
+    title: `${t("form.label.company")}`,
     key: "is_company",
     dataKey: "is_company",
     width: 100,
@@ -107,31 +109,20 @@ const columns: Column<Contact>[] = [
     align: "center",
   },
   {
-    title: "Tags",
+    title: `${t("form.label.tags")}`,
     key: "tags",
     dataKey: "tags",
     width: 200,
   },
   {
-    title: "People Contact",
-    key: "internal_id",
-    dataKey: "internal_id",
-    width: 200,
-    cellRenderer: ({ rowData: row }) => (
-      <>
-        <p>{row.internal_id}</p>
-      </>
-    ),
-  },
-  {
-    title: "Operation",
+    title: `${t("form.label.operation")}`,
     key: "",
     dataKey: "",
     width: 100,
     fixed: TableV2FixedDir.RIGHT,
     cellRenderer: ({ rowData: row }) => (
       <>
-        <ElTooltip placement="top" content="Edit">
+        <ElTooltip placement="top" content={t("tooltip.edit")}>
           <ElButton
             type="warning"
             circle
@@ -141,7 +132,7 @@ const columns: Column<Contact>[] = [
             <Icon name="material-symbols:edit-square-outline-rounded" />
           </ElButton>
         </ElTooltip>
-        <ElTooltip placement="top" content="Delete">
+        <ElTooltip placement="top" content={t("tooltip.delete")}>
           <ElButton
             type="danger"
             circle
@@ -178,36 +169,31 @@ const { data } = await useFetchApi<ResponsePagination<Contact[]>>(
 
 const messageBoxDelete = async (row: Contact) => {
   ElMessageBox.confirm(
-    "Data Contact ini akan dihapus. Lanjutkan?",
-    "Peringatan!!!",
+    `${t("message.box.deleteContact")}`,
+    `${t("message.box.title.warning")}`,
     {
-      confirmButtonText: "Delete",
-      cancelButtonText: "Cancel",
+      confirmButtonText: `${t("buttons.delete")}`,
+      cancelButtonText: `${t("buttons.cancel")}`,
       type: "warning",
     }
   )
     .then(async () => {
-      const response = await useFetch(
-        `${config.public.baseURL}/contact-delete`,
-        {
-          method: "post",
-          body: [row.unique_id],
-          lazy: true,
-          headers: token.value
-            ? { Authorization: `Bearer ${token.value}` }
-            : {},
-        }
+      const response = await useFetchApi(
+        "/contact-delete",
+        "contacts",
+        "post",
+        [row.unique_id]
       );
       if (response.status.value == "success") {
-        await refreshNuxtData();
-        ElMessage.success("Data Berhasil Dihapus");
+        refreshNuxtData();
+        ElMessage.success(`${t("message.successDeleted")}`);
         loading.value = false;
       }
     })
     .catch(() => {
       ElMessage({
         type: "info",
-        message: "Delete canceled",
+        message: `${t("message.cancelDelete")}`,
       });
     });
 };
@@ -239,7 +225,7 @@ const fetchData = async () => {
     console.error("Gagal memuat data:", error);
   }
   loading.value = false;
-  ElMessage.success("Data Berhasil DiReload");
+  ElMessage.success(`${t("message.reloadData")}`);
 };
 
 const handleSizeChange = (val: number) => {
@@ -250,7 +236,7 @@ const handleSizeChange = (val: number) => {
     console.error("Gagal memuat data:", error);
   }
   loading.value = false;
-  ElMessage.success("Data Berhasil Diubah");
+  ElMessage.info(`${t("message.handleSizeChange")}`);
 };
 
 const handleCurrentChange = (val: number) => {
@@ -277,8 +263,13 @@ watch(
           ><el-input
             v-model="request_search.keyword"
             size="large"
-            placeholder="Type to search"
-        /></el-col>
+            :placeholder="`${t('form.placeholder.search')}`"
+          >
+            <template #prefix>
+              <Icon name="lineicons:magnifier" />
+            </template>
+          </el-input>
+        </el-col>
         <el-button
           size="large"
           @click="
@@ -286,10 +277,10 @@ watch(
               navigateToForm('add');
             }
           "
-          >New Contact</el-button
+          >{{ t("buttons.newContact") }}</el-button
         >
       </div>
-      <el-tooltip content="Reload Data" placement="top">
+      <el-tooltip :content="`${t('tooltip.reloadData')}`" placement="top">
         <el-button
           size="large"
           @click="fetchData"
@@ -300,7 +291,7 @@ watch(
             size="1.5em"
             :hidden="loading"
           />
-          <span :hidden="!loading">Load</span></el-button
+          <span :hidden="!loading">{{ t("buttons.load") }}</span></el-button
         >
       </el-tooltip>
     </el-row>

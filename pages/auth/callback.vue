@@ -19,16 +19,18 @@ const user = localStorage.getItem("oidc._user");
 const appUserData = useCookie("userdata");
 const userToken = useCookie("token");
 const router = useRouter();
-
 const { t } = useI18n();
+const localePath = useLocalePath();
+const dashboard = localePath(`/dashboard`);
 const config = useRuntimeConfig();
+const loading = ref<boolean>(false);
+const formSize = ref<ComponentSize>("default");
+const ruleFormRef = ref<FormInstance>();
 
 definePageMeta({
   middleware: "auth",
-  layout: false,
+  layout: "authcallback",
 });
-
-const layout = "authcallback";
 
 interface RuleForm {
   name: string;
@@ -37,10 +39,6 @@ interface RuleForm {
   email: string;
 }
 
-const loading = ref<boolean>(false);
-
-const formSize = ref<ComponentSize>("default");
-const ruleFormRef = ref<FormInstance>();
 const ruleForm = reactive<RuleForm>({
   name: "",
   phone: "",
@@ -110,10 +108,10 @@ const beforeAvatarUpload: UploadProps["beforeUpload"] = (rawFile) => {
     rawFile.type !== "image/jpg" &&
     rawFile.type !== "image/png"
   ) {
-    ElMessage.error("Avatar picture must be JPG format!");
+    ElMessage.error(`${t("message.image.format", { format: "JPG" })}`);
     return false;
   } else if (rawFile.size / 1024 / 1024 > 2) {
-    ElMessage.error("Avatar picture size can not exceed 2MB!");
+    ElMessage.error(`${t("message.image.size", { size: "2" })}`);
     return false;
   }
   return true;
@@ -148,8 +146,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           const dataUser: User = response.data.data;
           appUserData.value = JSON.stringify(dataUser);
           userToken.value = response.data.token;
-
-          window.location.href = "/dashboard";
+          navigateTo(dashboard);
         } else {
           ElMessage.error(response?.data?.message);
         }
@@ -166,7 +163,12 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 
 const resetForm = (formEl: FormInstance | undefined) => {
   if (!formEl) return;
-  formEl.resetFields();
+  if (!user) {
+    formEl.resetFields();
+  } else {
+    getUser();
+  }
+  ElMessage.info(`${t("message.resetForm")}`);
 };
 
 const getUser = async () => {
@@ -175,21 +177,19 @@ const getUser = async () => {
     const jsonUser = JSON.parse(user || "");
     const response = await api.get(`people-read/${jsonUser.id}`);
 
+    ruleForm.name = response.data.data.name || "";
     ruleForm.phone = response.data.data.phone || "";
     ruleForm.gender = response.data.data.gender || "pria";
-    ruleForm.name = response.data.data.name || "";
     imageUrl.value = `${config.public.baseBE}${response.data.data.photo.image_path}/${response.data.data.photo.filename}`;
-
-    // console.log(imageUrl.value);
   } catch (error: any) {
     ElMessage.error(error.response?.data?.message);
   } finally {
     loading.value = false;
   }
 };
+
 onMounted(() => {
   const jsonUser = JSON.parse(user || "");
-  console.log("json: ", jsonUser);
   ruleForm.email = jsonUser.email || "";
   getUser();
 });
@@ -202,100 +202,103 @@ onMounted(() => {
 </script>
 
 <template>
-  <NuxtLayout :name="layout">
-    <div class="w-full h-screen flex items-center justify-center">
-      <el-card class="bg-red-800 dark:bg-slate-800 w-1/2">
-        <div class="flex justify-center mb-3">
-          <el-upload
-            class="avatar-uploader flex flex-col items-center gap-2"
-            action=""
-            v-model:file-list="fileList"
-            :on-success="handleAvatarSuccess"
-            :before-upload="beforeAvatarUpload"
-            :on-change="handleChange"
-          >
-            <img v-if="imageUrl" :src="imageUrl" class="avatar" />
-            <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
-            <div class="overlay">
-              <div v-if="!imageUrl" class="text-overlay">Add Image</div>
-              <div v-else class="text-overlay">Change Image</div>
-            </div>
-          </el-upload>
-        </div>
-        <el-form
-          ref="ruleFormRef"
-          :model="ruleForm"
-          :rules="rules"
-          label-width="auto"
-          :size="formSize"
-          class="flex flex-col gap-1"
-          status-icon
+  <div class="w-full h-screen flex items-center justify-center">
+    <el-card class="bg-red-800 dark:bg-slate-800 w-1/2">
+      <div class="flex justify-center mb-3">
+        <el-upload
+          class="avatar-uploader flex flex-col items-center gap-2"
+          action=""
+          v-model:file-list="fileList"
+          :on-success="handleAvatarSuccess"
+          :before-upload="beforeAvatarUpload"
+          :on-change="handleChange"
         >
-          <el-form-item
-            :label="`${t('form.label.name')}`"
-            prop="name"
-            class="p-0"
-          >
-            <el-input
-              v-model="ruleForm.name"
-              :placeholder="`${t('form.placeholder.name')}`"
-              class="p-0"
-            />
-          </el-form-item>
-          <el-form-item
-            :label="`${t('form.label.email')}`"
-            prop="email"
-            class="p-0"
-          >
-            <el-input
-              v-model="ruleForm.email"
-              :placeholder="`${t('form.placeholder.email')}`"
-              class="p-0"
-            />
-          </el-form-item>
-          <el-form-item
-            :label="`${t('form.label.phoneNumber')}`"
-            prop="phone"
-            class="p-0"
-          >
-            <el-input
-              v-model="ruleForm.phone"
-              :placeholder="`${t('form.placeholder.phoneNumber')}`"
-              class="p-0"
-            />
-          </el-form-item>
-          <el-form-item :label="`${t('form.label.gender')}`" prop="gender">
-            <el-radio-group v-model="ruleForm.gender">
-              <el-radio value="pria">{{ t("form.label.genderMale") }}</el-radio>
-              <el-radio value="wanita">{{
-                t("form.label.genderFemale")
-              }}</el-radio>
-            </el-radio-group>
-          </el-form-item>
-          <el-form-item>
-            <div class="flex-1">
-              <div class="flex justify-end">
-                <el-button @click="resetForm(ruleFormRef)" :loading="loading"
-                  >Reset</el-button
-                ><el-button
-                  type="primary"
-                  @click="submitForm(ruleFormRef)"
-                  :loading="loading"
-                >
-                  {{ t("buttons.save") }}
-                </el-button>
-              </div>
+          <img v-if="imageUrl" :src="imageUrl" class="avatar" />
+          <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
+          <div class="overlay">
+            <div v-if="!imageUrl" class="text-overlay">
+              {{ t("buttons.addImage") }}
             </div>
-          </el-form-item>
-        </el-form>
-      </el-card>
-      <!-- <el-card v-else class="bg-red-800 dark:bg-slate-800 w-1/2">
+            <div v-else class="text-overlay">
+              {{ t("buttons.changeImage") }}
+            </div>
+          </div>
+        </el-upload>
+      </div>
+      <el-form
+        ref="ruleFormRef"
+        :model="ruleForm"
+        :rules="rules"
+        label-width="auto"
+        :size="formSize"
+        class="flex flex-col gap-1"
+        status-icon
+      >
+        <el-form-item
+          :label="`${t('form.label.name')}`"
+          prop="name"
+          class="p-0"
+        >
+          <el-input
+            v-model="ruleForm.name"
+            :placeholder="`${t('form.placeholder.name')}`"
+            class="p-0"
+          />
+        </el-form-item>
+        <el-form-item
+          :label="`${t('form.label.email')}`"
+          prop="email"
+          class="p-0"
+        >
+          <el-input
+            v-model="ruleForm.email"
+            :placeholder="`${t('form.placeholder.email')}`"
+            class="p-0"
+          />
+        </el-form-item>
+        <el-form-item
+          :label="`${t('form.label.phoneNumber')}`"
+          prop="phone"
+          class="p-0"
+        >
+          <el-input
+            v-model="ruleForm.phone"
+            :placeholder="`${t('form.placeholder.phoneNumber')}`"
+            class="p-0"
+          />
+        </el-form-item>
+        <el-form-item :label="`${t('form.label.gender')}`" prop="gender">
+          <el-radio-group v-model="ruleForm.gender">
+            <el-radio value="pria">{{ t("form.label.genderMale") }}</el-radio>
+            <el-radio value="wanita">{{
+              t("form.label.genderFemale")
+            }}</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item>
+          <div class="flex-1">
+            <div class="flex justify-end">
+              <el-button @click="resetForm(ruleFormRef)" :loading="loading">{{
+                t("buttons.reset")
+              }}</el-button
+              ><el-button
+                type="primary"
+                @click="submitForm(ruleFormRef)"
+                :loading="loading"
+              >
+                {{ t("buttons.save") }}
+              </el-button>
+            </div>
+          </div>
+        </el-form-item>
+      </el-form>
+    </el-card>
+    <!-- <el-card v-else class="bg-red-800 dark:bg-slate-800 w-1/2">
         <div class="flex justify-center items-center">
           <div class="text-white text-xl font-bold">
             Welcome back {{ ruleForm.name }} <Twemoji emoji="1F44B" />
           </div>
         </div>
       </el-card> -->
-    </div>
-  </NuxtLayout>
+  </div>
 </template>

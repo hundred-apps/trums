@@ -61,7 +61,17 @@
     "save": "Simpan",
     "cancel": "Batal",
     "edit": "Ubah",
-    "reset": "Atur Ulang"
+    "reset": "Atur Ulang",
+    "delete": "Hapus",
+    "yes": "Ya",
+    "no": "Tidak",
+    "load": "Memuat",
+    "addImage": "Tambah Gambar",
+    "changeImage": "Ubah Gambar",
+    "newContact": "Kontak Baru",
+    "newPeople": "Orang Baru",
+    "newDepartement": "Departemen Baru",
+    "newPosition": "Posisi Baru"
   },
   "form": {
     "label": {
@@ -83,7 +93,12 @@
       "personal": "Pribadi",
       "company": "Perusahaan",
       "tags": "Tag",
-      "departementName": "Nama Departemen"
+      "departementName": "Nama Departemen",
+      "departement": "Departemen",
+      "positionName": "Nama Posisi",
+      "position": "Posisi",
+      "contact": "Kontak",
+      "operation": "Operasi"
     },
     "validate": {
       "required": "Field ini wajib di isi",
@@ -106,7 +121,8 @@
       "taxId": "Contoh: 1234xxxxxxxxxxx",
       "website": "Contoh: https://www.johnxxx.com",
       "title": "Contoh: S.Pd/S.Si",
-      "tags": "Masukan sampai 3 tag"
+      "tags": "Masukan sampai 3 tag",
+      "search": "Ketik untuk mencari"
     },
     "type": {
       "new": "Baru",
@@ -117,6 +133,29 @@
     "edit": "Perbarui",
     "delete": "Hapus",
     "infoTags": "Tekan enter untuk tag baru",
-    "infoTaxId": "No NPWP atau KTP"
+    "infoTaxId": "No NPWP atau KTP",
+    "reloadData": "Memuat Data"
+  },
+  "message": {
+    "reloadData": "Data berhasil dimuat",
+    "resetForm": "Formulir berhasil diatur ulang",
+    "submitNewContact": "Berhasil menambahkan kontak baru",
+    "submitUpdateContact": "Berhasil memperbarui kontak",
+    "handleSizeChange": "Jumlah data pada tabel berubah",
+    "successDeleted": "Data berhasil dihapus",
+    "cancelDelete": "Hapus data dibatalkan",
+    "cancelChange": "Perubahan data dibatalkan",
+    "cantDeleteOidc": "Data tidak dapat dihapus karena memiliki OIDC",
+    "image": {
+      "format": "Gambar avatar harus format {format}!",
+      "size": "Gambar avatar ini tidak boleh lebih dari {size}MB!"
+    },
+    "box": {
+      "deleteContact": "Kontak ini akan dihapus. Lanjutkan?",
+      "deletePeople": "Data orang ini akan dihapus. Lanjutkan?",
+      "title": {
+        "warning": "Peringatan"
+      }
+    }
   }
 }

@@ -2,9 +2,13 @@
   <TrumsWrapper>
     <el-page-header @back="goBack" :title="`${t('menu.back')}`">
       <template #content>
-        <span class="text-large font-600 mr-3">
+        <span class="text-large font-600 mr-3" v-if="lang === 'en'">
           {{ mode === "update" ? t("form.type.update") : t("form.type.new") }}
           {{ t("menu.contact") }}
+        </span>
+        <span class="text-large font-600 mr-3" v-else>
+          {{ t("menu.contact") }}
+          {{ mode === "update" ? t("form.type.update") : t("form.type.new") }}
         </span>
       </template>
     </el-page-header>
@@ -147,10 +151,6 @@
 </template>
 
 <script lang="ts" setup>
-definePageMeta({
-  middleware: ["auth", "app"],
-});
-
 import { reactive, ref, onMounted } from "vue";
 import {
   type ComponentSize,
@@ -161,6 +161,11 @@ import {
 import { useApi } from "#imports";
 import { type Contact } from "~/types/contact";
 
+definePageMeta({
+  middleware: ["auth", "app"],
+});
+
+const lang = useCookie("language");
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
@@ -285,6 +290,7 @@ const resetForm = (formEl: FormInstance | undefined) => {
   } else {
     detail();
   }
+  ElMessage.info(`${t("message.resetForm")}`);
 };
 
 const submit = async (formEl: FormInstance | undefined) => {
@@ -304,9 +310,9 @@ const submit = async (formEl: FormInstance | undefined) => {
     });
     if (response.status == 201) {
       if (unique_id == null) {
-        ElMessage.success(`Berhasil Menambahkan contact`);
+        ElMessage.success(`${t("message.submitNewContact")}`);
       } else {
-        ElMessage.success(`Berhasil Mengedit contact`);
+        ElMessage.success(`${t("message.submitUpdateContact")}`);
       }
       router.push("/contact-management/contacts");
     }

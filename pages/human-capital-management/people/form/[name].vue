@@ -8,7 +8,6 @@
     <el-card class="my-3">
       <el-form
         ref="ruleFormRef"
-        style="max-width: 600px"
         :model="ruleForm"
         :rules="rules"
         label-width="auto"
@@ -17,22 +16,50 @@
         status-icon
         :disabled="loading"
       >
-        <el-form-item :label="`${t('form.label.name')}`" prop="name">
-          <el-input v-model="ruleForm.name" placeholder="Masukan Nama" />
-        </el-form-item>
-        <el-form-item :label="`${t('form.label.email')}`" prop="email">
-          <el-input v-model="ruleForm.email" placeholder="Masukan Email" />
-        </el-form-item>
-        <el-form-item :label="`${t('form.label.phoneNumber')}`" prop="phone">
-          <el-input
-            v-model="ruleForm.phone"
-            :placeholder="`${t('form.placeholder.phoneNumber')}`"
-          />
-        </el-form-item>
-        <el-form-item :label="`${t('form.label.password')}`" prop="password">
-          <el-input v-model="ruleForm.password" type="password" show-password />
-        </el-form-item>
-        <el-form-item :label="`${t('form.label.gender')}`" prop="gender">
+        <div class="lg:flex lg:gap-2 lg:justify-between lg:items-center">
+          <el-form-item
+            :label="`${t('form.label.name')}`"
+            prop="name"
+            class="w-full"
+          >
+            <el-input v-model="ruleForm.name" placeholder="Masukan Nama" />
+          </el-form-item>
+          <el-form-item
+            :label="`${t('form.label.email')}`"
+            prop="email"
+            class="w-full"
+          >
+            <el-input v-model="ruleForm.email" placeholder="Masukan Email" />
+          </el-form-item>
+        </div>
+        <div class="lg:flex lg:gap-2 lg:justify-between lg:items-center">
+          <el-form-item
+            :label="`${t('form.label.phoneNumber')}`"
+            prop="phone"
+            class="w-full"
+          >
+            <el-input
+              v-model="ruleForm.phone"
+              :placeholder="`${t('form.placeholder.phoneNumber')}`"
+            />
+          </el-form-item>
+          <el-form-item
+            :label="`${t('form.label.password')}`"
+            prop="password"
+            class="w-full"
+          >
+            <el-input
+              v-model="ruleForm.password"
+              type="password"
+              show-password
+            />
+          </el-form-item>
+        </div>
+        <el-form-item
+          :label="`${t('form.label.gender')}`"
+          prop="gender"
+          class="w-full"
+        >
           <el-radio-group v-model="ruleForm.gender">
             <el-radio value="pria">{{ t("form.label.genderMale") }}</el-radio>
             <el-radio value="wanita">{{
@@ -40,56 +67,73 @@
             }}</el-radio>
           </el-radio-group>
         </el-form-item>
-        <el-form-item label="Nama Departemen" prop="departement">
-          <el-autocomplete
-            v-model="ruleForm.departement"
-            :fetch-suggestions="querySearchDepartement"
-            :trigger-on-focus="false"
-            clearable
-            class="inline-input w-50"
-            :placeholder="`${t('form.placeholder.departement')}`"
-            @select="handleSelectDepartement"
+        <div class="lg:flex lg:gap-2 lg:justify-between lg:items-center">
+          <el-form-item
+            :label="`${t('form.label.departementName')}`"
+            prop="departement"
+            class="w-full"
+          >
+            <el-autocomplete
+              v-model="ruleForm.departement"
+              :fetch-suggestions="querySearchDepartement"
+              :trigger-on-focus="false"
+              clearable
+              class="inline-input w-50"
+              :placeholder="`${t('form.placeholder.departement')}`"
+              @select="handleSelectDepartement"
+            />
+          </el-form-item>
+          <el-input
+            v-model="ruleForm.departement_id"
+            prop="departement_id"
+            type="hidden"
           />
-        </el-form-item>
-        <el-input
-          v-model="ruleForm.departement_id"
-          prop="departement_id"
-          type="hidden"
-        />
-        <el-form-item label="Nama Posisi" prop="position">
-          <el-autocomplete
-            v-model="ruleForm.position"
-            :fetch-suggestions="querySearchPosition"
-            :trigger-on-focus="false"
-            clearable
-            class="inline-input w-50"
-            :placeholder="`${t('form.placeholder.position')}`"
-            @select="handleSelectPosition"
+          <el-form-item
+            :label="`${t('form.label.positionName')}`"
+            prop="position"
+            class="w-full"
+          >
+            <el-autocomplete
+              v-model="ruleForm.position"
+              :fetch-suggestions="querySearchPosition"
+              :trigger-on-focus="false"
+              clearable
+              class="inline-input w-50"
+              :placeholder="`${t('form.placeholder.position')}`"
+              @select="handleSelectPosition"
+            />
+          </el-form-item>
+          <el-input
+            v-model="ruleForm.position_id"
+            prop="position_id"
+            type="hidden"
           />
-        </el-form-item>
-        <el-input
-          v-model="ruleForm.position_id"
-          prop="position_id"
-          type="hidden"
-        />
-        <el-form-item label="Contact" prop="contact">
+        </div>
+        <el-form-item
+          :label="`${t('form.label.contact')}`"
+          prop="contact"
+          class="w-full"
+        >
           <div class="flex flex-col gap-4 w-full">
             <el-popconfirm
               v-if="selectContactApi.length === 2"
               width="250"
-              confirm-button-text="Yes"
-              cancel-button-text="No"
+              :confirm-button-text="`${t('buttons.yes')}`"
+              :cancel-button-text="`${t('buttons.no')}`"
               :icon="InfoFilled"
               icon-color="#626AEF"
               title="Are you sure to change selected contact?"
               @confirm="handleDeleteSelectedContact(selectContactApi)"
-              @cancel="() => {}"
+              @cancel="
+                () => {
+                  ElMessage.info(`${t('message.cancelChange')}`);
+                }
+              "
             >
               <template #reference>
                 <el-button plain> Change Selected Contact </el-button>
               </template>
             </el-popconfirm>
-
             <el-button v-else plain @click="outerVisible = true">
               Change Contact
             </el-button>
@@ -201,13 +245,13 @@
               </el-form>
               <template #footer>
                 <div class="dialog-footer">
-                  <el-button type="danger" @click="innerVisible = false"
-                    >Cancel</el-button
-                  >
+                  <el-button type="danger" @click="innerVisible = false">{{
+                    t("buttons.cancel")
+                  }}</el-button>
                   <el-button
                     type="primary"
                     @click="submitFormContact(ruleFormRef)"
-                    >Submit</el-button
+                    >{{ t("buttons.save") }}</el-button
                   >
                 </div>
               </template>
@@ -215,14 +259,14 @@
             <template #footer>
               <div class="dialog-footer">
                 <el-button @click="innerVisible = true">
-                  New Contact
+                  {{ t("buttons.newContact") }}
                 </el-button>
                 <el-button
                   type="primary"
                   @click="handleSubmitSelectContact()"
                   :disabled="selectContact.length < 1"
                 >
-                  Submit
+                  {{ t("buttons.save") }}
                 </el-button>
               </div>
             </template>
@@ -230,13 +274,13 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <div class="flex justify-start align-center">
+        <div class="flex justify-end align-center">
+          <el-button type="info" plain @click="resetForm(ruleFormRef)">{{
+            t("buttons.reset")
+          }}</el-button>
           <el-button type="primary" @click="submitForm(ruleFormRef)">
-            Simpan
+            {{ t("buttons.save") }}
           </el-button>
-          <el-button type="info" plain @click="resetForm(ruleFormRef)"
-            >Reset</el-button
-          >
         </div>
       </template>
     </el-card>
@@ -257,10 +301,7 @@
 }
 </style>
 
-<script lang="ts" setup>
-definePageMeta({
-  middleware: ["auth", "app"],
-});
+<script lang="tsx" setup>
 import { reactive, ref, onMounted, watch } from "vue";
 import {
   type Column,
@@ -270,7 +311,6 @@ import {
   ElMessage,
 } from "element-plus";
 import { InfoFilled, Search } from "@element-plus/icons-vue";
-
 import { useApi } from "#imports";
 import { type People } from "~/types/people";
 import type { RequestSearch } from "~/types/request_search";
@@ -281,20 +321,21 @@ import type { Position } from "~/types/position";
 import type { Contact } from "~/types/contact";
 import { toPascalCase } from "~/utils/string_format";
 
+definePageMeta({
+  middleware: ["auth", "app"],
+});
+
 const router = useRouter();
 const route = useRoute();
 const token = useCookie("token");
 const { t } = useI18n();
 const config = useRuntimeConfig();
 const api = useApi();
-
 const mode = toPascalCase(route.query.mode);
 const unique_id = route.query.unique_id;
-
 const goBack = () => router.back();
 const outerVisible = ref<boolean>(false);
 const innerVisible = ref<boolean>(false);
-
 const loading = ref<boolean>(false);
 const people = ref<People[]>([]);
 const limit = ref(10);
@@ -314,6 +355,7 @@ const requestSearch = ref<RequestSearch>({
   limit: limit,
   offset: currentPage,
 });
+
 interface RuleForm {
   id: number;
   unique_id: string;
@@ -333,6 +375,7 @@ interface RuleForm {
   departement: string | null;
   photo: string | null;
 }
+
 const ruleForm = reactive<RuleForm>({
   id: 1,
   unique_id: "",
@@ -352,6 +395,7 @@ const ruleForm = reactive<RuleForm>({
   departement: "",
   photo: "",
 });
+
 const rules = reactive<FormRules<RuleForm>>({
   departement: [
     { required: true, message: "Masukan departemen", trigger: "blur" },
@@ -479,6 +523,7 @@ const querySearchDepartement = (
       ElMessage.error(error.response?.data?.message);
     });
 };
+
 const handleSelectDepartement = async (item: Record<string, any>) => {
   if (item.unique_id === undefined) {
     ruleForm.departement = item.name;
@@ -538,6 +583,7 @@ const querySearchPosition = (queryString: string, cb: (arg: any) => void) => {
       ElMessage.error(error.response?.data?.message);
     });
 };
+
 const handleSelectPosition = async (item: Record<string, any>) => {
   if (item.unique_id === undefined) {
     ruleForm.position = item.name;
@@ -664,6 +710,31 @@ const submitFormContact = async (formEl: FormInstance | undefined) => {
 };
 // submit contact end
 
+const detail = async () => {
+  loading.value = true;
+  try {
+    const response = await api.get(`/people-read/${unique_id}`);
+    if (response.status == 200) {
+      const people: People = response.data.data;
+      ruleForm.name = people.name ?? "";
+      ruleForm.email = people.email;
+      ruleForm.phone = people.phone;
+      ruleForm.password = people.password;
+      ruleForm.gender = people.gender;
+      ruleForm.position_id = people.position_id ?? "";
+      ruleForm.position = people.position_name ?? "";
+      ruleForm.departement = people.departement_name;
+      ruleForm.departement_id = people.departement_id;
+      ruleForm.unique_id = people.unique_id;
+      selectContactApi.value = people.contacts;
+    }
+  } catch (error: any) {
+    ElMessage.error(`${error.response?.data?.message}`);
+  } finally {
+    loading.value = false;
+  }
+};
+
 const resetForm = (formEl: FormInstance | undefined) => {
   formEl?.resetFields();
   if (unique_id === null) {
@@ -679,6 +750,7 @@ const resetForm = (formEl: FormInstance | undefined) => {
   } else {
     detail();
   }
+  ElMessage.info(`${t("message.resetForm")}`);
 };
 
 //data table contact selection start
@@ -700,6 +772,7 @@ const columnsContact = [
     prop: "email",
   },
 ];
+
 const { data: dataContact } = await useFetch<ResponsePagination<Contact[]>>(
   `${config.public.baseURL}/search`,
   {
@@ -709,6 +782,7 @@ const { data: dataContact } = await useFetch<ResponsePagination<Contact[]>>(
     headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
   }
 );
+
 const fetchDataContact = async () => {
   const { data: newDataContact } = await useFetch<
     ResponsePagination<Contact[]>
@@ -720,6 +794,7 @@ const fetchDataContact = async () => {
   });
   dataContact.value = newDataContact.value;
 };
+
 const handleSelectionChangeContact = (selection: Contact[]) => {
   if (selectContactApi.value?.length === 2) {
     ElMessage.error("Hapus dahulu jika ingin mengubah data kontaknya");
@@ -754,6 +829,7 @@ const handleDeleteSelectedContact = async (row: Contact) => {
   // selectContact.value = [];
   // tableContact.value!.clearSelection();
 };
+
 const handleCloseOuterVisible = (done: () => void) => {
   outerVisible.value = false;
   tableContact.value!.clearSelection();
@@ -783,36 +859,11 @@ watch(selectContactApi, async (newValue) => {}, { immediate: true });
 
 // mounted data edit start
 
-const detail = async () => {
-  loading.value = true;
-  try {
-    const response = await api.get(`/people-read/${unique_id}`);
-    if (response.status == 200) {
-      const people: People = response.data.data;
-      ruleForm.name = people.name ?? "";
-      ruleForm.email = people.email;
-      ruleForm.phone = people.phone;
-      ruleForm.password = people.password;
-      ruleForm.gender = people.gender;
-      ruleForm.position_id = people.position_id ?? "";
-      ruleForm.position = people.position_name ?? "";
-      ruleForm.departement = people.departement_name;
-      ruleForm.departement_id = people.departement_id;
-      ruleForm.unique_id = people.unique_id;
-      selectContactApi.value = people.contacts;
-    }
-  } catch (error: any) {
-    ElMessage.error(`${error.response?.data?.message}`);
-  } finally {
-    loading.value = false;
-  }
-};
 onMounted(() => {
   if (unique_id !== null) {
     detail();
   }
 });
 
-console.log("select", selectContactApi);
 //mounted data edit end
 </script>
