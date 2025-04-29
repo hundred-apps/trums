@@ -190,28 +190,10 @@
                 placeholder="Type to search Contact"
                 clearable
             /></el-col>
-            <el-table
-              class="w-screen"
-              height="400"
-              @selection-change="handleSelectionChangeContact"
-              :data="dataContact?.data"
-              :loading="loading"
-              ref="tableContact"
-              lazy
-            >
-              <el-table-column type="selection" width="55" />
-              <el-table-column
-                v-for="col in columnsContact"
-                :key="col.prop || col.label"
-                :prop="col.prop"
-                :label="col.label"
-                :sortable="col.sortable"
-                :fixed="col.fixed"
-                :width="col.width"
-              >
-              </el-table-column>
-            </el-table>
-
+            <CustomTable
+              :data="dataContact?.data ?? []"
+              :columns="columnsContact"
+            />
             <div class="flex justify-end">
               <el-pagination
                 class="my-3"
@@ -227,7 +209,7 @@
             <el-dialog
               v-model="innerVisible"
               width="500"
-              title="Add New Contact"
+              :title="`${t('buttons.add')} ${t('buttons.newContact')}`"
               append-to-body
             >
               <el-form
@@ -241,19 +223,25 @@
                 status-icon
                 :disabled="loading"
               >
-                <el-form-item label="Name" prop="name">
-                  <el-input v-model="ruleFormContact.name" placeholder="Nama" />
-                </el-form-item>
-                <el-form-item label="Email" prop="email">
+                <el-form-item :label="`${t('form.label.name')}`" prop="name">
                   <el-input
-                    v-model="ruleFormContact.email"
-                    placeholder="Email"
+                    v-model="ruleFormContact.name"
+                    :placeholder="`${t('form.placeholder.name')}`"
                   />
                 </el-form-item>
-                <el-form-item label="Phone" prop="phone">
+                <el-form-item :label="`${t('form.label.email')}`" prop="email">
+                  <el-input
+                    v-model="ruleFormContact.email"
+                    :placeholder="`${t('form.placeholder.email')}`"
+                  />
+                </el-form-item>
+                <el-form-item
+                  :label="`${t('form.label.phoneNumber')}`"
+                  prop="phone"
+                >
                   <el-input
                     v-model="ruleFormContact.phone"
-                    placeholder="Phone"
+                    :placeholder="`${t('form.placeholder.phoneNumber')}`"
                   />
                 </el-form-item>
               </el-form>
@@ -332,7 +320,7 @@ import type { ResponsePagination } from "~/types/response_pagination";
 import type { Departement } from "~/types/departement";
 import type { Position } from "~/types/position";
 import type { Contact } from "~/types/contact";
-import { toPascalCase } from "~/utils/string_format";
+import CustomTable from "~/components/trums/table/customTable.vue";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -769,43 +757,40 @@ const resetForm = (formEl: FormInstance | undefined) => {
 
 //data table contact selection start
 
-const columnsContact = [
+const columnsContact: Column<Contact>[] = [
   {
-    label: "Name",
-    prop: "name",
+    title: "Name",
+    key: "name",
+    dataKey: "name",
     sortable: true,
     fixed: true,
     width: 200,
   },
   {
-    label: "Phone",
-    prop: "phone",
+    title: "Phone",
+    key: "phone",
+    dataKey: "phone",
+    width: 200,
   },
   {
-    label: "Email",
-    prop: "email",
+    title: "Email",
+    key: "email",
+    dataKey: "email",
+    width: 200,
   },
 ];
 
-const { data: dataContact } = await useFetch<ResponsePagination<Contact[]>>(
-  `${config.public.baseURL}/search`,
-  {
-    key: "",
-    method: "post",
-    body: requestSearchContact.value,
-    headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
-  }
+const { data: dataContact } = await useFetchApi<ResponsePagination<Contact[]>>(
+  "/search",
+  "contacts",
+  "post",
+  requestSearchContact.value
 );
 
 const fetchDataContact = async () => {
-  const { data: newDataContact } = await useFetch<
+  const { data: newDataContact } = await useFetchApi<
     ResponsePagination<Contact[]>
-  >(`${config.public.baseURL}/search`, {
-    key: "fetchData",
-    method: "post",
-    body: requestSearchContact.value,
-    headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
-  });
+  >("/search", "contacts", "post", requestSearchContact.value);
   dataContact.value = newDataContact.value;
 };
 
