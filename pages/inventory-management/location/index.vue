@@ -4,7 +4,7 @@
       <el-col :span="6"
         ><el-input v-model="search" size="large" placeholder="Type to search"
       /></el-col>
-      <el-button size="large" @click="() => (dialogFormVisible = true)"
+      <el-button size="large" @click="() => handleAddNewLocation()"
         >New Location</el-button
       >
     </el-row>
@@ -42,16 +42,23 @@
 </template>
 
 <script lang="tsx" setup>
-import { ref, onMounted } from "vue";
+import { ref, onMounted, type FunctionalComponent } from "vue";
 import type { Catalogue } from "~/types/catalogue";
 import { InfoFilled } from "@element-plus/icons-vue";
-import { ElButton, type Column, type FormRules } from "element-plus";
+import {
+  ElButton,
+  ElCheckbox,
+  type CheckboxValueType,
+  type Column,
+  type FormRules,
+} from "element-plus";
 import { useApi } from "#imports";
 import type { Pagination } from "~/types/pagination";
 import type { ResponsePagination } from "~/types/response_pagination";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import { column } from "element-plus/es/components/table-v2/src/common.mjs";
+import { NuxtLink } from "#components";
 
 const config = useRuntimeConfig();
 
@@ -120,13 +127,23 @@ const rules = reactive<FormRules>({
   name: [{ required: true, message: "Masukan Nama Lokasi", trigger: "blur" }],
 });
 
+const handleAddNewLocation = () => {
+  dialogFormVisible.value = true;
+  form.name = "";
+  form.unique_id = undefined;
+};
+
 const columns: Column<Catalogue>[] = [
   {
     title: "Unique Code",
     key: "unique_code",
     dataKey: "unique_code",
-    sortable: true,
     width: 250,
+    cellRenderer: ({ rowData: row }) => (
+      <NuxtLink href={`location/${row.unique_id}`} class="text-blue-600">
+        {row.unique_code}
+      </NuxtLink>
+    ),
   },
   {
     title: "Name",
@@ -139,6 +156,9 @@ const columns: Column<Catalogue>[] = [
     key: "quantity",
     dataKey: "quantity",
     width: 250,
+    cellRenderer: ({ rowData: row }) => (
+      <p>{row.inventories_location.length}</p>
+    ),
   },
   {
     title: "Operasi",
@@ -157,6 +177,60 @@ const columns: Column<Catalogue>[] = [
   },
 ];
 
+type SelectionCellProps = {
+  value: boolean;
+  intermediate?: boolean;
+  onChange: (value: CheckboxValueType) => void;
+};
+
+const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
+  value,
+  intermediate = false,
+  onChange,
+}) => {
+  return (
+    <ElCheckbox
+      onChange={onChange}
+      modelValue={value}
+      indeterminate={intermediate}
+    />
+  );
+};
+
+columns.unshift({
+  key: "selection",
+  width: 50,
+  cellRenderer: ({ rowData }) => {
+    const onChange = (value: CheckboxValueType) => (rowData.checked = value);
+    return <SelectionCell value={rowData.checked} onChange={onChange} />;
+  },
+
+  headerCellRenderer: () => {
+    const _data = unref(data);
+    const onChange = (value: CheckboxValueType) =>
+      (data.value = {
+        success: true,
+        currentPage: _data?.currentPage ?? 0,
+        total_data: _data?.total_data ?? 0,
+        total_page: _data?.total_data ?? 0,
+        data: _data?.data?.map((row: any) => {
+          row.checked = value;
+          return row;
+        })!,
+      });
+    const allSelected = _data!.data.every((row) => row.checked);
+    const containsChecked = _data?.data.some((row) => row.checked);
+
+    return (
+      <SelectionCell
+        value={allSelected}
+        intermediate={containsChecked && !allSelected}
+        onChange={onChange}
+      />
+    );
+  },
+});
+
 const handleEdit = (row: Catalogue) => {
   form.unique_id = row.unique_id!;
   form.name = row.name!;
@@ -166,12 +240,11 @@ const handleEdit = (row: Catalogue) => {
 const handleDelete = async (row: Catalogue) => {
   loading.value = false;
   try {
-    const response = await useFetch(
-      `${config.public.baseBE}api/catalogues-delete/${row.unique_id}`,
-      {
-        method: "delete",
-        body: [row.unique_id],
-      }
+    const response = await useFetchApi<ResponsePagination<string[]>>(
+      `/catalogues-delete`,
+      "catalogues",
+      "post",
+      [row.unique_id]
     );
     if (response.status.value == "success") {
       await refreshNuxtData("catalogues");

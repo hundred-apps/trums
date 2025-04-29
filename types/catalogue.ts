@@ -15,4 +15,5 @@ export type Catalogue = {
     created_by: string | null;
     updated_at: number | null;
     file_catalogues: any[];
+    checked?: boolean;
 }

@@ -5,7 +5,8 @@ definePageMeta({
 import { ref, onMounted, type FunctionalComponent } from "vue";
 import type { Catalogue } from "~/types/catalogue";
 import { type Inventory } from "~/types/inventory";
-import { InfoFilled, SetUp } from "@element-plus/icons-vue";
+import { InfoFilled, SetUp, RefreshLeft } from "@element-plus/icons-vue";
+
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
 import {
@@ -22,6 +23,8 @@ import {
 } from "element-plus";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import { Filter } from "@element-plus/icons-vue";
+import type { Unit } from "~/types/unit";
+import { NuxtLink } from "#components";
 
 const column_selected = ref<string[]>([
   "selection",
@@ -52,6 +55,73 @@ const fetchData = async () => {
     ElMessage.error(
       `${error.response?.data?.message ?? "Gagal Mengambil Data!"}`
     );
+    return [];
+  } finally {
+    loading.value = false;
+  }
+};
+const fetchLocation = async () => {
+  loading.value = true;
+  try {
+    const response = await useFetchApi<ResponsePagination<Catalogue[]>>(
+      `/search`,
+      "location",
+      "post",
+      {
+        keyword: "",
+        column: [
+          {
+            type: ["place"],
+          },
+        ],
+        limit: "10",
+        offset: "1",
+        table: "catalogues",
+        sort: {
+          column: "created_at",
+          order: OrderColumn.ASC,
+        },
+      }
+    );
+
+    if (response.status.value == "success") {
+      locations.value = (
+        response.data.value as ResponsePagination<Catalogue[]>
+      ).data;
+      console.log(locations.value);
+    }
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.message ?? error);
+    return [];
+  } finally {
+    loading.value = false;
+  }
+};
+const fetchUnits = async () => {
+  loading.value = true;
+  try {
+    const response = await useFetchApi<ResponsePagination<Unit[]>>(
+      `/search`,
+      "units",
+      "post",
+      {
+        keyword: "",
+        column: [],
+        limit: "50",
+        offset: "1",
+        table: "units",
+        sort: {
+          column: "created_at",
+          order: OrderColumn.ASC,
+        },
+      }
+    );
+
+    if (response.status.value == "success") {
+      units.value = (response.data.value as ResponsePagination<Unit[]>).data;
+    }
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.message ?? error);
     return [];
   } finally {
     loading.value = false;
@@ -100,6 +170,8 @@ const { data } = await useFetchApi<ResponsePagination<Inventory[]>>(
   "post",
   request_search.value
 );
+const locations = ref<Catalogue[]>([]);
+const units = ref<Unit[]>([]);
 
 const availableColumn: Column<Inventory>[] = [
   {
@@ -119,6 +191,48 @@ const availableColumn: Column<Inventory>[] = [
     key: "location.name",
     dataKey: "location.name",
     width: 200,
+    headerCellRenderer: () => (
+      <div class="flex items-center justify-center">
+        <span class="mr-2 text-xs">Location</span>
+        <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
+          {{
+            default: () => (
+              <div class="filter-wrapper">
+                <div class="filter-group flex flex-col">
+                  <el-checkbox-group
+                    v-model={request_search.value.column[0].location_id}
+                  >
+                    {locations.value.map((location: Catalogue) => (
+                      <ElCheckbox
+                        key={location.unique_id!}
+                        value={location.unique_id!}
+                      >
+                        {location.name}
+                      </ElCheckbox>
+                    ))}
+                  </el-checkbox-group>
+                </div>
+              </div>
+            ),
+            reference: () => (
+              <ElIcon class="cursor-pointer">
+                <Filter />
+              </ElIcon>
+            ),
+          }}
+        </ElPopover>
+      </div>
+    ),
+    cellRenderer: ({ rowData: row }) => (
+      <>
+        <NuxtLink
+          class={`text-blue-600`}
+          href={`/inventory-management/location/${row.location.unique_id}`}
+        >
+          {row.location.name}
+        </NuxtLink>
+      </>
+    ),
   },
   {
     title: "Quantity",
@@ -128,10 +242,49 @@ const availableColumn: Column<Inventory>[] = [
     width: 100,
     cellRenderer: ({ rowData: row }) => (
       <>
-        <p>
-          {row.quantity} {row.unit_name}
-        </p>
+        <p>{row.quantity}</p>
       </>
+    ),
+  },
+  {
+    title: "Satuan",
+    key: "unit_name",
+    dataKey: "unit_name",
+    sortable: false,
+    width: 100,
+    cellRenderer: ({ rowData: row }) => (
+      <>
+        <p>{row.unit_name}</p>
+      </>
+    ),
+    headerCellRenderer: () => (
+      <div class="flex items-center justify-center">
+        <span class="mr-2 text-xs">Satuan</span>
+        <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
+          {{
+            default: () => (
+              <div class="filter-wrapper">
+                <div class="filter-group flex flex-col">
+                  <el-checkbox-group
+                    v-model={request_search.value.column[0].unit_id}
+                  >
+                    {units.value.map((unit: Unit) => (
+                      <ElCheckbox key={unit.unique_id!} value={unit.unique_id!}>
+                        {unit.name}
+                      </ElCheckbox>
+                    ))}
+                  </el-checkbox-group>
+                </div>
+              </div>
+            ),
+            reference: () => (
+              <ElIcon class="cursor-pointer">
+                <Filter />
+              </ElIcon>
+            ),
+          }}
+        </ElPopover>
+      </div>
     ),
   },
   {
@@ -199,9 +352,21 @@ const availableColumn: Column<Inventory>[] = [
         <ElButton size="small" onClick={() => handleEdit(row)}>
           Edit
         </ElButton>
-        <ElButton size="small" type="danger" onClick={() => handleDelete(row)}>
-          Delete
-        </ElButton>
+        <ElPopconfirm
+          title="Yakin ingin menghapus?"
+          confirmButtonText="Ya"
+          cancelButtonText="Tidak"
+          onConfirm={() => handleDelete(row)}
+        >
+          {{
+            reference: () => (
+              <ElButton size="small" type="danger">
+                Delete
+              </ElButton>
+            ),
+          }}
+        </ElPopconfirm>
+        {/* <ElButton size="small" type="danger" onClick={() => handleDelete(row)}>Delete</ElButton> */}
       </>
     ),
   },
@@ -214,6 +379,9 @@ const availableColumn: Column<Inventory>[] = [
 ];
 
 availableColumn[availableColumn.length - 1].headerCellRenderer = () => {
+  const filters = availableColumn.filter(
+    (value) => value.key != "selection" && value.key != "setup"
+  );
   return (
     <div class="flex items-center justify-center">
       <span class="mr-2 text-xs"></span>
@@ -222,19 +390,16 @@ availableColumn[availableColumn.length - 1].headerCellRenderer = () => {
           default: () => (
             <div class="filter-wrapper">
               <div class="filter-group flex flex-col">
-                {availableColumn.map((value) =>
-                  value.key != "selection" && value.key != "setup" ? (
+                <el-checkbox-group v-model={column_selected.value}>
+                  {filters.map((value) => (
                     <ElCheckbox
                       onChange={() => console.log("ok")}
                       value={value.key!.toString()}
-                      v-model={column_selected.value}
                     >
                       {value.title}
                     </ElCheckbox>
-                  ) : (
-                    <></>
-                  )
-                )}
+                  ))}
+                </el-checkbox-group>
               </div>
             </div>
           ),
@@ -313,13 +478,11 @@ const handleEdit = (row: Inventory) => {
 const handleDelete = async (row: Inventory) => {
   loading.value = true;
   try {
-    const response = await useFetch(
-      `${config.public.baseURL}/inventories-delete`,
-      {
-        method: "delete",
-        body: [row.unique_id],
-        lazy: true,
-      }
+    const response = await useFetchApi(
+      `/inventories-delete`,
+      "delete_data",
+      "post",
+      [row.unique_id]
     );
     if (response.status.value == "success") {
       await refreshNuxtData("inventories");
@@ -366,7 +529,8 @@ const paginationClick = (val: number) => {
 };
 
 onMounted(() => {
-  // fetchData();
+  fetchLocation();
+  fetchUnits();
 });
 </script>
 <template>
@@ -388,6 +552,20 @@ onMounted(() => {
           }
         "
         >New Inventory</el-button
+      >
+      <el-button
+        size="large"
+        @click="
+          () => {
+            fetchData();
+          }
+        "
+        ><el-icon class="mr-3"><RefreshLeft /></el-icon> Muat Ulang</el-button
+      >
+      <NuxtLink
+        class="el-button el-button--large"
+        href="/inventory-management/inventories/opname"
+        >Stok Opname</NuxtLink
       >
     </el-row>
     <CustomTable

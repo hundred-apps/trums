@@ -17,6 +17,7 @@ import {
   type HeaderCellSlotProps,
   ElIcon,
   TableV2FixedDir,
+  ElMessage,
 } from "element-plus";
 import type { Maintenance } from "~/types/maintenance";
 import type { Pagination } from "~/types/pagination";

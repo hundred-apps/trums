@@ -35,7 +35,7 @@
             </div>
         </div>
         <el-descriptions title="Note">
-            <el-descriptions-item label="">sdsd</el-descriptions-item>
+            <el-descriptions-item label=""></el-descriptions-item>
         </el-descriptions>
     </el-card>
     <el-card>
