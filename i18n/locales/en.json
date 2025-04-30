@@ -5,15 +5,16 @@
   },
   "menu": {
     "login": "Login",
-    "contact": "Contact",
-    "finance": "Finance",
+    "dashboard": "Dashboard",
+    "contactManagement": "Contact Management",
+    "financeManagement": "Finance Management",
     "humanCapital": "Human Capital",
-    "inspect": "Inspect",
-    "inventory": "Inventory",
+    "inspectionAndMaintenance": "Inspecton & Maintenance",
+    "inventoryManagement": "Inventory Management",
     "sales": "Sales",
     "setting": "Setting",
     "profile": "Profile",
-    "supplyChain": "Supply Chain",
+    "supplyChainManagement": "Supply Chain Management",
     "submenu": {
       "assets": "Assets",
       "contacts": "Contacts",
@@ -40,7 +41,9 @@
       "delivery": "Delivery",
       "purchaseOrder": "Purchase Order",
       "purchaseRequest": "Purchase Request",
-      "receive": "Receive"
+      "receive": "Receive",
+      "location": "Location",
+      "project": "Project"
     },
     "back": "Back"
   },

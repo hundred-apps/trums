@@ -5,15 +5,16 @@
   },
   "menu": {
     "login": "Masuk",
-    "contact": "Kontak",
-    "finance": "Keuangan",
-    "humanCapital": "SDM",
-    "inspect": "Periksa",
-    "inventory": "Penyimpanan",
+    "dashboard": "Beranda",
+    "contactManagement": "Manajemen Kontak",
+    "financeManagement": "Manajemen Keuangan",
+    "humanCapital": "Model Manusia",
+    "inspectionAndMaintenance": "Periksa dan Pemeliharaan",
+    "inventoryManagement": "Manajemen Penyimpanan",
     "sales": "Sales",
     "setting": "Pengaturan",
     "profile": "Profil",
-    "supplyChain": "Supply Chain",
+    "supplyChainManagement": "Manajemen Suplai",
     "submenu": {
       "assets": "Asset",
       "contacts": "Kontak",
@@ -40,7 +41,9 @@
       "delivery": "Pengiriman",
       "purchaseOrder": "Pesanan pembelian",
       "purchaseRequest": "Permintaan pembelian",
-      "receive": "Terima"
+      "receive": "Terima",
+      "location": "Lokasi",
+      "project": "Proyek"
     },
     "back": "Kembali"
   },
