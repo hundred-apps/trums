@@ -75,11 +75,14 @@
     "newContact": "Kontak Baru",
     "newPeople": "Orang Baru",
     "newDepartement": "Departemen Baru",
-    "newPosition": "Posisi Baru"
+    "newPosition": "Posisi Baru",
+    "newLocation": "Lokasi Baru"
   },
   "text": {
     "newDepartement": "Departemen Baru",
     "newPosition": "Posisi Baru",
+    "newLocation": "Lokasi Baru",
+    "editLocation": "Ubah Lokasi",
     "editDepartement": "Ubah Departemen",
     "editPosition": "Ubah Posisi"
   },
@@ -108,6 +111,8 @@
       "positionName": "Nama Posisi",
       "position": "Posisi",
       "contact": "Kontak",
+      "totalItem": "Total Barang",
+      "uniqueCode": "Kode Unik",
       "operation": "Operasi"
     },
     "validate": {
@@ -137,6 +142,10 @@
     "type": {
       "new": "Baru",
       "update": "Perbarui"
+    },
+    "dropdown": {
+      "addDepartement": "Tambah '{name}' di Departemen",
+      "addPosition": "Tambah '{name}' di Posisi"
     }
   },
   "tooltip": {
@@ -157,20 +166,25 @@
     "submitUpdateDepartement": "Berhasil memperbarui departemen",
     "submitNewPosition": "Berhasil menambahkan posisi baru",
     "submitUpdatePosition": "Berhasil memperbarui posisi",
+    "submitNewLocation": "Berhasil menambahkan Lokasi baru",
+    "submitUpdateLocation": "Berhasil memperbarui Lokasi",
     "handleSizeChange": "Jumlah data pada tabel berubah",
     "successDeleted": "Data berhasil dihapus",
     "cancelDelete": "Hapus data dibatalkan",
     "cancelChange": "Perubahan data dibatalkan",
+    "failedAdd": "Gagal untuk menambahkan",
     "cantDeleteOidc": "Data tidak dapat dihapus karena memiliki OIDC",
     "image": {
       "format": "Gambar avatar harus format {format}!",
       "size": "Gambar avatar ini tidak boleh lebih dari {size}MB!"
     },
     "box": {
+      "deleteSelected": "Data yang dipilih ini akan dihapus. Lanjutkan?",
       "deleteContact": "Kontak ini akan dihapus. Lanjutkan?",
       "deletePeople": "Data orang ini akan dihapus. Lanjutkan?",
       "deleteDepartement": "Data departemen ini akan dihapus. Lanjutkan?",
       "deletePosition": "Data posisi ini akan dihapus. Lanjutkan?",
+      "deleteLocation": "Data lokasi ini akan dihapus. Lanjutkan?",
       "title": {
         "warning": "Peringatan"
       }

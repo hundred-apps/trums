@@ -12,33 +12,29 @@ import {
   Sell,
   Setting,
 } from "@element-plus/icons-vue";
-import { useRouter } from "vue-router";
 
 const config = useRuntimeConfig();
 const { t } = useI18n();
+const { $oidc } = useNuxtApp();
 const localePath = useLocalePath();
-const router = useRouter();
 const userdata = ref<userData | null>(null);
 const imageUrl = config.public.baseImageURL;
+const user = useCookie("userdata");
+const nameFront = ref("");
 
 const navigateToSetting = (name = "") => {
   const path = localePath(`/setting/profile/${name}`);
   navigateTo({ path });
 };
 
-const user = useCookie("userdata");
-const nameFront = ref("");
-
-onMounted(() => {
-  userdata.value = user.value as unknown as userData;
-  // console.log()
-
-  nameFront.value = userdata.value?.name.split(" ")[0] || "";
-});
-
 const handleMenuClick = (menuKey: string) => {
   navigateTo(localePath(menuKey));
 };
+
+onMounted(() => {
+  userdata.value = user.value as unknown as userData;
+  nameFront.value = userdata.value?.name.split(" ")[0] || "";
+});
 </script>
 
 <template>
@@ -104,112 +100,138 @@ const handleMenuClick = (menuKey: string) => {
         <el-menu @select="handleMenuClick">
           <el-menu-item index="/dashboard">
             <el-icon><icon-menu /></el-icon>
-            <span>Dashboard</span>
+            <span>{{ t("menu.dashboard") }}</span>
           </el-menu-item>
           <el-sub-menu index="2">
             <template #title>
-              <el-icon><Box /></el-icon>Inventory Management
+              <el-icon><Box /></el-icon>{{ t("menu.inventoryManagement") }}
             </template>
             <el-menu-item-group>
-              <el-menu-item index="/inventory-management/inventories"
-                >Inventory</el-menu-item
-              >
-              <el-menu-item index="/inventory-management/inqueiries"
-                >Inquiry</el-menu-item
-              >
-              <el-menu-item index="/inventory-management/checkin"
-                >Check In</el-menu-item
-              >
-              <el-menu-item index="2-4">Check Out</el-menu-item>
-              <el-menu-item index="/inventory-management/location"
-                >Location</el-menu-item
-              >
+              <el-menu-item index="/inventory-management/inventories">{{
+                t("menu.submenu.inventories")
+              }}</el-menu-item>
+              <el-menu-item index="/inventory-management/inqueiries">{{
+                t("menu.submenu.inqueiries")
+              }}</el-menu-item>
+              <el-menu-item index="/inventory-management/checkin">{{
+                t("menu.submenu.checkin")
+              }}</el-menu-item>
+              <el-menu-item index="2-4">{{
+                t("menu.submenu.checkout")
+              }}</el-menu-item>
+              <el-menu-item index="/inventory-management/location">{{
+                t("menu.submenu.location")
+              }}</el-menu-item>
             </el-menu-item-group>
           </el-sub-menu>
           <el-sub-menu index="3">
             <template #title>
-              <el-icon><DocumentChecked /></el-icon>Inspection & Maintenance
+              <el-icon><DocumentChecked /></el-icon
+              >{{ t("menu.inspectionAndMaintenance") }}
             </template>
             <el-menu-item-group>
-              <el-menu-item index="/inspection-maintenance/inspection"
-                >Inspection</el-menu-item
-              >
-              <el-menu-item index="/inspection-maintenance/maintenance"
-                >Maintenance</el-menu-item
-              >
+              <el-menu-item index="/inspection-maintenance/inspection">{{
+                t("menu.submenu.inspection")
+              }}</el-menu-item>
+              <el-menu-item index="/inspection-maintenance/maintenance">{{
+                t("menu.submenu.maintenance")
+              }}</el-menu-item>
             </el-menu-item-group>
           </el-sub-menu>
           <el-sub-menu index="4">
             <template #title>
-              <el-icon><DataAnalysis /></el-icon>Supply Chain Management
+              <el-icon><DataAnalysis /></el-icon
+              >{{ t("menu.supplyChainManagement") }}
             </template>
             <el-menu-item-group>
-              <el-menu-item index="/supply-chain-management/purchase/request"
-                >Purchase Request</el-menu-item
-              >
-              <el-menu-item index="/supply-chain-management/canvassing"
-                >Canvassing</el-menu-item
-              >
-              <el-menu-item index="4-3">Purchase Order</el-menu-item>
-              <el-menu-item index="/supply-chain-management/delivery"
-                >Delivery</el-menu-item
-              >
-              <el-menu-item index="4-5">Receive</el-menu-item>
+              <el-menu-item index="/supply-chain-management/purchase/request">{{
+                t("menu.submenu.purchaseRequest")
+              }}</el-menu-item>
+              <el-menu-item index="/supply-chain-management/canvassing">{{
+                t("menu.submenu.canvassing")
+              }}</el-menu-item>
+              <el-menu-item index="4-3">{{
+                t("menu.submenu.purchaseOrder")
+              }}</el-menu-item>
+              <el-menu-item index="/supply-chain-management/delivery">{{
+                t("menu.submenu.delivery")
+              }}</el-menu-item>
+              <el-menu-item index="4-5">{{
+                t("menu.submenu.receive")
+              }}</el-menu-item>
             </el-menu-item-group>
           </el-sub-menu>
           <el-sub-menu index="5">
             <template #title>
-              <el-icon><Sell /></el-icon>Sales
+              <el-icon><Sell /></el-icon>{{ t("menu.sales") }}
             </template>
             <el-menu-item-group>
-              <el-menu-item index="5-1">Pricelist</el-menu-item>
-              <el-menu-item index="5-2">Order</el-menu-item>
-              <el-menu-item index="5-3">Contract</el-menu-item>
-              <el-menu-item index="5-4">Project</el-menu-item>
+              <el-menu-item index="5-1">{{
+                t("menu.submenu.pricelist")
+              }}</el-menu-item>
+              <el-menu-item index="5-2">{{
+                t("menu.submenu.order")
+              }}</el-menu-item>
+              <el-menu-item index="5-3">{{
+                t("menu.submenu.contract")
+              }}</el-menu-item>
+              <el-menu-item index="5-4">{{
+                t("menu.submenu.project")
+              }}</el-menu-item>
             </el-menu-item-group>
           </el-sub-menu>
           <el-sub-menu index="6">
             <template #title>
-              <el-icon><Money /></el-icon>Finance Management
+              <el-icon><Money /></el-icon>{{ t("menu.financeManagement") }}
             </template>
             <el-menu-item-group>
-              <el-menu-item index="/finance-management/assets"
-                >Assets</el-menu-item
-              >
-              <el-menu-item index="6-1">Bill</el-menu-item>
-              <el-menu-item index="6-2">Invoice</el-menu-item>
-              <el-menu-item index="6-3">Transaction</el-menu-item>
-              <el-menu-item index="6-4">Budget</el-menu-item>
+              <el-menu-item index="/finance-management/assets">{{
+                t("menu.submenu.assets")
+              }}</el-menu-item>
+              <el-menu-item index="6-1">{{
+                t("menu.submenu.bill")
+              }}</el-menu-item>
+              <el-menu-item index="6-2">{{
+                t("menu.submenu.invoice")
+              }}</el-menu-item>
+              <el-menu-item index="6-3">{{
+                t("menu.submenu.transaction")
+              }}</el-menu-item>
+              <el-menu-item index="6-4">{{
+                t("menu.submenu.budget")
+              }}</el-menu-item>
             </el-menu-item-group>
           </el-sub-menu>
           <el-sub-menu index="7">
             <template #title>
-              <el-icon><User /></el-icon>Human Capital
+              <el-icon><User /></el-icon>{{ t("menu.humanCapital") }}
             </template>
             <el-menu-item-group>
-              <el-menu-item index="/human-capital-management/people"
-                >People</el-menu-item
-              >
-              <el-menu-item index="/human-capital-management/departement"
-                >Departement</el-menu-item
-              >
-              <el-menu-item index="/human-capital-management/position"
-                >Position</el-menu-item
-              >
-              <el-menu-item index="7-4">Recruitmen</el-menu-item>
+              <el-menu-item index="/human-capital-management/people">{{
+                t("menu.submenu.people")
+              }}</el-menu-item>
+              <el-menu-item index="/human-capital-management/departement">{{
+                t("menu.submenu.departement")
+              }}</el-menu-item>
+              <el-menu-item index="/human-capital-management/position">{{
+                t("menu.submenu.position")
+              }}</el-menu-item>
+              <el-menu-item index="7-4">{{
+                t("menu.submenu.recruitment")
+              }}</el-menu-item>
             </el-menu-item-group>
           </el-sub-menu>
           <el-sub-menu index="8">
             <template #title>
-              <el-icon><Notebook /></el-icon>Contact Management
+              <el-icon><Notebook /></el-icon>{{ t("menu.contactManagement") }}
             </template>
             <el-menu-item-group>
-              <el-menu-item index="/contact-management/categories"
-                >Categories</el-menu-item
-              >
-              <el-menu-item index="/contact-management/contacts"
-                >Contact</el-menu-item
-              >
+              <el-menu-item index="/contact-management/categories">{{
+                t("menu.submenu.categories")
+              }}</el-menu-item>
+              <el-menu-item index="/contact-management/contacts">{{
+                t("menu.submenu.contacts")
+              }}</el-menu-item>
               <el-menu-item index="/contact-management/company"
                 >Company</el-menu-item
               >

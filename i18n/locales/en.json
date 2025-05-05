@@ -75,11 +75,14 @@
     "newContact": "New Contact",
     "newPeople": "New People",
     "newDepartement": "New Departement",
-    "newPosition": "New Position"
+    "newPosition": "New Position",
+    "newLocation": "New Location"
   },
   "text": {
     "newDepartement": "New Departement",
     "newPosition": "New Position",
+    "newLocation": "New Location",
+    "editLocation": "Edit Location",
     "editDepartement": "Edit Departement",
     "editPosition": "Edit Position"
   },
@@ -108,6 +111,8 @@
       "positionName": "Position Name",
       "position": "Position",
       "contact": "Contact",
+      "totalItem": "Total Item",
+      "uniqueCode": "Unique Code",
       "operation": "Operation"
     },
     "validate": {
@@ -137,6 +142,10 @@
     "type": {
       "new": "New",
       "update": "Update"
+    },
+    "dropdown": {
+      "addDepartement": "Add '{name}' in Departement",
+      "addPosition": "Add '{name}' in Position"
     }
   },
   "tooltip": {
@@ -157,20 +166,25 @@
     "submitUpdateDepartement": "Successfully edited departement",
     "submitNewPosition": "Successfully added new position",
     "submitUpdatePosition": "Successfully edited position",
+    "submitNewLocation": "Successfully added new location",
+    "submitUpdateLocation": "Successfully edited location",
     "handleSizeChange": "Size of table changed",
     "successDeleted": "Data successfully deleted",
     "cancelDelete": "Delete canceled",
     "cancelChange": "Change canceled",
+    "failedAdd": "Failed to add",
     "cantDeleteOidc": "Can't delete because have OIDC",
     "image": {
       "format": "Avatar picture must be {format} format!",
       "size": "Avatar picture size can not exceed {size}MB!"
     },
     "box": {
+      "deleteSelected": "This selected data will be deleted. Continue?",
       "deleteContact": "This contact will be deleted. Continue?",
       "deletePeople": "This people will be deleted. Continue?",
       "deleteDepartement": "This departement will be deleted. Continue?",
       "deletePosition": "This position will be deleted. Continue?",
+      "deleteLocation": "This location will be deleted. Continue?",
       "title": {
         "warning": "Warning"
       }

@@ -123,7 +123,7 @@
             type="hidden"
           />
         </div>
-        <el-form-item
+        <!-- <el-form-item
           :label="`${t('form.label.contact')}`"
           prop="contact"
           class="w-full"
@@ -266,14 +266,14 @@
                 <el-button
                   type="primary"
                   @click="handleSubmitSelectContact()"
-                  :disabled="selectContact.length < 1"
+                  :disabled="!checkSelect()"
                 >
                   {{ t("buttons.save") }}
                 </el-button>
               </div>
             </template>
           </el-dialog>
-        </el-form-item>
+        </el-form-item> -->
       </el-form>
       <template #footer>
         <div class="flex justify-end align-center">
@@ -311,6 +311,7 @@ import {
   type FormInstance,
   type FormRules,
   ElMessage,
+  type CheckboxValueType,
 } from "element-plus";
 import { InfoFilled, Search } from "@element-plus/icons-vue";
 import { useApi } from "#imports";
@@ -320,6 +321,7 @@ import type { ResponsePagination } from "~/types/response_pagination";
 import type { Departement } from "~/types/departement";
 import type { Position } from "~/types/position";
 import type { Contact } from "~/types/contact";
+import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import CustomTable from "~/components/trums/table/customTable.vue";
 
 definePageMeta({
@@ -331,6 +333,7 @@ const route = useRoute();
 const token = useCookie("token");
 const { t } = useI18n();
 const config = useRuntimeConfig();
+const localePath = useLocalePath();
 const lang = useCookie("language");
 const api = useApi();
 const mode = route.query.mode;
@@ -346,6 +349,8 @@ const formSize = ref<ComponentSize>("default");
 const ruleFormRef = ref<FormInstance>();
 const selectContact = ref<Contact[]>([]);
 const selectContactApi = ref<Contact[]>([]);
+const tableContact = ref([]);
+// const checkSelect = () => dataContact?.value?.data.some((row) => row.checked);
 
 // request data people start
 
@@ -388,7 +393,7 @@ const ruleForm = reactive<RuleForm>({
   phone: "",
   password: "",
   join_date: 1,
-  gender: "",
+  gender: "pria",
   departement_id: "",
   position_id: "",
   file_id: 1,
@@ -399,31 +404,39 @@ const ruleForm = reactive<RuleForm>({
 });
 
 const rules = reactive<FormRules<RuleForm>>({
-  departement: [
-    { required: true, message: "Masukan departemen", trigger: "blur" },
+  name: [
+    { required: true, message: `${t("form.validate.name")}`, trigger: "blur" },
   ],
-  position: [{ required: true, message: "Masukan posisi", trigger: "blur" }],
-  // quantity: [{ required: true, message: "Masukan Quantity", trigger: "blur" }],
-  // cost: [{ required: true, message: "Masukan Lokasi Item", trigger: "blur" }],
-  // unit_name: [
-  //   { required: true, message: "Masukan Jenis Unit", trigger: "blur" },
-  // ],
-  // sn: [{ required: true, message: "Masukan Serial Number", trigger: "blur" }],
+  email: [
+    {
+      type: "email",
+      message: `${t("form.validate.emailAddress")}`,
+      trigger: ["blur", "change"],
+    },
+  ],
+  departement: [
+    {
+      required: true,
+      message: `${t("form.validate.required")}`,
+      trigger: "blur",
+    },
+  ],
+  phone: [
+    {
+      min: 11,
+      max: 13,
+      message: `${t("form.validate.phoneLength")}`,
+      trigger: ["blur", "change"],
+    },
+  ],
+  position: [
+    {
+      required: true,
+      message: `${t("form.validate.required")}`,
+      trigger: "blur",
+    },
+  ],
 });
-
-// const createFilterLocation = (queryString: string) => {
-//   return (people: People) => {
-//     return people.name?.toLowerCase().indexOf(queryString.toLowerCase()) === 0;
-//   };
-// };
-
-// const createFilterUnit = (queryString: string) => {
-//   return (position: Position) => {
-//     return (
-//       position.name?.toLowerCase().indexOf(queryString.toLowerCase()) === 0
-//     );
-//   };
-// };
 
 // request data people end
 
@@ -452,6 +465,7 @@ interface RuleFormContact {
   title: string | null;
   tags: string | [] | null;
 }
+
 const ruleFormContact = reactive<RuleFormContact>({
   id: 1,
   unique_code: "",
@@ -514,7 +528,9 @@ const querySearchDepartement = (
         } else {
           cb([
             {
-              value: `Tambahkan "${queryString}" di Departemen`,
+              value: `${t("form.dropdown.addDepartement", {
+                name: queryString,
+              })}`,
               name: `${queryString}`,
             },
           ]);
@@ -544,10 +560,10 @@ const handleSelectDepartement = async (item: Record<string, any>) => {
       );
       if (response.status === 201) {
         ruleForm.departement_id = response.data.data.unique_id;
-        ElMessage.success("Berhasil menambahkan departemen.");
+        ElMessage.success(`${t("message.submitNewDepartement")}`);
       }
     } catch (error) {
-      ElMessage.error("Gagal menambahkan departemen baru.");
+      ElMessage.error(`${t("message.failedAdd")}`);
       console.error(error);
     }
   } else {
@@ -574,7 +590,7 @@ const querySearchPosition = (queryString: string, cb: (arg: any) => void) => {
         } else {
           cb([
             {
-              value: `Tambahkan "${queryString}" di Posisi`,
+              value: `${t("form.dropdown.addPosition", { name: queryString })}`,
               name: `${queryString}`,
             },
           ]);
@@ -604,10 +620,10 @@ const handleSelectPosition = async (item: Record<string, any>) => {
       );
       if (response.status === 201) {
         ruleForm.position_id = response.data.data.unique_id;
-        ElMessage.success("Berhasil menambahkan posisi");
+        ElMessage.success(`${t("message.submitNewPosition")}`);
       }
     } catch (error) {
-      ElMessage.error("Gagal menambahakan posisi");
+      ElMessage.error(`${t("message.failedAdd")}`);
       console.log(error);
     }
   } else {
@@ -646,11 +662,11 @@ const submit = async (formEl: FormInstance | undefined) => {
     );
     if (response.status == 201) {
       if (unique_id !== null) {
-        ElMessage.success(`Berhasil Mengedit People`);
+        ElMessage.success(`${t("message.submitUpdatePeople")}`);
       } else {
-        ElMessage.success(`Berhasil Menambahkan People`);
+        ElMessage.success(`${t("message.submitNewPeople")}`);
       }
-      router.push("/human-capital-management/people");
+      navigateTo(localePath("/human-capital-management/people"));
     }
   } catch (error: any) {
     ElMessage.error(`${error.response?.data?.message}`);
@@ -728,7 +744,7 @@ const detail = async () => {
       ruleForm.departement = people.departement_name;
       ruleForm.departement_id = people.departement_id;
       ruleForm.unique_id = people.unique_id;
-      selectContactApi.value = people.contacts;
+      // selectContactApi.value = people.contacts;
     }
   } catch (error: any) {
     ElMessage.error(`${error.response?.data?.message}`);
@@ -744,11 +760,11 @@ const resetForm = (formEl: FormInstance | undefined) => {
     ruleForm.email = "";
     ruleForm.phone = "";
     ruleForm.password = "";
-    ruleForm.gender = "";
+    ruleForm.gender = "pria";
     ruleForm.position = "";
     ruleForm.position_id = "";
     ruleForm.departement_id = "";
-    selectContact.value = [];
+    // selectContact.value = [];
   } else {
     detail();
   }
@@ -759,11 +775,48 @@ const resetForm = (formEl: FormInstance | undefined) => {
 
 const columnsContact: Column<Contact>[] = [
   {
+    title: "",
+    dataKey: "",
+    key: "selection",
+    width: 50,
+    fixed: true,
+    cellRenderer: ({ rowData }) => {
+      const onChange = (value: CheckboxValueType) => (rowData.checked = value);
+      return <SelectionCell value={rowData.checked} onChange={onChange} />;
+    },
+    maxWidth: 50,
+    headerCellRenderer: () => {
+      const _data = unref(dataContact);
+      const onChange = (value: CheckboxValueType) =>
+        (dataContact.value = {
+          success: true,
+          currentPage: _data?.currentPage ?? 0,
+          total_data: _data?.total_data ?? 0,
+          total_page: _data?.total_data ?? 0,
+          data: _data?.data?.map((row: any) => {
+            row.checked = value;
+            return row;
+          })!,
+        });
+
+      const allSelected = _data!.data.every((row) => row.checked);
+      const containsChecked = _data?.data.some((row) => row.checked);
+
+      return (
+        <SelectionCell
+          style={{ width: 50 }}
+          value={allSelected}
+          interminate={containsChecked && !allSelected}
+          onChange={onChange}
+        />
+      );
+    },
+  },
+  {
     title: "Name",
     key: "name",
     dataKey: "name",
     sortable: true,
-    fixed: true,
     width: 200,
   },
   {
@@ -794,6 +847,11 @@ const fetchDataContact = async () => {
   dataContact.value = newDataContact.value;
 };
 
+const checkSelect = () => {
+  const selected = dataContact?.value?.data.filter((row) => row.checked) ?? [];
+  return selected.length > 0 && selected.length <= 2;
+};
+
 const handleSelectionChangeContact = (selection: Contact[]) => {
   if (selectContactApi.value?.length === 2) {
     ElMessage.error("Hapus dahulu jika ingin mengubah data kontaknya");
@@ -815,7 +873,6 @@ const handleSelectionChangeContact = (selection: Contact[]) => {
     }
   }
 };
-const tableContact = ref([]);
 
 const handleDeleteSelectedContact = async (row: Contact) => {
   for (const contact of row) {
@@ -835,6 +892,8 @@ const handleCloseOuterVisible = (done: () => void) => {
 };
 
 const handleSubmitSelectContact = () => {
+  const selected = dataContact?.value?.data.filter((row) => row.checked) ?? [];
+  selectContact.value = selected;
   outerVisible.value = false;
 };
 

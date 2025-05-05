@@ -1,13 +1,49 @@
 <template>
   <TrumsWrapper>
-    <el-row :gutter="20" class="mb-3">
-      <el-col :span="6"
-        ><el-input v-model="search" size="large" placeholder="Type to search"
-      /></el-col>
-      <el-button size="large" @click="() => handleAddNewLocation()"
-        >New Location</el-button
-      >
-    </el-row>
+    <div class="flex justify-between items-center mb-3">
+      <div class="flex gap-2">
+        <div class="w-auto">
+          <el-input
+            v-model="request_search.keyword"
+            size="large"
+            style="width: 350px"
+            :placeholder="`${t('form.placeholder.search')}`"
+          >
+            <template #prefix>
+              <Icon name="lineicons:magnifier" />
+            </template>
+          </el-input>
+        </div>
+        <div class="w-auto">
+          <el-button size="large" @click="() => handleAddNewLocation()">{{
+            t("buttons.newLocation")
+          }}</el-button>
+        </div>
+        <div class="w-auto">
+          <el-button
+            v-if="checkSelect()"
+            size="large"
+            @click="deleteBulk()"
+            type="danger"
+            >{{ t("buttons.delete") }}</el-button
+          >
+        </div>
+      </div>
+      <el-tooltip :content="`${t('tooltip.reloadData')}`" placement="top">
+        <el-button
+          size="large"
+          @click="fetchData"
+          :loading-icon="RefreshRight"
+          :loading="loading"
+          ><Icon
+            name="material-symbols:refresh"
+            size="1.5em"
+            :hidden="loading"
+          />
+          <span :hidden="!loading">{{ t("buttons.load") }}</span></el-button
+        >
+      </el-tooltip>
+    </div>
     <CustomTable :columns="columns" :data="data?.data ?? []" />
     <div class="flex justify-end">
       <el-pagination
@@ -17,9 +53,13 @@
         :total="data?.total_page"
       />
     </div>
-    <el-dialog v-model="dialogFormVisible" title="Lokasi Baru" width="500">
+    <el-dialog
+      v-model="dialogFormVisible"
+      :title="form.unique_id ? t('text.editLocation') : t('text.newLocation')"
+      width="500"
+    >
       <el-form :model="form" :rules="rules">
-        <el-form-item label="Nama">
+        <el-form-item :label="`${t('form.label.name')}`">
           <el-input
             v-model="form.name"
             :disabled="disable"
@@ -29,11 +69,11 @@
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="dialogFormVisible = false" :loading="disable"
-            >Cancel</el-button
-          >
+          <el-button @click="dialogFormVisible = false" :loading="disable">{{
+            t("buttons.cancel")
+          }}</el-button>
           <el-button type="primary" @click="onSubmit" :loading="disable">
-            Submit
+            {{ t("buttons.save") }}
           </el-button>
         </div>
       </template>
@@ -44,10 +84,12 @@
 <script lang="tsx" setup>
 import { ref, onMounted, type FunctionalComponent } from "vue";
 import type { Catalogue } from "~/types/catalogue";
-import { InfoFilled } from "@element-plus/icons-vue";
+import { RefreshRight } from "@element-plus/icons-vue";
 import {
   ElButton,
   ElCheckbox,
+  ElTooltip,
+  TableV2FixedDir,
   type CheckboxValueType,
   type Column,
   type FormRules,
@@ -61,30 +103,24 @@ import { column } from "element-plus/es/components/table-v2/src/common.mjs";
 import { NuxtLink } from "#components";
 
 const config = useRuntimeConfig();
+const { t } = useI18n();
+const loading = ref<boolean>(false);
+const disable = ref<boolean>(false);
+const search = ref("");
+const dialogFormVisible = ref(false);
+const formLabelWidth = "140px";
+const axios = useApi();
+const checkSelect = () => data?.value?.data.some((row) => row.checked);
 
 const fetchData = async () => {
   loading.value = true;
   try {
-    const response = await useFetch<ResponsePagination<Catalogue[]>>(
-      `${config.public.baseURL}/search`,
-      {
-        key: "catalogues",
-        method: "post",
-        body: request_search.value,
-      }
-    );
-
-    if (response.status.value == "success") {
-      data.value = response.data.value;
-    }
-  } catch (error: any) {
-    ElMessage.error(
-      `${error.response?.data?.message ?? "Gagal Mengambil Data!"}`
-    );
-    return [];
-  } finally {
-    loading.value = false;
+    await refreshNuxtData();
+  } catch (error) {
+    console.error("Gagal memuat data:", error);
   }
+  loading.value = false;
+  ElMessage.success(`${t("message.reloadData")}`);
 };
 
 const request_search = ref<RequestSearch>({
@@ -105,14 +141,6 @@ const { data } = await useFetchApi<ResponsePagination<Catalogue[]>>(
   "post",
   request_search.value
 );
-
-const loading = ref<boolean>(false);
-const disable = ref<boolean>(false);
-const search = ref("");
-const dialogFormVisible = ref(false);
-const formLabelWidth = "140px";
-
-const axios = useApi();
 
 interface formInterface {
   name: string;
@@ -135,7 +163,7 @@ const handleAddNewLocation = () => {
 
 const columns: Column<Catalogue>[] = [
   {
-    title: "Unique Code",
+    title: `${t("form.label.uniqueCode")}`,
     key: "unique_code",
     dataKey: "unique_code",
     width: 250,
@@ -146,13 +174,13 @@ const columns: Column<Catalogue>[] = [
     ),
   },
   {
-    title: "Name",
+    title: `${t("form.label.name")}`,
     key: "name",
     dataKey: "name",
     width: 250,
   },
   {
-    title: "Total Item",
+    title: `${t("form.label.totalItem")}`,
     key: "quantity",
     dataKey: "quantity",
     width: 250,
@@ -161,17 +189,28 @@ const columns: Column<Catalogue>[] = [
     ),
   },
   {
-    title: "Operasi",
+    title: `${t("form.label.operation")}`,
     key: "",
-    width: 250,
+    dataKey: "",
+    width: 100,
+    fixed: TableV2FixedDir.RIGHT,
     cellRenderer: ({ rowData: row }) => (
       <>
-        <ElButton size="small" onClick={() => handleEdit(row)}>
-          Edit
-        </ElButton>
-        <ElButton size="small" type="danger" onClick={() => handleDelete(row)}>
-          Delete
-        </ElButton>
+        <ElTooltip placement="top" content={t("tooltip.edit")}>
+          <ElButton type="warning" circle onClick={() => handleEdit(row)} plain>
+            <Icon name="material-symbols:edit-square-outline-rounded" />
+          </ElButton>
+        </ElTooltip>
+        <ElTooltip placement="top" content={t("tooltip.delete")}>
+          <ElButton
+            type="danger"
+            circle
+            plain
+            onClick={() => messageBoxDelete(row)}
+          >
+            <Icon name="material-symbols:delete-outline" />
+          </ElButton>
+        </ElTooltip>
       </>
     ),
   },
@@ -256,8 +295,68 @@ const handleDelete = async (row: Catalogue) => {
   }
 };
 
-const handleSelectionChange = (selection: any[]) => {
-  console.log("Selected Rows:", selection);
+const messageBoxDelete = async (row: Catalogue) => {
+  ElMessageBox.confirm(
+    `${t("message.box.deleteLocation")}`,
+    `${t("message.box.title.warning")}`,
+    {
+      confirmButtonText: `${t("buttons.delete")}`,
+      cancelButtonText: `${t("buttons.cancel")}`,
+      type: "warning",
+    }
+  )
+    .then(async () => {
+      const response = await useFetchApi(
+        "/catalogues-delete",
+        "catalogues",
+        "post",
+        [row.unique_id]
+      );
+      if (response.status.value == "success") {
+        await refreshNuxtData();
+        ElMessage.success(`${t("message.successDeleted")}`);
+        loading.value = false;
+      }
+    })
+    .catch(() => {
+      ElMessage({
+        type: "info",
+        message: `${t("message.cancelDelete")}`,
+      });
+    });
+};
+
+const deleteBulk = () => {
+  const checkeds = data.value?.data.filter((value) => value.checked);
+  const ids = checkeds?.map((value) => value.unique_id);
+  ElMessageBox.confirm(
+    `${t("message.box.deleteSelected")}`,
+    `${t("message.box.title.warning")}`,
+    {
+      confirmButtonText: `${t("buttons.delete")}`,
+      cancelButtonText: `${t("buttons.cancel")}`,
+      type: "warning",
+    }
+  )
+    .then(async () => {
+      const response = await useFetchApi(
+        "/catalogues-delete",
+        "catalogues",
+        "post",
+        ids
+      );
+      if (response.status.value == "success") {
+        ElMessage.success(`${t("message.successDeleted")}`);
+        await refreshNuxtData();
+        loading.value = false;
+      }
+    })
+    .catch(() => {
+      ElMessage({
+        type: "info",
+        message: `${t("message.cancelDelete")}`,
+      });
+    });
 };
 
 const onSubmit = async () => {
@@ -276,6 +375,11 @@ const onSubmit = async () => {
     const response = await axios.post("/catalogues-create", formData);
     if (response.status == 201) {
       await refreshNuxtData("catalogues");
+      if (form.unique_id) {
+        ElMessage.success(`${t("message.submitUpdateLocation")}`);
+      } else {
+        ElMessage.success(`${t("message.submitNewLocation")}`);
+      }
       dialogFormVisible.value = false;
     }
   } catch (error: any) {

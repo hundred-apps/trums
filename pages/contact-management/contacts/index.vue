@@ -7,9 +7,11 @@ import { useRouter } from "vue-router";
 import { RefreshRight } from "@element-plus/icons-vue";
 import type { ResponsePagination } from "~/types/response_pagination";
 import CustomTable from "~/components/trums/table/customTable.vue";
+import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import {
   ElButton,
   type Column,
+  type CheckboxValueType,
   TableV2FixedDir,
   ElTooltip,
   ElMessage,
@@ -31,6 +33,7 @@ const api = useApi();
 const limit = ref(10);
 const currentPage = ref(1);
 const { t } = useI18n();
+const checkSelect = () => data?.value?.data.some((row) => row.checked);
 
 const navigateToForm = (mode = "", name = "", unique_id = null) => {
   const path = name
@@ -44,6 +47,44 @@ const toggleView = () => {
 };
 
 const columns: Column<Contact>[] = [
+  {
+    title: "",
+    dataKey: "",
+    key: "selection",
+    width: 50,
+    fixed: true,
+    cellRenderer: ({ rowData }) => {
+      const onChange = (value: CheckboxValueType) => (rowData.checked = value);
+      return <SelectionCell value={rowData.checked} onChange={onChange} />;
+    },
+    maxWidth: 50,
+    headerCellRenderer: () => {
+      const _data = unref(data);
+      const onChange = (value: CheckboxValueType) =>
+        (data.value = {
+          success: true,
+          currentPage: _data?.currentPage ?? 0,
+          total_data: _data?.total_data ?? 0,
+          total_page: _data?.total_data ?? 0,
+          data: _data?.data?.map((row: any) => {
+            row.checked = value;
+            return row;
+          })!,
+        });
+
+      const allSelected = _data!.data.every((row) => row.checked);
+      const containsChecked = _data?.data.some((row) => row.checked);
+
+      return (
+        <SelectionCell
+          style={{ width: 50 }}
+          value={allSelected}
+          interminate={containsChecked && !allSelected}
+          onChange={onChange}
+        />
+      );
+    },
+  },
   {
     title: `${t("form.label.name")}`,
     key: "name",
@@ -147,10 +188,6 @@ const columns: Column<Contact>[] = [
   },
 ];
 
-const handleSelectionChange = (selection: any[]) => {
-  console.log("Selected Rows:", selection);
-};
-
 const request_search = ref<RequestSearch>({
   keyword: "",
   column: null,
@@ -185,7 +222,7 @@ const messageBoxDelete = async (row: Contact) => {
         [row.unique_id]
       );
       if (response.status.value == "success") {
-        refreshNuxtData();
+        await refreshNuxtData();
         ElMessage.success(`${t("message.successDeleted")}`);
         loading.value = false;
       }
@@ -198,24 +235,38 @@ const messageBoxDelete = async (row: Contact) => {
     });
 };
 
-// const handleDelete = async (row: Contact) => {
-//   loading.value = true;
-//   try {
-//     const response = await useFetch(`${config.public.baseURL}/contact-delete`, {
-//       method: "delete",
-//       body: [row.unique_id],
-//       lazy: true,
-//     });
-//     if (response.status.value == "success") {
-//       await refreshNuxtData("contacts");
-//       ElMessage.success("Data Berhasil Dihapus");
-//     }
-//   } catch (error: any) {
-//     ElMessage.error(`${error.response?.data?.message}`);
-//   } finally {
-//     loading.value = false;
-//   }
-// };
+const deleteBulk = () => {
+  const checkeds = data.value?.data.filter((value) => value.checked);
+  const ids = checkeds?.map((value) => value.unique_id);
+  ElMessageBox.confirm(
+    `${t("message.box.deleteSelected")}`,
+    `${t("message.box.title.warning")}`,
+    {
+      confirmButtonText: `${t("buttons.delete")}`,
+      cancelButtonText: `${t("buttons.cancel")}`,
+      type: "warning",
+    }
+  )
+    .then(async () => {
+      const response = await useFetchApi(
+        "/contact-delete",
+        "contacts",
+        "post",
+        ids
+      );
+      if (response.status.value == "success") {
+        ElMessage.success(`${t("message.successDeleted")}`);
+        await refreshNuxtData();
+        loading.value = false;
+      }
+    })
+    .catch(() => {
+      ElMessage({
+        type: "info",
+        message: `${t("message.cancelDelete")}`,
+      });
+    });
+};
 
 const fetchData = async () => {
   loading.value = true;
@@ -257,28 +308,40 @@ watch(
 </script>
 <template>
   <TrumsWrapper>
-    <el-row :gutter="20" class="w-full flex justify-between items-center mb-3">
-      <div class="flex gap-3">
-        <el-col
-          ><el-input
+    <div class="flex justify-between items-center mb-3">
+      <div class="flex gap-2">
+        <div class="w-auto">
+          <el-input
             v-model="request_search.keyword"
             size="large"
+            style="width: 350px"
             :placeholder="`${t('form.placeholder.search')}`"
           >
             <template #prefix>
               <Icon name="lineicons:magnifier" />
             </template>
           </el-input>
-        </el-col>
-        <el-button
-          size="large"
-          @click="
-            () => {
-              navigateToForm('add');
-            }
-          "
-          >{{ t("buttons.newContact") }}</el-button
-        >
+        </div>
+        <div class="w-auto">
+          <el-button
+            size="large"
+            @click="
+              () => {
+                navigateToForm('add');
+              }
+            "
+            >{{ t("buttons.newContact") }}</el-button
+          >
+        </div>
+        <div class="w-auto">
+          <el-button
+            v-if="checkSelect()"
+            size="large"
+            @click="deleteBulk()"
+            type="danger"
+            >{{ t("buttons.delete") }}</el-button
+          >
+        </div>
       </div>
       <el-tooltip :content="`${t('tooltip.reloadData')}`" placement="top">
         <el-button
@@ -294,8 +357,7 @@ watch(
           <span :hidden="!loading">{{ t("buttons.load") }}</span></el-button
         >
       </el-tooltip>
-    </el-row>
-
+    </div>
     <CustomTable :data="data?.data ?? []" :columns="columns" />
     <div class="flex justify-end">
       <el-pagination
