@@ -285,7 +285,6 @@ const submit = async (formEl: FormInstance | undefined) => {
       });
       ElMessage.success(`${t("message.submitNewDepartement")}`);
     }
-
     if (response.status === 201 || response.status === 200) {
       await refreshNuxtData(); // Memuat ulang data setelah berhasil
       dialogFormVisible.value = false; // Tutup dialog

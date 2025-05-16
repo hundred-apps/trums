@@ -71,11 +71,13 @@
     "load": "Memuat",
     "add": "Tambah",
     "addImage": "Tambah Gambar",
+    "addItem": "Tambah Barang",
     "changeImage": "Ubah Gambar",
     "newContact": "Kontak Baru",
     "newPeople": "Orang Baru",
     "newDepartement": "Departemen Baru",
     "newPosition": "Posisi Baru",
+    "newItem": "Barang Baru",
     "newLocation": "Lokasi Baru"
   },
   "text": {
@@ -113,7 +115,23 @@
       "contact": "Kontak",
       "totalItem": "Total Barang",
       "uniqueCode": "Kode Unik",
-      "operation": "Operasi"
+      "operation": "Operasi",
+      "serialNumber": "Nomor Serial",
+      "asset": "Aset",
+      "description": "Deskripsi",
+      "listInventory": "Daftar Penyimpanan",
+      "itemName": "Nama Barang",
+      "cost": "Harga",
+      "quantity": "Jumlah",
+      "unit": "Satuan",
+      "trackInventory": "Lacak Penyimpanan",
+      "warehouseHistory": "Riwayat Gudang",
+      "all": "Semua",
+      "in": "Masuk",
+      "out": "Keluar",
+      "from": "Dari",
+      "to": "Ke",
+      "date": "Tanggal"
     },
     "validate": {
       "required": "Field ini wajib di isi",
@@ -137,7 +155,12 @@
       "website": "Contoh: https://www.johnxxx.com",
       "title": "Contoh: S.Pd/S.Si",
       "tags": "Masukan sampai 3 tag",
-      "search": "Ketik untuk mencari"
+      "search": "Ketik untuk mencari",
+      "cost": "Contoh: 4.000.000",
+      "quantity": "Contoh: 10",
+      "item": "Contoh: Meditran",
+      "unit": "Contoh: pcs",
+      "serialNumber": "Contoh: MDTRNS8747XXXX"
     },
     "type": {
       "new": "Baru",
@@ -145,7 +168,9 @@
     },
     "dropdown": {
       "addDepartement": "Tambah '{name}' di Departemen",
-      "addPosition": "Tambah '{name}' di Posisi"
+      "addPosition": "Tambah '{name}' di Posisi",
+      "addItem": "Tambah '{name}' di Barang",
+      "addUnit": "Tambah '{name}' di Satuan"
     }
   },
   "tooltip": {
@@ -185,6 +210,7 @@
       "deleteDepartement": "Data departemen ini akan dihapus. Lanjutkan?",
       "deletePosition": "Data posisi ini akan dihapus. Lanjutkan?",
       "deleteLocation": "Data lokasi ini akan dihapus. Lanjutkan?",
+      "deleteLocationInventory": "Data penyimpanan pada lokasi ini akan dihapus. Lanjutkan?",
       "title": {
         "warning": "Peringatan"
       }

@@ -71,11 +71,13 @@
     "load": "Load",
     "add": "Add",
     "addImage": "Add Image",
+    "addItem": "Add Item",
     "changeImage": "Change Image",
     "newContact": "New Contact",
     "newPeople": "New People",
     "newDepartement": "New Departement",
     "newPosition": "New Position",
+    "newItem": "New Item",
     "newLocation": "New Location"
   },
   "text": {
@@ -113,7 +115,23 @@
       "contact": "Contact",
       "totalItem": "Total Item",
       "uniqueCode": "Unique Code",
-      "operation": "Operation"
+      "operation": "Operation",
+      "serialNumber": "Serial Number",
+      "asset": "Asset",
+      "description": "Description",
+      "listInventory": "List Inventory",
+      "itemName": "Item Name",
+      "cost": "Cost",
+      "quantity": "Quantity",
+      "unit": "Unit",
+      "trackInventory": "Track Inventory",
+      "warehouseHistory": "Warehouse History",
+      "all": "All",
+      "in": "In",
+      "out": "Out",
+      "from": "From",
+      "to": "To",
+      "date": "Date"
     },
     "validate": {
       "required": "This field is required",
@@ -137,7 +155,12 @@
       "website": "Ex: https://www.johnxxx.com",
       "title": "Ex: B.A./LL.B.",
       "tags": "Enter up to 3 tags",
-      "search": "Type to search"
+      "search": "Type to search",
+      "cost": "Ex: 4.000.000",
+      "quantity": "Ex: 10",
+      "item": "Ex: Meditran",
+      "unit": "Ex: pcs",
+      "serialNumber": "Ex: MDTRNS8747XXXX"
     },
     "type": {
       "new": "New",
@@ -145,7 +168,9 @@
     },
     "dropdown": {
       "addDepartement": "Add '{name}' in Departement",
-      "addPosition": "Add '{name}' in Position"
+      "addPosition": "Add '{name}' in Position",
+      "addItem": "Add '{name}' in Item",
+      "addUnit": "Add '{name}' in Unit"
     }
   },
   "tooltip": {
@@ -185,6 +210,7 @@
       "deleteDepartement": "This departement will be deleted. Continue?",
       "deletePosition": "This position will be deleted. Continue?",
       "deleteLocation": "This location will be deleted. Continue?",
+      "deleteLocationInventory": "This inventory in location will be deleted. Continue?",
       "title": {
         "warning": "Warning"
       }

@@ -82,12 +82,12 @@
 </template>
 
 <script lang="tsx" setup>
-import { ref, onMounted, type FunctionalComponent } from "vue";
+import { ref } from "vue";
 import type { Catalogue } from "~/types/catalogue";
 import { RefreshRight } from "@element-plus/icons-vue";
 import {
   ElButton,
-  ElCheckbox,
+  ElLink,
   ElTooltip,
   TableV2FixedDir,
   type CheckboxValueType,
@@ -95,14 +95,14 @@ import {
   type FormRules,
 } from "element-plus";
 import { useApi } from "#imports";
-import type { Pagination } from "~/types/pagination";
 import type { ResponsePagination } from "~/types/response_pagination";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import CustomTable from "~/components/trums/table/customTable.vue";
-import { column } from "element-plus/es/components/table-v2/src/common.mjs";
+import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import { NuxtLink } from "#components";
 
 const config = useRuntimeConfig();
+const localePath = useLocalePath();
 const { t } = useI18n();
 const loading = ref<boolean>(false);
 const disable = ref<boolean>(false);
@@ -111,6 +111,11 @@ const dialogFormVisible = ref(false);
 const formLabelWidth = "140px";
 const axios = useApi();
 const checkSelect = () => data?.value?.data.some((row) => row.checked);
+
+const navigateToLocation = (name = "", unique_id = null) => {
+  const path = localePath(`/inventory-management/location/${unique_id}`);
+  navigateTo({ path, query: { name } });
+};
 
 const fetchData = async () => {
   loading.value = true;
@@ -163,14 +168,57 @@ const handleAddNewLocation = () => {
 
 const columns: Column<Catalogue>[] = [
   {
+    title: "",
+    dataKey: "",
+    key: "selection",
+    width: 50,
+    fixed: true,
+    cellRenderer: ({ rowData }) => {
+      const onChange = (value: CheckboxValueType) => (rowData.checked = value);
+      return <SelectionCell value={rowData.checked} onChange={onChange} />;
+    },
+    maxWidth: 50,
+    headerCellRenderer: () => {
+      const _data = unref(data);
+      const onChange = (value: CheckboxValueType) =>
+        (data.value = {
+          success: true,
+          currentPage: _data?.currentPage ?? 0,
+          total_data: _data?.total_data ?? 0,
+          total_page: _data?.total_data ?? 0,
+          data: _data?.data?.map((row: any) => {
+            row.checked = value;
+            return row;
+          })!,
+        });
+
+      const allSelected = _data!.data.every((row) => row.checked);
+      const containsChecked = _data?.data.some((row) => row.checked);
+
+      return (
+        <SelectionCell
+          style={{ width: 50 }}
+          value={allSelected}
+          interminate={containsChecked && !allSelected}
+          onChange={onChange}
+        />
+      );
+    },
+  },
+  {
     title: `${t("form.label.uniqueCode")}`,
     key: "unique_code",
     dataKey: "unique_code",
     width: 250,
     cellRenderer: ({ rowData: row }) => (
-      <NuxtLink href={`location/${row.unique_id}`} class="text-blue-600">
-        {row.unique_code}
-      </NuxtLink>
+      <>
+        <ElLink
+          underline={false}
+          onClick={() => navigateToLocation(row.name, row.unique_id)}
+        >
+          {row.unique_code}
+        </ElLink>
+      </>
     ),
   },
   {
@@ -216,59 +264,59 @@ const columns: Column<Catalogue>[] = [
   },
 ];
 
-type SelectionCellProps = {
-  value: boolean;
-  intermediate?: boolean;
-  onChange: (value: CheckboxValueType) => void;
-};
+// type SelectionCellProps = {
+//   value: boolean;
+//   intermediate?: boolean;
+//   onChange: (value: CheckboxValueType) => void;
+// };
 
-const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
-  value,
-  intermediate = false,
-  onChange,
-}) => {
-  return (
-    <ElCheckbox
-      onChange={onChange}
-      modelValue={value}
-      indeterminate={intermediate}
-    />
-  );
-};
+// const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
+//   value,
+//   intermediate = false,
+//   onChange,
+// }) => {
+//   return (
+//     <ElCheckbox
+//       onChange={onChange}
+//       modelValue={value}
+//       indeterminate={intermediate}
+//     />
+//   );
+// };
 
-columns.unshift({
-  key: "selection",
-  width: 50,
-  cellRenderer: ({ rowData }) => {
-    const onChange = (value: CheckboxValueType) => (rowData.checked = value);
-    return <SelectionCell value={rowData.checked} onChange={onChange} />;
-  },
+// columns.unshift({
+//   key: "selection",
+//   width: 50,
+//   cellRenderer: ({ rowData }) => {
+//     const onChange = (value: CheckboxValueType) => (rowData.checked = value);
+//     return <SelectionCell value={rowData.checked} onChange={onChange} />;
+//   },
 
-  headerCellRenderer: () => {
-    const _data = unref(data);
-    const onChange = (value: CheckboxValueType) =>
-      (data.value = {
-        success: true,
-        currentPage: _data?.currentPage ?? 0,
-        total_data: _data?.total_data ?? 0,
-        total_page: _data?.total_data ?? 0,
-        data: _data?.data?.map((row: any) => {
-          row.checked = value;
-          return row;
-        })!,
-      });
-    const allSelected = _data!.data.every((row) => row.checked);
-    const containsChecked = _data?.data.some((row) => row.checked);
+//   headerCellRenderer: () => {
+//     const _data = unref(data);
+//     const onChange = (value: CheckboxValueType) =>
+//       (data.value = {
+//         success: true,
+//         currentPage: _data?.currentPage ?? 0,
+//         total_data: _data?.total_data ?? 0,
+//         total_page: _data?.total_data ?? 0,
+//         data: _data?.data?.map((row: any) => {
+//           row.checked = value;
+//           return row;
+//         })!,
+//       });
+//     const allSelected = _data!.data.every((row) => row.checked);
+//     const containsChecked = _data?.data.some((row) => row.checked);
 
-    return (
-      <SelectionCell
-        value={allSelected}
-        intermediate={containsChecked && !allSelected}
-        onChange={onChange}
-      />
-    );
-  },
-});
+//     return (
+//       <SelectionCell
+//         value={allSelected}
+//         intermediate={containsChecked && !allSelected}
+//         onChange={onChange}
+//       />
+//     );
+//   },
+// });
 
 const handleEdit = (row: Catalogue) => {
   form.unique_id = row.unique_id!;
