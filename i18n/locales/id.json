@@ -131,7 +131,8 @@
       "out": "Keluar",
       "from": "Dari",
       "to": "Ke",
-      "date": "Tanggal"
+      "date": "Tanggal",
+      "traceable": "Dapat Dilacak"
     },
     "validate": {
       "required": "Field ini wajib di isi",
@@ -191,8 +192,10 @@
     "submitUpdateDepartement": "Berhasil memperbarui departemen",
     "submitNewPosition": "Berhasil menambahkan posisi baru",
     "submitUpdatePosition": "Berhasil memperbarui posisi",
-    "submitNewLocation": "Berhasil menambahkan Lokasi baru",
-    "submitUpdateLocation": "Berhasil memperbarui Lokasi",
+    "submitNewLocation": "Berhasil menambahkan lokasi baru",
+    "submitUpdateLocation": "Berhasil memperbarui lokasi",
+    "submitNewItemInventory": "Berhasil menambahkan barang penyimpanan baru",
+    "submitUpdateItemInventory": "Berhasil memperbarui barang penyimpanan",
     "handleSizeChange": "Jumlah data pada tabel berubah",
     "successDeleted": "Data berhasil dihapus",
     "cancelDelete": "Hapus data dibatalkan",

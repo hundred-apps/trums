@@ -131,7 +131,8 @@
       "out": "Out",
       "from": "From",
       "to": "To",
-      "date": "Date"
+      "date": "Date",
+      "traceable": "Traceable"
     },
     "validate": {
       "required": "This field is required",
@@ -193,6 +194,8 @@
     "submitUpdatePosition": "Successfully edited position",
     "submitNewLocation": "Successfully added new location",
     "submitUpdateLocation": "Successfully edited location",
+    "submitNewItemInventory": "Successfully added new item inventory",
+    "submitUpdateItemInventory": "Successfully edited item inventory",
     "handleSizeChange": "Size of table changed",
     "successDeleted": "Data successfully deleted",
     "cancelDelete": "Delete canceled",

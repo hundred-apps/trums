@@ -281,7 +281,6 @@ const submit = async (formEl: FormInstance | undefined) => {
       // Mode tambah baru
       response = await api.post("/departement-create", {
         name: ruleForm.name,
-        unique_id: ruleForm.unique_id,
       });
       ElMessage.success(`${t("message.submitNewDepartement")}`);
     }

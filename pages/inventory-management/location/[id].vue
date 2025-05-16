@@ -128,8 +128,7 @@
                   :trigger-on-focus="false"
                   clearable
                   class="inline-input w-50"
-                  :placeholder="`
-                  ${t('form.placeholder.item')}`"
+                  :placeholder="`${t('form.placeholder.item')}`"
                   @select="handleSelect"
                 />
               </el-form-item>
@@ -163,8 +162,7 @@
                   :trigger-on-focus="false"
                   clearable
                   class="inline-input w-50"
-                  :placeholder="`
-                  ${t('form.placeholder.unit')}`"
+                  :placeholder="`${t('form.placeholder.unit')}`"
                   @select="handleSelectUnit"
                 />
               </el-form-item>
@@ -184,8 +182,7 @@
               >
                 <el-input
                   v-model="ruleForm.sn"
-                  :placeholder="`
-                  ${t('form.placeholder.serialNumber')}`"
+                  :placeholder="`${t('form.placeholder.serialNumber')}`"
                 />
               </el-form-item>
             </el-form>
@@ -321,7 +318,7 @@ const goBack = () => router.back();
 const id = ref<string>((router.currentRoute.value.params.id as string) ?? "");
 const locationNow = route.query.name;
 const loading = ref<boolean>(false);
-const popoverRef = ref();
+const popoverRef = ref(null);
 const editingUniqueId = ref<string | null>(null);
 const detail = ref<Catalogue | null>(null);
 const locations = ref<Catalogue[]>([]);
@@ -583,7 +580,7 @@ const availableColumn: Column<Inventory>[] = [
     title: "",
     dataKey: "",
     key: "selection",
-    width: 50,
+    width: 40,
     fixed: true,
     cellRenderer: ({ rowData }) => {
       const onChange = (value: CheckboxValueType) => (rowData.checked = value);
@@ -618,14 +615,14 @@ const availableColumn: Column<Inventory>[] = [
     },
   },
   {
-    title: "Serial Number",
+    title: `${t("form.label.serialNumber")}`,
     key: "sn",
     dataKey: "sn",
     width: 200,
     fixed: true,
   },
   {
-    title: "Item",
+    title: `${t("form.label.itemName")}`,
     key: "catalogue.name",
     dataKey: "catalogue.name",
     width: 200,
@@ -669,7 +666,7 @@ const availableColumn: Column<Inventory>[] = [
   //     ),
   //   },
   {
-    title: "Quantity",
+    title: `${t("form.label.quantity")}`,
     key: "quantity",
     dataKey: "quantity",
     sortable: true,
@@ -681,7 +678,7 @@ const availableColumn: Column<Inventory>[] = [
     ),
   },
   {
-    title: "Satuan",
+    title: `${t("form.label.unit")}`,
     key: "unit_name",
     dataKey: "unit_name",
     sortable: false,
@@ -722,7 +719,7 @@ const availableColumn: Column<Inventory>[] = [
     ),
   },
   {
-    title: "Cost",
+    title: `${t("form.label.cost")}`,
     key: "cost",
     dataKey: "cost",
     sortable: true,
@@ -734,7 +731,7 @@ const availableColumn: Column<Inventory>[] = [
     ),
   },
   {
-    title: "Traceable",
+    title: `${t("form.label.traceable")}`,
     key: "is_traceable",
     dataKey: "is_traceable",
     width: 150,
@@ -808,48 +805,90 @@ const availableColumn: Column<Inventory>[] = [
   {
     title: "",
     key: "setup",
-    width: 50,
+    width: 40,
     fixed: TableV2FixedDir.RIGHT,
+    headerCellRenderer: () => {
+      const filters = availableColumn.filter(
+        (value) => value.key !== "selection" && value.key !== "setup"
+      );
+
+      return (
+        <div class="flex items-center justify-center">
+          <span class="mr-2"></span>
+          <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
+            {{
+              default: () => (
+                <div class="filter-wrapper">
+                  <div class="filter-group flex flex-col">
+                    <el-checkbox-group v-model={column_selected.value}>
+                      {filters.map((value) => (
+                        <ElCheckbox
+                          key={value.key}
+                          value={value.key!.toString()}
+                          onChange={() => {
+                            // Bisa tambahkan logika update kolom di sini
+                            console.log(`${value} toggled`);
+                          }}
+                        >
+                          {value.title || value.key}
+                        </ElCheckbox>
+                      ))}
+                    </el-checkbox-group>
+                  </div>
+                </div>
+              ),
+              reference: () => (
+                <ElTooltip placement="top" content="Hide/See Column">
+                  <ElIcon class="cursor-pointer">
+                    <SetUp />
+                  </ElIcon>
+                </ElTooltip>
+              ),
+            }}
+          </ElPopover>
+        </div>
+      );
+    },
   },
 ];
 
-availableColumn[availableColumn.length - 1].headerCellRenderer = () => {
-  const filters = availableColumn.filter(
-    (value) => value.key != "selection" && value.key != "setup"
-  );
-  return (
-    <div class="flex items-center justify-center">
-      <span class="mr-2"></span>
-      <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
-        {{
-          default: () => (
-            <div class="filter-wrapper">
-              <div class="filter-group flex flex-col">
-                <el-checkbox-group v-model={column_selected.value}>
-                  {filters.map((value) => (
-                    <ElCheckbox
-                      onChange={() => console.log("ok")}
-                      value={value.key!.toString()}
-                    >
-                      {value.title}
-                    </ElCheckbox>
-                  ))}
-                </el-checkbox-group>
-              </div>
-            </div>
-          ),
-          reference: () => (
-            <ElTooltip placement="top" content="Hide/See Column">
-              <ElIcon class="cursor-pointer">
-                <SetUp />
-              </ElIcon>
-            </ElTooltip>
-          ),
-        }}
-      </ElPopover>
-    </div>
-  );
-};
+// availableColumn[availableColumn.length - 1].headerCellRenderer = () => {
+//   const filters = availableColumn.filter(
+//     (value) => value.key != "selection" && value.key != "setup"
+//   );
+//   return (
+//     <div class="flex items-center justify-center">
+//       <span class="mr-2"></span>
+//       <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
+//         {{
+//           default: () => (
+//             <div class="filter-wrapper">
+//               <div class="filter-group flex flex-col">
+//                 <el-checkbox-group v-model={column_selected.value}>
+//                   {filters.map((value) => (
+//                     <ElCheckbox
+//                       onChange={() => console.log("ok")}
+//                       value={value.key!.toString()}
+//                     >
+//                       {value.title}
+//                     </ElCheckbox>
+//                   ))}
+//                 </el-checkbox-group>
+//               </div>
+//             </div>
+//           ),
+//           reference: () => (
+//             <ElTooltip placement="top" content="Hide/See Column">
+//               <ElIcon class="cursor-pointer">
+//                 <SetUp />
+//               </ElIcon>
+//             </ElTooltip>
+//           ),
+//         }}
+//       </ElPopover>
+//     </div>
+//   );
+// };
 
 const columnHistory: Column<InventoryMovement>[] = [
   {
@@ -1203,9 +1242,9 @@ const submit = async (formEl: FormInstance | undefined) => {
         unit_name: ruleForm.unit_name,
         quantity: ruleForm.quantity,
         cost: ruleForm.cost,
-        unique_id: ruleForm.unique_id ?? null,
+        unique_id: editingUniqueId.value ?? null,
       });
-      ElMessage.success(`mengedit inventory`);
+      ElMessage.success(`${t("message.submitUpdateItemInventory")}`);
     } else {
       // Mode tambah baru
       response = await api.post("/inventories-create", {
@@ -1219,15 +1258,14 @@ const submit = async (formEl: FormInstance | undefined) => {
         unit_name: ruleForm.unit_name,
         quantity: ruleForm.quantity,
         cost: ruleForm.cost,
-        unique_id: ruleForm.unique_id ?? null,
       });
-      ElMessage.success(`menambah inventori`);
+      ElMessage.success(`${t("message.submitNewItemInventory")}`);
     }
     if (response.status === 201 || response.status === 200) {
-      await refreshNuxtData(); // Memuat ulang data setelah berhasil
-      dialogFormVisible.value = false; // Tutup dialog
       editingUniqueId.value = null;
       resetFormAll(formEl);
+      dialogFormVisible.value = false; // Tutup dialog
+      await refreshNuxtData(); // Memuat ulang data setelah berhasil
     }
   } catch (error: any) {
     ElMessage.error(`${error.response?.data?.message}`);
