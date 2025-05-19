@@ -64,5 +64,6 @@
   //   "file:///Users/developer02/.vscode/vscode-custom/script.js"
   // ],
 
-  "vscode-pets.theme": "beach"
+  "vscode-pets.theme": "beach",
+  "iconify.inplace": false
 }

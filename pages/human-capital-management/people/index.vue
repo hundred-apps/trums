@@ -1,3 +1,71 @@
+<template>
+  <TrumsWrapper>
+    <div class="flex justify-between items-center mb-3">
+      <div class="flex gap-2">
+        <div class="w-auto">
+          <el-input
+            v-model="request_search.keyword"
+            size="large"
+            style="width: 350px"
+            :placeholder="`${t('form.placeholder.search')}`"
+          >
+            <template #prefix>
+              <Icon name="lineicons:magnifier" />
+            </template>
+          </el-input>
+        </div>
+        <div class="w-auto">
+          <el-button
+            size="large"
+            @click="
+              () => {
+                navigateToForm('add');
+              }
+            "
+            >{{ t("buttons.newPeople") }}</el-button
+          >
+        </div>
+        <div class="w-auto">
+          <el-button
+            v-if="checkSelect()"
+            size="large"
+            @click="deleteBulk()"
+            type="danger"
+            >{{ t("buttons.delete") }}</el-button
+          >
+        </div>
+      </div>
+      <el-tooltip :content="`${t('tooltip.reloadData')}`" placement="top">
+        <el-button
+          size="large"
+          @click="fetchData"
+          :loading-icon="RefreshRight"
+          :loading="loading"
+          ><Icon
+            name="material-symbols:refresh"
+            size="1.5em"
+            :hidden="loading"
+          />
+          <span :hidden="!loading">{{ t("buttons.load") }}</span></el-button
+        >
+      </el-tooltip>
+    </div>
+    <CustomTable :data="data?.data ?? []" :columns="columns" />
+    <div class="flex justify-end">
+      <el-pagination
+        class="my-3"
+        v-model:page-size="limit"
+        :page-sizes="[10, 20, 30, 40]"
+        background
+        layout="total, sizes, prev, pager, next"
+        :total="data?.total_data"
+        @size-change="handleSizeChange"
+        @current-change="handleCurrentChange"
+      />
+    </div>
+  </TrumsWrapper>
+</template>
+
 <script lang="tsx" setup>
 import { ref, watch } from "vue";
 import { type People } from "~/types/people";
@@ -269,70 +337,3 @@ watch(
 //   await fetchData();
 // });
 </script>
-<template>
-  <TrumsWrapper>
-    <div class="flex justify-between items-center mb-3">
-      <div class="flex gap-2">
-        <div class="w-auto">
-          <el-input
-            v-model="request_search.keyword"
-            size="large"
-            style="width: 350px"
-            :placeholder="`${t('form.placeholder.search')}`"
-          >
-            <template #prefix>
-              <Icon name="lineicons:magnifier" />
-            </template>
-          </el-input>
-        </div>
-        <div class="w-auto">
-          <el-button
-            size="large"
-            @click="
-              () => {
-                navigateToForm('add');
-              }
-            "
-            >{{ t("buttons.newPeople") }}</el-button
-          >
-        </div>
-        <div class="w-auto">
-          <el-button
-            v-if="checkSelect()"
-            size="large"
-            @click="deleteBulk()"
-            type="danger"
-            >{{ t("buttons.delete") }}</el-button
-          >
-        </div>
-      </div>
-      <el-tooltip :content="`${t('tooltip.reloadData')}`" placement="top">
-        <el-button
-          size="large"
-          @click="fetchData"
-          :loading-icon="RefreshRight"
-          :loading="loading"
-          ><Icon
-            name="material-symbols:refresh"
-            size="1.5em"
-            :hidden="loading"
-          />
-          <span :hidden="!loading">{{ t("buttons.load") }}</span></el-button
-        >
-      </el-tooltip>
-    </div>
-    <CustomTable :data="data?.data ?? []" :columns="columns" />
-    <div class="flex justify-end">
-      <el-pagination
-        class="my-3"
-        v-model:page-size="limit"
-        :page-sizes="[10, 20, 30, 40]"
-        background
-        layout="total, sizes, prev, pager, next"
-        :total="data?.total_data"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-      />
-    </div>
-  </TrumsWrapper>
-</template>

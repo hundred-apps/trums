@@ -78,7 +78,9 @@
     "newDepartement": "New Departement",
     "newPosition": "New Position",
     "newItem": "New Item",
-    "newLocation": "New Location"
+    "newLocation": "New Location",
+    "newInventory": "New Inventory",
+    "stockOpname": "Stock Opname"
   },
   "text": {
     "newDepartement": "New Departement",
@@ -132,7 +134,8 @@
       "from": "From",
       "to": "To",
       "date": "Date",
-      "traceable": "Traceable"
+      "traceable": "Traceable",
+      "location": "Location"
     },
     "validate": {
       "required": "This field is required",
@@ -160,6 +163,7 @@
       "cost": "Ex: 4.000.000",
       "quantity": "Ex: 10",
       "item": "Ex: Meditran",
+      "location": "Ex: Jakarta",
       "unit": "Ex: pcs",
       "serialNumber": "Ex: MDTRNS8747XXXX"
     },
@@ -171,7 +175,8 @@
       "addDepartement": "Add '{name}' in Departement",
       "addPosition": "Add '{name}' in Position",
       "addItem": "Add '{name}' in Item",
-      "addUnit": "Add '{name}' in Unit"
+      "addUnit": "Add '{name}' in Unit",
+      "addLocation": "Add '{name}' in Location"
     }
   },
   "tooltip": {
@@ -214,6 +219,7 @@
       "deleteDepartement": "This departement will be deleted. Continue?",
       "deletePosition": "This position will be deleted. Continue?",
       "deleteLocation": "This location will be deleted. Continue?",
+      "deleteInventory": "This inventory will be deleted. Continue?",
       "deleteLocationInventory": "This inventory in location will be deleted. Continue?",
       "title": {
         "warning": "Warning"

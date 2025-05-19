@@ -274,60 +274,6 @@ const columns: Column<Catalogue>[] = [
   },
 ];
 
-// type SelectionCellProps = {
-//   value: boolean;
-//   intermediate?: boolean;
-//   onChange: (value: CheckboxValueType) => void;
-// };
-
-// const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
-//   value,
-//   intermediate = false,
-//   onChange,
-// }) => {
-//   return (
-//     <ElCheckbox
-//       onChange={onChange}
-//       modelValue={value}
-//       indeterminate={intermediate}
-//     />
-//   );
-// };
-
-// columns.unshift({
-//   key: "selection",
-//   width: 50,
-//   cellRenderer: ({ rowData }) => {
-//     const onChange = (value: CheckboxValueType) => (rowData.checked = value);
-//     return <SelectionCell value={rowData.checked} onChange={onChange} />;
-//   },
-
-//   headerCellRenderer: () => {
-//     const _data = unref(data);
-//     const onChange = (value: CheckboxValueType) =>
-//       (data.value = {
-//         success: true,
-//         currentPage: _data?.currentPage ?? 0,
-//         total_data: _data?.total_data ?? 0,
-//         total_page: _data?.total_data ?? 0,
-//         data: _data?.data?.map((row: any) => {
-//           row.checked = value;
-//           return row;
-//         })!,
-//       });
-//     const allSelected = _data!.data.every((row) => row.checked);
-//     const containsChecked = _data?.data.some((row) => row.checked);
-
-//     return (
-//       <SelectionCell
-//         value={allSelected}
-//         intermediate={containsChecked && !allSelected}
-//         onChange={onChange}
-//       />
-//     );
-//   },
-// });
-
 const handleEdit = (row: Catalogue) => {
   form.unique_id = row.unique_id!;
   form.name = row.name!;

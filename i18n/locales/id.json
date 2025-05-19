@@ -78,7 +78,9 @@
     "newDepartement": "Departemen Baru",
     "newPosition": "Posisi Baru",
     "newItem": "Barang Baru",
-    "newLocation": "Lokasi Baru"
+    "newLocation": "Lokasi Baru",
+    "newInventory": "Penyimpanan Baru",
+    "stockOpname": "Pencatatan Persediaan"
   },
   "text": {
     "newDepartement": "Departemen Baru",
@@ -132,7 +134,8 @@
       "from": "Dari",
       "to": "Ke",
       "date": "Tanggal",
-      "traceable": "Dapat Dilacak"
+      "traceable": "Dapat Dilacak",
+      "location": "Lokasi"
     },
     "validate": {
       "required": "Field ini wajib di isi",
@@ -160,6 +163,7 @@
       "cost": "Contoh: 4.000.000",
       "quantity": "Contoh: 10",
       "item": "Contoh: Meditran",
+      "location": "Contoh: Jakarta",
       "unit": "Contoh: pcs",
       "serialNumber": "Contoh: MDTRNS8747XXXX"
     },
@@ -171,7 +175,8 @@
       "addDepartement": "Tambah '{name}' di Departemen",
       "addPosition": "Tambah '{name}' di Posisi",
       "addItem": "Tambah '{name}' di Barang",
-      "addUnit": "Tambah '{name}' di Satuan"
+      "addUnit": "Tambah '{name}' di Satuan",
+      "addLocation": "Tambah '{name}' di Lokasi"
     }
   },
   "tooltip": {
@@ -214,6 +219,7 @@
       "deleteDepartement": "Data departemen ini akan dihapus. Lanjutkan?",
       "deletePosition": "Data posisi ini akan dihapus. Lanjutkan?",
       "deleteLocation": "Data lokasi ini akan dihapus. Lanjutkan?",
+      "deleteInventory": "Data penyimpanan ini akan dihapus. Lanjutkan?",
       "deleteLocationInventory": "Data penyimpanan pada lokasi ini akan dihapus. Lanjutkan?",
       "title": {
         "warning": "Peringatan"
