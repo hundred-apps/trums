@@ -179,7 +179,8 @@
     "delete": "Delete",
     "infoTags": "Press enter for new tag",
     "infoTaxId": "No of tax id or id card",
-    "reloadData": "Reload Data"
+    "reloadData": "Reload Data",
+    "hideOrSeeColumn": "Hide/See Column"
   },
   "message": {
     "reloadData": "Data successfully loaded",

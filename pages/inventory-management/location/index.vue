@@ -226,6 +226,16 @@ const columns: Column<Catalogue>[] = [
     key: "name",
     dataKey: "name",
     width: 250,
+    cellRenderer: ({ rowData: row }) => (
+      <>
+        <ElLink
+          underline={false}
+          onClick={() => navigateToLocation(row.name, row.unique_id)}
+        >
+          {row.name}
+        </ElLink>
+      </>
+    ),
   },
   {
     title: `${t("form.label.totalItem")}`,

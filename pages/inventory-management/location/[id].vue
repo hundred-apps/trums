@@ -224,6 +224,7 @@
                 end-placeholder="End date"
                 :shortcuts="shortcutsDate"
                 size="large"
+                style="width: 350px"
               />
             </div>
             <el-tab-pane :label="`${t('form.label.all')}`" name="all">
@@ -279,6 +280,7 @@
 </template>
 
 <script lang="tsx" setup>
+import { ref } from "vue";
 import {
   ElButton,
   ElTooltip,
@@ -318,7 +320,7 @@ const goBack = () => router.back();
 const id = ref<string>((router.currentRoute.value.params.id as string) ?? "");
 const locationNow = route.query.name;
 const loading = ref<boolean>(false);
-const popoverRef = ref(null);
+const popoverRef = ref();
 const editingUniqueId = ref<string | null>(null);
 const detail = ref<Catalogue | null>(null);
 const locations = ref<Catalogue[]>([]);
@@ -627,44 +629,6 @@ const availableColumn: Column<Inventory>[] = [
     dataKey: "catalogue.name",
     width: 200,
   },
-  //   {
-  //     title: "Location",
-  //     key: "location.name",
-  //     dataKey: "location.name",
-  //     width: 200,
-  //     headerCellRenderer: () => (
-  //       <div class="flex items-center justify-center">
-  //         <span class="mr-2">Location</span>
-  //         <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
-  //           {{
-  //             default: () => (
-  //               <div class="filter-wrapper">
-  //                 <div class="filter-group flex flex-col">
-  //                   <el-checkbox-group
-  //                     v-model={request_search.value.column[0].location_id}
-  //                   >
-  //                     {locations.value.map((location: Catalogue) => (
-  //                       <ElCheckbox
-  //                         key={location.unique_id!}
-  //                         value={location.unique_id!}
-  //                       >
-  //                         {location.name}
-  //                       </ElCheckbox>
-  //                     ))}
-  //                   </el-checkbox-group>
-  //                 </div>
-  //               </div>
-  //             ),
-  //             reference: () => (
-  //               <ElIcon class="cursor-pointer">
-  //                 <Filter />
-  //               </ElIcon>
-  //             ),
-  //           }}
-  //         </ElPopover>
-  //       </div>
-  //     ),
-  //   },
   {
     title: `${t("form.label.quantity")}`,
     key: "quantity",
@@ -690,7 +654,7 @@ const availableColumn: Column<Inventory>[] = [
     ),
     headerCellRenderer: () => (
       <div class="flex items-center justify-center">
-        <span class="mr-2">Satuan</span>
+        <span class="mr-2">{t("form.label.unit")}</span>
         <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
           {{
             default: () => (
@@ -710,7 +674,9 @@ const availableColumn: Column<Inventory>[] = [
             ),
             reference: () => (
               <ElIcon class="cursor-pointer">
-                <Filter />
+                <ElTooltip placement="top" content="Filter">
+                  <Filter />
+                </ElTooltip>
               </ElIcon>
             ),
           }}
@@ -734,18 +700,18 @@ const availableColumn: Column<Inventory>[] = [
     title: `${t("form.label.traceable")}`,
     key: "is_traceable",
     dataKey: "is_traceable",
-    width: 150,
+    width: 200,
     cellRenderer: ({ rowData: row }) =>
       row.is_traceable ? (
         <ElTag type="primary" class="text-center">
-          {"Yes"}
+          {t("buttons.yes")}
         </ElTag>
       ) : (
-        <ElTag type="info">{"No"}</ElTag>
+        <ElTag type="info">{t("buttons.no")}</ElTag>
       ),
     headerCellRenderer: () => (
       <div class="flex items-center justify-center">
-        <span class="mr-2">Traceable</span>
+        <span class="mr-2">{t("form.label.traceable")}</span>
         <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
           {{
             default: () => (
@@ -768,7 +734,9 @@ const availableColumn: Column<Inventory>[] = [
             ),
             reference: () => (
               <ElIcon class="cursor-pointer">
-                <Filter />
+                <ElTooltip placement="top" content="Filter">
+                  <Filter />
+                </ElTooltip>
               </ElIcon>
             ),
           }}
@@ -811,7 +779,6 @@ const availableColumn: Column<Inventory>[] = [
       const filters = availableColumn.filter(
         (value) => value.key !== "selection" && value.key !== "setup"
       );
-
       return (
         <div class="flex items-center justify-center">
           <span class="mr-2"></span>
@@ -823,14 +790,12 @@ const availableColumn: Column<Inventory>[] = [
                     <el-checkbox-group v-model={column_selected.value}>
                       {filters.map((value) => (
                         <ElCheckbox
-                          key={value.key}
                           value={value.key!.toString()}
                           onChange={() => {
-                            // Bisa tambahkan logika update kolom di sini
                             console.log(`${value} toggled`);
                           }}
                         >
-                          {value.title || value.key}
+                          {value.title}
                         </ElCheckbox>
                       ))}
                     </el-checkbox-group>
@@ -838,11 +803,14 @@ const availableColumn: Column<Inventory>[] = [
                 </div>
               ),
               reference: () => (
-                <ElTooltip placement="top" content="Hide/See Column">
-                  <ElIcon class="cursor-pointer">
+                <ElIcon class="cursor-pointer">
+                  <ElTooltip
+                    placement="top"
+                    content={t("tooltip.hideOrSeeColumn")}
+                  >
                     <SetUp />
-                  </ElIcon>
-                </ElTooltip>
+                  </ElTooltip>
+                </ElIcon>
               ),
             }}
           </ElPopover>
@@ -851,44 +819,6 @@ const availableColumn: Column<Inventory>[] = [
     },
   },
 ];
-
-// availableColumn[availableColumn.length - 1].headerCellRenderer = () => {
-//   const filters = availableColumn.filter(
-//     (value) => value.key != "selection" && value.key != "setup"
-//   );
-//   return (
-//     <div class="flex items-center justify-center">
-//       <span class="mr-2"></span>
-//       <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
-//         {{
-//           default: () => (
-//             <div class="filter-wrapper">
-//               <div class="filter-group flex flex-col">
-//                 <el-checkbox-group v-model={column_selected.value}>
-//                   {filters.map((value) => (
-//                     <ElCheckbox
-//                       onChange={() => console.log("ok")}
-//                       value={value.key!.toString()}
-//                     >
-//                       {value.title}
-//                     </ElCheckbox>
-//                   ))}
-//                 </el-checkbox-group>
-//               </div>
-//             </div>
-//           ),
-//           reference: () => (
-//             <ElTooltip placement="top" content="Hide/See Column">
-//               <ElIcon class="cursor-pointer">
-//                 <SetUp />
-//               </ElIcon>
-//             </ElTooltip>
-//           ),
-//         }}
-//       </ElPopover>
-//     </div>
-//   );
-// };
 
 const columnHistory: Column<InventoryMovement>[] = [
   {
@@ -1127,60 +1057,6 @@ const shortcutsDate = [
   },
 ];
 
-// type SelectionCellProps = {
-//   value: boolean;
-//   intermediate?: boolean;
-//   onChange: (value: CheckboxValueType) => void;
-// };
-
-// const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
-//   value,
-//   intermediate = false,
-//   onChange,
-// }) => {
-//   return (
-//     <ElCheckbox
-//       onChange={onChange}
-//       modelValue={value}
-//       indeterminate={intermediate}
-//     />
-//   );
-// };
-
-// availableColumn.unshift({
-//   key: "selection",
-//   width: 50,
-//   cellRenderer: ({ rowData }) => {
-//     const onChange = (value: CheckboxValueType) => (rowData.checked = value);
-//     return <SelectionCell value={rowData.checked} onChange={onChange} />;
-//   },
-
-//   headerCellRenderer: () => {
-//     const _data = unref(data);
-//     const onChange = (value: CheckboxValueType) =>
-//       (data.value = {
-//         success: true,
-//         currentPage: _data?.currentPage ?? 0,
-//         total_data: _data?.total_data ?? 0,
-//         total_page: _data?.total_data ?? 0,
-//         data: _data?.data?.map((row: any) => {
-//           row.checked = value;
-//           return row;
-//         })!,
-//       });
-//     const allSelected = _data!.data.every((row) => row.checked);
-//     const containsChecked = _data?.data.some((row) => row.checked);
-
-//     return (
-//       <SelectionCell
-//         value={allSelected}
-//         intermediate={containsChecked && !allSelected}
-//         onChange={onChange}
-//       />
-//     );
-//   },
-// });
-
 const handleAddNewItem = () => {
   dialogFormVisible.value = true;
   editingUniqueId.value = null;
@@ -1326,26 +1202,6 @@ const resetFormAll = (formEl: FormInstance | undefined) => {
   ruleForm.traceable = "0";
   editingUniqueId.value = null;
 };
-
-// const handleDelete = (row: Inventory) => {
-//   handleSubmitDelete([row.unique_id!]);
-// };
-
-// const handleSubmitDelete = async (values: string[]) => {
-//   try {
-//     const response = await useFetchApi(
-//       `/inventories-delete`,
-//       "delete_data",
-//       "delete",
-//       [values]
-//     );
-//     if (response.status.value == "success") {
-//       await refreshNuxtData("inventories");
-//     }
-//   } catch (error: any) {
-//     ElMessage.error(`${error?.response?.data?.message ?? error}`);
-//   }
-// };
 
 const messageBoxDelete = async (row: Inventory) => {
   ElMessageBox.confirm(

@@ -179,7 +179,8 @@
     "delete": "Hapus",
     "infoTags": "Tekan enter untuk tag baru",
     "infoTaxId": "No NPWP atau KTP",
-    "reloadData": "Memuat Data"
+    "reloadData": "Memuat Data",
+    "hideOrSeeColumn": "Sembunyikan/Lihat Kolom"
   },
   "message": {
     "reloadData": "Data berhasil dimuat",
