@@ -99,7 +99,7 @@ import type { ResponsePagination } from "~/types/response_pagination";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
-import { NuxtLink } from "#components";
+import { Icon } from "#components";
 
 const config = useRuntimeConfig();
 const localePath = useLocalePath();

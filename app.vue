@@ -8,8 +8,6 @@ const theme = ref("");
 
 const mode = useCookie("color-mode");
 
-console.log(mode);
-
 // onMounted(() => {
 //   const savedTheme = localStorage.getItem('theme')
 // if (savedTheme) {

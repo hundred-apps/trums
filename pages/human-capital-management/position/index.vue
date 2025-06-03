@@ -117,6 +117,7 @@ import {
   ElTooltip,
   ElButton,
 } from "element-plus";
+import { Icon } from "#components";
 
 const api = useApi();
 const token = useCookie("token");
@@ -137,8 +138,8 @@ const request_search = ref<RequestSearch>({
   keyword: "",
   column: null,
   sort: null,
-  limit: limit,
-  offset: currentPage,
+  limit: limit.value.toString(),
+  offset: currentPage.value.toString(),
   table: "positions",
 });
 

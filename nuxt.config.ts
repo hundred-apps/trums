@@ -2,6 +2,10 @@
 export default defineNuxtConfig({
   compatibilityDate: "2024-04-03",
   devtools: { enabled: true },
+  devServer: {
+    host: "0.0.0.0", // Buka akses ke semua network interface
+    port: 3000, // atau port yang diinginkan
+  },
   ssr: false,
   pages: true,
   runtimeConfig: {
@@ -33,6 +37,7 @@ export default defineNuxtConfig({
     "nuxt-twemoji",
     "nuxt-openid-connect",
     "@element-plus/nuxt",
+    "nuxt-qrcode",
   ],
 
   build: {

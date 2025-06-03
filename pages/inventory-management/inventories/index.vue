@@ -76,6 +76,28 @@
         @change="paginationClick"
       />
     </div>
+    <el-dialog
+      v-model="dialogQr"
+      title="QR Code"
+      width="90%"
+      :close-on-click-modal="false"
+      class="max-w-md"
+    >
+      <div class="flex flex-col items-center">
+        <div
+          class="relative w-full aspect-square bg-gray-800 rounded-lg overflow-hidden"
+        >
+          <Qrcode
+            v-if="dialogQr"
+            :value="dataInventory"
+            class="absolute inset-0 w-full h-full object-cover"
+          />
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="dialogQr = false">Tutup</el-button>
+      </template>
+    </el-dialog>
   </TrumsWrapper>
 </template>
 
@@ -103,6 +125,7 @@ import CustomTable from "~/components/trums/table/customTable.vue";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import { Filter } from "@element-plus/icons-vue";
 import type { Unit } from "~/types/unit";
+import { Icon } from "#components";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -112,6 +135,8 @@ const popoverRef = ref();
 const { t } = useI18n();
 const config = useRuntimeConfig();
 const loading = ref<boolean>(false);
+const dialogQr = ref<boolean>(false);
+const dataInventory = ref<Inventory>();
 const router = useRouter();
 const unique_id = useCookie("unique_id");
 const localePath = useLocalePath();
@@ -167,7 +192,7 @@ const request_search = ref<RequestSearch>({
   table: "inventories",
   sort: {
     column: "created_at",
-    order: OrderColumn.ASC,
+    order: OrderColumn.DESC,
   },
 });
 
@@ -343,11 +368,7 @@ const availableColumn: Column<Inventory>[] = [
     dataKey: "cost",
     sortable: true,
     width: 200,
-    cellRenderer: ({ rowData: row }) => (
-      <>
-        <p>{currency(row.cost)}</p>
-      </>
-    ),
+    cellRenderer: ({ rowData: row }) => <>{currency(row.cost)}</>,
   },
   {
     title: `${t("form.label.traceable")}`,
@@ -401,7 +422,7 @@ const availableColumn: Column<Inventory>[] = [
     title: `${t("form.label.operation")}`,
     key: "operation",
     dataKey: "",
-    width: 100,
+    width: 150,
     fixed: TableV2FixedDir.RIGHT,
     cellRenderer: ({ rowData: row }) => (
       <>
@@ -423,6 +444,11 @@ const availableColumn: Column<Inventory>[] = [
             onClick={() => messageBoxDelete(row)}
           >
             <Icon name="material-symbols:delete-outline" />
+          </ElButton>
+        </ElTooltip>
+        <ElTooltip placement="top" content={t("tooltip.qr")}>
+          <ElButton type="primary" circle plain onClick={() => openQr(row)}>
+            <Icon name="material-symbols:qr-code-scanner" />
           </ElButton>
         </ElTooltip>
       </>
@@ -540,6 +566,21 @@ const deleteBulk = () => {
         message: `${t("message.cancelDelete")}`,
       });
     });
+};
+
+const openQr = (row: Inventory) => {
+  ElMessage.info("aku di clik");
+  dialogQr.value = true;
+  console.log("dialog:", dialogQr.value);
+  dataInventory.value = JSON.stringify({
+    inventory_id: row.unique_id,
+    name: row.catalogue?.name,
+    qty: row.quantity,
+    sn: row.sn,
+    unit: row.unit?.name,
+    location_id: row.location_id,
+  });
+  console.log("data:", dataInventory.value);
 };
 
 const onSort = (sortBy: SortBy) => {

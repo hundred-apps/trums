@@ -1,42 +1,3 @@
-<script lang="ts" setup>
-import { ref, onMounted } from "vue";
-import { type User as userData } from "~/types/user";
-import {
-  Menu as IconMenu,
-  Box,
-  DataAnalysis,
-  Notebook,
-  DocumentChecked,
-  User,
-  Money,
-  Sell,
-  Setting,
-} from "@element-plus/icons-vue";
-
-const config = useRuntimeConfig();
-const { t } = useI18n();
-const { $oidc } = useNuxtApp();
-const localePath = useLocalePath();
-const userdata = ref<userData | null>(null);
-const imageUrl = config.public.baseImageURL;
-const user = useCookie("userdata");
-const nameFront = ref("");
-
-const navigateToSetting = (name = "") => {
-  const path = localePath(`/setting/profile/${name}`);
-  navigateTo({ path });
-};
-
-const handleMenuClick = (menuKey: string) => {
-  navigateTo(localePath(menuKey));
-};
-
-onMounted(() => {
-  userdata.value = user.value as unknown as userData;
-  nameFront.value = userdata.value?.name.split(" ")[0] || "";
-});
-</script>
-
 <template>
   <div class="common-layout">
     <el-header
@@ -257,6 +218,47 @@ onMounted(() => {
     </div>
   </div>
 </template>
+
+<script lang="ts" setup>
+import { ref, onMounted } from "vue";
+import { type User as userData } from "~/types/user";
+import {
+  Menu as IconMenu,
+  Box,
+  DataAnalysis,
+  Notebook,
+  DocumentChecked,
+  User,
+  Money,
+  Sell,
+  Setting,
+} from "@element-plus/icons-vue";
+
+const config = useRuntimeConfig();
+const { t } = useI18n();
+const { $oidc } = useNuxtApp();
+const localePath = useLocalePath();
+const userdata = ref<userData | null>(null);
+const imageUrl = config.public.baseImageURL;
+const user = useCookie("userdata");
+const nameFront = ref("");
+// const opnameCookie = useCookie('location-opname').value;
+// const onOpname = ref<boolean>();
+
+const navigateToSetting = (name = "") => {
+  const path = localePath(`/setting/profile/${name}`);
+  navigateTo({ path });
+};
+
+const handleMenuClick = (menuKey: string) => {
+  navigateTo(localePath(menuKey));
+};
+
+onMounted(() => {
+  userdata.value = user.value as unknown as userData;
+  nameFront.value = userdata.value?.name.split(" ")[0] || "";
+});
+</script>
 
 <style scoped>
 .layout-container-demo .el-header {

@@ -224,7 +224,7 @@
                 end-placeholder="End date"
                 :shortcuts="shortcutsDate"
                 size="large"
-                style="width: 350px"
+                style="width: 350px !important"
               />
             </div>
             <el-tab-pane :label="`${t('form.label.all')}`" name="all">
@@ -306,6 +306,7 @@ import type { Unit } from "~/types/unit";
 import { Filter, SetUp, RefreshRight } from "@element-plus/icons-vue";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
+import { Icon } from "#components";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -570,11 +571,11 @@ const filteredColumn = computed(() => {
 });
 
 const filteredDataIn = computed(() => {
-  return dataHistory.value.data.filter((col) => col.to === id.value);
+  return dataHistory.value!.data.filter((col) => col.to === id.value);
 });
 
 const filteredDataOut = computed(() => {
-  return dataHistory.value.data.filter((col) => col.from === id.value);
+  return dataHistory.value!.data.filter((col) => col.from === id.value);
 });
 
 const availableColumn: Column<Inventory>[] = [

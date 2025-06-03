@@ -43,7 +43,9 @@
       "purchaseRequest": "Permintaan pembelian",
       "receive": "Terima",
       "location": "Lokasi",
-      "project": "Proyek"
+      "project": "Proyek",
+      "stockOpname": "Pencatatan Persediaan",
+      "stockOpnameHistory": "Riwayat Pencatatan Persediaan"
     },
     "back": "Kembali"
   },
@@ -58,6 +60,8 @@
   },
   "buttons": {
     "getstarted": "Mulai Sekarang!",
+    "start": "Mulai",
+    "end": "Selesai",
     "login": "Masuk",
     "logout": "Keluar",
     "send": "Kirim",
@@ -70,6 +74,7 @@
     "no": "Tidak",
     "load": "Memuat",
     "add": "Tambah",
+    "history": "Riwayat",
     "addImage": "Tambah Gambar",
     "addItem": "Tambah Barang",
     "changeImage": "Ubah Gambar",
@@ -80,7 +85,8 @@
     "newItem": "Barang Baru",
     "newLocation": "Lokasi Baru",
     "newInventory": "Penyimpanan Baru",
-    "stockOpname": "Pencatatan Persediaan"
+    "stockOpname": "Pencatatan Persediaan",
+    "changeDate": "Ubah Tanggal"
   },
   "text": {
     "newDepartement": "Departemen Baru",
@@ -88,7 +94,8 @@
     "newLocation": "Lokasi Baru",
     "editLocation": "Ubah Lokasi",
     "editDepartement": "Ubah Departemen",
-    "editPosition": "Ubah Posisi"
+    "editPosition": "Ubah Posisi",
+    "lastStockOpname": "Terakhir Pencatatan Persediaan : {date}"
   },
   "form": {
     "label": {
@@ -165,7 +172,8 @@
       "item": "Contoh: Meditran",
       "location": "Contoh: Jakarta",
       "unit": "Contoh: pcs",
-      "serialNumber": "Contoh: MDTRNS8747XXXX"
+      "serialNumber": "Contoh: MDTRNS8747XXXX",
+      "date": "Contoh: {date}"
     },
     "type": {
       "new": "Baru",
@@ -206,13 +214,19 @@
     "successDeleted": "Data berhasil dihapus",
     "cancelDelete": "Hapus data dibatalkan",
     "cancelChange": "Perubahan data dibatalkan",
+    "cancelStockOpname": "Pencatatan data dibatalkan",
+    "cancelStopStockOpname": "Berhenti Pencatatan data dibatalkan",
     "failedAdd": "Gagal untuk menambahkan",
     "cantDeleteOidc": "Data tidak dapat dihapus karena memiliki OIDC",
+    "locationNotFound": "Lokasi tidak ditemukan",
+    "itemNotFound": "Barang tidak ditemukan",
     "image": {
       "format": "Gambar avatar harus format {format}!",
       "size": "Gambar avatar ini tidak boleh lebih dari {size}MB!"
     },
     "box": {
+      "startStockOpname": "Terakhir pencatatan pada tanggal {date}. Lanjutkan?",
+      "endStockOpname": "Akan kah anda mengakhiri pencatatan ini?",
       "deleteSelected": "Data yang dipilih ini akan dihapus. Lanjutkan?",
       "deleteContact": "Kontak ini akan dihapus. Lanjutkan?",
       "deletePeople": "Data orang ini akan dihapus. Lanjutkan?",

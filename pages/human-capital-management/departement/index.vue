@@ -47,13 +47,12 @@
     <CustomTable :data="data?.data ?? []" :columns="columns" />
     <div class="flex justify-end mt-3">
       <el-pagination
-        v-model:page-size="limit"
-        :page-sizes="[10, 20, 30, 40]"
         background
-        layout="total, sizes, prev, pager, next"
+        layout="total, prev, pager, next"
         :total="data?.total_data"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
+        @next-click="paginationClick"
+        @prev-click="paginationClick"
+        @change="paginationClick"
       />
     </div>
     <el-dialog
@@ -117,6 +116,7 @@ import {
   TableV2FixedDir,
   ElLink,
 } from "element-plus";
+import { Icon } from "#components";
 
 const { t } = useI18n();
 const localePath = useLocalePath();
@@ -125,8 +125,6 @@ const token = useCookie("token");
 const formSize = ref<ComponentSize>("default");
 const ruleFormRef = ref<FormInstance>();
 const loading = ref<boolean>(false);
-const limit = ref(10);
-const currentPage = ref(1);
 const editingUniqueId = ref<string | null>(null);
 const disable = ref<boolean>(false);
 const search = ref("");
@@ -137,8 +135,8 @@ const request_search = ref<RequestSearch>({
   keyword: "",
   column: null,
   sort: null,
-  limit: limit,
-  offset: currentPage,
+  limit: "10",
+  offset: "1",
   table: "departements",
 });
 
@@ -163,17 +161,6 @@ const { data } = await useFetchApi<ResponsePagination<Departement[]>>(
   "post",
   request_search.value
 );
-
-const fetchData = async () => {
-  loading.value = true;
-  try {
-    await refreshNuxtData("departement");
-  } catch (error) {
-    console.error("Gagal memuat data:", error);
-  }
-  loading.value = false;
-  ElMessage.success(`${t("message.reloadData")}`);
-};
 
 const rules = reactive<FormRules<RuleForm>>({
   name: [
@@ -384,18 +371,40 @@ const deleteBulk = () => {
     });
 };
 
-const handleSizeChange = (val: number) => {
-  loading.value = true;
-  try {
-    refreshNuxtData();
-  } catch (error) {
-    console.error("Gagal memuat data:", error);
-  }
-  loading.value = false;
-  ElMessage.info(`${t("message.handleSizeChange")}`);
+const paginationClick = (val: number) => {
+  const data: RequestSearch = { ...request_search.value };
+  data.offset = val.toString();
+  request_search.value = data;
 };
 
-const handleCurrentChange = (val: number) => {
-  currentPage.value = val;
+const onSearch = async (value: string) => {
+  const data: RequestSearch = { ...request_search.value };
+  data.keyword = value;
+  request_search.value = data;
 };
+
+const fetchData = async () => {
+  loading.value = true;
+  try {
+    const response = await useFetchApi<ResponsePagination<Departement[]>>(
+      `/search`,
+      "departement",
+      "post",
+      request_search.value
+    );
+    if (response.status.value == "success") {
+      data.value = response.data.value as ResponsePagination<Departement[]>;
+    }
+  } catch (error: any) {
+    ElMessage.error(
+      `${error.response?.data?.message ?? "Gagal Mengambil Data!"}`
+    );
+    return [];
+  } finally {
+    loading.value = false;
+    // ElMessage.success(`${t("message.reloadData")}`);
+  }
+};
+
+watch(request_search, fetchData, { immediate: true });
 </script>

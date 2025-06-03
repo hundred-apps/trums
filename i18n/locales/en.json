@@ -43,7 +43,9 @@
       "purchaseRequest": "Purchase Request",
       "receive": "Receive",
       "location": "Location",
-      "project": "Project"
+      "project": "Project",
+      "stockOpname": "Stock Opname",
+      "stockOpnameHistory": "History Stock Opname"
     },
     "back": "Back"
   },
@@ -58,6 +60,8 @@
   },
   "buttons": {
     "getstarted": "Get Started!",
+    "start": "Start",
+    "end": "End",
     "login": "Login",
     "logout": "Logout",
     "send": "Send",
@@ -70,6 +74,7 @@
     "no": "No",
     "load": "Load",
     "add": "Add",
+    "history": "History",
     "addImage": "Add Image",
     "addItem": "Add Item",
     "changeImage": "Change Image",
@@ -80,7 +85,8 @@
     "newItem": "New Item",
     "newLocation": "New Location",
     "newInventory": "New Inventory",
-    "stockOpname": "Stock Opname"
+    "stockOpname": "Stock Opname",
+    "changeDate": "Change Date"
   },
   "text": {
     "newDepartement": "New Departement",
@@ -88,7 +94,8 @@
     "newLocation": "New Location",
     "editLocation": "Edit Location",
     "editDepartement": "Edit Departement",
-    "editPosition": "Edit Position"
+    "editPosition": "Edit Position",
+    "lastStockOpname": "Last Stock Opname : {date}"
   },
   "form": {
     "label": {
@@ -165,7 +172,8 @@
       "item": "Ex: Meditran",
       "location": "Ex: Jakarta",
       "unit": "Ex: pcs",
-      "serialNumber": "Ex: MDTRNS8747XXXX"
+      "serialNumber": "Ex: MDTRNS8747XXXX",
+      "date": "Ex: {date}"
     },
     "type": {
       "new": "New",
@@ -206,13 +214,19 @@
     "successDeleted": "Data successfully deleted",
     "cancelDelete": "Delete canceled",
     "cancelChange": "Change canceled",
+    "cancelStockOpname": "Stock Opname canceled",
+    "cancelStopStockOpname": "Stop Stock Opname canceled",
     "failedAdd": "Failed to add",
     "cantDeleteOidc": "Can't delete because have OIDC",
+    "locationNotFound": "Location Not Found",
+    "itemNotFound": "Item Not Found",
     "image": {
       "format": "Avatar picture must be {format} format!",
       "size": "Avatar picture size can not exceed {size}MB!"
     },
     "box": {
+      "startStockOpname": "Last stock Opname {date}. Continue?",
+      "endStockOpname": "Will you end this Stock Opname?",
       "deleteSelected": "This selected data will be deleted. Continue?",
       "deleteContact": "This contact will be deleted. Continue?",
       "deletePeople": "This people will be deleted. Continue?",

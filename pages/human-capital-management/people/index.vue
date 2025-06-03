@@ -85,6 +85,7 @@ import {
   ElMessage,
   ElMessageBox,
 } from "element-plus";
+import { Icon } from "#components";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -217,8 +218,8 @@ const request_search = ref<RequestSearch>({
   keyword: "",
   column: null,
   sort: null,
-  limit: limit,
-  offset: currentPage,
+  limit: limit.value.toString(),
+  offset: currentPage.value.toString(),
   table: "people",
 });
 
