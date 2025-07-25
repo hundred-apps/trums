@@ -13,6 +13,16 @@
   import { NuxtLink } from '#components';
   import type { InventoryMovement } from '~/types/inventory_movement';
   import { Filter } from '@element-plus/icons-vue'
+
+  interface FormFilter {
+    date_range: string[],
+  }
+
+  const ruleFormFilter = reactive<FormFilter>({
+    date_range: ["", ""],
+  });
+
+
   const loading = ref<boolean>(false);
   const column_selected = ref<string[]>(['selection', 'unique_code', 'type', 'from_name', 'to_name', 'setup']);
   const search = ref('')
@@ -322,7 +332,7 @@
     const ids = checkeds?.map((value) => (value.unique_id));
     loading.value = true;
     try {
-      const response = await useFetchApi('/inventory-movement-delete', 'inventory_movement', 'delete', ids);
+      const response = await useFetchApi('/inventory-movement-delete', 'inventory_movement', 'post', ids);
       if(response.status.value == 'success'){
         await refreshNuxtData('inventories');
       }
@@ -367,6 +377,48 @@
 
   }
 
+  const shortcutsDate = [
+    {
+      text: 'Last week',
+      value: () => {
+        const end = new Date()
+        const start = new Date()
+        start.setTime(start.getTime() - 3600 * 1000 * 24 * 7)
+        return [start, end]
+      },
+    },
+    {
+      text: 'Last month',
+      value: () => {
+        const end = new Date()
+        const start = new Date()
+        start.setTime(start.getTime() - 3600 * 1000 * 24 * 30)
+        return [start, end]
+      },
+    },
+    {
+      text: 'Last 3 months',
+      value: () => {
+        const end = new Date()
+        const start = new Date()
+        start.setTime(start.getTime() - 3600 * 1000 * 24 * 90)
+        return [start, end]
+      },
+    },
+  ]
+
+  const consigment = () => {
+    const start = new Date(ruleFormFilter.date_range[0]).getTime() / 1000;
+    const end = new Date(ruleFormFilter.date_range[1]).getTime() / 1000;
+    console.log(start);
+    console.log(end);
+    const start_date = useCookie('start_date_consigment');
+    const end_date = useCookie('end_date_consigment');
+    start_date.value = start.toString();
+    end_date.value = end.toString();
+    router.push('consigment');
+  }
+
   onMounted(() => {
     
     // loading.value = true;
@@ -379,39 +431,55 @@
 
 </script>
 <template>
-  <el-row :gutter="20" class="mb-3">
-    <el-col :span="6"><el-input v-model="request_search.keyword" size="large" placeholder="Type to search" /></el-col>
-    <el-button size="large" @click="() => add('in')">CheckIn</el-button>
-    <el-button size="large" @click="() => add('out')">CheckOut</el-button>
-    <!-- <el-button v-if="checkSelect()" @click="deleteBulk" size="large" type="danger">Hapus</el-button> -->
-    <el-popconfirm
-      v-if="checkSelect()"
-      width="220"
-      :icon="InfoFilled"
-      icon-color="#626AEF"
-      title="Apakah Anda Yakin Ingin Menghapus Data ini?"
-      @cancel="() => {}"
-    >
-      <template #reference>
-        <el-button size="large" type="danger">Delete</el-button>
-      </template>
-      <template #actions="{ confirm, cancel }">
-        <el-button size="small" @click="cancel">Batal</el-button>
-        <el-button
-          type="danger"
-          size="small"
-          @click="deleteBulk"
+  <TrumsWrapper>
+      <el-row :gutter="20" class="mb-3">
+        <el-col :span="6"><el-input v-model="request_search.keyword" size="default" placeholder="Type to search" /></el-col>
+        <el-button size="default"  @click="() => add('in')">CheckIn</el-button>
+        <el-button size="default"  @click="() => add('out')">CheckOut</el-button>
+        <el-button size="default" @click="consigment">Consignment</el-button>
+        <el-form :model="ruleFormFilter" class="ml-3" label-width="auto" style="max-width: 600px">
+          <el-form-item label="">
+            <el-date-picker
+              v-model="ruleFormFilter.date_range"
+              type="daterange"
+              unlink-panels
+              range-separator="To"
+              start-placeholder="Start date"
+              end-placeholder="End date"
+              :shortcuts="shortcutsDate"
+              size="default"
+            />
+          </el-form-item>
+        </el-form>
+        <el-popconfirm
+          
+          v-if="checkSelect()"
+          width="220"
+          :icon="InfoFilled"
+          icon-color="#626AEF"
+          title="Apakah Anda Yakin Ingin Menghapus Data ini?"
+          @cancel="() => {}"
         >
-          Hapus
-        </el-button>
-      </template>
-    </el-popconfirm>
-  </el-row>
-  <CustomTable :column-sort="onSort" :columns="filteredColumn" :data="data?.data ?? []"   />
-  <div class="flex justify-end mt-3">
-    <el-pagination background layout="prev, pager, next" :total="data?.total_data" @next-click="paginationClick" @prev-click="paginationClick" @change="paginationClick" />
-  </div>
-  
+          <template #reference>
+            <el-button size="default" class="ml-3" type="danger">Delete</el-button>
+          </template>
+          <template #actions="{ confirm, cancel }">
+            <el-button size="small" @click="cancel">Batal</el-button>
+            <el-button
+              type="danger"
+              size="small"
+              @click="deleteBulk"
+            >
+              Hapus
+            </el-button>
+          </template>
+        </el-popconfirm>
+      </el-row>
+      <CustomTable :column-sort="onSort" :columns="filteredColumn" :data="data?.data ?? []"   />
+      <div class="flex justify-end mt-3">
+        <el-pagination background layout="prev, pager, next" :total="data?.total_data" @next-click="paginationClick" @prev-click="paginationClick" @change="paginationClick" />
+      </div>
+  </TrumsWrapper>
 </template>
 
 

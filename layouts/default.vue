@@ -114,9 +114,9 @@ const handleMenuClick = (menuKey: string) => {
               <el-menu-item index="/inventory-management/inventories"
                 >Inventory</el-menu-item
               >
-              <el-menu-item index="2-2">Inquiry</el-menu-item>
-              <el-menu-item index="2-3">Check In</el-menu-item>
-              <el-menu-item index="2-4">Check Out</el-menu-item>
+              <el-menu-item index="/inventory-management/inqueiries">Inquiry</el-menu-item>
+              <el-menu-item index="/inventory-management/checkin">Check In/Out</el-menu-item>
+              <el-menu-item index="/inventory-management/consigment">Consigment</el-menu-item>
               <el-menu-item index="/inventory-management/location"
                 >Location</el-menu-item
               >
@@ -132,6 +132,9 @@ const handleMenuClick = (menuKey: string) => {
               >
               <el-menu-item index="/inspection-maintenance/maintenance"
                 >Maintenance</el-menu-item
+              >
+              <el-menu-item index="/inspection-maintenance/template"
+                >Template Checklist</el-menu-item
               >
             </el-menu-item-group>
           </el-sub-menu>
@@ -152,7 +155,8 @@ const handleMenuClick = (menuKey: string) => {
               <el-icon><Sell /></el-icon>Sales
             </template>
             <el-menu-item-group>
-              <el-menu-item index="5-1">Pricelist</el-menu-item>
+              <el-menu-item index="/sales/quotation">Penawaran</el-menu-item>
+              <el-menu-item index="/sales/pricelist">Pricelist</el-menu-item>
               <el-menu-item index="5-2">Order</el-menu-item>
               <el-menu-item index="5-3">Contract</el-menu-item>
               <el-menu-item index="5-4">Project</el-menu-item>
@@ -208,8 +212,9 @@ const handleMenuClick = (menuKey: string) => {
             </template>
             <el-menu-item-group>
               <el-menu-item index="9-1">Menu</el-menu-item>
-              <el-menu-item index="9-1">Permission</el-menu-item>
-              <el-menu-item index="9-1">User Permission</el-menu-item>
+              <el-menu-item index="9-2">Permission</el-menu-item>
+              <el-menu-item index="9-3">User Permission</el-menu-item>
+              <el-menu-item index="/master/checklist">Pengaturan Checklist</el-menu-item>
             </el-menu-item-group>
           </el-sub-menu>
         </el-menu>

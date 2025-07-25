@@ -1,3 +1,15 @@
+import type { AddressType } from "./address";
+import type { Contact } from "./contact";
+import type { Inventory } from "./inventory";
+
+export interface FileDocument {
+  unique_id: string,
+  inventory_movement_id: string,
+  filename: string,
+  mime_type: string,
+  image_path: string,
+}
+
 export interface InventoryMovementItem {
     id: number;
     unique_id: string;
@@ -8,6 +20,14 @@ export interface InventoryMovementItem {
     created_by: string;
     updated_at: number;
     version: number;
+    is_traceable: boolean,
+    sn: string,
+    cost: number,
+    selling_price: number,
+    contact_id: string|null,
+    contact_name:string|null,
+    contact_version: number|null,
+    inventory: Inventory | null
   }
   
   export interface InventoryMovement {
@@ -15,6 +35,7 @@ export interface InventoryMovementItem {
     unique_id: string;
     unique_code: string;
     type: 'in' | 'out'; // Sesuai dengan contoh data
+    reference_to?: string;
     reference: string;
     reference_id: string;
     from: string;
@@ -34,7 +55,9 @@ export interface InventoryMovementItem {
     updated_at: number;
     version: number;
     inventory_movement_item: InventoryMovementItem[];
-    address: any | null; // Jika struktur `address` diketahui, lebih baik diganti dengan tipe yang sesuai
+    address: AddressType | null; // Jika struktur `address` diketahui, lebih baik diganti dengan tipe yang sesuai
     checked?: boolean|null,
+    contact?: Contact,
+    files: FileDocument[],
   }
   

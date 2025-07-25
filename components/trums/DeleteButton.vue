@@ -3,11 +3,12 @@
         :title="props.title ?? 'Apakah Kamu Ingin Menghapus Ini?'" 
         :cancel-button-text="props.labelCancel ?? 'Batal'" 
         :confirm-button-text="props.labelConfirm ?? 'Hapus'"
+        width="250"
         @confirm="props.onConfirm"
         @cancel="props.onCancel"
         >
         <template #reference>
-            <el-button size="small">{{ props.labelButton ?? 'Hapus' }}</el-button>
+            <el-button size="small" type="danger">{{ props.labelButton ?? 'Hapus' }}</el-button>
         </template>
     </el-popconfirm>
 </template>

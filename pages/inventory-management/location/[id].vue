@@ -1,5 +1,6 @@
 <template>
-    <el-page-header @back="goBack">
+    <TrumsWrapper>
+        <el-page-header @back="goBack">
         <template #content>
             <span class="text-large font-600 mr-3"> {{ detail?.name }} </span>
         </template>
@@ -40,6 +41,7 @@
         <h1 class="mb-4">Daftar Inventori</h1>
         <CustomTable :column-sort="onSort" :columns="filteredColumn" :data="data?.data ?? []"  />
     </el-card>
+    </TrumsWrapper>
 </template>
 
 <script lang="tsx" setup>

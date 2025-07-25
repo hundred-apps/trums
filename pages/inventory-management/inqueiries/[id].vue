@@ -1,52 +1,64 @@
 <template>
-    <el-page-header @back="goBack">
-        <template #content>
-            <span class="text-large font-600 mr-3"> Request - {{ inquiryData?.unique_code }} </span>
-        </template>
-    </el-page-header>
-    <el-card class="my-3">
-        <el-button type="primary" @click="onCheckout" :loading="loading">Proses</el-button>
-        <div class="flex gap-3 my-3">
-            <div class="flex-1">
-                <el-descriptions
-                    title=""
-                    :column="1"
-                    size="large"
-                    border
-                >
-                <el-descriptions-item label="Prioritas Permintaan">{{ inquiryData?.priority.toUpperCase() }}</el-descriptions-item>
-                <el-descriptions-item label="Tanggal Permintaan">{{ formatLocalDate(inquiryData!.date!) }}</el-descriptions-item>
-                <el-descriptions-item label="Permintaan">{{ inquiryData!.reference }}</el-descriptions-item>
-                </el-descriptions>
+    <TrumsWrapper>
+        <el-page-header @back="goBack">
+            <template #content>
+                <span class="text-large font-600 mr-3"> Request - {{ inquiryData?.unique_code }} </span>
+            </template>
+        </el-page-header>
+        <el-card class="my-3">
+            <div class="flex items-center justify-between">
+                <el-button type="primary" @click="onCheckout" :loading="loading">Proses</el-button>
+                <div>
+                    <el-radio-group v-model="inquiryData!.status">
+                        <el-radio-button label="Draft" value="draft" />
+                        <el-radio-button label="Menunggu" value="pending" />
+                        <el-radio-button label="Batalkan" value="cancel" />
+                        <el-radio-button label="Selesai" value="done" />
+                    </el-radio-group>
+                </div>
             </div>
-            <div class="flex-1">
-                <el-descriptions
-                    title=""
-                    :column="1"
-                    size="large"
-                    border
-                >
-                    <el-descriptions-item label="Sumber Permintaan">{{ getSourceRequestLabel() }} - (<NuxtLink :href="getSourceRequestLink()">{{ getSourceRequestNumber() }}</NuxtLink>)</el-descriptions-item>
-                    <el-descriptions-item label="Alamat">
-                        -
-                    </el-descriptions-item>
-                    <el-descriptions-item label="Diminta Oleh">{{ inquiryData?.people.name }}</el-descriptions-item>
-                </el-descriptions>
+            <div class="flex gap-3 my-3">
+                <div class="flex-1">
+                    <el-descriptions
+                        title=""
+                        :column="1"
+                        size="large"
+                        border
+                    >
+                    <el-descriptions-item label="Prioritas Permintaan">{{ inquiryData?.priority.toUpperCase() }}</el-descriptions-item>
+                    <el-descriptions-item label="Tanggal Permintaan">{{ formatLocalDate(inquiryData!.date!) }}</el-descriptions-item>
+                    <el-descriptions-item label="Permintaan">{{ inquiryData!.reference }}</el-descriptions-item>
+                    </el-descriptions>
+                </div>
+                <div class="flex-1">
+                    <el-descriptions
+                        title=""
+                        :column="1"
+                        size="large"
+                        border
+                    >
+                        <el-descriptions-item label="Sumber Permintaan">{{ getSourceRequestLabel() }} - (<NuxtLink :href="getSourceRequestLink()">{{ getSourceRequestNumber() }}</NuxtLink>)</el-descriptions-item>
+                        <el-descriptions-item label="Alamat">
+                            -
+                        </el-descriptions-item>
+                        <el-descriptions-item label="Diminta Oleh">{{ inquiryData?.people.name }}</el-descriptions-item>
+                    </el-descriptions>
+                </div>
             </div>
-        </div>
-        <el-descriptions title="Note">
-            <el-descriptions-item label="">{{inquiryData?.description}}</el-descriptions-item>
-        </el-descriptions>
-    </el-card>
-    <el-card>
-        <h1 class="mb-4">Item Permintaan</h1>
-        <el-table :data="inquiryData?.item_request ?? []" style="width: 100%">
-            <el-table-column prop="catalogue_name" label="Nama Item" width="180" />
-            <el-table-column prop="sn" label="Serial/Part Number" width="180" />
-            <el-table-column prop="quantity" label="Quantity" />
-            <el-table-column prop="unit_name" label="UOM" />
-        </el-table>
-    </el-card>
+            <el-descriptions title="Note">
+                <el-descriptions-item label="">{{inquiryData?.description}}</el-descriptions-item>
+            </el-descriptions>
+        </el-card>
+        <el-card>
+            <h1 class="mb-4">Item Permintaan</h1>
+            <el-table :data="inquiryData?.item_request ?? []" style="width: 100%">
+                <el-table-column prop="catalogue_name" label="Nama Item" width="180" />
+                <el-table-column prop="sn" label="Serial/Part Number" width="180" />
+                <el-table-column prop="quantity" label="Quantity" />
+                <el-table-column prop="unit_name" label="UOM" />
+            </el-table>
+        </el-card>
+    </TrumsWrapper>
 </template>
 
 <script lang="tsx" setup>
@@ -61,9 +73,9 @@
     import type { Maintenance } from '~/types/maintenance';
     import type { BaseResponse } from '~/types/response';
     definePageMeta({
-        middleware:['auth', 'app'],
-        name: "Detail Request",
-    })
+        middleware: ["auth", "app"],
+        name: "Detail Permintaan",
+    });
     const router = useRouter();
     
     const goBack = () => router.back();
@@ -216,14 +228,14 @@
         if(inquiryData?.reference == 'internal'){
             return (inquiryData.reference_data as Contact).name;
         }else if(inquiryData?.reference == 'repair'){
-            return (inquiryData.reference_data as Maintenance).inspection_item?.inventories?.catalogue?.name ?? '';
+            return (inquiryData.reference_data as Maintenance).inventory?.catalogue?.name ?? '';
         }
     }
     const getSourceRequestLink = () => {
         if(inquiryData?.reference == 'internal'){
             return `/contact/${(inquiryData.reference_data as Contact).unique_id}`;
         }else if(inquiryData?.reference == 'repair'){
-            return `/maintenance/${(inquiryData.reference_data as Maintenance).catalogues?.name}`;
+            return `/maintenance/${(inquiryData.reference_data as Maintenance).unique_id}`;
         }
     }
     const getSourceRequestNumber = () => {

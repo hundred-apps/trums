@@ -443,39 +443,41 @@ onMounted(() => {
 });
 </script>
 <template>
-  <el-row :gutter="20" class="mb-3">
-    <el-col :span="6"
-      ><el-input
-        v-model="request_search.keyword"
+  <TrumsWrapper>
+    <el-row :gutter="20" class="mb-3">
+      <el-col :span="6"
+        ><el-input
+          v-model="request_search.keyword"
+          size="large"
+          placeholder="Type to search"
+      /></el-col>
+      <el-button size="large" @click="$router.push('inqueiries/add')"
+        >Buat Inquiri</el-button
+      >
+      <el-button
+        v-if="tmpInquiries.length > 0"
+        @click="dialogConfirmDelete = true"
         size="large"
-        placeholder="Type to search"
-    /></el-col>
-    <el-button size="large" @click="$router.push('inqueiries/add')"
-      >Buat Inquiri</el-button
-    >
-    <el-button
-      v-if="tmpInquiries.length > 0"
-      @click="dialogConfirmDelete = true"
-      size="large"
-      type="danger"
-      >Hapus</el-button
-    >
-  </el-row>
-  <customTable
-    :column-sort="onSort"
-    :columns="filteredColumn"
-    :data="data?.data ?? []"
-  />
-  <div class="flex justify-end mt-3">
-    <el-pagination background layout="prev, pager, next" :total="data?.total_data" @next-click="paginationClick" @prev-click="paginationClick" @change="paginationClick" />
-  </div>
-  <el-dialog v-model="dialogConfirmDelete" title="Tips" width="500">
-    <span>This is a message</span>
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="dialogConfirmDelete = false">Batal</el-button>
-        <el-button type="primary" @click="deleteBulk"> Hapus </el-button>
-      </div>
-    </template>
-  </el-dialog>
+        type="danger"
+        >Hapus</el-button
+      >
+    </el-row>
+    <customTable
+      :column-sort="onSort"
+      :columns="filteredColumn"
+      :data="data?.data ?? []"
+    />
+    <div class="flex justify-end mt-3">
+      <el-pagination background layout="prev, pager, next" :total="data?.total_data" @next-click="paginationClick" @prev-click="paginationClick" @change="paginationClick" />
+    </div>
+    <el-dialog v-model="dialogConfirmDelete" title="Tips" width="500">
+      <span>This is a message</span>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="dialogConfirmDelete = false">Batal</el-button>
+          <el-button type="primary" @click="deleteBulk"> Hapus </el-button>
+        </div>
+      </template>
+    </el-dialog>
+  </TrumsWrapper>
 </template>

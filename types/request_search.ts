@@ -6,7 +6,8 @@ export enum OrderColumn {
 export type RequestSearch = {
     keyword: string,
     table: string,
-    column: any | null,
+    column: any[] | null,
+    filter?: any,
     sort: {
         column: string,
         order: string

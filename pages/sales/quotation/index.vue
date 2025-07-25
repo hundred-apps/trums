@@ -1,32 +1,30 @@
-<script lang="tsx" setup>
-import { ElButton, ElCheckbox, ElIcon, ElPopconfirm, ElPopover, type CheckboxValueType, type Column, type SortBy } from 'element-plus';
+<script setup lang="tsx">
+  import { NuxtLink, TrumsWrapper } from '#components';
+  import { InfoFilled, SetUp } from '@element-plus/icons-vue'
+import { ElButton, ElCheckbox, ElPopconfirm, type CheckboxValueType, type Column, type SortBy } from 'element-plus';
 import type { FunctionalComponent } from 'vue';
-import type { Pricelist } from '~/types/pricelist';
-import { OrderColumn, type RequestSearch } from '~/types/request_search';
+import type { Quotation } from '~/types/quotation';
+  import { OrderColumn, type RequestSearch } from '~/types/request_search';
 import type { ResponsePagination } from '~/types/response_pagination';
 import CustomTable from '~/components/trums/table/customTable.vue';
-import type { Catalogue } from '~/types/catalogue';
-import { Filter } from '@element-plus/icons-vue';
-import { NuxtLink } from '#components';
-import { InfoFilled, SetUp } from '@element-plus/icons-vue'
-import type { Pricetag } from '~/types/pricetag';
   definePageMeta({
-    middleware: ["auth", "app"],
+      middleware: ["auth", "app"],
   });
 
   const router = useRouter();
   const loading = ref<boolean>(false);
-  const popoverRef = ref();
+
   const request_search = ref<RequestSearch>({
     keyword: '',
     column: [
       {
         location_id: [],
+        contact_id: [],
       }
     ],
     limit: "10",
     offset: "1",
-    table: 'pricetag',
+    table: 'offers',
     sort: {
       column: 'created_at',
       order: OrderColumn.ASC,
@@ -36,11 +34,11 @@ import type { Pricetag } from '~/types/pricetag';
   const fetchData = async () => {
     loading.value = true;
     try {
-      const response = await useFetchApi<ResponsePagination<Pricetag[]>>(`/search`, 'Pricetag', 'post', request_search.value);
+      const response = await useFetchApi<ResponsePagination<Quotation[]>>(`/search`, 'offers', 'post', request_search.value);
 
   
       if(response.status.value == 'success'){
-        data.value = response.data.value as ResponsePagination<Pricetag[]>;
+        data.value = response.data.value as ResponsePagination<Quotation[]>;
       }
     } catch (error: any) {
       ElMessage.error(error.response?.data?.message ?? error);
@@ -51,48 +49,10 @@ import type { Pricetag } from '~/types/pricetag';
     
   }
 
-  const locations = ref<Catalogue[]>([]);
-
-  const {data} = await useFetchApi<ResponsePagination<Pricetag[]>>(`/search`, 'pricelist', 'post', request_search.value);
-
-  const fetchLocation = async () => {
-    loading.value = true;
-    try {
-      const response = await useFetchApi<ResponsePagination<Catalogue[]>>(`/search`, 'location', 'post', {
-        keyword: '',
-        column: [
-          {
-            type: ["place"],
-          }
-        ],
-        limit: "10",
-        offset: "1",
-        table: 'catalogues',
-        sort: {
-          column: 'created_at',
-          order: OrderColumn.ASC,
-        }
-      });
-
-      
-      if(response.status.value == 'success'){
-        
-        locations.value = (response.data.value as ResponsePagination<Catalogue[]>).data;
-        
-      }
-    } catch (error: any) {
-      
-      ElMessage.error(error.response?.data?.message ?? error);
-      return [];
-    } finally {
-      loading.value = false;
-    }
-    
-  }
-
+  const {data} = await useFetchApi<ResponsePagination<Quotation[]>>(`/search`, 'offers', 'post', request_search.value);
   watch(request_search, fetchData, {immediate: true});
 
-  const availableColumn: Column<Pricetag>[] = [
+  const availableColumn: Column<Quotation>[] = [
     {
       title: 'No',
       key: 'no',
@@ -103,57 +63,56 @@ import type { Pricetag } from '~/types/pricetag';
       )
     },
     {
-      title: 'Nama',
-      key: 'name',
-      dataKey: 'name',
-      width: 200,
-    },
-    {
-      title: 'Gudang', 
-      key: 'location.name',
-      dataKey: 'location.name',
-      width: 200,
-      headerCellRenderer: () => (
-        <div class="flex items-center justify-center">
-          <span class="mr-2 text-xs">Location</span>
-          <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
-            {{
-              default: () => (
-                <div class="filter-wrapper">
-                  <div class="filter-group flex flex-col">
-                    <el-checkbox-group v-model={request_search.value.column![0].location_id}>
-                    {
-                      locations.value.map((location: Catalogue) => (
-                        <ElCheckbox 
-                          key={location.unique_id!} 
-                          value={location.unique_id!} 
-                        >
-                          {location.name}
-                        </ElCheckbox>
-                      ))
-                    }
-                  </el-checkbox-group>
-                  </div>
-                </div>
-              ),
-              reference: () => (
-                <ElIcon class="cursor-pointer">
-                  <Filter />
-                </ElIcon>
-              ),
-            }}
-          </ElPopover>
-        </div>
-      ),
-    },
-    {
-      title: 'Tanggal Berlaku', 
-      key: 'reference',
-      dataKey: 'reference',
-      width: 200,
+      title: 'Kontak',
+      key: 'contact.name',
+      dataKey: 'contact.name',
+      width: 80,
       cellRenderer: ({rowData: row}) => (
-        <>{formatLocalDate(row.start_date)}</>
+        <span>{row.contact?.name ?? '-'}</span>
       )
+    },
+    {
+      title: 'Nomor Referensi',
+      key: 'sourcing_number',
+      dataKey: 'sourcing_number',
+      width: 150,
+    },
+    {
+      title: 'Tanggal Berlaku',
+      key: 'date',
+      dataKey: 'date',
+      width: 150,
+      sortable: true,
+      cellRenderer: ({rowData: row}) => (
+        <span>{formatLocalDate(row.date)}</span>
+      )
+    },
+    {
+      title: 'Dibuat Tanggal',
+      key: 'created_at',
+      dataKey: 'created_at',
+      width: 150,
+      sortable: true,
+      cellRenderer: ({rowData: row}) => (
+        <span>{formatLocalDate(row.created_at)}</span>
+      )
+    },
+    {
+      title: 'Terakhir diubah',
+      key: 'updated_at',
+      dataKey: 'updated_at',
+      width: 150,
+      sortable: true,
+      cellRenderer: ({rowData: row}) => (
+        <span>{formatLocalDate(row.updated_at)}</span>
+      )
+    },
+    {
+      title: 'Dibuat Oleh',
+      key: 'created_by',
+      dataKey: 'created_by',
+      width: 150,
+      
     },
     {
       title: 'Operasi',
@@ -185,8 +144,14 @@ import type { Pricetag } from '~/types/pricetag';
         </>
       ),
     },
+  ];
+
+  const handleEdit = (data: Quotation) => {
     
-  ]
+  }
+  const handleDelete = (data: string[]) => {
+
+  }
 
   type SelectionCellProps = {
     value: boolean
@@ -236,31 +201,6 @@ import type { Pricetag } from '~/types/pricetag';
     },
   })
 
-  const handleDelete = async (ids: string[]) => {
-    loading.value = true;
-    try {
-      
-      const response = await useFetchApi(`/pricetag-delete`, "pricelist", 'post', ids);
-      if(response.status.value == 'success'){
-        await refreshNuxtData('Pricetag');
-        ElMessage.success('Data Berhasil Dihapus');
-      }
-    } catch (error: any) {
-      ElMessage.error(`${error.response?.data?.message}`);
-    } finally {
-      loading.value = false;
-    }
-  }
-
-  
-
-  const handleEdit = (data: Pricetag) => {
-    const cookie = useCookie('tag_id');
-    cookie.value = data.unique_id;
-    
-    router.push('/sales/pricelist/add');
-  }
-
   const onSort = (sortBy: SortBy) => {
     console.log('sort', sortBy.key);
     console.log(request_search.value);
@@ -279,32 +219,17 @@ import type { Pricetag } from '~/types/pricetag';
     request_search.value = data;
 
   }
-
-  const checkSelect = () => data?.value?.data.some((row) => row.checked);
-
-  const deleteBulk = () => {
-    const checkeds = data.value?.data.filter((value) => value.checked);
-    handleDelete(checkeds?.map((value) => value.unique_id) ?? [])
-    
-  }
-
-  onMounted(() => {
-    fetchLocation();
-  })
-
 </script>
+
 <template>
-  <TrumsWrapper>
-    <div class="w-auto">
+    <TrumsWrapper>
+      <div class="w-auto">
       <el-row :gutter="20" class="mb-3">
         <el-col :span="6"><el-input v-model="request_search.keyword"  size="default" placeholder="Type to search" /></el-col>
-        <NuxtLink href="/sales/pricelist/add" @click="() => {
-          const cookie = useCookie('tag_id');
-          cookie.value = null;
-        }" class="el-button el-button--default">Buat Pricelist</NuxtLink>
+        <NuxtLink href="/sales/quotation/add" class="el-button el-button--default">Buat Penawaran</NuxtLink>
         <el-popconfirm
           
-          v-if="checkSelect()"
+          
           width="220"
           :icon="InfoFilled"
           icon-color="#626AEF"
@@ -319,7 +244,7 @@ import type { Pricetag } from '~/types/pricetag';
             <el-button
               type="danger"
               size="small"
-              @click="deleteBulk"
+              @click="() => {}"
             >
               Hapus
             </el-button>
@@ -331,5 +256,5 @@ import type { Pricetag } from '~/types/pricetag';
         <el-pagination background layout="prev, pager, next" :total="data?.total_data" @next-click="paginationClick" @prev-click="paginationClick" @change="paginationClick" />
       </div>
     </div>
-  </TrumsWrapper>
+    </TrumsWrapper>
 </template>

@@ -1,0 +1,37 @@
+export type Quotation = {
+    unique_id: string,
+    contact_id: string,
+    contact_name?: string,
+    contact_version: number,
+    type: "in"|"out",
+    sourcing_number: string,
+    date_string: string,
+    location_id: string,
+    location_name?: string,
+    date?: number,
+    warranty: number,
+    warranty_unit: "day"|"month"|"year",
+    discount: number,
+    discount_unit: "percent"|"amount",
+    created_at: number,
+    created_by: number,
+    updated_at: number,
+    version: number,
+    note: string,
+    items: Quotation_item[],
+    checked?: boolean,
+}
+
+
+export type Quotation_item = {
+    unique_id: string,
+    catalogue_id: string,
+    catalogue_name?: string,
+    offer_id: string,
+    quantity: number,
+    price: number,
+    version: number,
+    created_at: number,
+    created_by: number,
+    updated_at: number,
+}

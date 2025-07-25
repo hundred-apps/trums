@@ -19,4 +19,13 @@ export type People = {
   position: string | null;
   departement: string | null;
   photo: string | null;
+  version: number,
 };
+
+
+export type PeopleAndTeam = {
+  type: string,
+  unique_id: string,
+  name: string,
+  version: number,
+}

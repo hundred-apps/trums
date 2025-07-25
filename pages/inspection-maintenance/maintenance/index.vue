@@ -6,6 +6,9 @@
   import { CircleCheckFilled, CircleClose, Eleme, Filter, SetUp } from '@element-plus/icons-vue'
   import CustomTable from '~/components/trums/table/customTable.vue';
   import type { SelectionCellProps } from '~/types/selection_cell_prop';
+import { OrderColumn, type RequestSearch } from '~/types/request_search';
+import type { ResponsePagination } from '~/types/response_pagination';
+import { NuxtLink } from '#components';
   definePageMeta({
         middleware: ["auth", "app"],
   });
@@ -24,9 +27,41 @@ const filterMaintenanceType = ref<[]>([]);
 const popoverRef = ref();
 const dataPerPage = ref(10);
 
+const request_search = ref<RequestSearch>({
+  keyword: '',
+  column: [],
+  limit: "10",
+  offset: "1",
+  table: 'maintenances',
+  sort: {
+    column: 'created_at',
+    order: OrderColumn.ASC,
+  }
+});
+
+const fetchData = async () => {
+    loading.value = true;
+    try {
+      const response = await useFetchApi<ResponsePagination<Maintenance[]>>(`/search`, 'maintenances', 'post', request_search.value);
+
+      if(response.status.value == 'success'){
+        console.log(response.data.value?.data);
+        data.value = response.data.value as ResponsePagination<Maintenance[]>;
+      }
+    } catch (error: any) {
+      ElMessage.error(`${error.response?.data?.message ?? 'Gagal Mengambil Data!'}`);
+      return [];
+    } finally {
+      loading.value = false;
+    }
+    
+  }
+
   const axios = useApi();
 
-  const column_selected = ref<string[]>(['selection', 'unique_code', 'catalogue', 'responsible', 'priority', 'status', 'operation', 'setup']);
+  const {data} = await useFetchApi<ResponsePagination<MainInstance[]>>(`/search`, 'maintenances', 'post', request_search.value);
+
+  const column_selected = ref<string[]>(['selection', 'unique_code', 'inventory', 'responsible', 'priority', 'status', 'operation', 'setup']);
 
   const filteredColumn = computed(() => {
     return columnMaintenance.filter(col => column_selected.value.includes(col.key!.toString()));
@@ -38,16 +73,18 @@ const dataPerPage = ref(10);
         title: 'Unique Code',
         dataKey: 'unique_code',
         width: 250,
+        cellRenderer: ({rowData: row}) => (<NuxtLink href={`maintenance/${row.unique_id}`}>{row.unique_code}</NuxtLink>)
       },
       {
-        key: 'catalogue',
+        key: 'inventory',
         title: 'Item',
-        dataKey: 'catalogue.name',
+        dataKey: 'inventory',
         width: 250,
+        cellRenderer: ({rowData: row}) => (<p>{row.inventory?.catalogue?.name ?? '-'}</p>)
       },
       {
         key: 'responsible',
-        title: 'PIC',
+        title: 'Penanggung Jawab',
         dataKey: 'responsible.name',
         width: 250,
       },
@@ -73,15 +110,17 @@ const dataPerPage = ref(10);
         dataKey: 'priority',
         width: 250,
         sortable: true,
-        cellRenderer: ({rowData: row}) => (<ElText>{row.priority}</ElText>)
-      },
-      {
-        key: 'type',
-        title: 'Type Maintenance',
-        dataKey: 'type',
-        width: 250,
-        sortable: true,
-        cellRenderer: ({rowData: row}) => (<ElText>{row.type}</ElText>)
+        cellRenderer: ({rowData: row}) => {
+          if(row.priority == 'low'){
+            return <el-tag type="primary">{(row.priority ?? '').toUpperCase()}</el-tag>
+          }else if(row.priority == 'medium'){
+            return <el-tag type="success">{(row.priority ?? '').toUpperCase()}</el-tag>
+          }else if(row.priority == 'high'){
+            return <el-tag type="danger">{(row.priority ?? '').toUpperCase()}</el-tag>
+          }else {
+            return <el-tag type="primary">{(row.priority ?? '').toUpperCase()}</el-tag>
+          }
+        }
       },
       {
         key: 'start_date',
@@ -105,13 +144,13 @@ const dataPerPage = ref(10);
         )
       },
       {
-        key: 'is_repeate',
-        title: 'Maintenance',
+        key: 'type',
+        title: 'Type Maintenance',
         width: 250,
         cellRenderer: ({rowData: row}) => (
           row.type == 'corrective' ? 
-          <ElTag type="info">{row.type.toUpperCase()}</ElTag> : 
-          <ElTag type="warning">{row.type.toUpperCase()}</ElTag>
+          <ElTag type="info">{(row.type ?? '').toUpperCase()}</ElTag> : 
+          <ElTag type="warning">{(row.type ?? '').toUpperCase()}</ElTag>
         ),
         headerCellRenderer: () => (<div class="flex items-center justify-center">
           <span class="mr-2 text-xs">Maintenance</span>
@@ -206,25 +245,25 @@ const dataPerPage = ref(10);
             }}
           </ElPopover>
         </div>)
-      },
-      {
-        key: 'operations',
-        title: 'Operations',
-        cellRenderer: ({rowData: row}) => (
-          <>
-            <ElButton size="small" onClick={() => onEdit(row)} >Edit</ElButton>
-            <ElButton size="small" type='danger' onClick={() => onDelete(row)} >Hapus</ElButton>
-          </>
-        ),
-        width: 150,
-        align: 'center',
-      },
-      {
-        title: '',
-        key: 'setup',
-        width: 50,
-        fixed: TableV2FixedDir.RIGHT,
-      }
+  },
+  {
+    key: 'operations',
+    title: 'Operations',
+    cellRenderer: ({rowData: row}) => (
+      <>
+        <ElButton size="small" onClick={() => onEdit(row)} >Edit</ElButton>
+        <ElButton size="small" type='danger' onClick={() => onDelete(row)} >Hapus</ElButton>
+      </>
+    ),
+    width: 150,
+    align: 'center',
+  },
+  {
+    title: '',
+    key: 'setup',
+    width: 50,
+    fixed: TableV2FixedDir.RIGHT,
+  }
   ]
 
 const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
@@ -326,17 +365,8 @@ const onEdit = async (value: MainInstance) => {
 };
 
 const fetchMaintenances = async () => {
-  loading.value = true;
-  try {
-    const response = await axios.get("/maintenances-read");
-    if (response.status == 200) {
-      paginations.value = response.data.data;
-    }
-  } catch (error: any) {
-    ElMessage.error(`${error.response?.data?.message}`);
-  } finally {
-    loading.value = false;
-  }
+  // refreshNuxtData('maintenances');
+  fetchData();
 };
 
 const onSort = ({ key, order }: SortBy) => {
@@ -348,17 +378,19 @@ const onSort = ({ key, order }: SortBy) => {
 };
 
 onMounted(() => {
-  fetchMaintenances();
+  // fetchMaintenances();
 });
 </script>
 <template>
-  <el-row :gutter="20" class="mb-3">
-    <el-col :span="6"><el-input v-model="search" size="large" placeholder="Type to search" /></el-col>
-    <el-button size="large" @click="$router.push('maintenance/add')">New Maintenance</el-button>
-    <el-button size="large" @click="fetchMaintenances" :loading-icon="Eleme" :loading="loading">Reload Data</el-button>
-  </el-row>
-  <CustomTable :columns="filteredColumn" :data="paginations?.query ?? []" :column-sort="onSort" :sort-state="sortState" />
-  <div class="flex justify-end mt-3">
-    <el-pagination background layout="prev, pager, next" :total="paginations?.total_page" />
-  </div>
+  <TrumsWrapper>
+    <el-row :gutter="20" class="mb-3">
+      <el-col :span="6"><el-input v-model="search" size="large" placeholder="Type to search" /></el-col>
+      <el-button size="large" @click="$router.push('maintenance/add')">New Maintenance</el-button>
+      <el-button size="large" @click="fetchMaintenances" :loading-icon="Eleme" :loading="loading">Reload Data</el-button>
+    </el-row>
+    <CustomTable :columns="filteredColumn" :data="data?.data ?? []" :column-sort="onSort" :sort-state="sortState" />
+    <div class="flex justify-end mt-3">
+      <el-pagination background layout="prev, pager, next" :total="paginations?.total_page" />
+    </div>
+  </TrumsWrapper>
 </template>

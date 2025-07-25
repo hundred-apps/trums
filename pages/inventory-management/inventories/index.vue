@@ -106,14 +106,36 @@ import { NuxtLink } from '#components';
     return availableColumn.filter(col => column_selected.value.includes(col.key!.toString()));
   });
 
+
+
   const loading = ref<boolean>(false);
+
+  interface FilterModel {
+    location_id: string[],
+    is_traceable: boolean[],
+    unit_id: string[]
+  }
+
+  const filters = ref<FilterModel>({
+    is_traceable: [],
+    location_id: [],
+    unit_id: [],
+  })
+  
   const request_search = ref<RequestSearch>({
     keyword: '',
     column: [
       {
-        is_traceable: [],
+        location_id: [""],
+        is_traceable: [""],
+        unit_id: [""],
       }
     ],
+    filter: {
+      quantity: {
+        min: 1
+      }
+    },
     limit: "10",
     offset: "1",
     table: 'inventories',
@@ -168,12 +190,12 @@ import { NuxtLink } from '#components';
               default: () => (
                 <div class="filter-wrapper">
                   <div class="filter-group flex flex-col">
-                    <el-checkbox-group v-model={request_search.value.column[0].location_id}>
+                    <el-checkbox-group v-model={request_search.value.column![0].location_id}>
                     {
-                      locations.value.map((location: Catalogue) => (
+                      locations.value.map((location: Catalogue, index: number) => (
                         <ElCheckbox 
-                          key={location.unique_id!} 
-                          value={location.unique_id!} 
+                          key={location.unique_id ?? index} 
+                          value={location.unique_id ?? index} 
                         >
                           {location.name}
                         </ElCheckbox>
@@ -193,7 +215,7 @@ import { NuxtLink } from '#components';
         </div>
       ),
       cellRenderer: ({rowData: row}) => (<>
-        <NuxtLink class={`text-blue-600`} href={`/inventory-management/location/${row.location.unique_id}`}>{row.location.name}</NuxtLink>
+        <NuxtLink class={`text-blue-600`} href={`/inventory-management/location/${row.location.unique_id ?? ''}`}>{row.location.name}</NuxtLink>
       </>)
     },
     {
@@ -223,7 +245,7 @@ import { NuxtLink } from '#components';
               default: () => (
                 <div class="filter-wrapper">
                   <div class="filter-group flex flex-col">
-                    <el-checkbox-group v-model={request_search.value.column[0].unit_id}>
+                    <el-checkbox-group v-model={request_search.value.column![0].unit_id}>
                     {
                       units.value.map((unit: Unit) => (
                         <ElCheckbox 
@@ -276,10 +298,10 @@ import { NuxtLink } from '#components';
               default: () => (
                 <div class="filter-wrapper">
                   <div class="filter-group flex flex-col">
-                    <ElCheckbox value={true} v-model={request_search.value.column[0].is_traceable}>
+                    <ElCheckbox value={true} v-model={request_search.value.column![0].is_traceable}>
                       Traceable
                     </ElCheckbox>
-                    <ElCheckbox value={false} v-model={request_search.value.column[0].is_traceable}>
+                    <ElCheckbox value={false} v-model={request_search.value.column![0].is_traceable}>
                       Not Traceable
                     </ElCheckbox>
                   </div>
@@ -478,23 +500,25 @@ import { NuxtLink } from '#components';
 
 </script>
 <template>
-  <div class="w-auto">
-    <el-row :gutter="20" class="mb-3">
-      <el-col :span="6"><el-input v-model="request_search.keyword"  size="large" placeholder="Type to search" /></el-col>
-      <el-button size="large" @click="() => {
-        const unique_id = useCookie('unique_id');
-        unique_id.value = null;
-        $router.push('inventories/add');
-      }">New Inventory</el-button>
-      <el-button size="large" @click="() => {
-        fetchData();
-      }"><el-icon class="mr-3"><RefreshLeft /></el-icon> Muat Ulang</el-button>
-      <NuxtLink class="el-button el-button--large" href="/inventory-management/inventories/opname">Stok Opname</NuxtLink>
-    </el-row>
-    <CustomTable :column-sort="onSort" :columns="filteredColumn" :data="data?.data ?? []"  />
-    <div class="flex justify-end mt-3">
-      <el-pagination background layout="prev, pager, next" :total="data?.total_data" @next-click="paginationClick" @prev-click="paginationClick" @change="paginationClick" />
+  <TrumsWrapper>
+      <div class="w-auto">
+      <el-row :gutter="20" class="mb-3">
+        <el-col :span="6"><el-input v-model="request_search.keyword"  size="large" placeholder="Type to search" /></el-col>
+        <el-button size="large" @click="() => {
+          const unique_id = useCookie('unique_id');
+          unique_id.value = null;
+          $router.push('inventories/add');
+        }">New Inventory</el-button>
+        <el-button size="large" @click="() => {
+          fetchData();
+        }"><el-icon class="mr-3"><RefreshLeft /></el-icon> Muat Ulang</el-button>
+        <NuxtLink class="el-button el-button--large" href="/inventory-management/inventories/opname">Stok Opname</NuxtLink>
+      </el-row>
+      <CustomTable :column-sort="onSort" :columns="filteredColumn" :data="data?.data ?? []"  />
+      <div class="flex justify-end mt-3">
+        <el-pagination background layout="prev, pager, next" :total="data?.total_data" @next-click="paginationClick" @prev-click="paginationClick" @change="paginationClick" />
+      </div>
     </div>
-  </div>
+  </TrumsWrapper>
 </template>
 

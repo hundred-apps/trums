@@ -49,12 +49,22 @@
       sort: null,
     })
 
-    const dataTable = ref(
-        Array.from({ length: 5 }, (_, i) => ({
-          id: i + 1,
+    const dataTable = ref<{
+          id: string|null,
+          item: string,
+          item_id: string|null,
+          quantity: number,
+          sn: string|null,
+          unit_id: string
+          ,
+          unit_name: string,
+          is_traceable: boolean,
+        }[]>(
+        Array.from({ length: 1 }, (_, i) => ({
+          id: null,
           item: '',
           item_id: null,
-          quantity: '1',
+          quantity: 1,
           sn: null,
           unit_id: '',
           unit_name: '',
@@ -153,6 +163,13 @@
         title: 'Nomor Maintenance',
         dataKey: 'unique_code',
         width: 150,
+      },
+      {
+        key: 'inventory',
+        title: 'Item',
+        dataKey: 'inventory',
+        width: 250,
+        cellRenderer: ({rowData: row}) => (<p>{row.inventory?.catalogue?.name ?? '-'}</p>)
       },
       {
         key: 'maintenance_date',
@@ -262,7 +279,7 @@
               catalogue_name: element.item ?? '',
               unit_id: element.unit_id ?? '',
               unit_name: element.unit_name ?? '',
-              quantity: parseInt(element.quantity),
+              quantity: parseInt(element.quantity.toString()),
               sn: element.sn ?? '',
             });
           }
@@ -342,6 +359,20 @@
         const maintenance = data as Maintenance;
         ruleForm.reference_id = maintenance.unique_id;
         ruleForm.reference_view = maintenance.unique_code;
+        ruleForm.location_id = maintenance.location_id ?? '';
+        ruleForm.location_view = maintenance.location?.name ?? '';
+        console.log(maintenance);
+
+        dataTable.value = (maintenance.maintenance_item ?? []).map((value) => ({
+          id: null,
+          item: value.inventory_name ?? '',
+          item_id: value.inventory?.catalogue_id ?? '',
+          quantity: value.quantity ?? 1,
+          sn: value.inventory?.sn,
+          unit_id: value.unit_id ?? '',
+          unit_name: value.unit_name ?? '',
+          is_traceable: false,
+        }));
       }
 
       dialogContacts.value = false;
@@ -486,7 +517,7 @@
       const decimalRegex = /^[0-9]*\.?[0-9]*$/;
       if (!decimalRegex.test(value)) {
         const quantity = value.replace(/[^0-9.]/g, ""); // Hilangkan karakter non-angka atau titik
-        dataTable.value[scope.$index].quantity = quantity;
+        dataTable.value[scope.$index].quantity = parseInt(quantity);
       }
     };
 
@@ -498,7 +529,8 @@
 
 </script>
 <template>
-    <el-page-header @back="goBack">
+    <TrumsWrapper>
+      <el-page-header @back="goBack">
         <template #content>
             <span class="text-large font-600 mr-3"> Buat Inquiri Baru </span>
         </template>
@@ -514,30 +546,14 @@
         >
     <el-card class="my-3">
         <template #header>
-                  <div class="card-header">
-                    <el-form-item>
-                      <el-button type="primary" @click="submitForm(ruleFormRef)">Simpan</el-button>
-                      <el-button @click="resetForm(ruleFormRef)">Batal</el-button>
-                    </el-form-item>
-                  </div>
+          <div class="card-header">
+            <el-form-item>
+              <el-button type="primary" @click="submitForm(ruleFormRef)">Simpan</el-button>
+              <el-button @click="resetForm(ruleFormRef)">Batal</el-button>
+            </el-form-item>
+          </div>
         </template>
-     
-        <el-form-item label="Lokasi" prop="location_view">
-          <el-autocomplete
-                :fetch-suggestions="querySearchAsyncLocation"
-                v-model="ruleForm.location_view"
-                placeholder="Please input"
-                @select="(item: Record<string, any>) => onHandleSelectLocationAutocomplete(item)"
-              />
-        </el-form-item>  
-        <el-form-item label="Tanggal Permintaan" prop="date">
-          <el-date-picker
-            v-model="ruleForm.date!"
-            type="date"
-            placeholder="Tanggal Inquiri"
-          />
-        </el-form-item>  
-        <el-form-item label="Referensi" prop="reference">
+     <el-form-item label="Referensi" prop="reference">
           <el-select v-model="ruleForm.reference" placeholder="Masukan Referensi">
             <el-option label="Internal" value="internal" />
             <el-option label="Repair" value="repair" />
@@ -557,11 +573,27 @@
             </el-input>
           </div>
         </el-form-item>
+        <el-form-item label="Lokasi" prop="location_view">
+          <el-autocomplete
+                :fetch-suggestions="querySearchAsyncLocation"
+                v-model="ruleForm.location_view"
+                placeholder="Please input"
+                @select="(item: Record<string, any>) => onHandleSelectLocationAutocomplete(item)"
+              />
+        </el-form-item>  
+        <el-form-item label="Tanggal Permintaan" prop="date">
+          <el-date-picker
+            v-model="ruleForm.date!"
+            type="date"
+            placeholder="Tanggal Inquiri"
+          />
+        </el-form-item>  
+        
         <el-form-item label="Prioritas" label-position="right">
           <el-radio-group v-model="ruleForm.priority" aria-label="Prioritas">
             <el-radio-button value="low">Low</el-radio-button>
             <el-radio-button value="medium">Medium</el-radio-button>
-            <el-radio-button value="hight">Hight</el-radio-button>
+            <el-radio-button value="high">Hight</el-radio-button>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="Note">
@@ -633,5 +665,6 @@
         fixed
       />
     </el-dialog>
+    </TrumsWrapper>
 </template>
 

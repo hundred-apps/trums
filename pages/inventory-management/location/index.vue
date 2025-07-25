@@ -1,5 +1,6 @@
 <template>
-  <el-row :gutter="20" class="mb-3">
+  <TrumsWrapper>
+    <el-row :gutter="20" class="mb-3">
       <el-col :span="6"><el-input v-model="search" size="large" placeholder="Type to search" /></el-col>
       <el-button size="large" @click="() => handleAddNewLocation()">New Location</el-button>
   </el-row>
@@ -22,6 +23,7 @@
       </div>
       </template>
   </el-dialog>
+  </TrumsWrapper>
 </template>
 
 <script lang="tsx" setup>
