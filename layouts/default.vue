@@ -206,6 +206,9 @@
               <el-menu-item index="9-1">Menu</el-menu-item>
               <el-menu-item index="9-1">Permission</el-menu-item>
               <el-menu-item index="9-1">User Permission</el-menu-item>
+              <el-menu-item index="/master/template-document"
+                >Template Document</el-menu-item
+              >
             </el-menu-item-group>
           </el-sub-menu>
         </el-menu>
