@@ -1,12 +1,17 @@
-<script lang="ts" setup>
+
+
+<script lang="tsx" setup>
 import { ref, onMounted, watch } from "vue";
 import { type People } from "~/types/people";
 import { useApi } from "~/composables/useApi";
-import type { RequestSearch } from "~/types/request_search";
+import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import { useRouter } from "vue-router";
 import { InfoFilled, Delete, Edit } from "@element-plus/icons-vue";
 import type { ResponsePagination } from "~/types/response_pagination";
-const config = useRuntimeConfig();
+import { ElAvatar, ElButton, ElPopconfirm, ElTooltip, type Column, type SortBy } from "element-plus";
+import { NuxtLink } from "#components";
+import customTable from "~/components/trums/table/customTable.vue";
+
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -14,6 +19,8 @@ definePageMeta({
 
 const router = useRouter();
 const token = useCookie("token");
+const config = useRuntimeConfig();
+const baseImageURL = config.public.baseImageURL;
 
 const navigateToForm = (mode = "", name = "", unique_id = null) => {
   const path = name
@@ -29,21 +36,104 @@ const toggleView = () => {
   showTable.value = !showTable.value;
 };
 
-const columns = [
+const columns: Column<People>[] = [
   {
-    label: "Name",
-    prop: "name",
+    title: "Photo",
+    key: "photo",
     sortable: true,
-    fixed: true,
+    width: 100,
+    cellRenderer: ({ rowData }: { rowData: People }) =>
+      h(
+        'div',
+        { class: 'demo-basic--circle flex gap-2' },
+        [
+          // 🟢 Avatar utama
+          h('div', { class: 'block' }, [
+            h(ElAvatar, { size: 30, src: `${baseImageURL}/${rowData.photo?.image_path}/${rowData.photo?.filename}` }),
+          ]),
+        ]
+      ),
   },
   {
-    label: "Departement",
-    prop: "departement_name",
+    title: "Name",
+    key: "name",
+    sortable: true,
+    width: 300,
+    cellRenderer: ({ rowData: row }) => (
+      <NuxtLink href={`/human-capital-management/people/${row.unique_id}`} class={"text-blue-600"}>
+        {row.name}
+      </NuxtLink>
+    ),
   },
   {
-    label: "Position",
-    prop: "position_name",
+    title: "Email",
+    key: "email",
+    width: 100,
   },
+  {
+    title: "Phone",
+    key: "phone",
+    width: 100,
+  },
+  {
+    title: "Departement",
+    key: "departement_name",
+    width: 100,
+  },
+  {
+    title: "Position",
+    key: "position_name",
+    width: 100,
+    
+  },
+  {
+    title: "Aksi",
+    key: "action",
+    width: 100,
+    cellRenderer: ({ rowData }: any) =>
+      h('div', { class: 'flex justify-center gap-2' }, [
+        // 🟡 Tombol Edit dengan Tooltip
+        h(
+          ElTooltip,
+          {
+            content: 'Edit',
+            placement: 'top'
+          },
+          {
+            default: () => 
+              h(ElButton, {
+                type: 'warning',
+                icon: Edit,
+                circle: true,
+                plain: true,
+                onClick: () => navigateToForm('update', rowData.name, rowData.unique_id),
+              })
+          }
+        ),
+
+        // 🔴 Tombol Delete dengan Popconfirm (tanpa nested Tooltip)
+        h(
+          ElPopconfirm,
+          {
+            title: 'Are you sure to delete this?',
+            'confirm-button-text': 'Yes',
+            'cancel-button-text': 'No',
+            icon: InfoFilled,
+            'icon-color': '#626AEF',
+            onConfirm: () => handleDelete(rowData),
+          },
+          {
+            reference: () => 
+              h(ElButton, {
+                type: 'danger',
+                icon: Delete,
+                circle: true,
+                plain: true,
+              })
+          }
+        ),
+      ]),
+  }
 ];
 
 const handleSelectionChange = (selection: any[]) => {
@@ -58,22 +148,18 @@ const currentPage = ref(1);
 
 const request_search = ref<RequestSearch>({
   keyword: "",
-  column: null,
+  column: [],
   sort: null,
-  limit: limit,
-  offset: currentPage,
+  limit: `${limit.value}`,
+  offset: `${currentPage.value}`,
   table: "people",
 });
 
-const { data } = await useFetch<ResponsePagination<People[]>>(
-  `${config.public.baseURL}/search`,
-  {
-    key: "",
-    method: "post",
-    body: request_search.value,
-    headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
-  }
-);
+const { data } = await useFetchApi<ResponsePagination<People[]>>('/search', 'search-people', 'post', request_search.value);
+
+
+watch(request_search.value, () => refreshNuxtData('search-people'), {immediate: true});
+
 const fetchData = async () => {
   const { data: newData } = await useFetch<ResponsePagination<People[]>>(
     `${config.public.baseURL}/search`,
@@ -135,8 +221,21 @@ const handleSizeChange = (val: number) => {
   loading.value = true;
 };
 const handleCurrentChange = (val: number) => {
-  currentPage.value = val;
+  // currentPage.value = val;
+  request_search.value.offset = val.toString();
 };
+
+const onSort = (sortBy: SortBy) => {
+  console.log('sort', sortBy.key);
+  console.log(request_search.value);
+  const data:RequestSearch = {...request_search.value};
+  data.sort = {
+    column: sortBy.key.toString(),
+    order: request_search.value.sort?.order == OrderColumn.ASC ? OrderColumn.DESC : OrderColumn.ASC
+  };
+  request_search.value = data;
+
+}
 
 // onMounted(async () => {
 //   await fetchData();
@@ -161,67 +260,13 @@ const handleCurrentChange = (val: number) => {
         >New People</el-button
       >
     </el-row>
-    <el-table
-      class="w-screen"
-      @selection-change="handleSelectionChange"
-      :data="data?.data"
-      :loading="loading"
-    >
-      <el-table-column type="selection" width="55" />
-      <el-table-column
-        v-for="col in columns"
-        :key="col.prop || col.label"
-        :prop="col.prop"
-        :label="col.label"
-        :sortable="col.sortable"
-        :fixed="col.fixed"
-      >
-      </el-table-column>
-      <el-table-column fixed="right" label="Operations" width="150">
-        <template #default="scope">
-          <el-tooltip placement="top">
-            <template #content>Edit</template>
-            <el-button
-              type="warning"
-              :icon="Edit"
-              circle
-              @click="
-                navigateToForm('update', scope.row.name, scope.row.unique_id)
-              "
-              plain
-            />
-          </el-tooltip>
-
-          <el-popconfirm
-            confirm-button-text="Yes"
-            cancel-button-text="No"
-            :icon="InfoFilled"
-            icon-color="#626AEF"
-            title="Are you sure to delete this?"
-            @confirm="handleDelete(scope.row)"
-            @cancel="() => {}"
-          >
-            <template #reference>
-              <el-tooltip placement="top">
-                <template #content>Delete</template>
-                <el-button type="danger" :icon="Delete" circle plain />
-              </el-tooltip>
-            </template>
-          </el-popconfirm>
-        </template>
-      </el-table-column>
-    </el-table>
-    <div class="flex justify-end">
-      <el-pagination
-        class="my-3"
-        v-model:page-size="limit"
-        :page-sizes="[10, 20, 30, 40]"
-        background
-        layout="total, sizes, prev, pager, next"
-        :total="data?.total_data"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-      />
+    <customTable
+      :column-sort="onSort"
+      :columns="columns"
+      :data="data?.data ?? []"
+    />
+    <div class="flex justify-end mt-3">
+      <el-pagination background layout="prev, pager, next" :total="data?.total_data" @next-click="handleCurrentChange" @prev-click="handleCurrentChange" @change="handleCurrentChange" />
     </div>
   </TrumsWrapper>
 </template>

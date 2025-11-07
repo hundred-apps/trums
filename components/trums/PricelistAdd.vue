@@ -171,7 +171,7 @@ import type { Pricelist } from '~/types/pricelist';
     const requestSearchLocation = ref<RequestSearch>({
       keyword: "",
       table: "",
-      column: null,
+      column: [],
       sort: null,
       limit: "50",
       offset: "1",
@@ -564,7 +564,7 @@ import type { Pricelist } from '~/types/pricelist';
           pricelist_item: tableItem.value.map((value) => ({
             inventory_id: value.unique_id,
             inventory_version: value.version,
-            selling_price: parseInt(value.selling_price),
+            selling_price: parseInt(`${value.selling_price ?? '0'}`),
             stok: value.quantity,
           })),
         }

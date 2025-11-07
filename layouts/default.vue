@@ -11,8 +11,12 @@ import {
   Money,
   Sell,
   Setting,
+  CreditCard,
+  Collection
 } from "@element-plus/icons-vue";
+import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import { useRouter } from "vue-router";
+import type { Menu } from "~/types/menu";
 
 const config = useRuntimeConfig();
 const { t } = useI18n();
@@ -27,11 +31,18 @@ const navigateToSetting = (name = "") => {
 };
 
 const user = useCookie("userdata");
+const menus = ref<Menu[]>([]);
 const nameFront = ref("");
+const icons = ElementPlusIconsVue as Record<string, any>
+
+
+const showIcon = (icon: any) => {
+  return icons[icon] || null;
+};
 
 onMounted(() => {
   userdata.value = user.value as unknown as userData;
-  // console.log()
+  menus.value = JSON.parse(localStorage.getItem('menu') ?? '[]');
 
   nameFront.value = userdata.value?.name.split(" ")[0] || "";
 });
@@ -102,9 +113,32 @@ const handleMenuClick = (menuKey: string) => {
     >
       <el-scrollbar>
         <el-menu @select="handleMenuClick">
-          <el-menu-item index="/dashboard">
-            <el-icon><icon-menu /></el-icon>
-            <span>Dashboard</span>
+          <div v-for="menu in menus" :key="menu.unique_id">
+            <el-sub-menu v-if="menu.menus && menu.menus.length > 0" :index="menu.route">
+              <template #title>
+                <el-icon v-if="showIcon(menu.icon)">
+                  <component :is="showIcon(menu.icon)" />
+                </el-icon>
+                {{menu.name}}
+              </template>
+              <el-menu-item-group>
+                <el-menu-item v-for="sub in menu.menus" :index="sub.route"
+                  >{{ sub.name }}</el-menu-item
+                >
+              </el-menu-item-group>
+            </el-sub-menu>
+            <el-menu-item v-else :index="menu.route">
+              <el-icon v-if="showIcon(menu.icon)">
+                <component :is="showIcon(menu.icon)" />
+              </el-icon>
+              <span>{{menu.name}}</span>
+            </el-menu-item>
+            
+          </div>
+          
+          <!-- <el-menu-item index="/catalogue">
+            <el-icon><Collection /></el-icon>
+            <span>Catalog</span>
           </el-menu-item>
           <el-sub-menu index="2">
             <template #title>
@@ -143,9 +177,9 @@ const handleMenuClick = (menuKey: string) => {
               <el-icon><DataAnalysis /></el-icon>Supply Chain Management
             </template>
             <el-menu-item-group>
-              <el-menu-item index="4-1">Purchase Request</el-menu-item>
-              <el-menu-item index="4-2">Canvassing</el-menu-item>
-              <el-menu-item index="4-3">Purchase Order</el-menu-item>
+              <el-menu-item index="/supply-chain-management/purchase/request">Purchase Request</el-menu-item>
+              <el-menu-item index="/supply-chain-management/canvassing">Canvassing</el-menu-item>
+              <el-menu-item index="/supply-chain-management/purchase/order">Purchase Order</el-menu-item>
               <el-menu-item index="4-4">Delivery</el-menu-item>
               <el-menu-item index="4-5">Receive</el-menu-item>
             </el-menu-item-group>
@@ -155,9 +189,12 @@ const handleMenuClick = (menuKey: string) => {
               <el-icon><Sell /></el-icon>Sales
             </template>
             <el-menu-item-group>
-              <el-menu-item index="/sales/quotation">Penawaran</el-menu-item>
+              <el-menu-item index="/sales/inquiry">Inquiry</el-menu-item>
+              <el-menu-item index="/sales/canvassing">Canvassing</el-menu-item>
+              <el-menu-item index="/sales/quotation">RAB</el-menu-item>
+              <el-menu-item index="/sales/offer">Penawaran</el-menu-item>
               <el-menu-item index="/sales/pricelist">Pricelist</el-menu-item>
-              <el-menu-item index="5-2">Order</el-menu-item>
+              <el-menu-item index="/sales/order">Order</el-menu-item>
               <el-menu-item index="5-3">Contract</el-menu-item>
               <el-menu-item index="5-4">Project</el-menu-item>
             </el-menu-item-group>
@@ -167,12 +204,15 @@ const handleMenuClick = (menuKey: string) => {
               <el-icon><Money /></el-icon>Finance Management
             </template>
             <el-menu-item-group>
+              <el-menu-item index="/finance-management/accounts"
+                >Account</el-menu-item
+              >
               <el-menu-item index="/finance-management/assets"
                 >Assets</el-menu-item
               >
-              <el-menu-item index="6-1">Bill</el-menu-item>
-              <el-menu-item index="6-2">Invoice</el-menu-item>
-              <el-menu-item index="6-3">Transaction</el-menu-item>
+              <el-menu-item index="/finance-management/bill">Bill</el-menu-item>
+              <el-menu-item index="/finance-management/invoice">Invoice</el-menu-item>
+              <el-menu-item index="/finance-management/transaction">Transaction</el-menu-item>
               <el-menu-item index="6-4">Budget</el-menu-item>
             </el-menu-item-group>
           </el-sub-menu>
@@ -208,15 +248,28 @@ const handleMenuClick = (menuKey: string) => {
           </el-sub-menu>
           <el-sub-menu index="9">
             <template #title>
+              <el-icon><CreditCard /></el-icon>Bank & E-Wallet
+            </template>
+            <el-menu-item-group>
+              
+              <el-menu-item index="/bank/bank-list">Daftar Bank & E-Wallet</el-menu-item>
+              <el-menu-item index="/bank/rekening">Daftar Rekening</el-menu-item>
+            </el-menu-item-group>
+          </el-sub-menu>
+          <el-sub-menu index="10">
+            <template #title>
               <el-icon><IconMenu /></el-icon>Master
             </template>
             <el-menu-item-group>
-              <el-menu-item index="9-1">Menu</el-menu-item>
+              
+              <el-menu-item index="/master/mycompany">Perusahaan Saya</el-menu-item>
+              <el-menu-item index="/master/tax">Daftar Pajak</el-menu-item>
+              <el-menu-item index="/master/menu">Menu</el-menu-item>
               <el-menu-item index="9-2">Permission</el-menu-item>
               <el-menu-item index="9-3">User Permission</el-menu-item>
               <el-menu-item index="/master/checklist">Pengaturan Checklist</el-menu-item>
             </el-menu-item-group>
-          </el-sub-menu>
+          </el-sub-menu> -->
         </el-menu>
       </el-scrollbar>
     </el-aside>

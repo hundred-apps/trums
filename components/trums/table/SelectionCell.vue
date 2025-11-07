@@ -12,7 +12,7 @@
 import type { CheckboxValueType } from 'element-plus';
 
     const props = defineProps<{
-        value: boolean,
+        value?: boolean,
         interminate?: boolean,
         onChange: (val: CheckboxValueType) => void
     }>()

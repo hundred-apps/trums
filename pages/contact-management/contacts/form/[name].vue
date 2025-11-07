@@ -38,10 +38,13 @@
         <el-form-item label="Tipe">
           <el-checkbox v-model="ruleForm.is_personal" label="Personal" border />
           <el-checkbox
-            v-model="ruleForm.is_company"
+            v-model="ruleForm.is_company!"
             label="Perusahaan"
             border
           />
+        </el-form-item>
+        <el-form-item label="Ownership?">
+          <el-switch v-model="ruleForm.ownership" />
         </el-form-item>
         <el-form-item label="Tags" prop="tags">
           <el-input-tag
@@ -63,6 +66,69 @@
         </div>
       </template>
     </el-card>
+
+    <el-card shadow="never" class="mt-3">
+      <template #header>
+        <div class="card-header flex items-center justify-between">
+          <span>Alamat</span> 
+          <el-button type="primary" @click="() => dialogNewAddress = true" :icon="Plus">Buat Alamat Baru</el-button>
+        </div>
+      </template>
+      <el-table :data="ruleForm?.address ?? []" border>
+        <el-table-column prop="address_name" label="Nama Alamat" />
+        <el-table-column prop="street" label="Jalan" />
+        <el-table-column prop="city" label="Kecamatan" />
+        <el-table-column prop="regency" label="Kota" />
+        <el-table-column prop="province" label="Provinsi" />
+        <el-table-column prop="postal_code" label="Kode Pos" />
+        <el-table-column prop="country" label="Negara" />
+      </el-table>
+    </el-card>
+
+    <el-dialog v-model="dialogNewAddress" title="Buat Alamat Baru" width="500">
+      <el-form 
+      :model="ruleFormAddress" 
+      ref="ruleFormRefAddress"
+      :rules="rulesAddress"
+      label-width="auto">
+      
+          <el-form-item label="Nama/Label Alamat" prop="address_name">
+              <el-input v-model="ruleFormAddress.address_name" autocomplete="off"/>
+          </el-form-item>
+          <el-form-item label="Alamat" prop="address">
+              <el-autocomplete
+                  v-model="ruleFormAddress.address"
+                  :fetch-suggestions="querySearchGeolocation"
+                  :trigger-on-focus="false"
+                  clearable
+                  class="inline-input w-50"
+                  placeholder="Cari Kelurahan/Desa, Kecamatan, Kabupaten/Kota atau provinsi"
+                  @select="handleSelectGeoLocation"
+              />
+          </el-form-item>
+          <el-form-item label="Detail Alamat" prop="street">
+              <el-input v-model="ruleFormAddress.street" autocomplete="off"/>
+          </el-form-item>
+          <el-form-item label="Kode Pos" prop="codepos">
+              <el-input v-model="ruleFormAddress.codepos" autocomplete="off"/>
+          </el-form-item>
+          <el-form-item label="Latitude" prop="lat">
+              <el-input v-model="ruleFormAddress.lat" autocomplete="off"/>
+          </el-form-item>
+          <el-form-item label="Longitude" prop="lng">
+              <el-input v-model="ruleFormAddress.lng" autocomplete="off"/>
+          </el-form-item>
+          
+      </el-form>
+      <template #footer>
+          <div class="dialog-footer">
+              <el-button @click="dialogNewAddress = false">Batal</el-button>
+              <el-button type="primary" @click="() => submitFormAddress(ruleFormRefAddress)">
+              Simpan
+              </el-button>
+          </div>
+      </template>
+  </el-dialog>
   </TrumsWrapper>
 </template>
 
@@ -82,14 +148,22 @@ import {
 } from "element-plus";
 import { useApi } from "#imports";
 import { type Contact } from "~/types/contact";
+import type { AddressSearch } from "~/types/address";
+import type { ResponsePagination } from "~/types/response_pagination";
+import { Search, Plus } from "@element-plus/icons-vue";
+import { useRoute } from "vue-router";
 
 const route = useRoute();
 const router = useRouter();
 const { t } = useI18n();
+const dialogNewAddress = ref<boolean>(false);
 
 const mode = toPascalCase(route.query.mode);
 
 const goBack = () => router.back();
+const unique_id = route.query.unique_id;
+const is_company = route.query.company != undefined ? Boolean(route.query.company) : false;
+const ownership = route.query.ownership != undefined ? Boolean(route.query.ownership) : false;
 
 interface RuleForm {
   id: number;
@@ -105,13 +179,35 @@ interface RuleForm {
   website: string | null;
   title: string | null;
   tags: string | [] | null;
+  ownership: boolean;
+  address: formAddress[]
+}
+
+interface formAddress {
+    contact_id?: string,
+    contact_name?: string,
+    contact_version?: number,
+    address_id?: string,
+    address_name?: string,
+    address?: string,
+    street?: string,
+    village_id?: string,
+    village?: string,
+    city?: string,
+    regency?: string,
+    codepos?: string,
+    province?: string,
+    country?: string,
+    lat?: string,
+    lng?: string,
+    
 }
 const ruleForm = reactive<RuleForm>({
   id: 1,
   unique_id: "",
   unique_code: "",
   is_personal: false,
-  is_company: false,
+  is_company: is_company,
   internal_id: 1,
   name: "",
   email: "",
@@ -120,6 +216,8 @@ const ruleForm = reactive<RuleForm>({
   website: "",
   title: "",
   tags: "",
+  ownership: ownership,
+  address: []
 });
 
 const rules = reactive<FormRules<RuleForm>>({
@@ -168,6 +266,26 @@ const ruleFormRef = ref<FormInstance>();
 const api = useApi();
 const loading = ref<boolean>(false);
 
+const ruleFormRefAddress = ref<FormInstance>();
+const ruleFormAddress = reactive<formAddress>({});
+
+const rulesAddress = reactive<FormRules<formAddress>>({
+    address_name: [{ required: true, message: "Masukan Nama/Label Alamat", trigger: "blur" }],
+    street: [{ required: true, message: "Masukan Detail", trigger: "blur" }],
+    codepos: [{ required: true, message: "Masukan Kode Pos", trigger: "blur" }],
+    address: [{ required: true, message: "Masukan Alamant", trigger: "blur" }],
+    village_id: [
+        { required: true, message: "Masukan Desa/Kelurahan", trigger: "blur" },
+    ],
+    village: [{ required: true, message: "Masukan Desa/Kelurahan", trigger: "blur" }],
+    city: [{ required: true, message: "Masukan Kecamatan", trigger: "blur" }],
+    regency: [{ required: true, message: "Masukan Kota/Kabupaten", trigger: "blur" }],
+    province: [{ required: true, message: "Masukan Provinsi", trigger: "blur" }],
+    lat: [{ required: true, message: "Masukan Latitude", trigger: "blur" }],
+    lng: [{ required: true, message: "Masukan Longitude", trigger: "blur" }],
+    
+});
+
 const resetForm = (formEl: FormInstance | undefined) => {
   formEl?.resetFields();
   ruleForm.name = "";
@@ -181,7 +299,7 @@ const resetForm = (formEl: FormInstance | undefined) => {
   ruleForm.tags = "";
 };
 
-const unique_id = route.query.unique_id;
+
 
 const submit = async (formEl: FormInstance | undefined) => {
   loading.value = true;
@@ -197,6 +315,20 @@ const submit = async (formEl: FormInstance | undefined) => {
       is_company: ruleForm.is_company,
       tags: ruleForm.tags?.toString(),
       unique_id: ruleForm.unique_id,
+      ownership: ruleForm.ownership,
+      address: ruleForm.address.map((value) => ({
+            "address_name": value.address_name,
+            "street": value.street,
+            "village_id": value.village_id,
+            "village": value.village,
+            "city": value.city,
+            "regency": value.regency,
+            "province": value.province,
+            "country": "indonesia",
+            "codepos": value.codepos,
+            "lat": value.lat,
+            "lng": value.lng
+      }))
     });
     if (response.status == 201) {
       if (unique_id == null) {
@@ -204,7 +336,7 @@ const submit = async (formEl: FormInstance | undefined) => {
       } else {
         ElMessage.success(`Berhasil Mengedit contact`);
       }
-      router.push("/contact-management/contacts");
+      goBack();
     }
   } catch (error: any) {
     if (unique_id !== null) {
@@ -226,6 +358,69 @@ const submitForm = async (formEl: FormInstance | undefined) => {
     }
   });
 };
+
+const querySearchGeolocation = (queryString: string, cb: (arg: any) => void) => {
+        
+    useFetchApi<ResponsePagination<AddressSearch[]>>('/search-indonesia', 'address', 'post', {keyword: queryString, limit: 500, offset: 1}).then((response) => {
+        if(response.status.value == 'success'){
+            
+            const resultApi: AddressSearch[]  = response.data.value?.data!;
+            
+            if(resultApi.length > 0){
+
+                cb(resultApi.map((value) => ({ ...value, value: value.name })));
+            }
+        }
+    })
+
+}
+
+const handleSelectGeoLocation = (record: Record<string, any>) => {
+    if(record.new){
+        dialogNewAddress.value = true;
+    }else{
+        console.log(record);
+        const address: AddressSearch = record as AddressSearch;
+        const names = address.name.split(', ');
+
+        ruleFormAddress.village_id = address.id;
+        ruleFormAddress.village = names[1];
+        ruleFormAddress.city = names[2];
+        ruleFormAddress.regency = names[3];
+        ruleFormAddress.province = names[4];
+    }
+}
+
+const submitFormAddress = async (formEl: FormInstance | undefined) => {
+    if (!formEl) return
+    await formEl.validate((valid, fields) => {
+        if (valid) {
+
+            const addressToSign: formAddress = {
+              address_name: ruleFormAddress.address_name,
+              street: ruleFormAddress.street,
+              village_id: ruleFormAddress.village_id,
+              village: ruleFormAddress.village,
+              city: ruleFormAddress.city,
+              regency: ruleFormAddress.regency,
+              province: ruleFormAddress.province,
+              country: ruleFormAddress.country,
+              lat: ruleFormAddress.lat,
+              lng: ruleFormAddress.lng,
+              codepos: ruleFormAddress.codepos,
+            }
+
+            
+            console.log(addressToSign);
+            
+            
+            ruleForm.address.push(addressToSign)
+            ruleFormRefAddress.value?.resetFields();
+        } else {
+            console.log('error submit!', fields)
+        }
+    })
+}
 const detail = async () => {
   loading.value = true;
   try {
@@ -252,6 +447,7 @@ const detail = async () => {
   }
 };
 onMounted(() => {
+  
   if (unique_id !== null) {
     detail();
   }

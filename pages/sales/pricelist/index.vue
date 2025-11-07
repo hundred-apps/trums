@@ -109,6 +109,15 @@ import type { Pricetag } from '~/types/pricetag';
       width: 200,
     },
     {
+      title: 'Owner',
+      key: 'owner',
+      dataKey: 'owner',
+      width: 200,
+      cellRenderer: ({ rowData }: { rowData: Pricetag }) => (
+        <span>{rowData.owner?.name || '-'}</span>
+      )
+    },
+    {
       title: 'Gudang', 
       key: 'location.name',
       dataKey: 'location.name',

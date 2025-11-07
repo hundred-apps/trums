@@ -1,157 +1,463 @@
-<script lang="tsx" setup>
-import { dataCanvasingExample, type Canvassing } from '~/types/canvassing';
-import type { ResponsePagination } from '~/types/response_pagination';
-import { ElButton, ElCheckbox, ElIcon, ElPopover, ElTag, ElText, type CheckboxValueType, type Column } from 'element-plus';
-import { OrderColumn, type RequestSearch } from '~/types/request_search';
-import CustomTable from '~/components/trums/table/customTable.vue';
-import type { FunctionalComponent } from 'vue';
-import type { SelectionCellProps } from '~/types/selection_cell_prop';
-import { NuxtLink } from '#components';
+<template>
+  <TrumsWrapper>
+    <!-- Statistic Cards -->
+    <el-row :gutter="16">
+      <el-col :span="6">
+        <div class="statistic-card">
+          <el-statistic :value="(data?.data ?? []).filter((item: Canvassing) => item.status === CanvassingStatus.DRAFT).length">
+            <template #title>
+              <div style="display: inline-flex; align-items: center">
+                Draft Canvassing
+              </div>
+            </template>
+          </el-statistic>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="statistic-card">
+          <el-statistic :value="(data?.data ?? []).filter((item: Canvassing) => item.status === CanvassingStatus.PENDING_APPROVAL).length">
+            <template #title>
+              <div style="display: inline-flex; align-items: center">
+                Pending Approval
+              </div>
+            </template>
+          </el-statistic>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="statistic-card">
+          <el-statistic :value="(data?.data ?? []).filter((item: Canvassing) => item.status === CanvassingStatus.CANCEL).length">
+            <template #title>
+              <div style="display: inline-flex; align-items: center">
+                Cancelled
+              </div>
+            </template>
+          </el-statistic>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="statistic-card">
+          <el-statistic :value="data?.total_data ?? 0">
+            <template #title>
+              <div style="display: inline-flex; align-items: center">
+                Total Canvassing
+              </div>
+            </template>
+          </el-statistic>
+        </div>
+      </el-col>
+    </el-row>
 
-  definePageMeta({
-    middleware: ['auth', 'app']
-  })
-
-  const request_search = ref<RequestSearch>({
-    keyword: '',
-    column: null,
-    limit: "10",
-    offset: "1",
-    table: 'inventories',
-    sort: {
-      column: 'created_at',
-      order: OrderColumn.ASC,
-    }
-  });
-
-  const dataCanvassing = ref<ResponsePagination<Canvassing[]>>({
-    currentPage: 1,
-    data: dataCanvasingExample,
-    success: true,
-    total_data: 1,
-    total_page: 1,
-  });
-
-
-  const columns: Column<Canvassing>[] = [
-    {
-      title: "Unique Code",
-      key: 'unique_code',
-      width: 150,
-      dataKey: 'unique_code',
-      cellRenderer: ({rowData: row}) => (
-        <NuxtLink href={`canvassing/detail/${row.unique_id}`}>{row.unique_code}</NuxtLink>
-      )
-    },
-    {
-      title: "Nomor Dokumen",
-      key: 'source_document',
-      width: 250,
-      dataKey: 'source_document',
-    },
-    {
-      title: "Description",
-      key: 'description',
-      width: 300,
-      dataKey: 'description',
-    },
-    {
-      title: "Status",
-      key: 'status',
-      width: 100,
-      dataKey: 'status',
-      cellRenderer: ({rowData: row}) => (
-          
-        row.status == 'draft' ? 
-        <ElTag type="primary">{'Draft'}</ElTag> : 
-        row.status == 'pending_approval' ? 
-        <ElTag type="warning">{'Menunggu Approval'}</ElTag> : 
-        row.status == 'cancel' ?
-        <ElTag type="info">{'Dibatalkan'}</ElTag> :
-        row.status == 'done' ?
-        <ElTag type="success">{'Selesai'}</ElTag> :
-        <ElTag type="primary">{row.status.toUpperCase()}</ElTag>
-
-      ),
-    },
-    {
-      key: 'operations',
-      title: 'Operations',
-      cellRenderer: ({rowData: row}) => (
-        <>
-          <ElButton size="small" onClick={() => onEdit(row)} >Edit</ElButton>
-          <ElButton size="small" type='danger' onClick={() => onDelete(row)} >Hapus</ElButton>
-        </>
-      ),
-      width: 150,
-      align: 'center',
-    },
+    <!-- Action Bar -->
+    <el-row :gutter="20" class="mb-3">
+      <el-col :span="6">
+        <el-input
+          v-model="request_search.keyword"
+          size="default"
+          placeholder="Cari canvassing..."
+          clearable 
+        />
+      </el-col>
+      <NuxtLink 
+        class="el-button el-button--primary el-button--default" 
+        href="/supply-chain-management/canvassing/add"
+      >
+        Buat Canvassing Baru
+      </NuxtLink>
+      <el-button
+        size="default"
+        :loading-icon="Eleme"
+        :loading="loading"
+        @click="fetchData"
+      >
+        Muat Ulang
+      </el-button>
+      <el-button 
+        type="danger" 
+        :disabled="!hasSelected"
+        @click="batchDelete"
+      >
+        Hapus yang Dipilih 
+      </el-button>
+    </el-row>
     
-  ]
+    <!-- Table -->
+    <CustomTable
+      :columns="filteredColumns"
+      :data="data?.data ?? []"
+      :loading="loading"
+      :column-sort="onSort"
+      @selection-change="handleSelectionChange"
+    />
 
-  const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
-      value,
-      intermediate = false,
-      onChange,
-    }) => {
-      return (
-        <ElCheckbox
-          onChange={onChange}
-          modelValue={value}
-          indeterminate={intermediate}
-        />
-      )
+    <!-- Pagination -->
+    <div class="flex justify-end mt-3">
+      <el-pagination
+        background
+        layout="prev, pager, next, sizes, total"
+        :total="data?.total_data ?? 0"
+        :current-page="Number(request_search.offset)"
+        :page-size="Number(request_search.limit)"
+        @current-change="handlePageChange"
+        @size-change="handleSizeChange"
+      />
+    </div>
+  </TrumsWrapper>
+</template>
+
+<script lang="tsx" setup>
+import { Eleme, SetUp, Filter } from '@element-plus/icons-vue'
+import { type Column, type CheckboxValueType, TableV2FixedDir, ElPopover, ElCheckbox, ElIcon, type SortBy, ElCheckboxGroup } from 'element-plus'
+import type { Canvassing } from '~/types/scm/canvasing'
+import type { Pagination } from '~/types/pagination'
+import { NuxtLink } from '#components';
+import CustomTable from '~/components/trums/table/customTable.vue'
+import type { ResponsePagination } from '~/types/response_pagination'
+import { OrderColumn, type RequestSearch } from '~/types/request_search'
+import type { BaseResponse } from '~/types/response'
+import SelectionCell from '~/components/trums/table/SelectionCell.vue';
+
+definePageMeta({
+  middleware: ["auth", "app"],
+})
+
+// Enums
+enum CanvassingStatus {
+  DRAFT = 'draft',
+  PENDING_APPROVAL = 'pending_approval',
+  CANCEL = 'cancel'
+}
+
+// Search request
+const request_search = ref<RequestSearch>({
+  keyword: '',
+  column: [
+    {
+      status: [],
+    }
+  ],
+  limit: "10",
+  offset: "1",
+  table: 'canvassing',
+  sort: {
+    column: 'created_at',
+    order: OrderColumn.DESC,
   }
+});
 
-  columns.unshift({
-    key: 'selection',
+// Data state
+const data = ref<ResponsePagination<Canvassing[]>>({
+  currentPage: 1,
+  data: [],
+  success: true,
+  total_data: 0,
+  total_page: 1,
+});
+const selectedCanvassing = ref<Canvassing[]>([])
+const loading = ref<boolean>(false)
+const columnsSelected = ref<string[]>(['selection', 'unique_code', 'source_document', 'description', 'status', 'created_at', 'operations', 'setup'])
+
+// Columns
+const columns: Column<Canvassing>[] = [
+  {
+    key: 'unique_code',
+    title: 'Nomor Canvassing',
+    dataKey: 'unique_code',
+    width: 300,
+    cellRenderer: ({ rowData: row }) => (
+      <NuxtLink href={`/supply-chain-management/canvassing/${row.unique_id}`} class="text-blue-500">
+        {row.unique_code}
+      </NuxtLink>
+    )
+  },
+  {
+    key: 'source_document',
+    title: 'Dokumen Sumber',
+    dataKey: 'source_document',
+    width: 200,
+    cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
+      <span>{rowData.source_document || '-'}</span>
+    )
+  },
+  {
+    key: 'description',
+    title: 'Deskripsi',
+    dataKey: 'description',
+    width: 250
+  },
+  {
+    key: 'status',
+    title: 'Status',
+    dataKey: 'status',
+    width: 150,
+    cellRenderer: ({ rowData: row }) => renderStatusTag(row.status),
+    headerCellRenderer: () => (
+      <div class="flex items-center justify-center">
+        <span class="mr-2 text-xs">Status</span>
+        <ElPopover trigger="click" width={200}>
+          {{
+            default: () => (
+              <div class="filter-wrapper">
+                <div class="filter-group flex flex-col">
+                  <ElCheckboxGroup v-model={request_search.value.column[0].status}>
+                    <ElCheckbox 
+                      key={CanvassingStatus.DRAFT} 
+                      value={CanvassingStatus.DRAFT} 
+                      label="Draft" 
+                    />
+                    <ElCheckbox 
+                      key={CanvassingStatus.PENDING_APPROVAL} 
+                      value={CanvassingStatus.PENDING_APPROVAL} 
+                      label="Pending Approval" 
+                    />
+                    <ElCheckbox 
+                      key={CanvassingStatus.CANCEL} 
+                      value={CanvassingStatus.CANCEL} 
+                      label="Cancel" 
+                    />
+                  </ElCheckboxGroup>
+                </div>
+              </div>
+            ),
+            reference: () => (
+              <ElIcon class="cursor-pointer">
+                <Filter />
+              </ElIcon>
+            ),
+          }}
+        </ElPopover>
+      </div>
+    ),
+  },
+  {
+    key: 'created_at',
+    title: 'Tanggal Dibuat',
+    dataKey: 'created_at',
+    width: 150,
+    sortable: true,
+    cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
+      <span>{formatDate(rowData.created_at)}</span>
+    )
+  },
+  {
+    key: 'operations',
+    title: 'Aksi',
+    cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
+      <>
+        <NuxtLink class="el-button el-button--small" href={`/supply-chain-management/canvassing/add?id=${rowData.unique_id}`} >Edit</NuxtLink>
+        <el-button size="small" type="danger" onClick={() => onDelete([rowData.unique_id!])}>
+          Hapus
+        </el-button>
+      </>
+    ),
+    width: 150,
+    align: 'center'
+  },
+  {
+    title: '',
+    key: 'setup',
     width: 50,
-    align: 'center',
-    cellRenderer: ({ rowData }) => {
-      const onChange = (value: CheckboxValueType) => (rowData.checked = value)
-      return <SelectionCell value={rowData.checked} onChange={onChange} />
-    },
-    headerCellRenderer: () => {
-      const _data = unref(dataCanvassing);
-      const onChange = (value: CheckboxValueType) =>
-        (dataCanvassing.value = {success: true, currentPage: _data?.currentPage ?? 0, total_data: _data?.total_data ?? 0, total_page: _data?.total_data ?? 0, data: _data?.data?.map((row: any) => {
-          row.checked = value
-          return row
-        })!})
-      const allSelected = _data?.data.every((row: any) => row.checked)
-      const containsChecked = _data?.data.some((row: any) => row.checked)
+    fixed: TableV2FixedDir.RIGHT,
+  }
+]
 
-      return (
-        <SelectionCell
-          value={allSelected ?? false}
-          intermediate={containsChecked && !allSelected}
-          onChange={onChange}
-        />
-      )
-    },
-  })
+// Add selection column
+columns.unshift({
+  key: 'selection',
+  width: 50,
+  maxWidth: 50,
+  align: 'center',
+  cellRenderer: ({ rowData }) => {
+    const onChange = (value: CheckboxValueType) => (rowData.checked = value)
+    return <SelectionCell value={rowData.checked} onChange={onChange} />
+  },
+  headerCellRenderer: () => {
+    const onChange = (value: CheckboxValueType) => {
+      data.value?.data?.forEach(item => {
+        item.checked = value as boolean
+      })
+    }
+    return <SelectionCell 
+      value={data.value?.data?.every(item => item.checked) || false} 
+      onChange={onChange} 
+    />
+  },
+})
 
-
-function onEdit(row: Canvassing): any {
-  console.log('row', row)
+// Setup column configuration
+columns[columns.length - 1].headerCellRenderer = () => {
+  return (
+    <div class="flex items-center justify-center">
+      <span class="mr-2 text-xs"></span>
+      <ElPopover trigger="click" width={200}>
+        {{
+          default: () => (
+            <div class="filter-wrapper">
+              <div class="filter-group flex flex-col">
+                <ElCheckboxGroup v-model={columnsSelected.value}>
+                  {columns.filter(col => col.key !== 'selection' && col.key !== 'setup').map(col => (
+                    <ElCheckbox 
+                      key={col.key} 
+                      value={col.key!.toString()} 
+                      label={col.title} 
+                    />
+                  ))}
+                </ElCheckboxGroup>
+              </div>
+            </div>
+          ),
+          reference: () => (
+            <ElIcon class="cursor-pointer">
+              <SetUp />
+            </ElIcon>
+          ),
+        }}
+      </ElPopover>
+    </div>
+  )
 }
 
-function onDelete(row: Canvassing): any {
-  console.log('row', row)
+// Computed
+const filteredColumns = computed(() => {
+  return columns.filter(col => columnsSelected.value.includes(col.key!.toString()))
+})
+
+const hasSelected = computed(() => {
+  return data.value?.data?.some(item => item.checked) || false
+})
+
+// Methods
+const formatDate = (timestamp: number) => {
+  return new Date(timestamp * 1000).toLocaleDateString('id-ID')
 }
+
+const renderStatusTag = (status: CanvassingStatus) => {
+  if (!status) return <></>
+  
+  switch (status) {
+    case CanvassingStatus.DRAFT:
+      return <el-tag type="info">DRAFT</el-tag>
+    case CanvassingStatus.PENDING_APPROVAL:
+      return <el-tag type="warning">PENDING APPROVAL</el-tag>
+    case CanvassingStatus.CANCEL:
+      return <el-tag type="danger">CANCELED</el-tag>
+    default:
+      return <el-tag>{status}</el-tag>
+  }
+}
+
+const handleSelectionChange = (selection: Canvassing[]) => {
+  selectedCanvassing.value = selection
+}
+
+const handlePageChange = (page: number) => {
+  request_search.value.offset = `${page}`
+  fetchData()
+}
+
+const handleSizeChange = (size: number) => {
+  request_search.value.limit = `${size}`
+  fetchData()
+}
+
+const onEdit = (canvassing: Canvassing) => {
+  navigateTo(`/supply-chain-management/canvassing/edit/${canvassing.unique_id}`)
+}
+
+const onDelete = async (uniques: string[]) => {
+  try {
+    
+    
+  } catch (error) {
+    // User canceled or error occurred
+  }
+}
+
+const batchDelete = async () => {
+  const ids = data.value?.data
+    ?.filter(item => item.checked)
+    .map(item => item.unique_id!) || []
+  
+  if (ids.length > 0) {
+    await onDelete(ids)
+  }
+}
+
+const onSort = (sortBy: SortBy) => {
+  request_search.value.sort = {
+    column: sortBy.key.toString(),
+    order: request_search.value.sort?.order === OrderColumn.ASC ? OrderColumn.DESC : OrderColumn.ASC
+  }
+  fetchData()
+}
+
+// Fetch data
+const fetchData = async () => {
+  loading.value = true
+  try {
+    const response = await useFetchApi<ResponsePagination<Canvassing[]>>('/search', 'get-canvasing', 'post', request_search);
+    if(response.status.value == 'success'){
+      data.value = response.data.value ?? {
+        currentPage: 0,
+        data: [],
+        success: true,
+        total_data: 0,
+        total_page: 0
+      }
+    }
+  } catch (error) {
+    ElMessage.error('Gagal memuat data canvassing')
+  } finally {
+    loading.value = false
+  }
+}
+
+// Watch search query
+watchDebounced(
+  request_search,
+  () => {
+    fetchData()
+  },
+  { debounce: 500, deep: true }
+)
+
+onMounted(() => {
+  fetchData();
+
+})
 </script>
 
+<style scoped>
+.el-row {
+  margin-bottom: 20px;
+}
 
+.statistic-card {
+  height: 100%;
+  padding: 20px;
+  border-radius: 4px;
+  background-color: var(--el-bg-color-overlay);
+}
 
-<template>
-  <div class="w-auto">
-    <el-row :gutter="20" class="mb-3">
-      <el-col :span="6"><el-input v-model="request_search.keyword" size="large" placeholder="Type to search" /></el-col>
-      <el-button size="large" @click="$router.push('canvassing/add')">New Canvassing</el-button>
-    </el-row>
-    <CustomTable :columns="columns" :data="dataCanvassing.data ?? []" />
-    <div class="flex justify-end mt-3">
-      <el-pagination background layout="prev, pager, next" :total="dataCanvassing?.total_page" />
-    </div>
-  </div>
-</template>
+.statistic-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  margin-top: 16px;
+}
+
+.statistic-footer .footer-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.statistic-footer .footer-item span:last-child {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+}
+</style>

@@ -116,7 +116,7 @@
 </script>
   
 
-<style>
+<style scoped>
 .el-card__body {
     height: 100%;
 }

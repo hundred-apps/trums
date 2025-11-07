@@ -26,5 +26,8 @@ export type Inventory = {
     unit: Unit|null;
     version: number,
     pricelist_item?: Pricelist_item,
-
+    order: number;
+    request: number;
+    booking: number;
+    available: number;
 }

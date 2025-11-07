@@ -7,7 +7,7 @@
   import CustomTable from '~/components/trums/table/customTable.vue';
   import { OrderColumn, type RequestSearch } from '~/types/request_search';
   import type { ResponsePagination } from '~/types/response_pagination';
-  import { ElButton, TableV2FixedDir, ElCheckbox, ElIcon, ElPopover, ElTag, type CheckboxValueType, type Column, type HeaderCellSlotProps, type SortBy } from 'element-plus';
+  import { ElButton, TableV2FixedDir, ElCheckbox, ElIcon, ElPopover, ElTag, type CheckboxValueType, type Column, type HeaderCellSlotProps, type SortBy, ElCheckboxGroup } from 'element-plus';
   import SelectionCell from '~/components/trums/table/SelectionCell.vue';
   import DeleteButton from '~/components/trums/DeleteButton.vue';
   import { NuxtLink } from '#components';
@@ -81,12 +81,14 @@
               default: () => (
                 <div class="filter-wrapper">
                   <div class="filter-group flex flex-col">
-                    <ElCheckbox value="in" v-model={request_search.value.column[0].type}>
-                      In
-                    </ElCheckbox>
-                    <ElCheckbox value="out" v-model={request_search.value.column[0].type}>
-                      Out
-                    </ElCheckbox>
+                    <ElCheckboxGroup v-model={request_search.value.column[0].type}>
+                      <ElCheckbox value="in">
+                        In
+                      </ElCheckbox>
+                      <ElCheckbox value="out">
+                        Out
+                      </ElCheckbox>
+                    </ElCheckboxGroup>
                   </div>
                 </div>
               ),
@@ -126,21 +128,23 @@
               default: () => (
                 <div class="filter-wrapper">
                   <div class="filter-group flex flex-col">
-                    <ElCheckbox value="draft" v-model={request_search.value.column[0].status}>
-                      Draft
-                    </ElCheckbox>
-                    <ElCheckbox value="waiting" v-model={request_search.value.column[0].status}>
-                      Waiting
-                    </ElCheckbox>
-                    <ElCheckbox value="ready" v-model={request_search.value.column[0].status}>
-                      Ready
-                    </ElCheckbox>
-                    <ElCheckbox value="delivery" v-model={request_search.value.column[0].status}>
-                      Delivery
-                    </ElCheckbox>
-                    <ElCheckbox value="done" v-model={request_search.value.column[0].status}>
-                      Done
-                    </ElCheckbox>
+                    <ElCheckboxGroup v-model={request_search.value.column[0].status}>
+                      <ElCheckbox value="draft" >
+                        Draft
+                      </ElCheckbox>
+                      <ElCheckbox value="waiting" >
+                        Waiting
+                      </ElCheckbox>
+                      <ElCheckbox value="ready" >
+                        Ready
+                      </ElCheckbox>
+                      <ElCheckbox value="delivery" >
+                        Delivery
+                      </ElCheckbox>
+                      <ElCheckbox value="done" >
+                        Done
+                      </ElCheckbox>
+                    </ElCheckboxGroup>
                   </div>
                 </div>
               ),
@@ -172,7 +176,7 @@
           <ElButton size="small" onClick={() => handleEdit(row)}>
             Edit
           </ElButton>
-          <DeleteButton  onConfirm={() => handleDelete([row.unique_id])} onCancel={() => {}} />
+          <DeleteButton size="small"  onConfirm={() => handleDelete([row.unique_id])} onCancel={() => {}} />
           
         </>
       ),
@@ -194,13 +198,19 @@
           default: () => (
             <div class="filter-wrapper">
               <div class="filter-group flex flex-col">
-                {
-                  availableColumn.map((value) => (
-                    value.key != 'selection' && value.key != 'setup' ? <ElCheckbox onChange={() => console.log("ok")} value={value.key!.toString()} v-model={column_selected.value}>
-                      {value.title}
-                    </ElCheckbox> : <></>
-                ))
-                }
+                <ElCheckboxGroup v-model={column_selected.value}>
+                  {
+                    availableColumn
+                    .filter(c => c.key !== 'selection' && c.key !== 'setup')
+                    .map(c => (
+                      <ElCheckbox 
+                        key={c.key} 
+                        value={c.key!.toString()}
+                        label={c.title} 
+                      />
+                    ))
+                  }
+                </ElCheckboxGroup>
               </div>
             </div>
           ),
@@ -232,7 +242,7 @@
     table: 'inventory_movement',
     sort: {
       column: 'created_at',
-      order: OrderColumn.ASC,
+      order: OrderColumn.DESC,
     }
   });
 

@@ -3,7 +3,7 @@
 type RequestMethod = 'post' | 'put' | 'get' | 'delete';
 
 export async function useFetchApi<T>(endpoint: string,key: string, request_method: RequestMethod, body: any | null): Promise<{
-  status: any; data: Ref<T | null>; pending: Ref<boolean>; error: Ref<any> 
+  status: any; data: Ref<T | null>; pending: Ref<boolean>; error: Ref<any> ; code: number|undefined
 }>{
     const config = useRuntimeConfig();
     const token = useCookie('token');
@@ -18,8 +18,17 @@ export async function useFetchApi<T>(endpoint: string,key: string, request_metho
         },
     });
 
-    
-
-  return response!;  
+  console.log('response', response.error.value?.data);
+  if(response.error.value?.statusCode == 403){
+    ElMessage.error(response.error.value?.data?.message ?? 'Action Not Permited')
+  }  
+  
+  return {
+    data: response.data as Ref<T>,
+    error: response.error,
+    code: response.error.value?.statusCode,
+    pending: response.pending,
+    status: response.status,
+  };  
     
 }

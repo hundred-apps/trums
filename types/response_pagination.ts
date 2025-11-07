@@ -3,5 +3,7 @@ export type ResponsePagination<T> = {
     currentPage: number,
     total_page: number,
     total_data: number,
-    data: T
+    data: T,
+    privilege: {name: string, menu: string|null}[]
 }
+

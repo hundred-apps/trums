@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev --port 8000",
+    "dev": "nuxt dev --host 0.0.0.0 --port 8000",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
@@ -22,6 +22,8 @@
     "@vueuse/nuxt": "^11.1.0",
     "apexcharts": "^4.3.0",
     "axios": "^1.7.9",
+    "jspdf": "^3.0.3",
+    "jspdf-autotable": "^5.0.2",
     "nuxt": "^3.13.0",
     "nuxt-openid-connect": "^0.8.1",
     "nuxt-pdfeasy": "^1.4.0",

@@ -10,6 +10,10 @@ export interface FileDocument {
   image_path: string,
 }
 
+export enum InventoryMovementStatus {
+
+}
+
 export interface InventoryMovementItem {
     id: number;
     unique_id: string;
@@ -44,7 +48,7 @@ export interface InventoryMovementItem {
     to: string;
     to_name: string;
     to_version: number;
-    status: 'draft' | 'waiting' | 'approve' | 'done' | 'cancelled' | 'repair'; // Bisa disesuaikan dengan status lainnya
+    status: 'draft' | 'waiting' | 'approve' | 'done' | 'cancelled' | 'repair' | 'ready' | 'delivery'; // Bisa disesuaikan dengan status lainnya
     address_id: string | null;
     address_version: number | null;
     delivery_id: string | null;
@@ -59,5 +63,6 @@ export interface InventoryMovementItem {
     checked?: boolean|null,
     contact?: Contact,
     files: FileDocument[],
+    data_reference?: any,
   }
   

@@ -1,6 +1,6 @@
 <script lang="tsx" setup>
   import { ref, onMounted, type FunctionalComponent } from 'vue';
-  import { type Column, type CheckboxValueType, type InputInstance, type MainInstance, ElButton, ElTag, ElText, ElCheckbox, paginationEmits, type SortBy, TableV2SortOrder, type SortState, ElPopover, type HeaderCellSlotProps, ElIcon, TableV2FixedDir, ElMessage } from 'element-plus';
+  import { type Column, type CheckboxValueType, type InputInstance, type MainInstance, ElButton, ElTag, ElText, ElCheckbox, paginationEmits, type SortBy, TableV2SortOrder, type SortState, ElPopover, type HeaderCellSlotProps, ElIcon, TableV2FixedDir, ElMessage, ElCheckboxGroup } from 'element-plus';
   import type { Maintenance } from '~/types/maintenance';
   import type { Pagination } from '~/types/pagination';
   import { CircleCheckFilled, CircleClose, Eleme, Filter, SetUp } from '@element-plus/icons-vue'
@@ -59,7 +59,7 @@ const fetchData = async () => {
 
   const axios = useApi();
 
-  const {data} = await useFetchApi<ResponsePagination<MainInstance[]>>(`/search`, 'maintenances', 'post', request_search.value);
+  const {data} = await useFetchApi<ResponsePagination<Maintenance[]>>(`/search`, 'maintenances', 'post', request_search.value);
 
   const column_selected = ref<string[]>(['selection', 'unique_code', 'inventory', 'responsible', 'priority', 'status', 'operation', 'setup']);
 
@@ -321,13 +321,19 @@ columnMaintenance.unshift({
           default: () => (
             <div class="filter-wrapper">
               <div class="filter-group flex flex-col">
-                {
-                  columnMaintenance.map((value) => (
-                    value.key != 'selection' && value.key != 'setup' ? <ElCheckbox onChange={() => console.log("ok")} value={value.key!.toString()} v-model={column_selected.value}>
-                      {value.title}
-                    </ElCheckbox> : <></>
-                ))
-                }
+                <ElCheckboxGroup v-model={column_selected.value}>
+                  {
+                    columnMaintenance
+                    .filter(c => c.key !== 'selection' && c.key !== 'setup')
+                    .map(c => (
+                      <ElCheckbox 
+                        key={c.key} 
+                        value={c.key!.toString()}
+                        label={c.title} 
+                      />
+                    ))
+                  }
+                </ElCheckboxGroup>
               </div>
             </div>
           ),

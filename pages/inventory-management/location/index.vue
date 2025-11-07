@@ -1,8 +1,15 @@
 <template>
   <TrumsWrapper>
     <el-row :gutter="20" class="mb-3">
-      <el-col :span="6"><el-input v-model="search" size="large" placeholder="Type to search" /></el-col>
-      <el-button size="large" @click="() => handleAddNewLocation()">New Location</el-button>
+      <el-col :span="6"><el-input v-model="search" size="default" placeholder="Type to search" /></el-col>
+      <el-button size="default" @click="() => handleAddNewLocation()">New Location</el-button>
+      <DeleteButton v-if="hasSelected"
+      label-button="Hapus" 
+      title="Anda Yakin Ingin Menghapus Lokasi?" 
+      label-confirm="Hapus" 
+      size="default"
+      @confirm="() => submitToDelete((data?.data ?? []).filter((value) => value.checked).map((value) => value.unique_id!))" 
+      @cancel="()=>{}" />
   </el-row>
   <CustomTable :columns="columns" :data="data?.data ?? []" />
   <div class="flex justify-end">
@@ -32,7 +39,7 @@
 import { ref, onMounted, type FunctionalComponent } from 'vue';
 import type { Catalogue } from '~/types/catalogue';
 import { InfoFilled } from '@element-plus/icons-vue'
-import { ElButton, ElCheckbox, type CheckboxValueType, type Column, type FormRules } from 'element-plus';
+import { ElButton, ElCheckbox, ElPopconfirm, type CheckboxValueType, type Column, type FormRules } from 'element-plus';
 import { useApi } from '#imports';
 import type { Pagination } from '~/types/pagination';
 import type { ResponsePagination } from '~/types/response_pagination';
@@ -40,6 +47,7 @@ import { OrderColumn, type RequestSearch } from '~/types/request_search';
 import CustomTable from '~/components/trums/table/customTable.vue';
 import { column } from 'element-plus/es/components/table-v2/src/common.mjs';
 import { NuxtLink } from '#components';
+import DeleteButton from '~/components/trums/DeleteButton.vue';
 
 const config = useRuntimeConfig()
 
@@ -146,7 +154,7 @@ const columns: Column<Catalogue>[] = [
         <ElButton size="small" onClick={() => handleEdit(row)}>
           Edit
         </ElButton>
-        <ElButton size="small" type="danger" onClick={() => handleDelete(row)}>Delete</ElButton>
+        <ElButton size="small" type="danger" onClick={() => submitToDelete([row.unique_id])}>Delete</ElButton>
         
       </>
     ),
@@ -201,17 +209,23 @@ columns.unshift({
   },
 })
 
+
+const hasSelected = computed(() => {
+  return data.value?.data?.some(item => item.checked) || false
+})
+
 const handleEdit = (row: Catalogue) => {
   form.unique_id = row.unique_id!;
   form.name = row.name!;
   dialogFormVisible.value = true;
 };
 
-const handleDelete = async (row: Catalogue) => {
+
+const submitToDelete = async (ids: string[]) => {
   loading.value = false;
   try {
     
-    const response = await useFetchApi<ResponsePagination<string[]>>(`/catalogues-delete`, 'catalogues', 'post', [row.unique_id]);
+    const response = await useFetchApi<ResponsePagination<string[]>>(`/catalogues-delete`, 'catalogues', 'post', ids);
     if(response.status.value == "success"){
       await refreshNuxtData('catalogues');
     }
@@ -220,7 +234,7 @@ const handleDelete = async (row: Catalogue) => {
   }finally{
     loading.value = false;
   }
-};
+}
 
 const handleSelectionChange = (selection: any[]) => {
   console.log("Selected Rows:", selection);

@@ -1,0 +1,17 @@
+export type ItemSearch = {
+    type: "inventory"|"catalogue",
+    unique_id: string,
+    quantity?: number,
+    catalogue_id: string,
+    catalogue_name: string,
+    sn_number: string|null,
+    location_id?: string,
+    inventory_id?: string,
+    location_name?: string,
+    unit_id?: string,
+    unit_name?: string,
+    order?: number,
+    request?: number,
+    booking?: number,
+    available?: number,
+}

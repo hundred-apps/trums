@@ -8,14 +8,14 @@
   import customTable from '~/components/trums/table/customTable.vue';
   import { OrderColumn, type RequestSearch } from '~/types/request_search';
   import type { ResponsePagination } from '~/types/response_pagination';
-  import { ElButton, ElCheckbox, ElIcon, ElMessage, ElPopover, ElTag, TableV2FixedDir, type CheckboxValueType, type Column, type MainInstance, type SortBy } from 'element-plus';
+  import { ElButton, ElCheckbox, ElCheckboxGroup, ElIcon, ElMessage, ElPopover, ElTag, TableV2FixedDir, type CheckboxValueType, type Column, type MainInstance, type SortBy } from 'element-plus';
   import type { Contact } from '~/types/contact';
   import type { Maintenance } from '~/types/maintenance';
   import type { CellRendererParams } from 'element-plus/es/components/table-v2/src/types.mjs';
   import SelectionCell from '~/components/trums/table/SelectionCell.vue';
   import DeleteButton from '~/components/trums/DeleteButton.vue';
-import { NuxtLink } from '#components';
-const column_selected = ref<string[]>(['selection', 'unique_code', 'date', 'reference', 'reference_view', 'setup']);
+  import { NuxtLink } from '#components';
+const column_selected = ref<string[]>(['selection', 'unique_code', 'date', 'reference', 'reference_view','operation', 'setup']);
   const popoverRef = ref();
   const config = useRuntimeConfig();
 
@@ -35,7 +35,7 @@ const request_search = ref<RequestSearch>({
   table: "inquiries",
   sort: {
     column: "created_at",
-    order: OrderColumn.ASC,
+    order: OrderColumn.DESC,
   },
 });
 
@@ -122,18 +122,18 @@ const availableColumn: Column<Inquiry>[] = [
             default: () => (
               <div class="filter-wrapper">
                 <div class="filter-group flex flex-col">
-                  <ElCheckbox
-                    value={"internal"}
-                    v-model={request_search.value.column[0].reference}
-                  >
-                    Internal
-                  </ElCheckbox>
-                  <ElCheckbox
-                    value={"repair"}
-                    v-model={request_search.value.column[0].reference}
-                  >
-                    Repair
-                  </ElCheckbox>
+                  <ElCheckboxGroup v-model={request_search.value.column[0].reference}>
+                    <ElCheckbox
+                      value={"internal"}
+                    >
+                      Internal
+                    </ElCheckbox>
+                    <ElCheckbox
+                      value={"repair"}
+                    >
+                      Repair
+                    </ElCheckbox>
+                  </ElCheckboxGroup>
                 </div>
               </div>
             ),
@@ -175,24 +175,26 @@ const availableColumn: Column<Inquiry>[] = [
             default: () => (
               <div class="filter-wrapper">
                 <div class="filter-group flex flex-col">
-                  <ElCheckbox
-                    value={"low"}
-                    v-model={request_search.value.column[0].priority}
-                  >
-                    Low
-                  </ElCheckbox>
-                  <ElCheckbox
-                    value={"medium"}
-                    v-model={request_search.value.column[0].priority}
-                  >
-                    Medium
-                  </ElCheckbox>
-                  <ElCheckbox
-                    value={"height"}
-                    v-model={request_search.value.column[0].priority}
-                  >
-                    Height
-                  </ElCheckbox>
+                  <ElCheckboxGroup v-model={request_search.value.column[0].priority}>
+                    <ElCheckbox
+                      value={"low"}
+                      
+                    >
+                      Low
+                    </ElCheckbox>
+                    <ElCheckbox
+                      value={"medium"}
+                      
+                    >
+                      Medium
+                    </ElCheckbox>
+                    <ElCheckbox
+                      value={"height"}
+                      
+                    >
+                      Height
+                    </ElCheckbox>
+                  </ElCheckboxGroup>
                 </div>
               </div>
             ),
@@ -222,36 +224,38 @@ const availableColumn: Column<Inquiry>[] = [
             default: () => (
               <div class="filter-wrapper">
                 <div class="filter-group flex flex-col">
-                  <ElCheckbox
-                    value={"draft"}
-                    v-model={request_search.value.column[0].status}
-                  >
-                    Draft
-                  </ElCheckbox>
-                  <ElCheckbox
-                    value={"waiting"}
-                    v-model={request_search.value.column[0].status}
-                  >
-                    Waiting
-                  </ElCheckbox>
-                  <ElCheckbox
-                    value={"approve"}
-                    v-model={request_search.value.column[0].status}
-                  >
-                    Approve
-                  </ElCheckbox>
-                  <ElCheckbox
-                    value={"done"}
-                    v-model={request_search.value.column[0].status}
-                  >
-                    Done
-                  </ElCheckbox>
-                  <ElCheckbox
-                    value={"cancelled"}
-                    v-model={request_search.value.column[0].status}
-                  >
-                    Cancelled
-                  </ElCheckbox>
+                  <ElCheckboxGroup v-model={request_search.value.column[0].status}>
+                    <ElCheckbox
+                      value={"draft"}
+                      
+                    >
+                      Draft
+                    </ElCheckbox>
+                    <ElCheckbox
+                      value={"waiting"}
+                      
+                    >
+                      Waiting
+                    </ElCheckbox>
+                    <ElCheckbox
+                      value={"approve"}
+                      
+                    >
+                      Approve
+                    </ElCheckbox>
+                    <ElCheckbox
+                      value={"done"}
+                      
+                    >
+                      Done
+                    </ElCheckbox>
+                    <ElCheckbox
+                      value={"cancelled"}
+                      
+                    >
+                      Cancelled
+                    </ElCheckbox>
+                  </ElCheckboxGroup>
                 </div>
               </div>
             ),
@@ -267,14 +271,14 @@ const availableColumn: Column<Inquiry>[] = [
   },
   {
     title: "Operasi",
-    key: "",
+    key: "operation",
     width: 250,
     cellRenderer: ({ rowData: row }) => (
       <>
-        <ElButton size="small" onClick={() => handleEdit(row)}>
+        <NuxtLink href={"/inventory-management/inqueiries/add?id=" + row.unique_id} class="el-button el-button--small">
           Edit
-        </ElButton>
-        <DeleteButton onConfirm={() => handleDelete(row)} onCancel={() => {}} />
+        </NuxtLink>
+        <DeleteButton size="default" onConfirm={() => handleDelete(row)} onCancel={() => {}} />
       </>
     ),
   },
@@ -286,7 +290,7 @@ const availableColumn: Column<Inquiry>[] = [
   },
 ];
 
-  availableColumn[8].headerCellRenderer = () => {
+availableColumn[8].headerCellRenderer = () => {
     return (<div class="flex items-center justify-center">
       <span class="mr-2 text-xs"></span>
       <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
@@ -294,19 +298,20 @@ const availableColumn: Column<Inquiry>[] = [
           default: () => (
             <div class="filter-wrapper">
               <div class="filter-group flex flex-col">
-                {availableColumn.map((value) =>
-                  value.key != "selection" && value.key != "setup" ? (
-                    <ElCheckbox
-                      onChange={() => console.log("ok")}
-                      value={value.key!.toString()}
-                      v-model={column_selected.value}
-                    >
-                      {value.title}
-                    </ElCheckbox>
-                  ) : (
-                    <></>
-                  )
-                )}
+                <ElCheckboxGroup v-model={column_selected.value}>
+                  {
+                    availableColumn
+                    .filter(c => c.key !== 'selection' && c.key !== 'setup')
+                    .map(c => (
+                      <ElCheckbox 
+                        key={c.key} 
+                        value={c.key!.toString()}
+                        label={c.title} 
+                      />
+                    ))
+                  }
+                  
+                </ElCheckboxGroup>
               </div>
             </div>
           ),
@@ -350,7 +355,7 @@ const getStatus = (data: Inquiry) => {
   } else if (data.status == "cancelled") {
     return <ElTag type="danger">{(data?.status ?? "").toUpperCase()}</ElTag>;
   } else {
-    return <ElTag type="info">{(data?.status ?? "").toUpperCase()}</ElTag>;
+    return <ElTag type="info">{(data?.status ?? "")}</ElTag>;
   }
 };
 
@@ -371,7 +376,7 @@ const handleSubmitDelete = async (values: string[]) => {
     const response = await useFetchApi(
       "/inquiries-delete",
       "delete_data",
-      "delete",
+      "post",
       values
     );
     if (response.status.value == "success") {

@@ -1,0 +1,1403 @@
+<template>
+  <TrumsWrapper>
+    <el-page-header @back="goBack">
+      <template #content>
+        <span class="text-large font-600 mr-3"> Buat Bill </span>
+      </template>
+    </el-page-header>
+    
+    <el-card class="my-3">
+      <template #header>
+        <div class="card-header">
+          <el-form-item>
+            <el-button type="primary" @click="submitForm(ruleFormRef)">Simpan</el-button>
+            <el-button @click="resetForm(ruleFormRef)">Reset</el-button>
+          </el-form-item>
+        </div>
+      </template>
+      
+      <el-form
+        ref="ruleFormRef"
+        style="max-width: 600px"
+        :model="ruleForm"
+        :rules="rules"
+        label-width="auto"
+        class="demo-ruleForm"
+        size="default"
+        status-icon
+      >
+
+        <el-form-item label="Referensi" prop="source_document">
+          <el-select v-model="ruleForm.reference!" >
+            <el-option label="Lainya" :value="FinanceReference.OTHER"/>
+            <el-option label="Purchase Order" :value="FinanceReference.PURCHASE_ORDER" />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item v-if="ruleForm.reference == FinanceReference.OTHER" label="Nomor Referensi" prop="reference_number">
+          <el-autocomplete
+            v-model="ruleForm.reference_number!"
+            :fetch-suggestions="querySearchReference"
+            placeholder="Search Referensi"
+            @select="onHandleSelectReference"
+          >
+            <template #default="{ item }">
+              <div v-if="item.isNew" class="flex items-center text-blue-500">
+                <el-icon><Plus /></el-icon>
+                <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+              </div>
+              <div v-else>
+                {{ item.value }} <span class="text-gray-400 ml-2">{{ item.additionalInfo }}</span>
+              </div>
+            </template>
+          </el-autocomplete>
+        </el-form-item>
+        <el-form-item v-if="ruleForm.reference == FinanceReference.PURCHASE_ORDER" label="Nomor Referensi" prop="reference_number">
+          <el-input
+              v-model="ruleForm.reference_number"
+              placeholder="Cari Sumber Referensi"
+              class="input-with-select"
+              :disabled="true"
+            >
+              <template #append style="background-color:blue !important">
+                <el-button :icon="Search"  type="primary" @click="() => visibleModalPurchaseOrder = true" />
+              </template>
+            </el-input>
+        </el-form-item>
+        <!-- Invoice Header Information -->
+        <el-form-item label="Vendor" prop="customer_name">
+          <el-autocomplete
+            :fetch-suggestions="querySearchCustomer"
+            v-model="ruleForm.customer_name"
+            placeholder="Search Vendor"
+            @select="onHandleSelectCustomer"
+          >
+            <template #default="{ item }">
+              <div v-if="item.isNew" class="flex items-center text-blue-500">
+                <el-icon><Plus /></el-icon>
+                <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+              </div>
+              <div v-else>
+                {{ item.value }} <span class="text-gray-400 ml-2">{{ item.additionalInfo }}</span>
+              </div>
+            </template>
+          </el-autocomplete>
+        </el-form-item>
+        
+        <el-form-item label="Alamat Vendor" prop="billing_address_view">
+          <el-autocomplete
+            :fetch-suggestions="querySearchAddress"
+            v-model="ruleForm.billing_address_view"
+            placeholder="Search Address"
+            @select="onHandleSelectAddress"
+          >
+            <template #default="{ item }">
+              <div v-if="item.isNew" class="flex items-center text-blue-500">
+                <el-icon><Plus /></el-icon>
+                <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+              </div>
+              <div v-else>
+                {{ item.value }} <span class="text-gray-400 ml-2">{{ item.additionalInfo }}</span>
+              </div>
+            </template>
+          </el-autocomplete>
+        </el-form-item>
+        
+        <el-form-item label="Tanggal Bill" prop="invoice_date">
+          <el-date-picker
+            v-model="ruleForm.invoice_date!"
+            type="date"
+            placeholder="Pilih Tanggal Bill"
+          />
+        </el-form-item>
+        
+        <el-form-item label="Tenggat Waktu" prop="due_date">
+          <el-date-picker
+            v-model="ruleForm.due_date!"
+            type="date"
+            placeholder="Pilih Tenggat Waktu"
+          />
+        </el-form-item>
+
+        <el-form-item label="Akun" prop="account_name">
+          <el-autocomplete
+            v-model="ruleForm.account_name!"
+            :fetch-suggestions="querySearchAccounts"
+            placeholder="Cari Akun"
+            @select="handleSelectAccount"
+          >
+            <template #default="{ item }">
+              <div v-if="item.isNew" class="flex items-center text-blue-500">
+                <el-icon><Plus /></el-icon>
+                <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+              </div>
+              <div v-else>
+                {{ item.name }} <span class="text-gray-400 ml-2">{{ item.code }}</span>
+              </div>
+                
+            </template>
+          </el-autocomplete>
+        </el-form-item>
+        
+        <el-form-item label="Metode Pembayaran" prop="payment_method">
+          <el-select 
+            v-model="ruleForm.payment_method" 
+            placeholder="Select payment method"
+          >
+            <el-option
+              v-for="method in paymentMethods"
+              :key="method.value"
+              :label="method.label"
+              :value="method.value"
+            />
+          </el-select>
+        </el-form-item>
+
+        <el-form-item 
+            label="Rekening Penerima" 
+            prop="accont_bank_name"
+        >
+            <el-autocomplete
+              v-model="ruleForm.account_bank_name!"
+              :fetch-suggestions="querySearchBanks"
+              placeholder="Search account"
+              @select="handleSelectBank"
+              :trigger-on-focus="false"
+            >
+              <template #default="{ item }">
+                  <div v-if="item.isNew">
+                    <span class="text-blue-600 ml-2">Tambah {{ item.value }}</span>
+                  </div>
+                  <div v-else class="flex justify-between w-full">
+                    <span>{{ item.account_name }}</span>
+                    <span class="text-gray-500 ml-2">({{ item.account_number }})</span>
+                  </div>
+              </template>
+            </el-autocomplete>
+            <div class="flex gap-2 mt-5">
+              <el-tag v-for="tag in transactionBanks" :key="tag.unique_id" closable type="primary">
+                {{ tag.bank_account_name }}
+              </el-tag>
+            </div>
+        </el-form-item>
+
+        <el-form-item label="Pembayaran" prop="payment_term">
+          <el-select v-model="ruleForm.payment_term" placeholder="Select">
+            <el-option
+              v-for="item in [{value: PaymentTerm.CASH, label: 'CASH'}, {value: PaymentTerm.COD, label: 'COD'}, {value: PaymentTerm.CBD, label: 'CBD'},{value: PaymentTerm.TEMPO, label: 'TEMPO'}]"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form-item>
+        
+        <el-form-item label="Durasi Tempo (Hari)" prop="tempo_value" v-if="ruleForm.payment_term === PaymentTerm.TEMPO">
+          <el-input-number v-model="ruleForm.payment_term_value!" :min="1"  />
+        </el-form-item>
+
+        <el-form-item label="Status" prop="status">
+            <el-select v-model="ruleForm.status!" 
+            >
+              <el-option label="Draft" :value="PaymentStatus.DRAFT"/>
+              <el-option label="Diterima" :value="PaymentStatus.RECEIVED" />
+              <el-option label="Lunas" :value="PaymentStatus.PAID" />
+              <el-option label="Belum Lunas" :value="PaymentStatus.UNPAID" />
+            </el-select>
+        </el-form-item>
+
+         <el-form-item label="Tanggal Diterima" v-if="ruleForm.status == PaymentStatus.RECEIVED" prop="received_date">
+          <el-date-picker
+            v-model="ruleForm.received_date!"
+            type="date"
+            placeholder="Pilih Tanggal Diterima"
+          />
+        </el-form-item>
+        
+        
+
+        <el-form-item label="File Lampiran" prop="files">
+            <TrumsUploadFile v-model:file-list="fileList"  />
+        </el-form-item>
+        
+        <el-form-item label="Notes" prop="note">
+          <el-input v-model="ruleForm.notes" type="textarea" />
+        </el-form-item>
+      </el-form>
+    </el-card>
+    
+    <!-- Invoice Items Section -->
+    <el-card class="mb-3">
+      <template #header>
+        <div class="card-header">
+          <span>Invoice Items</span>
+        </div>
+      </template>
+      
+      <el-table :data="ruleForm.invoice_item" border>
+        <el-table-column prop="item_name" label="Item">
+          <template #default="scope">
+            <el-autocomplete
+              :fetch-suggestions="querySearchCatalogue"
+              v-model="scope.row.item_name"
+              placeholder="Search item"
+              @select="(item) => onHandleSelectCatalogue(item, scope.$index)"
+            >
+              <template #default="{ item }">
+                <div v-if="item.isNew" class="flex items-center text-blue-500">
+                  <el-icon><Plus /></el-icon>
+                  <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                </div>
+                <div v-else>
+                  {{ item.value }} <span class="text-gray-400 ml-2">{{ item.additionalInfo }}</span>
+                </div>
+              </template>
+            </el-autocomplete>
+          </template>
+        </el-table-column>
+        
+        <el-table-column prop="quantity" label="Qty" >
+          <template #default="scope">
+            <el-input-number 
+              v-model="scope.row.quantity" 
+              :min="0.01" 
+              :precision="2" 
+              :step="1"
+              @change="calculateAmount(scope.$index)"
+            />
+          </template>
+        </el-table-column>
+        
+
+        <el-table-column prop="unit_name" label="UOM" >
+          <template #default="scope">
+            <el-autocomplete
+              :fetch-suggestions="querySearchUnit"
+              v-model="scope.row.unit_name"
+              placeholder="Search item"
+              @select="(item) => handleSelectUnit(item, scope)"
+            >
+              <template #default="{ item }">
+                <div v-if="item.isNew" class="flex items-center text-blue-500">
+                  <el-icon><Plus /></el-icon>
+                  <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                </div>
+                <div v-else>
+                  {{ item.value }} 
+                </div>
+              </template>
+            </el-autocomplete>
+          </template>
+        </el-table-column>
+        
+        <el-table-column prop="price" label="Unit Price" >
+          <template #default="scope">
+            <el-input-number
+              v-model="scope.row.price"
+              :min="0"
+              :precision="2"
+              @change="calculateAmount(scope.$index)"
+            />
+          </template>
+        </el-table-column>
+        
+        <el-table-column prop="total_amount" label="Amount" >
+          <template #default="scope">
+            <el-input-number
+              v-model="scope.row.total_amount"
+              :min="0"
+              :precision="2"
+              disabled
+            />
+          </template>
+        </el-table-column>
+        
+        <el-table-column label="Actions" width="80">
+          <template #default="scope">
+            <el-button 
+              type="danger" 
+              :icon="Delete" 
+              circle 
+              @click="removeItem(scope.$index)"
+              :disabled="ruleForm.invoice_item.length <= 1"
+            />
+          </template>
+        </el-table-column>
+      </el-table>
+      
+      <el-button class="mt-4" style="width: 100%" @click="addNewItem">
+        Add New Item
+      </el-button>
+    </el-card>
+    
+    <!-- Summary Section -->
+    <el-card class="mb-3">
+      <template #header>
+        <div class="card-header">
+          <span>Summary</span>
+        </div>
+      </template>
+      
+      <el-descriptions :column="1" border>
+        <el-descriptions-item label="Total">{{ formatCurrency(subtotal) }}</el-descriptions-item>
+       
+      </el-descriptions>
+    </el-card>
+
+    <el-dialog v-model="dialogNewAddress" title="Create New Address" width="500">
+      <FormAddress 
+        :onSetInitital="{ contact_id: ruleForm.customer_id, contact_name: ruleForm.customer_name }" 
+        :onSuccess="onAddNewAddress" 
+      />
+    </el-dialog>
+
+    <el-dialog v-model="visibleModalPurchaseOrder" title="Cari Purchase Order" width="1000">
+        <el-row :gutter="20" class="mb-3">
+            <el-col :span="6"
+                ><el-input
+                v-model="request_search_purchase_order.keyword"
+                size="default"
+                placeholder="Type to search"
+            /></el-col>
+            
+        </el-row>
+        <el-table :data="purchase_order?.data.value?.data ?? []" style="width: 100%">
+            <el-table-column label="Nomor PO" prop="unique_code" width="180"/>
+            <el-table-column label="Vendor" width="180">
+                <template #default="scope">
+                    {{ scope.row.vendor?.name }}
+                </template>
+            </el-table-column>
+            <el-table-column label="Tanggal PO" >
+                <template #default="scope">
+                    <p>{{ formatLocalDate(scope.row.date) || '' }}</p>
+                </template>
+            </el-table-column>
+            <el-table-column label="Pembayaran" >
+                <template #default="scope">
+                    <p>{{scope.row.is_tempo ? `${scope.row.term_payment} ${scope.row.term_payment_unit}` : '-'}}</p>
+                </template>
+            </el-table-column>
+            <el-table-column label="Total" >
+                <template #default="scope">
+                    <p>{{ currency(scope.row.total_price) || 0 }}</p>
+                </template>
+            </el-table-column>
+            <el-table-column label="Metode Pembayaran" >
+                <template #default="scope">
+                    {{ getPaymentMethodLabel(scope.row.method_payment) }}
+                </template>
+            </el-table-column>
+            <el-table-column label="Aksi" >
+                <template #default="scope">
+                    <el-button size="small" type="primary" @click="() => onHandleSelectReference(scope.row)">Pilih</el-button
+                    >
+                </template>
+            </el-table-column>
+            
+            
+        </el-table>
+        <div class="flex justify-end mt-3">
+            <el-pagination
+            background
+            layout="prev, pager, next, sizes, total"
+            :total="purchase_order?.data.value?.total_data"
+            :current-page="purchase_order?.data.value?.currentPage"
+            @current-change="paginationClick"
+            @size-change="handlePoSizeChange"
+          />
+        </div>
+    </el-dialog>
+
+    <ElDrawer
+      v-model="drawerVisibleCreateNewBank"
+      :title="'Tambah Rekening Penerima'"
+      direction="rtl"
+      size="50%"
+      destroy-on-close
+    >
+      <BankAccountForm
+        :account="currentAccount"
+        :is-editing="false"
+        @submitted="(account: BankAccount|undefined) => {
+          drawerVisibleCreateNewBank = false
+          if(account){
+            rekeningBanks.push(account.account_name);
+            transactionBanks.push({
+              unique_id: '',
+              reference: TransactionBankReference.INVOICE,
+              reference_id: '',
+              bank_account_id: account.unique_id,
+              bank_account_name: account.account_name,
+              bank_account_version: account.version ?? 0,
+            });
+          }
+        }"
+        @cancel="drawerVisibleCreateNewBank = false"
+      />
+    </ElDrawer>
+    <ElDrawer
+      v-model="drawerVisibleCreateAccount"
+      :title="'Tambah CoA'"
+      direction="rtl"
+      size="50%"
+      destroy-on-close
+    >
+      <AccountForm
+        mode="add"
+        :loading="loading"
+        @submit="handleSubmitAccount"
+        @reset="handleResetAccount"
+      />
+    </ElDrawer>
+  </TrumsWrapper>
+</template>
+
+<script lang="ts" setup>
+import { Delete, Plus, Search } from '@element-plus/icons-vue'
+import type { FormInstance, FormRules, UploadUserFile } from 'element-plus'
+import { getPaymentMethodLabel, PaymentMethod, PaymentStatus } from '~/types/finance/bill'
+import { FinanceReference, type Invoice, type InvoiceItem } from '~/types/finance/invoice'
+import type { AddressType } from '~/types/address'
+import type { Catalogue } from '~/types/catalogue'
+import type { Contact } from '~/types/contact'
+import { PurchaseOrderItemStatus, PurchaseOrderStatus, type PurchaseOrder } from '~/types/scm/purchase_order'
+import type { Account } from '~/types/finance/account'
+import FormAddress from '~/components/trums/FormAddress.vue'
+import { OrderColumn, type RequestSearch } from '~/types/request_search'
+import type { ResponsePagination } from '~/types/response_pagination'
+import type { InventoryMovement } from '~/types/inventory_movement'
+import type { BaseResponse } from '~/types/response'
+import type { DefaultResponsePagination } from '~/types/pagination'
+import type { BankAccount } from '~/types/bank_account'
+import type { Unit } from '~/types/unit'
+import TrumsUploadFile from '~/components/trums/form/TrumsUploadFile.vue'
+import { PaymentTerm } from '~/types/scm/canvasing'
+import { TransactionBankReference, type TransactionBank } from '~/types/finance/transaction'
+import AccountForm from '~/components/trums/AccountForm.vue'
+const router = useRouter()
+const ruleFormRef = ref<FormInstance>()
+const dialogNewAddress = ref(false)
+const visibleModalPurchaseOrder = ref(false)
+const drawerVisibleCreateNewBank = ref(false)
+const drawerVisibleCreateAccount = ref(false)
+
+const loading = ref(false)
+
+// Payment method options
+const paymentMethods = [
+  { value: PaymentMethod.Cash, label: 'Cash' },
+  { value: PaymentMethod.BankTransfer, label: 'Bank Transfer' },
+  { value: PaymentMethod.Giro, label: 'Giro' }
+]
+
+const fileList = ref<UploadUserFile[]>([])
+const currentAccount = ref<BankAccount | null>(null)
+const rekeningBanks = ref<string[]>([])
+const transactionBanks = ref<TransactionBank[]>([])
+const rekeningBanksOptions = ref<BankAccount[]>([])
+
+// Form data structure
+const ruleForm = reactive<Invoice>({
+  unique_id: '',
+  source_document: null,
+  unique_code: '',
+
+  customer_id: '',
+  customer_name: '',
+  customer_version: 1,
+
+  billing_address_id: '',
+  billing_address_version: 1,
+  billing_address_view: '',
+
+  invoice_date: Date.now(),
+  due_date: Date.now(),
+  received_date: Date.now(),
+
+  is_tempo: false,
+  payment_term: PaymentTerm.CASH,
+  payment_term_value: 30,
+  payment_term_unit: 'day',
+
+  payment_method: PaymentMethod.BankTransfer,
+  recipient_bank: '',
+  account_bank_name: null,
+  account_bank_number: null,
+
+
+  status: PaymentStatus.DRAFT,
+
+  invoice_item: [{
+    unique_id: '',
+    unique_code: '',
+    item_version: 1,
+    item_name: '',
+    unit_id: '',
+    unit_name: '',
+    quantity: 1,
+    price: 0,
+    total_amount: 0,
+    created_at: Date.now(),
+    created_by: 0,
+    updated_at: Date.now(),
+    item_id: null,
+    version: 0,
+    invoice_version: 0,
+    invoice_id: null,
+  }],
+
+  created_at: Date.now(),
+  created_by: 0,
+  updated_at: Date.now(),
+  account_id: null,
+  account_name: null,
+  notes: null,
+  reference: FinanceReference.OTHER,
+  reference_id: null,
+  reference_number: null,
+  total_amount: 0,
+  invoice_date_view: `${Date.now()}`,
+  due_date_view: `${Date.now()}`,
+})
+
+const request_search = ref<RequestSearch>({
+  keyword: '',
+  column: [],
+  limit: "10",
+  offset: "1",
+  table: 'maintenances',
+  sort: {
+    column: 'created_at',
+    order: OrderColumn.ASC,
+  }
+});
+const request_search_purchase_order = ref<RequestSearch>({
+  keyword: '',
+  column: [
+    {
+      type: ["po"],
+      status: [PurchaseOrderStatus.APPROVED]
+    }
+  ],
+  limit: "10",
+  offset: "1",
+  table: 'purchase_order',
+  sort: {
+    column: 'created_at',
+    order: OrderColumn.ASC,
+  }
+});
+
+const purchase_order = await useFetchApi<ResponsePagination<PurchaseOrder[]>>('/search', 'search-reference-purchase-order', 'post', request_search_purchase_order);
+
+const paginationClick = (page: number) => {
+  request_search_purchase_order.value.offset = page.toString();
+}
+const handlePoSizeChange = (limit: number) => {
+  request_search_purchase_order.value.limit = limit.toString();
+}
+
+watch(
+  request_search_purchase_order.value,
+  () => refreshNuxtData('search-reference-purchase-order'),
+  {immediate: true}
+);
+
+// Form validation rules
+const rules = reactive<FormRules<Invoice>>({
+  customer_name: [
+    { required: true, message: 'Please select customer', trigger: 'blur' }
+  ],
+  invoice_date: [
+    { required: true, message: 'Please select invoice date', trigger: 'change' }
+  ],
+  payment_method: [
+    { required: true, message: 'Please select payment method', trigger: 'change' }
+  ],
+  billing_address_view: [
+    { required: true, message: 'Please select billing address', trigger: 'change' }
+  ],
+  invoice_item: [
+    {
+      validator: (_: any, value: InvoiceItem[], callback: (error?: Error) => void) => {
+        const messages: string[] = []
+
+        value.forEach((item, index) => {
+          const rowNum = index + 1
+          if (!item.item_id) messages.push(`Item #${rowNum} tidak boleh kosong`)
+          if (!item.unit_name) messages.push(`Item #${rowNum} belum memiliki UOM`)
+          if (!item.price || item.price <= 0) messages.push(`Item #${rowNum} harga harus lebih dari 0`)
+          if (!item.quantity || item.quantity < 1) messages.push(`Item #${rowNum} quantity minimal 1`)
+        })
+
+        if (messages.length > 0) {
+          callback(new Error(messages.join('\n')))
+        } else {
+          callback()
+        }
+      },
+      trigger: ['blur', 'change']
+    }
+  ]
+})
+
+// Computed values
+const subtotal = computed(() => {
+  if(ruleForm.reference === FinanceReference.SALES){
+    return ruleForm.total_amount;
+  }else{
+    return ruleForm.invoice_item.reduce((sum, item) => sum + (item.total_amount || 0), 0)
+  }
+})
+
+const tax = computed(() => {
+  return subtotal.value * 0.1 // Example 10% tax
+})
+
+const total = computed(() => {
+  return subtotal.value;
+})
+
+// Methods
+const goBack = () => router.back()
+
+const formatCurrency = (value: number) => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0
+  }).format(value)
+}
+
+const calculateAmount = (index: number) => {
+  const item = ruleForm.invoice_item[index]
+  item.total_amount = item.quantity * item.price
+  updateTotalAmount()
+}
+
+const updateTotalAmount = () => {
+  // Update invoice total if needed
+}
+
+const addNewItem = () => {
+  ruleForm.invoice_item.push({
+    unique_id: '',
+    unique_code: '',
+    item_id: '',
+    item_version: 1,
+    item_name: '',
+    unit_id: '',
+    unit_name: '',
+    quantity: 1,
+    price: 0,
+    total_amount: 0,
+    created_at: Date.now(),
+    created_by: 0,
+    updated_at: Date.now(),
+    version: 0,
+    invoice_version: 0,
+    invoice_id: null,
+  })
+}
+
+const deleteItem = async (unique_id: string, index: number) => {
+  loading.value = true;
+  try {
+    const response = await useFetchApi<BaseResponse<any>>('/invoice-item-delete', 'delete_item', 'post', [unique_id]);
+    if(response.status.value =='success') {
+      ruleForm.invoice_item.splice(index, 1)
+    } 
+  } catch (error: any) {
+    ElMessage.error(`${error.response?.message ?? error}`);
+  } finally {
+    loading.value = false;
+  }
+}
+
+const removeItem = async (index: number) => {
+  const unique_id = useCookie('unique_id');
+  if(unique_id.value){
+    await ElMessageBox.confirm(
+      `Apakah Anda yakin ingin menghapus item ini?`,
+      'Konfirmasi Hapus',
+      { type: 'warning' }
+    )
+    deleteItem(ruleForm.invoice_item[index].unique_id!, index);
+  }else{
+    ruleForm.invoice_item.splice(index, 1)
+  }
+}
+
+const handlePaymentMethodChange = (method: PaymentMethod) => {
+  // Reset related fields when payment method changes
+  ruleForm.recipient_bank = '0'
+  ruleForm.account_bank_name = null
+  ruleForm.account_bank_number = null
+}
+
+const querySearchBanks = (query: string, cb: (arg: any) => void) => {
+  try {
+    useFetchApi<DefaultResponsePagination<BankAccount[]>>('/bank-accounts-read', 'get-bank-accounts', 'get', null).then((response) => {
+      if(response.status.value == 'success'){
+        const banks = (response.data.value?.data.query ?? []) as BankAccount[];
+        console.log('data',banks);
+        cb(banks.map((value) => ({
+          value: `${value.account_name} (${value.account_number})`,
+          ...value,
+          isNew:false,
+        })));
+      }
+    })
+    
+  } catch (error) {
+    console.error('Failed to fetch accounts', error);
+    cb([]);
+  }
+};
+
+const handleSelectBank = (item: any) => {
+  console.log(item);
+  if(item.isNew == false){
+    const bank: BankAccount = item as BankAccount;
+    transactionBanks.value.push({
+      unique_id: '',
+      reference: TransactionBankReference.INVOICE,
+      reference_id: '',
+      bank_account_id: bank.unique_id,
+      bank_account_name: bank.account_name,
+      bank_account_version: bank.version ?? 0,
+    })
+    ruleForm.account_bank_name = '';
+  }else{
+    ruleForm.account_bank_name = '';
+    drawerVisibleCreateNewBank.value = true;
+  }
+};
+
+// Search functions
+const querySearchCustomer =  (query: string, cb: (arg: any) => void) => {
+  try {
+    // Replace with your actual API call
+    // const response = await $fetch('/api/customers', {
+    //   params: { search: query }
+    // })
+    
+    // const results = response.data.map((customer: any) => ({
+    //   value: customer.name,
+    //   id: customer.id,
+    //   data: customer
+    // }))
+
+    const request_contact = {...request_search.value};
+    request_contact.table = 'contacts';
+    request_contact.keyword = query;
+
+    useFetchApi<ResponsePagination<Contact>>('/search', 'search-customer', 'post', request_contact).then((response) => {
+      if(response.status.value == 'success'){
+        const contacts: Contact[] = (response.data.value?.data ?? []) as Contact[];
+        if(contacts.length > 0){
+          cb(contacts.map((value) => ({
+          value: value.name,
+          unique_id: value.unique_id,
+          data: value,
+        })));
+        }else{
+          cb([{
+            value: query,
+            isNew: true,
+            keyword: query,
+          }])
+        }
+      }
+    });
+    
+    
+  } catch (error) {
+    console.error('Failed to fetch customers', error)
+    cb([])
+  }
+}
+
+const querySearchAddress =  (query: string, cb: (arg: any) => void) => {
+  try {
+    // Replace with your actual API call
+    // const response = await $fetch('/api/customers', {
+    //   params: { search: query }
+    // })
+    
+    // const results = response.data.map((customer: any) => ({
+    //   value: customer.name,
+    //   id: customer.id,
+    //   data: customer
+    // }))
+
+    const request_contact = {...request_search.value};
+    request_contact.table = 'address';
+    request_contact.keyword = query;
+    request_contact.column = [
+      {
+        contact_id: ruleForm.customer_id,
+      }
+    ];
+
+    useFetchApi<ResponsePagination<AddressType>>('/search', 'search-address', 'post', request_contact).then((response) => {
+      if(response.status.value == 'success'){
+        const address: AddressType[] = (response.data.value?.data ?? []) as AddressType[];
+        if(address.length > 0){
+          cb(address.map((value) => ({
+          value: value.address_name,
+          unique_id: value.unique_id,
+          data: value,
+        })));
+        }else{
+          cb([{
+            value: query,
+            isNew: true,
+            keyword: query,
+          }])
+        }
+      }
+    });
+    
+    
+  } catch (error) {
+    console.error('Failed to fetch customers', error)
+    cb([])
+  }
+}
+
+const querySearchAccounts = (query: string, cb: (arg: any) => void) => {
+  try {
+    console.log(query);
+    
+    if(query != '' && query != 'null'){
+      const request_search: RequestSearch = {
+        keyword: query,
+        table: 'accounts',
+        column: [],
+        sort: {
+          column: 'created_at',
+          order: OrderColumn.ASC
+        },
+        offset: '1',
+        limit: '10'
+      }
+
+      useFetchApi<ResponsePagination<Account[]>>('/search', 'search-account', 'post', request_search).then((response) => {
+        if(response.status.value == 'success'){
+          const accounts: Account[] = (response.data.value?.data ?? []) as Account[];
+          if(accounts.length > 0){
+            cb(accounts.map((value) => ({
+              value: `${value.name} (${value.code})`,
+              isNew: false,
+              ...value,
+            })));
+          }else{
+            cb([{
+              value: `tambahkan ${query}`,
+              isNew: true,
+              data: query,
+            }]);
+          }
+        }
+      })
+    }
+    
+    
+  } catch (error) {
+    console.error('Failed to fetch accounts', error);
+    cb([]);
+  }
+};
+
+const fetchReferenceSales = (query: string) => {
+  
+}
+const fetchReferencePO = (query: string) => {
+
+}
+
+
+const querySearchReference = (query: string, cb: (arg: any) => void) => {
+  try {
+    
+    if(ruleForm.reference == 'other'){
+      cb([{
+        value: `Tambahkan ${query}`,
+        isNew: true,
+        data: query,
+      }]);
+    }
+    
+    
+  } catch (error) {
+    console.error('Failed to fetch accounts', error);
+    cb([]);
+  }
+};
+
+// const fetchItemReferenceSales = 
+
+// const querySearchPurchaseOrder = (query: string, cb: (arg: any) => void) => {
+//   try {
+//     const request_contact = {...request_search.value};
+//     request_contact.table = 'purchase_order';
+
+//     request_contact.keyword = query;
+    
+//     useFetchApi<ResponsePagination<PurchaseOrder[]>>('/search', 'search-reference-purchase-order', 'post', request_contact).then((response) => {
+//       if(response.status.value == 'success'){
+//         const purchaseOrder: PurchaseOrder[] = (response.data.value?.data ?? []) as PurchaseOrder[];
+//         if(purchaseOrder.length > 0){
+//           cb(purchaseOrder.map((value) => ({
+//             value:`${value.unique_code}  ${value.vendor_name}`,
+//             unique_id: value.unique_id,
+//             data: value,
+//           })));
+//         }
+//       }
+//     });
+    
+//     cb([])
+//   } catch (error) {
+//     console.error('Failed to fetch catalogue items', error)
+//     cb([])
+//   }
+// }
+
+const querySearchCatalogue = (query: string, cb: (arg: any) => void) => {
+  try {
+    const request_contact = {...request_search.value};
+    console.log(ruleForm.reference);
+    if(ruleForm.reference === FinanceReference.OTHER){
+      request_contact.table = 'catalogues';
+    }else if(ruleForm.reference === FinanceReference.SALES){
+
+    }else if(ruleForm.reference === FinanceReference.PURCHASE_ORDER){
+
+    }else if(ruleForm.reference === FinanceReference.TRANSACTION_RECAP){
+
+    }
+
+    request_contact.keyword = query;
+    // request_contact.column = [
+    //   {
+    //     type: ['']
+    //   }
+    // ];
+
+    useFetchApi<ResponsePagination<Catalogue[]>>('/search', 'search-catalogues', 'post', request_contact).then((response) => {
+      if(response.status.value == 'success'){
+        const catalogues: Catalogue[] = (response.data.value?.data ?? []) as Catalogue[];
+        if(catalogues.length > 0){
+          cb(catalogues.map((value) => ({
+          value: value.name,
+          unique_id: value.unique_id,
+          data: value,
+        })));
+        }else{
+          cb([{
+            value: query,
+            isNew: true,
+            keyword: query,
+          }])
+        }
+      }
+    });
+    
+    cb([])
+  } catch (error) {
+    console.error('Failed to fetch catalogue items', error)
+    cb([])
+  }
+}
+
+// Selection handlers
+const onHandleSelectCustomer = (item: any) => {
+  if (item.isNew) {
+    createNewCustomer(item.query).then(customer => {
+      if (customer) {
+        ruleForm.customer_id = customer.unique_id;
+        ruleForm.customer_name = customer.name;
+        ruleForm.customer_version = 1
+      }
+    })
+  } else {
+    const customer = item.data as Contact
+    ruleForm.customer_id = customer.unique_id;
+    ruleForm.customer_name = customer.name;
+    ruleForm.customer_version = customer.version || 1;
+  }
+}
+
+const onHandleSelectAddress = (item: any) => {
+  if (item.isNew) {
+    dialogNewAddress.value = true
+  } else {
+    const address = item.data as AddressType
+    ruleForm.billing_address_id = address.unique_id;
+    ruleForm.billing_address_view = address.address_name;
+    ruleForm.billing_address_version = address.version || 1
+  }
+}
+
+const onAddNewAddress = (address: AddressType) => {
+  ruleForm.billing_address_id = address.unique_id;
+  ruleForm.billing_address_view = address.address_name;
+  ruleForm.billing_address_version = address.version || 1;
+  dialogNewAddress.value = false
+}
+
+const handleSelectAccount = (item: any) => {
+  if(item.isNew == false){
+    const account = item as Account;
+    ruleForm.account_id = account.unique_id;
+    ruleForm.account_name = account.name;
+  }else{
+    drawerVisibleCreateAccount.value = true;
+  }
+}
+
+const onHandleSelectReference = (item: any) => {
+  if(ruleForm.reference == 'other'){
+    ruleForm.reference_number = item.data;
+  }else if(ruleForm.reference === FinanceReference.PURCHASE_ORDER){
+      const po = item as PurchaseOrder;
+      ruleForm.reference_id = po.unique_id;
+      ruleForm.reference_number = po.unique_code;
+      ruleForm.customer_id = po.vendor_id;
+      ruleForm.customer_name = po.vendor_name;
+      ruleForm.customer_version = po.vendor_version;
+      ruleForm.invoice_item = [];
+      po.purchase_order_item.forEach((value) => {
+        ruleForm.invoice_item.push({
+            unique_id: '',
+            unique_code: '',
+            invoice_id: null,
+            item_id: value.catalogue_id ?? '',
+            item_version: value.catalogue_version,
+            item_name: value.catalogue_name,
+            unit_id: value.unit_id ?? '',
+            unit_name: value.unit_name ?? '',
+            quantity: value.quantity,
+            price: value.unit_price,
+            total_amount: value.total_price,
+            version: value.version,
+            invoice_version: 0,
+            created_at: 0,
+            created_by: 0,
+            updated_at: 0
+          });
+      })
+
+      ruleForm.total_amount = po.total_price;
+      ruleForm.billing_address_id = po.address?.unique_id ?? '';
+      ruleForm.billing_address_view = po.address?.address_name ?? '';
+      ruleForm.billing_address_version = po.address?.version || 1;
+      visibleModalPurchaseOrder.value = false;
+  } else{
+    if (item.isNew) {
+      ruleForm.source_document = item.value
+    } else {
+      const po = item.data as PurchaseOrder
+      ruleForm.source_document = po.unique_code
+      // ruleForm.order_id = po.id
+    }
+  }
+}
+
+const handleCreateCatalogue = async (data: any): Promise<Catalogue|null> => {
+  try {
+    const response = await useFetchApi<BaseResponse<Catalogue>>('/catalogues-create', 'create-new-catalogue', 'post', data);
+    if(response.status.value == 'success'){
+      return response.data.value?.data ?? null;
+    }else{
+      return null;
+    }
+  } catch (error) {
+    return null;
+  }
+} 
+
+const onHandleSelectCatalogue = async (item: any, index: number) => {
+  console.log(item);
+  
+  if(item.isNew){
+    const data: Catalogue|null = await handleCreateCatalogue({name: item.value});
+    if(data != null){
+      ruleForm.invoice_item[index].item_id = data.unique_id;
+      ruleForm.invoice_item[index].item_name = data.name ?? '';
+      ruleForm.invoice_item[index].item_version = data.version ?? 0;
+    }else{
+      ruleForm.invoice_item[index].item_id = null;
+      ruleForm.invoice_item[index].item_name = '';
+      ruleForm.invoice_item[index].item_version = 0;
+    }
+  }else{
+    const data: Catalogue = item.data as Catalogue;
+    ruleForm.invoice_item[index].item_id = data.unique_id;
+    ruleForm.invoice_item[index].item_name = data.name ?? '';
+    ruleForm.invoice_item[index].item_version = data.version ?? 0;
+  }
+
+  // if (item.isNew) {
+  //   ruleForm.invoice_item[index].item_name = item.value
+  // } else {
+  //   const catalogue = item.data as Catalogue
+  //   ruleForm.invoice_item[index].item_name = catalogue.name ?? '';
+  //   ruleForm.invoice_item[index].catalogue_id = catalogue.unique_id;
+  //   ruleForm.invoice_item[index].item_version = catalogue.version || 1
+  //   ruleForm.invoice_item[index].price = 0;
+  //   calculateAmount(index)
+  // }
+}
+
+// Create functions
+const createNewCustomer = async (data: any) => {
+  try {
+    const response = await useFetchApi<BaseResponse<Contact>>('/contact-create', 'create-customer', 'post', data);
+    if(response.status.value == 'success'){
+      return response.data.value?.data;
+    }
+  } catch (error: any) {
+    ElMessage.error(error.response.message ?? error);
+  }
+}
+
+const submitForm = async (formEl: FormInstance | undefined) => {
+  if (!formEl) return
+  
+  await formEl.validate(async (valid) => {
+    if (valid) {
+      loading.value = true
+      try {
+        // Calculate final amounts
+        updateTotalAmount()
+        
+        // Prepare data for submission
+        // const invoiceData = {
+        //   ...ruleForm,
+        //   total_amount: total.value
+        // }
+
+        const invoiceDate = new Date(ruleForm.invoice_date!);
+        const dueDate = new Date(ruleForm.due_date!);
+        const receivedDate = new Date(ruleForm.received_date!);
+
+        const formData = new FormData()
+
+        formData.append("unique_id", ruleForm.unique_id)
+        formData.append("source_document", ruleForm.source_document ?? '')
+        formData.append("reference", ruleForm.reference!)
+        formData.append("reference_id", (ruleForm.reference_id ?? ''))
+        formData.append("reference_number", (ruleForm.reference_number ?? ''))
+        formData.append("customer_id", ruleForm.customer_id!)
+        formData.append("customer_name", ruleForm.customer_name)
+        formData.append("customer_version", ruleForm.customer_version!.toString())
+        formData.append("billing_address_id", ruleForm.billing_address_id!)
+        formData.append("billing_address_version", ruleForm.billing_address_version!.toString())
+        formData.append("invoice_date", String(invoiceDate.getTime() / 1000))
+        formData.append("due_date", String(dueDate.getTime() / 1000))
+        formData.append("is_tempo", String(ruleForm.is_tempo))
+        formData.append("notes", (ruleForm.notes ?? '-'))
+        formData.append("type", 'in');
+
+        formData.append("payment_term", (ruleForm.payment_term ?? '').toString())
+        formData.append("payment_term_value", String(ruleForm.payment_term_value))
+        formData.append("payment_term_unit", ruleForm.payment_term_unit!.toString())
+       
+        
+
+        formData.append("account_id", (ruleForm.account_id ?? ''))
+        formData.append("account_name", (ruleForm.account_name ?? ''))
+        formData.append("payment_method", ruleForm.payment_method)
+        formData.append("recipient_bank", (ruleForm.recipient_bank ?? ''))
+        formData.append("account_bank_name", (ruleForm.account_bank_name ?? ''))
+        formData.append("account_bank_number", (ruleForm.account_bank_number ?? ''))
+        formData.append("status", ruleForm.status)
+        formData.append("received_date", String(receivedDate.getTime() / 1000))
+        
+        formData.append("total_amount", subtotal.value.toString());
+
+        // Loop untuk invoice_items
+        ruleForm.invoice_item.forEach((value, index) => {
+          formData.append(`invoice_items[${index}][unique_id]`, value.unique_id)
+          formData.append(`invoice_items[${index}][item_id]`, (value.item_id ?? ''))
+          formData.append(`invoice_items[${index}][item_version]`, (value.item_version ?? 0).toString())
+          formData.append(`invoice_items[${index}][item_name]`, value.item_name)
+          formData.append(`invoice_items[${index}][unit_id]`, value.unit_id)
+          formData.append(`invoice_items[${index}][unit_name]`, value.unit_name)
+          formData.append(`invoice_items[${index}][quantity]`, String(value.quantity))
+          formData.append(`invoice_items[${index}][price]`, String(value.price))
+          formData.append(`invoice_items[${index}][total_amount]`, String(value.total_amount))
+        })
+
+         fileList.value.forEach((element, index) => {
+          formData.append(`files[${index}]`, element.raw as Blob)
+        })
+
+        transactionBanks.value.forEach((element, index) => {
+          formData.append(`purchase_order_bank[${index}][unique_id]`, element.unique_id);
+          formData.append(`purchase_order_bank[${index}][reference]`, element.reference);
+          formData.append(`purchase_order_bank[${index}][reference_id]`, element.reference_id);
+          formData.append(`purchase_order_bank[${index}][bank_account_id]`, element.bank_account_id);
+          formData.append(`purchase_order_bank[${index}][bank_account_name]`, element.bank_account_name);
+          formData.append(`purchase_order_bank[${index}][bank_account_version]`, `${element.bank_account_version}`);
+        });
+
+        
+        const response = await useFetchApi<BaseResponse<Invoice>>('/invoice-create', 'invoice-out-create', 'post', formData);
+
+        if(response.status.value == 'success'){
+          const invoiceData: Invoice = response.data.value!.data;
+          ruleForm.unique_id = invoiceData.unique_id;
+          ruleForm.invoice_item = invoiceData.invoice_item;
+          ElMessage.success('Bill Berhasil Dibuat!')
+        }else{
+          ElMessage.error(response.error.value ?? 'Gagal Membuat Data Bill!')
+        }
+        
+        // // API call to save the invoice
+        // const response = await $fetch('/api/invoices', {
+        //   method: 'POST',
+        //   body: invoiceData
+        // })
+        
+        // ElMessage.success('Invoice created successfully')
+        // router.push('/finance-management/invoices')
+      } catch (error) {
+        ElMessage.error('Failed to create bill')
+        console.error(error)
+      } finally {
+        loading.value = false
+      }
+    }
+  })
+}
+
+const querySearchUnit = (queryString: string, cb: (arg: any) => void) => {
+  var params = { ...request_search.value };
+  params.keyword = queryString;
+  params.table = "units";
+  params.column = [];
+  
+  useFetchApi<ResponsePagination<Unit[]>>('/search', 'units', 'post', params).then((response) => {
+    if (response.status.value == 'success') {
+        const resultApi: Unit[] = response.data.value?.data as Unit[];
+
+        if (resultApi.length > 0) {
+          cb(resultApi.map((value) => ({ data: value, isNew: false, value: value.name })));
+        } else {
+          cb([{ value: `Tambahkan ${queryString}`, isNew: true, id: `${queryString}` }]);
+        }
+      }
+  })
+  
+};
+
+const handleSelectUnit = async (record: Record<string, any>,scope: any) => {
+    if(record.isNew){
+      const unit: Unit|null = await handleNewUnit({name: record.id});
+      if(unit != null){
+        ruleForm.invoice_item[scope.$index].unit_id = unit.unique_id!;
+        ruleForm.invoice_item[scope.$index].unit_name = unit.name!;
+      }
+    }else{
+      const unit: Unit = record.data as Unit;
+      ruleForm.invoice_item[scope.$index].unit_id = unit.unique_id!;
+      ruleForm.invoice_item[scope.$index].unit_name = unit.name!;
+    }
+}
+
+const handleNewUnit = async (data: any): Promise<Unit|null> => {
+  try {
+    const response = await useFetchApi<BaseResponse<Unit>>('/unit-create', 'createUnit', 'post', data);
+      if(response.status.value == 'success'){
+        return response.data.value?.data ?? null;
+      }else{
+        return null;
+      }
+  } catch (error: any) {
+    ElMessage.error(`${error.response?.message ?? error}`);
+    return null;
+  }
+}
+
+const resetForm = (formEl: FormInstance | undefined) => {
+  if (!formEl) return
+  
+  formEl.resetFields()
+  ruleForm.invoice_item = [{
+    unique_id: '',
+    unique_code: '',
+    item_id: '',
+    item_version: 1,
+    item_name: '',
+    unit_id: '',
+    unit_name: '',
+    quantity: 1,
+    price: 0,
+    total_amount: 0,
+    invoice_version: 0,
+    version: 0,
+    created_at: Date.now(),
+    created_by: 0,
+    updated_at: Date.now(),
+    invoice_id: null,
+  }]
+}
+
+const fetchDataEdit = async () => {
+  loading.value = true;
+  try {
+    const unique_id = useCookie('unique_id');
+    const response = await useFetchApi<BaseResponse<Invoice>>(`/invoice-read/${unique_id.value}`, 'detail-invoice', 'get', null);
+    if(response.status.value == 'success'){
+
+      const invoice: Invoice = response.data.value!.data as Invoice;
+
+      Object.assign(ruleForm, response.data.value!.data);
+      ruleForm.payment_term = invoice.payment_term;
+      // console.log(new Date(formatLocalDate(response.data.value!.data.invoice_date!)));
+      ruleForm.invoice_date = new Date(response.data.value!.data.invoice_date! * 1000).getTime();
+      ruleForm.due_date = new Date(response.data.value!.data.due_date! * 1000).getTime();
+      ruleForm.billing_address_view = invoice.billing_address?.address_name ?? '';
+
+      transactionBanks.value = invoice.purchase_order_bank;
+    }
+  } catch (error: any) {
+    ElMessage.error(error.response?.message ?? error);
+  } finally {
+    loading.value = false;
+  }
+}
+
+const handleSubmitAccount = (account: Account) => {
+  ruleForm.account_id = account.unique_id;
+  ruleForm.account_name = account.name;
+};
+
+const handleResetAccount = () => {
+  // Reset logic jika diperlukan
+  console.log('Form reset');
+};
+
+onMounted(()=> {
+
+const unique_id = useCookie('unique_id');
+if(unique_id.value != null && unique_id.value != undefined){
+  fetchDataEdit();
+}
+
+});
+
+</script>
+
+<style scoped>
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+</style>

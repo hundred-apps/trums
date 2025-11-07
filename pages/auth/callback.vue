@@ -11,6 +11,7 @@ import {
 } from "element-plus";
 import { Plus } from "@element-plus/icons-vue";
 import { type User } from "~/types/user";
+import type { People } from "~/types/people";
 
 const imageUrl = ref("");
 const fileList = ref<UploadUserFile[]>([]);
@@ -19,6 +20,7 @@ const user = localStorage.getItem("oidc._user");
 const appUserData = useCookie("userdata");
 const userToken = useCookie("token");
 const router = useRouter();
+const oidc = useOidc();
 
 const { t } = useI18n();
 const config = useRuntimeConfig();
@@ -36,6 +38,8 @@ interface RuleForm {
   gender: string;
   email: string;
 }
+
+
 
 const loading = ref<boolean>(false);
 
@@ -135,7 +139,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 
       const jsonUser = JSON.parse(user ?? "");
 
-      formData.append("gid", parseInt(jsonUser.id));
+      formData.append("gid", `${parseInt(jsonUser.id)}`);
 
       loading.value = true;
 
@@ -145,16 +149,20 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         });
 
         if (response.status == 201) {
-          const dataUser: User = response.data.data;
+          const dataUser: People = response.data.data;
           appUserData.value = JSON.stringify(dataUser);
           userToken.value = response.data.token;
+
+          console.log('user token',userToken.value);
+
+          localStorage.setItem('menu', JSON.stringify(dataUser.menu))
 
           window.location.href = "/dashboard";
         } else {
           ElMessage.error(response?.data?.message);
         }
       } catch (error: any) {
-        ElMessage.error(error.response?.data?.message);
+        ElMessage.error(error.response?.data?.message ?? error);
       } finally {
         loading.value = false;
       }
@@ -188,8 +196,10 @@ const getUser = async () => {
   }
 };
 onMounted(() => {
+  console.log(oidc);
+  
   const jsonUser = JSON.parse(user || "");
-  console.log("json: ", jsonUser);
+  console.log("json: ", user);
   ruleForm.email = jsonUser.email || "";
   getUser();
 });

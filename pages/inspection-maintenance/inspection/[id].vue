@@ -85,12 +85,11 @@ const id = ref<string>((router.currentRoute.value.params.id as string) ?? "");
 
 const config = useRuntimeConfig();
 
-const { data } = await useFetch<DefaultResponse<Inspection>>(
-  `${config.public.baseURL}/inspection-read/${id.value}`,
-  {
-    key: "inventories",
-    method: "get",
-  }
+const { data } = await useFetchApi<DefaultResponse<Inspection>>(
+  `/inspection-read/${id.value}`,
+  'get-inspection',
+  'get',
+  null,
 );
 
 onMounted(() => {});

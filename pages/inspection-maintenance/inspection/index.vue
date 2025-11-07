@@ -2,7 +2,7 @@
   
   import { ref, onMounted } from 'vue';
   import { Eleme, SetUp } from '@element-plus/icons-vue';
-  import { type Column, type CheckboxValueType, type InputInstance, type MainInstance, ElButton, ElTag, ElText, ElCheckbox, TableV2FixedDir, ElPopover, ElIcon, ElMessage } from 'element-plus';
+  import { type Column, type CheckboxValueType, type InputInstance, type MainInstance, ElButton, ElTag, ElText, ElCheckbox, TableV2FixedDir, ElPopover, ElIcon, ElMessage, ElCheckboxGroup } from 'element-plus';
   import type { Inspection } from '~/types/inspection';
   import { formatDate } from '@vueuse/core';
   import type { FunctionalComponent } from 'vue'
@@ -144,13 +144,20 @@
           default: () => (
             <div class="filter-wrapper">
               <div class="filter-group flex flex-col">
-                {
-                  columnInspection.map((value) => (
-                    value.key != 'selection' && value.key != 'setup' ? <ElCheckbox onChange={() => console.log("ok")} value={value.key!.toString()} v-model={column_selected.value}>
-                      {value.title}
-                    </ElCheckbox> : <></>
-                ))
-                }
+                <ElCheckboxGroup v-model={column_selected.value}>
+                  
+                  {
+                    columnInspection
+                    .filter(c => c.key !== 'selection' && c.key !== 'setup')
+                    .map(c => (
+                      <ElCheckbox 
+                        key={c.key} 
+                        value={c.key!.toString()}
+                        label={c.title} 
+                      />
+                    ))
+                  }
+                </ElCheckboxGroup>
               </div>
             </div>
           ),

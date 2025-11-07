@@ -8,7 +8,7 @@
         @cancel="props.onCancel"
         >
         <template #reference>
-            <el-button size="small" type="danger">{{ props.labelButton ?? 'Hapus' }}</el-button>
+            <el-button :size="props.size" type="danger">{{ props.labelButton ?? 'Hapus' }}</el-button>
         </template>
     </el-popconfirm>
 </template>
@@ -19,6 +19,7 @@ const props = defineProps<{
     onConfirm: () => void,
     onCancel: () => void,
     title?: string,
+    size: "small" | "default" | "large",
     labelButton?: string,
     labelCancel?: string,
     labelConfirm?: string,

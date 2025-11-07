@@ -10,3 +10,8 @@ export type DefaultResponse<T> = {
     message: string,
     data: T,
 }
+export type DefaultResponsePagination<T> = {
+    success: boolean,
+    message: string,
+    data: Pagination<T>,
+}

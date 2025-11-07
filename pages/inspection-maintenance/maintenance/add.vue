@@ -501,7 +501,7 @@ const submit = async (formEl: FormInstance | undefined) => {
       note: ruleForm.note,
       maintenance_items: ruleForm.items.map((item) => ({
         inventory_id: item.inventory_id,
-        inventory_name: item.inventory?.catalogue?.name ?? item.inventory_name,
+        inventory_name: item.inventory?.catalogue?.name ?? '-',
         inventory_version: item.inventory_version,
         catalogue_id: item.inventory?.catalogue_id,
         catalogue_name: item.inventory?.catalogue?.name,

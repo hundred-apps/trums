@@ -41,31 +41,50 @@
             @select="handleSelectLocation"
           />
         </el-form-item>
-        <el-form-item prop="start_date_view" label="Tanggal Mulai Berlaku">
+
+        <el-form-item prop="owner_name" label="Kontak">
+          <el-autocomplete
+            
+              v-model="ruleForm.owner_name"
+              :fetch-suggestions="querySearchVendors"
+              placeholder="Cari vendor"
+              @select="onHandleSelectVendor"
+              style="width: 100%"
+            >
+            <template #default="{ item }">
+              <div v-if="item.isNew" class="flex items-center text-blue-500">
+                <el-icon><Plus /></el-icon>
+                <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+              </div>
+              <div v-else>
+                {{ item.value }}
+              </div>
+            </template>
+          </el-autocomplete>
+        </el-form-item>
+        
+        <el-form-item prop="start_date" label="Tanggal Mulai Berlaku">
           <el-date-picker
-            v-model="ruleForm.start_date_view"
+            v-model="ruleForm.start_date"
             type="date"
             aria-label="Pilih Tanggal"
             placeholder="Pilih Tanggal"
             style="width: 100%",
-            @change="(value: any) => {
-              const selected = new Date(value);
-              ruleForm.start_date = selected.getTime() / 1000;
-            }"
+            
           />
         </el-form-item>
-        <el-form-item prop="end_date_view" label="Tanggal Akhir Berlaku">
+        <el-form-item prop="end_date" label="Tanggal Akhir Berlaku">
           <el-date-picker
-            v-model="ruleForm.end_date_view"
+            v-model="ruleForm.end_date"
             type="date"
             aria-label="Pilih Tanggal"
             placeholder="Pilih Tanggal"
             style="width: 100%",
-            @change="(value: any) => {
-              const selected = new Date(value);
-              ruleForm.end_date = selected.getTime() / 1000;
-            }"
+            
           />
+        </el-form-item>
+        <el-form-item label="Catatan" prop="note">
+          <el-input v-model="ruleForm.note" type="textarea" placeholder="Masukkan deskripsi" />
         </el-form-item>
       </el-form>
     </el-card>
@@ -77,26 +96,52 @@
       </el-row>
       
       <el-table :data="ruleForm.pricetag_item">
-          <el-table-column prop="catalogue.name" label="item" class="my-0">
+          <el-table-column prop="item_name" label="item" class="my-0">
               <template #default="scope">
                   <el-autocomplete
                       :disabled="loading"
                       :fetch-suggestions="querySearchAsyncInventories"
-                      v-model="scope.row.catalogue.name"
+                      v-model="scope.row.item_name"
                       
                       placeholder="Cari item"
                       @select="(item: Record<string, any>) => onHandleSelectItemAutocomplete(item, scope)"
-                  />
+                        
+                  >
+                  <template #default="{ item }">
+                      <div v-if="item.isNew" class="flex items-center text-blue-500">
+                          <el-icon><Plus /></el-icon>
+                          <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                      </div>
+                      <div v-else>
+                          <p style="line-height: 15px;" class="font-bold">{{ item.value }}</p>
+                          <p  v-if="item.type === 'inventory'">PN/SN: {{ item.sn_number ?? 'Tidak Ada' }} | Lokasi: {{item.location_name ?? 'Tidak Ada'}} | Available Stok: {{item.available}}</p>
+                          <p v-if="item.type === 'catalogue'">PN/SN: {{ item.sn_number ?? 'Tidak Ada' }} </p>
+                      </div>
+                  </template>
+                </el-autocomplete>
               </template>
           </el-table-column>
-          <el-table-column prop="inventory_serial_number" label="Serial Number"/>
-          <el-table-column prop="selling_price" label="Harga Jual" class="mb-0">
+          <el-table-column prop="sn" label="Serial Number" width="250"/>
+          <el-table-column prop="quantity" label="QTY" class="mb-0" width="70"/>
+          <el-table-column prop="unit" label="Unit" width="100">
+              <template #default="scope">
+                <el-autocomplete
+                  :fetch-suggestions="querySearchUnit"
+                  v-model="scope.row.unit_name"
+                  placeholder="Input Units"
+                  @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteUnit(item, scope)"
+                />
+              </template>
+          </el-table-column>
+          <el-table-column prop="selling_price" label="Harga Jual" class="mb-0" width="150">
             <template #default="scope">
                   <el-form-item label="" :prop="`items.${scope.index}.price`" class="mb-0" style="margin-bottom: 0px !important">
                       <el-input v-model="scope.row.price" class="mb-0" />
                   </el-form-item>
               </template>
           </el-table-column>
+          
+          
           <el-table-column label="Aksi" width="100px" class="flex items-center">
             <template #default="scope" class="flex items-center">
               <el-popconfirm
@@ -136,7 +181,7 @@
         </div>
       </template>
       
-      <Collapse v-if="!loading" :elements="collapse_special_price ?? []" v-on:handle-change="(value) => {}" :active-names="['contacts']" />
+      <Collapse v-if="!loading" :elements="collapse_special_price ?? []" v-on:handle-change="(value: any) => {}" :active-names="['contacts']" />
         
     </el-card>
     </div>
@@ -156,12 +201,15 @@ import Collapse from '~/components/trums/Collapse.vue';
 import type { Contact } from '~/types/contact';
 import type { FunctionalComponent } from 'vue';
 import type { Quotation } from '~/types/quotation';
-import { OperationPriceTag, VariablePriceTag, type Pricetag, type Pricetag_condition, type Pricetag_item } from '~/types/pricetag';
+import { OperationPriceTag, ReferencePriceTag, VariablePriceTag, type Pricetag, type Pricetag_condition, type Pricetag_item } from '~/types/pricetag';
 import type { User } from '~/types/user';
 import Special_price_kontak_componen from './special_price_kontak_componen.vue';
 import Special_price_quantity_componen from './special_price_quantity_componen.vue';
 import type { BaseResponse } from '~/types/response';
 import type { Pricelist_item } from '~/types/pricelist';
+import type { ItemSearch } from '~/types/item_search';
+import type { Pagination } from '~/types/pagination';
+import type { Canvassing } from '~/types/scm/canvasing';
   definePageMeta({
     middleware: ["auth", "app"],
   });
@@ -171,7 +219,8 @@ import type { Pricelist_item } from '~/types/pricelist';
 
   const goBack = () => router.back();
   const popoverRef = ref();
-
+  const route = useRoute()
+  const canvassing_id = computed(() => route.query.canvassing_id as string)
   
   const formSize = ref<ComponentSize>("default");
   const ruleFormRef = ref<FormInstance>();
@@ -179,8 +228,8 @@ import type { Pricelist_item } from '~/types/pricelist';
     unique_id: '',
     name: '',
     location_id: '',
-    start_date: 0,
-    end_date: 0,
+    start_date: Date.now(),
+    end_date: Date.now(),
     start_date_view: '',
     end_date_view: '',
     owner_id: '',
@@ -188,12 +237,15 @@ import type { Pricelist_item } from '~/types/pricelist';
     created_by: '',
     updated_at: 0,
     version: 0,
+    type: "in",
+    note: '',
     pricetag_item: [{
       catalogue: {
         id: null,
         unique_id: null,
         unique_code: null,
         name: '',
+        
         brand_id: null,
         brand_name: null,
         year: null,
@@ -220,8 +272,13 @@ import type { Pricelist_item } from '~/types/pricelist';
       inventory: null,
       price: 0,
       is_new: true,
+      unit_id: '',
+      unit_name: '',
+      unit_version: 0,
+      checked: false,
+      quantity: 1,
     }],
-    condition: [],
+
     location: {
       id: null,
       unique_id: null,
@@ -246,7 +303,11 @@ import type { Pricelist_item } from '~/types/pricelist';
       updated_at: null,
       file_catalogues: [],
       checked: undefined
-    }
+    },
+    pricetag_condition: [],
+    reference: null,
+    reference_version: null,
+    reference_id: null
   });
 
   // special price
@@ -278,7 +339,7 @@ import type { Pricelist_item } from '~/types/pricelist';
   const requestSearchLocation = ref<RequestSearch>({
     keyword: "",
     table: "",
-    column: null,
+    column: [],
     sort: null,
     limit: "50",
     offset: "1",
@@ -330,12 +391,12 @@ import type { Pricelist_item } from '~/types/pricelist';
   
   const units = ref<Unit[]>([]);
 
-  const rules = reactive<FormRules<Pricetag>>({
+  const rules = reactive<FormRules>({
     name: [{ required: true, message: "Nama Price Tag Tidak Boleh Kosong!", trigger: "blur" }],
-    location_id: [
-      { required: true, message: "Gudang Tidak Boleh Kosong!", trigger: "blur" },
+    owner_name: [
+      { required: true, message: "Kontak Tidak Boleh Kosong!", trigger: "blur", },
     ],
-    "location.name": [{ required: true, message: "Gudang Tidak Boleh Kosong!", trigger: "blur" },],
+    
     start_date: [
       {
         type: 'date',
@@ -344,14 +405,7 @@ import type { Pricelist_item } from '~/types/pricelist';
         trigger: 'change',
       }
     ],
-    start_date_view: [
-      {
-        type: 'date',
-        required: true,
-        message: 'Tanggal Mulai Tidak Boleh Kosong!',
-        trigger: 'change',
-      }
-    ],
+    
     pricetag_item: {
         type: 'array',
         required: true,
@@ -404,26 +458,92 @@ import type { Pricelist_item } from '~/types/pricelist';
     
   };
 
-  const fetchUnits = async () => {
-    loading.value = true;
+  const querySearchVendors =  (query: string, cb: (arg: any) => void) => {
     try {
-      const response = await useFetchApi<ResponsePagination<Unit[]>>(`/search`, 'units', 'post', requestSearchUnit);
+      const request_search: RequestSearch = {
+        column: [],
+        keyword: query,
+        limit: '50',
+        offset: '1',
+        sort: {
+          column: 'created_at',
+          order: OrderColumn.ASC,
+        },
+        table: 'contacts'
+      }
 
-      
+      useFetchApi<ResponsePagination<Contact>>('/search', 'search-customer', 'post', request_search).then((response) => {
+        if(response.status.value == 'success'){
+          const contacts: Contact[] = (response.data.value?.data ?? []) as Contact[];
+          if(contacts.length > 0){
+            cb(contacts.map((value) => ({
+            value: value.name,
+            unique_id: value.unique_id,
+            data: value,
+          })));
+          }else{
+            cb([{
+              value: query,
+              isNew: true,
+              keyword: query,
+            }])
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Failed to fetch vendors', error)
+      cb([])
+    }
+  }
+
+  const querySearchUnit = (queryString: string, cb: (arg: any) => void) => {
+    var params = {...requestSearchUnit.value};
+    params.keyword = queryString;
+    params.table = 'units';
+    params.column = [];
+    useFetchApi<ResponsePagination<Unit[]>>('/search','search-unit', 'post', params).then((response) => {
+        if(response.status.value === 'success'){
+            const resultApi: Unit[]  = response.data.value?.data ?? [];
+            
+            if(resultApi.length > 0){
+                cb(resultApi.map((value) => ({...value, value: value.name})));
+            }else{
+                cb([{value: `Tambahkan ${queryString}`, label: `${queryString}`}]);
+            }
+        }
+    }).catch((error: any) => {
+        ElMessage.error(error.response?.data?.message);
+    })
+  }
+
+  const createNewVendor = async (data: any) => {
+    try {
+      const response = await useFetchApi<BaseResponse<Contact>>('/contact-create', 'create-customer', 'post', data);
       if(response.status.value == 'success'){
-        
-        units.value = (response.data.value as ResponsePagination<Unit[]>).data;
-        console.log(units.value);
+        return response.data.value?.data;
       }
     } catch (error: any) {
-      
-      ElMessage.error(error.response?.data?.message ?? error);
-      return [];
-    } finally {
-      loading.value = false;
+      ElMessage.error(error.response.message ?? error);
     }
-    
   }
+
+  const onHandleSelectVendor = (item: any) => {
+    if (item.isNew) {
+      createNewVendor({name: item.keyword}).then(customer => {
+        if (customer) {
+          ruleForm.owner_id = customer.unique_id;
+          ruleForm.owner_name = customer.name;
+          
+        }
+      })
+    } else {
+      const customer = item.data as Contact
+      console.log(customer);
+      ruleForm.owner_id = customer.unique_id;
+      ruleForm.owner_name = customer.name;
+    }
+  }
+  
 
   const handleSelectLocation = (item: Record<string, any>) => {
     const catalogue: Catalogue = item as Catalogue;
@@ -446,6 +566,10 @@ import type { Pricelist_item } from '~/types/pricelist';
         inventory: Inventory|null,
         price: number,
         is_new?: boolean,
+        unit_id: string|null,
+        unit_name: string|null,
+        unit_version: number|null,
+        quantity: number,
       }[] = [...ruleForm.pricetag_item, {
           catalogue: {
             id: null,
@@ -478,6 +602,10 @@ import type { Pricelist_item } from '~/types/pricelist';
           inventory: null,
           price: 0,
           is_new: true,
+          unit_id: '',
+          unit_name: '',
+          unit_version: 0,
+          quantity: 1,
       }];
 
       ruleForm.pricetag_item = newItem;
@@ -509,41 +637,121 @@ import type { Pricelist_item } from '~/types/pricelist';
   }
   
   const querySearchAsyncInventories = (queryString: string, cb: (arg: any) => void) => {
-    const data: RequestSearch = {
-        table: 'catalogues',
-        column: [
-            {
-                type: ['item'],
-            },
-        ],
+    const data = {
+        location_id: ruleForm.location_id,
         keyword: queryString,
-        limit: "20",
-        offset: "1",
-        sort: null,
+        limit: 50,
     }
-    useFetchApi<ResponsePagination<Catalogue[]>>('/search', 'catalogues', 'post', data).then((response) => {
+    useFetchApi<Pagination<ItemSearch[]>>('/catalogues-inventory', 'catalogues-inventory', 'post', data).then((response) => {
         if(response.status.value == 'success'){
-            const inventories: Catalogue[] = response.data?.value?.data ?? [];
+            const inventories: ItemSearch[] = response.data?.value?.query ?? [];
 
-            const results = inventories.map((data: Catalogue) => {
-                return {value: `${data.name}-${data.sn}`, unique_id: data.unique_id, object: data};
-            });    
-            cb(results)
+            if(inventories.length > 0){
+              const results = inventories.map((data: ItemSearch) => {
+                  return {isNew: false, value: `${data.catalogue_name}-${data.sn_number}`, ...data};
+              });    
+              cb(results)
+            }else{
+              cb([{
+                isNew: true,
+                value: `${queryString}`,
+                name: `Tambahkan ${queryString}`,
+              }])
+            }
         }
     }).catch((error: any) => {
         ElMessage.error(`${error.response?.data?.message ?? error}`);
     })
   }
 
-  const onHandleSelectItemAutocomplete = (record: Record<string, any>, scope: any) => {
-      console.log(record)
-      if(record.object != undefined){
-          const catalogue: Catalogue = record.object as Catalogue;
-          ruleForm.pricetag_item[scope.$index].catalogue_id = catalogue.unique_id!;
-          ruleForm.pricetag_item[scope.$index].catalogue = catalogue;
-          ruleForm.pricetag_item[scope.$index].price = 0;
-      }
+  const create_catalogue = async (catalogue: Catalogue) => {
+      loading.value = true;
+      try {
 
+          const formData = new FormData();
+
+          formData.append('unique_id', (catalogue.unique_id ?? ''));
+          formData.append('name', (catalogue.name ?? ''));
+          formData.append('brand_id', (catalogue.brand_id ?? ''));
+          formData.append('year', (catalogue.year ?? ''));
+          formData.append('sn', (catalogue.sn ?? ''));
+          formData.append('description', (catalogue.description ?? ''));
+          formData.append('berat', (catalogue.berat ?? 0).toString());
+          formData.append('volume', `${catalogue.panjang}x${catalogue.lebar}x${catalogue.tinggi}`);
+          formData.append('is_asset', (catalogue.tmp_asset == '1' ? true : false).toString());
+          formData.append('type', catalogue.type);
+
+          const response = await useFetchApi<BaseResponse<Catalogue>>('/catalogues-create', 'catalogue-create', 'post', formData);
+          if(response.status.value == 'success'){
+              const catalogue_result: Catalogue = response.data.value!.data;
+              return catalogue_result;
+          }
+      } catch (error: any) {
+          ElMessage.error(error?.response?.message ?? error);
+      } finally {
+          loading.value = false;
+      }
+  }
+
+  const onHandleSelectItemAutocomplete = async (record: Record<string, any>, scope: any) => {
+      if(record.isNew){
+        const catalogueInsert: Catalogue = {
+          name: record.value,
+          id: null,
+          unique_id: null,
+          unique_code: null,
+          brand_id: null,
+          brand_name: null,
+          year: null,
+          sn: null,
+          description: null,
+          berat: null,
+          volume: null,
+          panjang: null,
+          lebar: null,
+          tinggi: null,
+          is_asset: null,
+          tmp_asset: null,
+          version: null,
+          type: 'item',
+          created_at: null,
+          created_by: null,
+          updated_at: null,
+          file_catalogues: []
+        }
+        const selected: Catalogue|null = await create_catalogue(catalogueInsert) ?? null;
+
+        if(selected != null){
+          ruleForm.pricetag_item[scope.$index].item_name = selected.name!;
+          ruleForm.pricetag_item[scope.$index].catalogue_id = selected.unique_id!;
+          ruleForm.pricetag_item[scope.$index].sn = selected.sn ?? 'Tidak Ada SN/PN';
+          ruleForm.pricetag_item[scope.$index].quantity = 1;
+        }else{
+          ElMessage.error(`Ops, Something wrong!!`);
+        }
+      }else{
+        const selected: ItemSearch = record as ItemSearch;
+        ruleForm.pricetag_item[scope.$index].item_name = selected.catalogue_name!;
+        ruleForm.pricetag_item[scope.$index].catalogue_id = selected.catalogue_id!;
+        ruleForm.pricetag_item[scope.$index].sn = selected.sn_number ?? 'Tidak Ada SN/PN';
+        ruleForm.pricetag_item[scope.$index].inventory_id = selected.inventory_id ?? '';
+        ruleForm.pricetag_item[scope.$index].unit_id = selected.unit_id ?? '';
+        ruleForm.pricetag_item[scope.$index].unit_name = selected.unit_name ?? '';
+        ruleForm.pricetag_item[scope.$index].quantity = 1;
+        // ruleForm.pricetag_item[scope.$index].catalogue = catalogue;
+        ruleForm.pricetag_item[scope.$index].price = 0;
+      }
+  }
+
+  const onHandleSelectItemAutocompleteUnit = (item: Record<string, any>, scope: any) => {
+    
+    if(item.unique_id == undefined){
+      ruleForm.pricetag_item[scope.$index].unit_name = item.label;
+      ruleForm.pricetag_item[scope.$index].unit_id = '';
+    }else{
+      ruleForm.pricetag_item[scope.$index].unit_name = item.value;
+      ruleForm.pricetag_item[scope.$index].unit_id = `${item.id}`;
+    }
   }
 
   const deleteItemInServer = (string: string[]) => {
@@ -590,116 +798,101 @@ import type { Pricelist_item } from '~/types/pricelist';
     
     loading.value = true;
     try {
-      const dateObjectStart = new Date(ruleForm.start_date_view);
-      const dateObjectEnd = new Date(ruleForm.end_date_view);
       
-
-
-      // const pricelistObj: Pricetag = {
-      //   name: ruleForm.name,
-      //   end_date: ruleForm.end_date,
-      //   start_date: ruleForm.start_date,
-      //   unique_id: '',
-      //   location_id: '',
-      //   location: {
-      //     id: null,
-      //     unique_id: null,
-      //     unique_code: null,
-      //     name: null,
-      //     brand_id: null,
-      //     brand_name: null,
-      //     year: null,
-      //     sn: null,
-      //     description: null,
-      //     berat: null,
-      //     volume: null,
-      //     panjang: null,
-      //     lebar: null,
-      //     tinggi: null,
-      //     is_asset: null,
-      //     tmp_asset: null,
-      //     version: null,
-      //     type: '',
-      //     created_at: null,
-      //     created_by: null,
-      //     updated_at: null,
-      //     file_catalogues: [],
-      //     checked: undefined
-      //   },
-      //   start_date_view: '',
-      //   end_date_view: '',
-      //   owner_id: '',
-      //   created_at: 0,
-      //   created_by: '',
-      //   updated_at: 0,
-      //   version: 0,
-      //   items: [],
-      //   condition: []
-      // }
-
       const cookie = useCookie('userdata');
-      ruleForm.owner_id = (cookie.value! as unknown as User).unique_id;
+      // ruleForm.owner_id = (cookie.value! as unknown as User).unique_id;
 
 
       
-      var data_price_tag = {
-        "name": ruleForm.name,
-        "location_id": ruleForm.location_id,
-        "start_date": ruleForm.start_date,
-        "end_date": ruleForm.end_date,
-        "pricetag_item": ruleForm.pricetag_item.map((value) => {
-            return {
-              "unique_id": value.unique_id,
-              "tag_id": value.tag_id,
-              "catalogue_id": value.catalogue_id,
-              "inventory_id": value.inventory_id,
-              "price": parseInt(`${value.price}`),
-            }
-        }),
-        "condition": [
-          ...contact_condition.value.map((value) => ({
-              unique_id: value.unique_id,
-              tag_id: value.tag_id,
-              variable: value.variable_pricetag?.name,
-              operation: value.operation_pricetag?.name,
-              value: value.value,
-          })),
-          ...location_condition.value.map((value) => ({
-              unique_id: value.unique_id,
-              tag_id: value.tag_id,
-              variable: value.variable_pricetag?.name,
-              operation: value.operation_pricetag?.name,
-              value: value.value,
-          })),
-          
-        ]
+      const formData = new FormData()
+
+      formData.append('name', `${ruleForm.name}`)
+      formData.append('location_id', `${ruleForm.location_id}`)
+      formData.append('start_date', `${ruleForm.start_date / 1000}`)
+      formData.append('end_date', `${ruleForm.end_date / 1000}`)
+      formData.append('owner_id', `${ruleForm.owner_id}`)
+      formData.append('reference', `${ruleForm.reference}`)
+      formData.append('reference_id', `${ruleForm.reference_id}`)
+      formData.append('reference_version', `${ruleForm.reference_version}`)
+      formData.append('type', `${ruleForm.type}`)
+      formData.append('note', `${ruleForm.note}`)
+
+      // Append pricetag_item array
+      ruleForm.pricetag_item.forEach((value, index) => {
+        formData.append(`pricetag_item[${index}][unique_id]`, `${value.unique_id}`)
+        formData.append(`pricetag_item[${index}][tag_id]`, `${value.tag_id}`)
+        formData.append(`pricetag_item[${index}][catalogue_id]`, `${value.catalogue_id}`)
+        formData.append(`pricetag_item[${index}][catalogue_version]`, `${value.catalogue?.version}`)
+        formData.append(`pricetag_item[${index}][inventory_id]`, `${value.inventory_id}`)
+        formData.append(`pricetag_item[${index}][price]`, `${value.price}`)
+        formData.append(`pricetag_item[${index}][unit_id]`, `${value.unit_id}`)
+        formData.append(`pricetag_item[${index}][unit_name]`, `${value.unit_name}`)
+        formData.append(`pricetag_item[${index}][unit_version]`, `${value.unit_version}`)
+        formData.append(`pricetag_item[${index}][quantity]`, `${value.quantity}`)
+      })
+
+      // Combine conditions (contact + location)
+      let allConditions = [
+        ...contact_condition.value.map((value) => ({
+          unique_id: value.unique_id,
+          tag_id: value.tag_id,
+          variable: value.variable_pricetag?.name,
+          operation: value.operation_pricetag?.name,
+          value: value.value,
+        })),
+        ...location_condition.value.map((value) => ({
+          unique_id: value.unique_id,
+          tag_id: value.tag_id,
+          variable: value.variable_pricetag?.name,
+          operation: value.operation_pricetag?.name,
+          value: value.value,
+        })),
+      ]
+
+      // Add quantity condition if available
+      if (parseInt(quantity.value.value) > 0) {
+        allConditions.push({
+          unique_id: quantity.value.unique_id,
+          tag_id: quantity.value.tag_id,
+          variable: quantity.value.variable_pricetag?.name,
+          operation: quantity.value.operation_pricetag?.name,
+          value: quantity.value.value,
+        })
       }
 
-      console.log(quantity.value.value);
+      // Append all conditions
+      allConditions.forEach((cond, index) => {
+        formData.append(`condition[${index}][unique_id]`, `${cond.unique_id}`)
+        formData.append(`condition[${index}][tag_id]`, `${cond.tag_id}`)
+        formData.append(`condition[${index}][variable]`, `${cond.variable}`)
+        formData.append(`condition[${index}][operation]`, `${cond.operation}`)
+        formData.append(`condition[${index}][value]`, `${cond.value}`)
+      })
 
-      if(parseInt(quantity.value.value) > 0){
-        data_price_tag.condition.push({
-              unique_id: quantity.value.unique_id,
-              tag_id: quantity.value.tag_id,
-              variable: quantity.value.variable_pricetag?.name,
-              operation: quantity.value.operation_pricetag?.name,
-              value: quantity.value.value,
-          })
-      }
-
-      const unique_id = useCookie('tag_id');
-
-
-      if(unique_id.value){
-        data_price_tag = {...data_price_tag, ...{unique_id: unique_id}};
+      // Get unique_id from cookie
+      const unique_id = useCookie('tag_id')
+      if (unique_id.value) {
+        formData.append('unique_id', `${unique_id.value}`)
       }
 
 
-      const response = await useFetchApi('/pricetag-create', 'pricelist-create', 'post', data_price_tag);
+      const response = await useFetchApi<BaseResponse<Pricetag>>('/pricetag-create', 'pricelist-create', 'post', formData);
 
       if(response.status.value == 'success'){
+        const pricetag: Pricetag | undefined = response.data.value?.data;
         ElMessage.success("Berhasil");
-        formEl.resetFields();
+
+        const unique_id = useCookie('tag_id');
+
+        if(unique_id.value){
+          fetchInitialData();
+        }else{
+          if(canvassing_id.value && pricetag){
+            window.location.href = `/sales/pricelist/${pricetag.unique_id}`;
+          }else{
+            formEl.resetFields();
+          }
+        }
       }
     } catch (error: any) {
       ElMessage.error(error.response?.data?.message ?? error);
@@ -766,19 +959,24 @@ import type { Pricelist_item } from '~/types/pricelist';
           ruleForm.unique_id = pricetagEdit.unique_id;
           ruleForm.name = pricetagEdit.name;
           ruleForm.location_id = pricetagEdit.location_id;
-          ruleForm.start_date = pricetagEdit.start_date;
-          ruleForm.end_date = pricetagEdit.end_date;
-          ruleForm.start_date_view = dateViewStart.toString();
-          if(pricetagEdit.end_date > 0){
-            ruleForm.end_date_view = dateViewEnd!.toString();
+          ruleForm.start_date = dateViewStart.getTime();
+          if(dateViewEnd != null){
+            ruleForm.end_date = dateViewEnd.getTime();
           }
+          // ruleForm.start_date_view = dateViewStart.toString();
+          // if(pricetagEdit.end_date > 0){
+          //   ruleForm.end_date_view = dateViewEnd!.toString();
+          // }
           ruleForm.owner_id = pricetagEdit.owner_id;
+          ruleForm.owner_name = pricetagEdit.owner?.name ?? '';
           ruleForm.created_at = pricetagEdit.created_at;
           ruleForm.created_by = pricetagEdit.created_by;
           ruleForm.updated_at = pricetagEdit.updated_at;
           ruleForm.version = pricetagEdit.version;
           ruleForm.pricetag_item = pricetagEdit.pricetag_item.map((value) => ({
             ...value,
+            item_name: value.catalogue?.name ?? '',
+            sn:value.catalogue?.sn ?? 'N/A',
             is_new: false,
           }));
           ruleForm.pricetag_condition = pricetagEdit.pricetag_condition;
@@ -786,17 +984,17 @@ import type { Pricelist_item } from '~/types/pricelist';
 
           pricetagEdit.pricetag_condition.forEach((value) => {
             if(value.variable_pricetag?.name == VariablePriceTag.KONTAK){
-              console.log(value.variable_pricetag);
+              console.log(value.value_data);
               contact_condition.value.push({
                 ...value,
-                value_display: value.data?.name ?? '',
+                value_display: value.value_data?.name ?? '',
                 is_new: false,
               });
             }else if(value.variable_pricetag?.name == VariablePriceTag.LOCATION){
               location_condition.value.push({
                 ...value,
                 ...value,
-                value_display: value.data?.name ?? '',
+                value_display: value.value_data?.name ?? '',
                 is_new: false,
               });
             }else if(value.variable_pricetag?.name == VariablePriceTag.ITEM_QUANTITY){
@@ -820,7 +1018,85 @@ import type { Pricelist_item } from '~/types/pricelist';
     }
   }
 
+  const fetchCanvassing = async () => {
+    loading.value = true
+    try {
+      const response = await useFetchApi<BaseResponse<Canvassing>>(
+        `/canvassing-read/${canvassing_id.value}`, 
+        'detail-canvassing', 
+        'get', 
+        null
+      );
+
+      if(response.status.value == 'success'){
+        const canvassing: Canvassing = response.data.value!.data;
+
+        ruleForm.reference = ReferencePriceTag.CANVASSING;
+        ruleForm.reference_id = canvassing.unique_id;
+        ruleForm.reference_version = canvassing.version;
+        ruleForm.start_date_view = (Date.now() / 1000).toString();
+        ruleForm.type = 'out';
+
+        ruleForm.pricetag_item = canvassing.canvassing_item.map((item) => ({
+          unique_id: null,
+          tag_id: null,
+          catalogue: item.catalogue ?? null,
+          catalogue_id: item.catalogue_id,
+          inventory_id: '',
+          inventory: null,
+          price: item.unit_selling_price,
+          is_new: true,
+          unit_id: item.unit_id,
+          unit_name: item.unit_name,
+          unit_version: item.unit_version,
+          sn: item.catalogue?.sn ?? 'N/A',
+          checked: false,
+          item_name: item.catalogue?.name ?? '',
+          quantity: item.quantity,
+        }))
+
+        contact_condition.value.push({
+          operation: "is_equal",
+          variable: VariablePriceTag.KONTAK,
+          unique_id: null,
+          tag_id: null,
+          value: `${canvassing.source?.request_by?.unique_id}`,
+          value_display: `${canvassing.source?.request_by?.name}`,
+          variable_pricetag: {
+            unique_id: '',
+            name: VariablePriceTag.KONTAK,
+            type: 'variable',
+            slug: ''
+          },
+          operation_pricetag: {
+            unique_id: '',
+            name: OperationPriceTag.IS_EQUAL,
+            type: 'operation',
+            slug: ''
+          },
+        });
+
+      }
+
+
+
+
+      
+    } catch (error) {
+      ElMessage.error('Failed to fetch canvassing data')
+      console.error(error)
+      goBack();
+    } finally {
+      loading.value = false
+    }
+  }
+
   onMounted(() => {
+
+    if(canvassing_id.value){
+      fetchCanvassing();
+    }
+
     const unique_id = useCookie('tag_id');
     
     
@@ -829,7 +1105,7 @@ import type { Pricelist_item } from '~/types/pricelist';
       fetchInitialData();
     }else{
       initialSpecialPrice();
-      fetchUnits();
+      
     }
   })
 </script>

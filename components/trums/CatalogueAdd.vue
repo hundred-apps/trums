@@ -1,16 +1,20 @@
 <script lang="ts" setup>
-import type { FormInstance, FormRules } from 'element-plus';
+import type { FormInstance, FormProps, FormRules } from 'element-plus';
 import type { Brands } from '~/types/brand';
 import type { Catalogue } from '~/types/catalogue';
 import type { RequestSearch } from '~/types/request_search';
 import type { BaseResponse } from '~/types/response';
 import type { ResponsePagination } from '~/types/response_pagination';
 
+const labelPosition = ref<FormProps['labelPosition']>('top')
+
 const props = defineProps<{
     // onSubmit: (catalogue: Catalogue) => void,
     // onCancel: () => void,
     catalogue_form: Catalogue,
+    loading: boolean,
 }>();
+
 
 
 const catalogue_form_ref = ref<FormInstance>();
@@ -59,10 +63,12 @@ const handleSelectBrand = async (item: Record<string, any>) => {
         props.catalogue_form.brand_id = brand.unique_id;
     }
 }
+
+
 </script>
 
 <template>
-    <el-form :model="catalogue_form" ref="catalogue_form_ref" label-width="auto" :rules="rule_form_catalogue">
+    <el-form :disabled="loading" :label-position="labelPosition" :model="catalogue_form" ref="catalogue_form_ref" label-width="auto" :rules="rule_form_catalogue">
         <el-form-item label="Nama Item" prop="name">
             <el-input v-model="catalogue_form.name" />
         </el-form-item>
@@ -110,6 +116,7 @@ const handleSelectBrand = async (item: Record<string, any>) => {
                 <el-input v-model="catalogue_form.tinggi"placeholder="Tinggi" />
             </el-col>
         </el-form-item>
+       
         
     </el-form>
 </template>

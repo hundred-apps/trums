@@ -15,6 +15,7 @@ export type AddressType = {
     created_by: number,
     updated_at: number,
     version: number,
+    checked?: boolean,
 }
 
 export type coordinateAddress = {

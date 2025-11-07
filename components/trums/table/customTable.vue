@@ -10,8 +10,9 @@
     @column-sort="columnSort"
     fixed
   >
-    <template v-if="loading" #overlay>
+    <template v-if="loading"  #overlay>
       <div
+      
         class="el-loading-mask"
         style="display: flex; align-items: center; justify-content: center"
       >
@@ -58,6 +59,8 @@ const props = defineProps({
   },
 });
 
+const { loading } = toRefs(props)
+
 // const handleSelectionChange = (selection: any[]) => {
 //   console.log("Selected Rows:", selection);
 // };
@@ -93,10 +96,13 @@ const checkIfExistCheckbox = () => {
 //   scollbar_thumb[i].remove();
 // }
 
-onMounted(() => {});
+onMounted(() => {
+  console.log(props.data);
+  console.log(props.loading);
+});
 </script>
 
-<style>
+<style scoped>
 .el-table-v2__root,
 .el-table-v2__main {
   width: 100% !important;

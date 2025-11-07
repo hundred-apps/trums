@@ -17,7 +17,11 @@
                     >
                     <el-descriptions-item label="Lokasi Awal">{{checkData?.from_name}}</el-descriptions-item>
                     <el-descriptions-item label="Tanggal">{{formatLocalDate(checkData?.created_at ?? 0)}}</el-descriptions-item>
-                    <el-descriptions-item label="Status">{{ checkData!.status }}</el-descriptions-item>
+                    <el-descriptions-item label="Status">
+                        <el-tag :type="getStatusTagType(checkData!.status)">
+                            {{ formatStatus(checkData!.status) }}
+                        </el-tag>
+                    </el-descriptions-item>
                     </el-descriptions>
                 </div>
                 <div class="flex-1">
@@ -27,7 +31,9 @@
                         size="large"
                         border
                     >
-                        <el-descriptions-item label="Nomor Permintaan">{{checkData?.reference ?? '-'}}</el-descriptions-item>
+                        
+                        <el-descriptions-item v-if="checkData!.reference == 'inquiry' || checkData!.reference == 'receives'" label="Nomor Permintaan">{{checkData?.reference ?? '-'}}</el-descriptions-item>
+                        <el-descriptions-item v-if="checkData!.reference == 'so' || checkData!.reference == 'po'" label="Nomor SO/PO">{{checkData?.data_reference?.unique_code ?? '-'}}</el-descriptions-item>
                         <el-descriptions-item label="Nomor Dokumen">{{checkData?.source_document ?? '-'}}</el-descriptions-item>
                         <!-- <el-descriptions-item label="Alamat">
                             -
@@ -49,12 +55,16 @@
         </el-card>
         <el-card>
             <h1 class="mb-4">Item Permintaan</h1>
-            <el-table :data="checkData?.inventory_movement_item" style="width: 100%">
-                <el-table-column prop="inventory.catalogue.name" label="Nama Item" width="180" />
+            <el-table :data="checkData?.inventory_movement_item" style="width: 100%" border>
+                <el-table-column prop="inventory.catalogue.name" label="Nama Item"  />
                 <el-table-column prop="sn" label="Serial/Part Number" width="180" />
-                <el-table-column prop="quantity" label="Quantity" />
-                <el-table-column prop="cost" label="Harga Beli" />
-                <el-table-column prop="inventory.unit_name" label="UOM" />
+                <el-table-column prop="quantity" label="QTY" width="100" />
+                <el-table-column prop="cost" label="Harga Beli" width="200" align="right">
+                    <template #default="scope">
+                        {{ currencyWithoutSymbol(scope.row.cost) }}
+                    </template>
+                </el-table-column>
+                <el-table-column prop="inventory.unit_name" label="UOM" width="100" />
             </el-table>
         </el-card>
     </TrumsWrapper>
@@ -84,6 +94,35 @@ import type { InventoryMovement } from '~/types/inventory_movement';
 
     const onSubmit = () => {
         console.log('submit!')
+    }
+
+    const getStatusTagType = (status: string): 'success' | 'info' | 'danger' | 'warning' | 'primary' => {
+        switch (status) {
+            case 'draft': return 'info'
+            case 'waiting': return 'warning'
+            case 'delivery': return 'primary'
+            case 'ready': return 'primary'
+            case 'done': return 'success'
+            default: return 'primary'
+        }
+    }
+
+    const formatStatus = (status: string) => {
+        switch (status) {
+            case 'draft':
+                return 'DRAFT';
+            case 'waiting':
+                return 'WAITING';
+            case 'delivery':
+                return 'ON DELIVERY';
+            case 'ready':
+                return 'READY';
+            case 'done':
+                return 'DONE';
+            default:
+                return status;
+            
+        }
     }
 
     onMounted(() => {

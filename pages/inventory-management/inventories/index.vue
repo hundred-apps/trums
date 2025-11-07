@@ -16,7 +16,7 @@ import type { Unit } from '~/types/unit';
 import { NuxtLink } from '#components';
 
 
-  const column_selected = ref<string[]>(['selection', 'sn', 'catalogue.name', 'location.name', 'quantity', 'setup']);
+  const column_selected = ref<string[]>(['selection', 'sn', 'catalogue.name', 'location.name', 'quantity','available','request','booking','order', 'setup']);
 
   const popoverRef = ref();
   const config = useRuntimeConfig();
@@ -126,14 +126,14 @@ import { NuxtLink } from '#components';
     keyword: '',
     column: [
       {
-        location_id: [""],
-        is_traceable: [""],
-        unit_id: [""],
+        location_id: [],
+        is_traceable: [],
+        unit_id: [],
       }
     ],
     filter: {
       quantity: {
-        min: 1
+        min: 0,
       }
     },
     limit: "10",
@@ -215,7 +215,7 @@ import { NuxtLink } from '#components';
         </div>
       ),
       cellRenderer: ({rowData: row}) => (<>
-        <NuxtLink class={`text-blue-600`} href={`/inventory-management/location/${row.location.unique_id ?? ''}`}>{row.location.name}</NuxtLink>
+        <NuxtLink class={`text-blue-600`} href={`/inventory-management/location/${row.location?.unique_id ?? ''}`}>{row.location?.name}</NuxtLink>
       </>)
     },
     {
@@ -224,8 +224,48 @@ import { NuxtLink } from '#components';
       dataKey: 'quantity',
       sortable: true,
       width: 100,
-      cellRenderer: ({rowData: row}) => (<>
-        <p>{row.quantity}</p>
+      cellRenderer: ({ rowData }: { rowData: Inventory }) => (<>
+        <p>{rowData.quantity}</p>
+      </>)
+    },
+    {
+      title: 'Available', 
+      key: 'available',
+      dataKey: 'available',
+      sortable: true,
+      width: 100,
+      cellRenderer: ({ rowData }: { rowData: Inventory }) => (<>
+        <p class={'text-green-500'}>{rowData.available}</p>
+      </>)
+    },
+    {
+      title: 'Booking', 
+      key: 'booking',
+      dataKey: 'booking',
+      sortable: true,
+      width: 100,
+      cellRenderer: ({ rowData }: { rowData: Inventory }) => (<>
+        <p class={'text-yellow-500'}>{rowData.booking}</p>
+      </>)
+    },
+    {
+      title: 'Request', 
+      key: 'request',
+      dataKey: 'request',
+      sortable: true,
+      width: 100,
+      cellRenderer: ({ rowData }: { rowData: Inventory }) => (<>
+        <p class={'text-red-500'}>{rowData.request}</p>
+      </>)
+    },
+    {
+      title: 'Order', 
+      key: 'order',
+      dataKey: 'order',
+      sortable: true,
+      width: 100,
+      cellRenderer: ({ rowData }: { rowData: Inventory }) => (<>
+        <p class={'text-blue-500'}>{rowData.order}</p>
       </>)
     },
     {
@@ -470,27 +510,41 @@ import { NuxtLink } from '#components';
   }
 
   const onSort = (sortBy: SortBy) => {
-    console.log('sort', sortBy.key);
-    console.log(request_search.value);
-    const data:RequestSearch = {...request_search.value};
-    data.sort = {
+    
+    request_search.value.sort = {
       column: sortBy.key.toString(),
       order: request_search.value.sort?.order == OrderColumn.ASC ? OrderColumn.DESC : OrderColumn.ASC
     };
-    request_search.value = data;
 
   }
 
-  watch(request_search, fetchData, {immediate: true});
+  watch(request_search, () => {
+    refreshNuxtData('inventories');
+  }, {immediate: true});
   
   const paginationClick = (val: number) => {
-    const data:RequestSearch = {...request_search.value};
-    data.offset = val.toString();
-    request_search.value = data;
+    request_search.value.offset = val.toString();
 
   }
 
-  
+  const submitToDelete = async (ids: string[]) => {
+    loading.value = false;
+    try {
+      
+      const response = await useFetchApi<ResponsePagination<string[]>>(`/catalogues-delete`, 'catalogues', 'post', ids);
+      if(response.status.value == "success"){
+        await refreshNuxtData('inventories');
+      }
+    } catch (error: any) {
+      ElMessage.error(`${error.response?.data?.message}`);
+    }finally{
+      loading.value = false;
+    }
+  }
+
+  const hasSelected = computed(() => {
+    return data.value?.data?.some(item => item.checked) || false
+  })
 
   onMounted(() => {
     fetchLocation();
@@ -513,6 +567,13 @@ import { NuxtLink } from '#components';
           fetchData();
         }"><el-icon class="mr-3"><RefreshLeft /></el-icon> Muat Ulang</el-button>
         <NuxtLink class="el-button el-button--large" href="/inventory-management/inventories/opname">Stok Opname</NuxtLink>
+        <DeleteButton v-if="hasSelected"
+        label-button="Hapus" 
+        title="Anda Yakin Ingin Menghapus Lokasi?" 
+        label-confirm="Hapus" 
+        size="large"
+        @confirm="() => submitToDelete((data?.data ?? []).filter((value) => value.checked).map((value) => value.unique_id!))" 
+        @cancel="()=>{}" />
       </el-row>
       <CustomTable :column-sort="onSort" :columns="filteredColumn" :data="data?.data ?? []"  />
       <div class="flex justify-end mt-3">
