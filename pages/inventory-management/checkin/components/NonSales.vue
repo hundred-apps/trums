@@ -815,6 +815,7 @@
             request.table = 'units';
             request.column = []
             request.keyword = queryString;
+            request.flag = 'form';
             useFetchApi<ResponsePagination<Unit[]>>('/search', 'units', 'post', request).then((response) => {
                 if(response.status.value == 'success'){
                     const units: Unit[] = response.data?.value?.data ?? [];
@@ -1022,7 +1023,8 @@
             {
                 "type": ['place']
             }
-        ]
+        ];
+        requestSearch.value.flag = 'form';
         
         useFetchApi<ResponsePagination<Catalogue[]>>('/search', 'location_search', 'post', requestSearch.value).then((response) => {
             if(response.status.value == 'success'){
@@ -1058,6 +1060,7 @@
         requestSearch.value.keyword = keyword;
         requestSearch.value.table = 'inquiries';
         requestSearch.value.column = []
+        requestSearch.value.flag = "form";
         
         const response = await useFetchApi<ResponsePagination<Inquiry[]>>('/search', 'inquiries', 'post', requestSearch.value);
         if(response.status.value == 'success'){
@@ -1073,6 +1076,7 @@
         requestSearch.value.keyword = keyword;
         requestSearch.value.table = 'inventory_movement';
         requestSearch.value.column = []
+        requestSearch.value.flag = 'form';
         
         const response = await useFetchApi<ResponsePagination<InventoryMovement[]>>('/search', 'inventory_movement', 'post', requestSearch.value);
         if(response.status.value == 'success'){
@@ -1179,6 +1183,7 @@
         newSearch.column = []
         newSearch.limit = "500";
         newSearch.offset = "1";
+        newSearch.flag = "form";
 
         
         useFetchApi<ResponsePagination<AddressType[]>>('/search', 'address', 'post', newSearch).then((response) => {
@@ -1434,6 +1439,7 @@ data.forEach(element => {
             ];
             requestSearch.value.limit = "10";
             requestSearch.value.offset = "1";
+            requestSearch.value.flag = "form";
         }
 
 
@@ -1458,7 +1464,7 @@ data.forEach(element => {
 
             const response = await useFetchApi<BaseResponse<Catalogue>>('/catalogues-create', 'catalogue-create', 'post', formData);
             if(response.status.value == 'success'){
-                const catalogue_result: Catalogue = response.data.value!.data;
+                const catalogue_result: Catalogue|undefined = response.data.value?.data;
                 return catalogue_result;
             }
         } catch (error: any) {
@@ -1762,11 +1768,14 @@ data.forEach(element => {
             const response = await useFetchApi<ResponsePagination<BaseResponse<AddressType>>>('/address-create', 'address-create', 'post', data);
             if(response.status.value == 'success'){
                 ElMessage.success('Berhasil!');
-                const address:AddressType = (response.data.value as unknown as BaseResponse<AddressType>).data;
-                formInline.address_id = address.unique_id;
-                formInline.address_version = address.version;
-                formInline.address_name = `(${address.contact_name}) - ${address.village}, ${address.city}, ${address.regency}, ${address.province}`;
-                dialogNewAddress.value = false;
+                const address:AddressType|null = (response.data.value as unknown as BaseResponse<AddressType>).data ?? null;
+
+                if(address){
+                    formInline.address_id = address.unique_id;
+                    formInline.address_version = address.version;
+                    formInline.address_name = `(${address.contact_name}) - ${address.village}, ${address.city}, ${address.regency}, ${address.province}`;
+                    dialogNewAddress.value = false;
+                }
             }
         } catch (error: any) {
             ElMessage.success(error?.response?.messaage ?? error);

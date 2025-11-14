@@ -729,6 +729,7 @@ const remoteSearchCustomer = (query: string) => {
     request_contact.column = [];
     request_contact.table = 'contacts';
     request_contact.keyword = query;
+    request_contact.flag = "form";
 
     useFetchApi<ResponsePagination<Contact>>('/search', 'search-customer', 'post', request_contact).then((response) => {
       if(response.status.value == 'success'){
@@ -784,6 +785,7 @@ const querySearchCustomer =  (query: string, cb: (arg: any) => void) => {
     request_contact.column = [];
     request_contact.table = 'contacts';
     request_contact.keyword = query;
+    request_contact.flag = "form";
 
     useFetchApi<ResponsePagination<Contact>>('/search', 'search-customer', 'post', request_contact).then((response) => {
       if(response.status.value == 'success'){

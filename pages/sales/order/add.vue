@@ -639,6 +639,7 @@ const querySearchCustomer =  (query: string, cb: (arg: any) => void) => {
     
     request_contact.table = 'contacts';
     request_contact.keyword = query;
+    request_contact.flag = "form";
 
     useFetchApi<ResponsePagination<Contact>>('/search', 'search-vendor', 'post', request_contact).then((response) => {
       if(response.status.value == 'success'){

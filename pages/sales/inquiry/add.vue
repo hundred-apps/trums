@@ -604,7 +604,8 @@
                   "location_id": ruleForm.location_id,
                 }
           }
-        ]
+        ];
+        request_search.value.flag = "form";
 
         useFetchApi<Pagination<ItemSearch[]>>('/catalogues-inventory','fetch-catalogues-inventory', 'post', {
           keyword: queryString,
@@ -637,6 +638,7 @@
               "type": ['place']
           }
         ]
+        request_search.value.flag = "form";
 
         axios.post('/search', request_search.value).then((response) => {
           if(response.status == 200){
@@ -732,6 +734,7 @@
       params.keyword = queryString;
       params.table = 'units';
       params.column = [];
+      params.flag = 'form';
       axios.post('/search', params).then((response) => {
           if(response.status == 200){
               const resultApi: Unit[]  = response.data.data;
@@ -1133,6 +1136,7 @@
         ];
         newSearch.limit = "10";
         newSearch.offset = "1";
+        newSearch.flag = "form";
 
         
         useFetchApi<ResponsePagination<AddressType[]>>('/search', 'address', 'post', newSearch).then((response) => {

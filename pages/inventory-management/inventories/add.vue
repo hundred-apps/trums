@@ -144,7 +144,7 @@ const catalogues = ref<Catalogue[]>([]);
 const requestSearch = ref<RequestSearch>({
   keyword: "",
   table: "",
-  column: null,
+  column: [],
   sort: null,
   limit: "50",
   offset: "1",
@@ -213,6 +213,7 @@ const querySearchAsync = (queryString: string, cb: (arg: any) => void) => {
   requestSearch.value.keyword = queryString;
   requestSearch.value.table = "catalogues";
   requestSearch.value.column = [{ type: ["item"] }];
+  requestSearch.value.flag = "form";
   api
     .post("/search", requestSearch.value)
     .then((response) => {
@@ -238,6 +239,7 @@ const querySearchLocation = (queryString: string, cb: (arg: any) => void) => {
       type: ["place"],
     },
   ];
+  requestSearch.value.flag = "form";
   api
     .post("/search", requestSearch.value)
     .then((response) => {
@@ -261,6 +263,7 @@ const querySearchUnit = (queryString: string, cb: (arg: any) => void) => {
   params.keyword = queryString;
   params.table = "units";
   params.column = [];
+  params.flag = "form";
   api
     .post("/search", params)
     .then((response) => {

@@ -400,6 +400,7 @@ const querySearchAddress = (queryString: string, cb: (arg: any) => void) => {
     newSearch.column = []
     newSearch.limit = "10";
     newSearch.offset = "1";
+    newSearch.flag = 'form';
 
     
     useFetchApi<ResponsePagination<AddressType[]>>('/search', 'address', 'post', newSearch).then((response) => {

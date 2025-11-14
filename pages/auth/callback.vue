@@ -12,15 +12,18 @@ import {
 import { Plus } from "@element-plus/icons-vue";
 import { type User } from "~/types/user";
 import type { People } from "~/types/people";
+import type { UserProfile } from "oidc-client-ts";
+import type { BaseResponse } from "~/types/response";
 
 const imageUrl = ref("");
 const fileList = ref<UploadUserFile[]>([]);
 const api = useApi();
-const user = localStorage.getItem("oidc._user");
+const profile = ref<UserProfile|null>(null);
+const user = localStorage.getItem("user");
 const appUserData = useCookie("userdata");
 const userToken = useCookie("token");
 const router = useRouter();
-const oidc = useOidc();
+const { $oidc } = useNuxtApp();
 
 const { t } = useI18n();
 const config = useRuntimeConfig();
@@ -37,6 +40,8 @@ interface RuleForm {
   phone: string;
   gender: string;
   email: string;
+  gid?: string;
+  unique_id?: string;
 }
 
 
@@ -50,6 +55,7 @@ const ruleForm = reactive<RuleForm>({
   phone: "",
   gender: "",
   email: "",
+  unique_id: "",
 });
 
 const rules = reactive<FormRules<RuleForm>>({
@@ -137,9 +143,10 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         formData.append("photo", fileList.value[0].raw);
       }
 
-      const jsonUser = JSON.parse(user ?? "");
+      // const jsonUser = JSON.parse(user ?? "");
 
-      formData.append("gid", `${parseInt(jsonUser.id)}`);
+      formData.append("gid", `${ruleForm.gid}`);
+      formData.append("unique_id", `${ruleForm.unique_id}`);
 
       loading.value = true;
 
@@ -180,28 +187,56 @@ const resetForm = (formEl: FormInstance | undefined) => {
 const getUser = async () => {
   loading.value = true;
   try {
-    const jsonUser = JSON.parse(user || "");
-    const response = await api.get(`people-read/${jsonUser.id}`);
+    // const jsonUser = JSON.parse(user || "");
+    const response = await api.post<BaseResponse<People|undefined>>(`people-read/`, {"phone": `${profile.value?.sub}`});
+    
+    console.log(response)
 
-    ruleForm.phone = response.data.data.phone || "";
-    ruleForm.gender = response.data.data.gender || "pria";
-    ruleForm.name = response.data.data.name || "";
-    imageUrl.value = `${config.public.baseBE}${response.data.data.photo.image_path}/${response.data.data.photo.filename}`;
+    if(response.status === 200 && response.data.data){
+
+      const peopleData: People = response.data.data;
+
+      ruleForm.phone = peopleData.phone || "";
+      ruleForm.gender = peopleData.gender || "pria";
+      ruleForm.name = peopleData.name || "";
+      ruleForm.email = peopleData.email || "";
+      ruleForm.unique_id = peopleData.unique_id || "";
+      imageUrl.value = `${config.public.baseBE}${peopleData.photo?.image_path}/${peopleData.photo?.filename}`;
+    }else{
+      ruleForm.phone = profile.value?.sub ?? '';
+    }
 
     // console.log(imageUrl.value);
   } catch (error: any) {
     ElMessage.error(error.response?.data?.message);
+    ruleForm.phone = normalizePhone(profile.value?.sub ?? '');
   } finally {
     loading.value = false;
   }
 };
-onMounted(() => {
-  console.log(oidc);
-  
-  const jsonUser = JSON.parse(user || "");
-  console.log("json: ", user);
-  ruleForm.email = jsonUser.email || "";
+
+const initial = async () => {
+  loading.value = true;
+  const user = await $oidc.signinRedirectCallback();
+  profile.value = user.profile;
+  console.log("✅ Login sukses:", user)
+
+  localStorage.setItem('id_token', user.id_token ?? '');
+  localStorage.setItem('access_token', user.access_token ?? '');
+
   getUser();
+
+  loading.value = false;
+}
+
+onMounted(() => {
+  // console.log('oidc', oidc.user);
+  
+  // const jsonUser = JSON.parse(user || "");
+  // console.log("json: ", user);
+  // ruleForm.email = jsonUser.email || "";
+  // getUser();
+  initial();
 });
 
 // const oidc = useOidc();

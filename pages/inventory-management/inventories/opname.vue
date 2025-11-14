@@ -469,7 +469,7 @@ import { NuxtLink } from '#components';
     const request_search_location = ref<RequestSearch>({
       keyword: '',
       table: '',
-      column: null,
+      column: [],
       limit: '100',
       offset: '1',
       sort: null,
@@ -544,6 +544,7 @@ import { NuxtLink } from '#components';
                 "type": ['place']
             }
         ]
+        request_search_location.value.flag = "form";
         axios.post('/search', request_search_location.value).then((response) => {
             if(response.status == 200){
                 const resultApi: Catalogue[]  = response.data.data;

@@ -68,7 +68,7 @@
         size="default"
         :loading-icon="Eleme"
         :loading="loading"
-        @click="() => refreshNuxtData('get-canvassing')"
+        @click="() => refreshNuxtData('get-canvasing')"
       >
         Muat Ulang
       </el-button>

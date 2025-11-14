@@ -187,6 +187,7 @@
         success: true,
         total_data: 0,
         total_page: 0,
+        privilege: []
     });
     
 

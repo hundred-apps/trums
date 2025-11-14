@@ -97,7 +97,7 @@ const props = defineProps<{
 const requestSearch = ref<RequestSearch>({
   keyword: "",
   table: "",
-  column: null,
+  column: [],
   sort: null,
   limit: "50",
   offset: "1",
@@ -145,6 +145,7 @@ const querySearchUnit = (queryString: string, cb: (arg: any) => void) => {
   params.keyword = queryString;
   params.table = "units";
   params.column = [];
+  params.flag = "form";
   
   useFetchApi<ResponsePagination<Unit[]>>('/search', 'units', 'post', params).then((response) => {
     if (response.status.value == 'success') {
@@ -179,6 +180,7 @@ const querySearchAsync = (queryString: string, cb: (arg: any) => void) => {
   requestSearch.value.keyword = queryString;
   requestSearch.value.table = "catalogues";
   requestSearch.value.column = [{ type: ["item"] }];
+  requestSearch.value.flag = "form";
   useFetchApi<ResponsePagination<Catalogue[]>>("/search", "catalogue-search", "post", requestSearch.value)
     .then((response) => {
       if (response.status.value == 200) {
@@ -227,6 +229,7 @@ const querySearchLocation = (queryString: string, cb: (arg: any) => void) => {
       type: ["place"],
     },
   ];
+  requestSearch.value.flag = "form";
   useFetchApi<ResponsePagination<Catalogue[]>>("/search", "search-location", "post",requestSearch.value)
     .then((response) => {
       if (response.status.value == 200) {

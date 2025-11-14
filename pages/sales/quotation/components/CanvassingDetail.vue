@@ -577,7 +577,7 @@
 
     <el-card class="mb-3" shadow="never">
       <el-table :data="summeryData ?? []" style="width: 100%">
-        <el-table-column label="" prop="label" width="150" fixed="left">
+        <el-table-column label="" prop="label" fixed="left">
           <template #default="{ row }">
             <div class="font-bold">{{ row.label }}</div>
           </template>
@@ -773,7 +773,7 @@
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="dialogSelectedItem = false">Cancel</el-button>
-          <el-button type="primary" @click="submit">
+          <el-button type="primary" @click="submitApproveRab">
             Simpan dan Ajukan
           </el-button>
         </div>
@@ -1590,6 +1590,7 @@ const querySearchAddress = (queryString: string, cb: (arg: any) => void) => {
     ];
     newSearch.limit = "10";
     newSearch.offset = "1";
+    newSearch.flag = "form";
 
     
     useFetchApi<ResponsePagination<AddressType[]>>('/search', 'address', 'post', newSearch).then((response) => {
@@ -2486,6 +2487,134 @@ const updateParentSelectionState = (changedChild?: CanvassingItemForm): void => 
       }
     })
   })
+}
+
+const submitApproveRab = async() => {
+  loading.value = true
+  try {
+
+    
+
+    const referenceAdjustment: ReferenceTransactionAdjustment[] = [...references.value, ...contactsFee.value, adjustmentTransactionOngkirTotal.value as ReferenceTransactionAdjustment];
+    const referenceAdjustmentVendor: ReferenceTransactionAdjustment[] = [];
+    
+
+    item_canvassing.value.forEach(element => {
+      element.children.forEach((child) => {
+        child.contacts_fee.forEach((fee) => {
+          fee.reference_id = child.unique_id ?? '';
+          referenceAdjustmentVendor.push(fee);
+        })
+        referenceAdjustmentVendor.push({
+              unique_id: '',
+              reference: ReferenceAdjustment.CANVASSINGVENDOR,
+              reference_id: child.unique_id ?? '',
+              adjustment_id: `${adjustmentOngkir.value?.unique_id}`,
+              adjustment: adjustmentOngkir.value,
+              value: child.ongkir,
+              type: child.ongkir_unit as FeeType,
+              amount: child.ongkir,
+          });
+      })
+    });
+    
+        // Membuat FormData
+    const formData = new FormData();
+
+    // Menambahkan data utama
+    formData.append('unique_id', canvassingData.value?.unique_id || '');
+    formData.append('source_document', canvassingData.value?.source_document || '');
+    formData.append('description', canvassingData.value?.description || '');
+    formData.append('status', CanvassingStatus.PENDING_APPROVAL || '');
+    formData.append(`payment_term`, `${canvassingData.value?.payment_term}`)
+    formData.append(`tempo_value`, `${canvassingData.value?.tempo_value}`)
+    formData.append(`tempo_unit`, `${canvassingData.value?.tempo_unit}`)
+    formData.append(`address_id`, `${canvassingData.value?.address_id}`)
+    formData.append(`address_version`, `${canvassingData.value?.address_version}`)
+
+    // Append canvassing_items dengan individual fields
+    item_canvassing.value.forEach((item: CanvassingItemForm, i: number) => {
+      formData.append(`canvassing_items[${i}][unique_id]`, `${item.unique_id}`)
+      formData.append(`canvassing_items[${i}][canvassing_id]`, `${canvassingData.value?.unique_id}`)
+      formData.append(`canvassing_items[${i}][quantity]`, `${item.quantity}`)
+      formData.append(`canvassing_items[${i}][catalogue_id]`, `${item.catalogue_id}`)
+      formData.append(`canvassing_items[${i}][catalogue_name]`, `${item.catalogue_name}`)
+      formData.append(`canvassing_items[${i}][unit_id]`, `${item.unit_id}`)
+      formData.append(`canvassing_items[${i}][unit_name]`, `${item.unit_name}`)
+      formData.append(`canvassing_items[${i}][unit_selling_price]`, `${item.selling_price}`)
+      formData.append(`canvassing_items[${i}][type_item]`, `${item.type_item}`)
+      formData.append(`canvassing_items[${i}][equivalent_id]`, `${item.equivalent_id}`)
+
+      // const valueSelected = selectedVendors.value[item.unique_id];
+
+      // Append canvassing_vendor
+      // Append canvassing_vendor fields satu per satu
+      item.children.forEach((vendor: CanvassingItemForm, j: any) => {
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][unique_id]`, `${vendor.unique_id}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][pricetag_item_id]`, `${vendor.pricetag_item_id}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][pricetag_item_version]`, `${vendor.pricetag_item_version}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][vendor_id]`, `${vendor.vendor_id}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][canvassing_item_id]`, `${item.unique_id}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][catalogue_id]`, `${vendor.catalogue_id}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][catalogue_name]`, `${vendor.catalogue_name}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][type_item]`, `${vendor.type_item}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][equivalent_id]`, `${vendor.equivalent_id}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][quantity]`, `${vendor.quantity}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][unit_price]`, `${vendor.unit_price}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][selling_price]`, `${vendor.selling_price}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][unit_id]`, `${item.unit_id}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][unit_name]`, `${item.unit_name}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][total_price]`, `${Number(vendor.quantity) * Number(vendor.unit_price)}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][profit]`, `${vendor.profit}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][profit_unit]`, `${vendor.profit_unit}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][fee]`, `${vendor.fee}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][fee_unit]`, `${vendor.fee_unit}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][ongkir]`, `${vendor.ongkir}`)
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][ongkir_unit]`, `${vendor.ongkir_unit}`)
+
+        
+
+        formData.append(`canvassing_items[${i}][canvassing_vendor][${j}][status]`, `${vendor.checked ? CanvassingVendorStatus.SUBMITTED : CanvassingVendorStatus.REJECTED }`)
+      
+        
+        let referenceCanvassingVendor: ReferenceTransactionAdjustment[] = vendor.contacts_fee;
+
+        referenceCanvassingVendor.push({
+          unique_id: '',
+          reference: ReferenceAdjustment.CANVASSINGVENDOR,
+          reference_id: vendor.unique_id ?? '',
+          adjustment_id: `${adjustmentOngkir.value?.unique_id}`,
+          adjustment: adjustmentOngkir.value,
+          value: vendor.ongkir,
+          type: vendor.ongkir_unit as FeeType,
+          amount: vendor.ongkir,
+        })
+
+
+      })
+    })
+
+
+    // Untuk debugging: lihat semua entries FormData
+    console.log('=== FORM DATA ENTRIES ===')
+    for (let [key, value] of formData.entries()) {
+      console.log(`${key}:`, value)
+    }
+    
+
+    const response = await useFetchApi<BaseResponse<Canvassing>>('/canvassing-create', 'create-canvasing', 'post', formData)
+    if (response.status.value === 'success') {
+      ElMessage.success(`Berhasil Membuat Data Canvasing!`)
+      item_canvassing.value = [];
+      contactsFee.value = [];
+      editState.value = false;
+      fetchCanvassing();
+    }  
+  } catch (error: any) {
+    ElMessage.error(error.response?.message ?? error)
+  } finally {
+    loading.value = false
+  }
 }
 
 const submit = async () => {

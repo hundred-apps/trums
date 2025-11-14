@@ -9,6 +9,10 @@ export default defineNuxtConfig({
       baseURL: process.env.NUXT_API_URL, // Base URL untuk API
       baseImageURL: process.env.NUXT_API_BASE, // Base URL untuk image
       baseBE: process.env.NUXT_API_BASE,
+      baseOIDCIssuer: process.env.NUXT_OPENID_CONNECT_OP_ISSUER,
+      baseOIDCICID: process.env.NUXT_OPENID_CONNECT_OP_CLIENT_ID,
+      baseOIDCICSecret: process.env.NUXT_OPENID_CONNECT_OP_CLIENT_SECRET,
+      baseOIDCICBURL: process.env.NUXT_OPENID_CONNECT_OP_CALLBACK_URL,
     },
   },
   app: {
@@ -31,7 +35,6 @@ export default defineNuxtConfig({
     "@nuxtjs/i18n",
     "@nuxtjs/device",
     "nuxt-twemoji",
-    "nuxt-openid-connect",
     "@element-plus/nuxt",
     'nuxt-pdfeasy'
   ],
@@ -125,6 +128,10 @@ export default defineNuxtConfig({
       cookieFlags: {
         // default is empty
         access_token: {
+          httpOnly: false,
+          secure: false,
+        },
+        id_token: {
           httpOnly: false,
           secure: false,
         },

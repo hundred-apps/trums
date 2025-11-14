@@ -1878,8 +1878,8 @@ const create_catalogue = async (catalogue: Catalogue) : Promise<Catalogue|null> 
 
       const response = await useFetchApi<BaseResponse<Catalogue>>('/catalogues-create', 'catalogue-create', 'post', formData);
       if(response.status.value == 'success'){
-          const catalogue_result: Catalogue = response.data.value!.data;
-          return catalogue_result ?? null;
+          const catalogue_result: Catalogue|null = response.data.value?.data ?? null;
+          return catalogue_result;
       }else{
         return null
       }
@@ -1911,6 +1911,7 @@ const querySearchUnit = (queryString: string, cb: (arg: any) => void) => {
   params.keyword = queryString;
   params.table = 'units';
   params.column = [];
+  params.flag = "form";
   useFetchApi<ResponsePagination<Unit[]>>('/search', 'search-unit', 'post', params).then((response) => {
     if(response.status.value == 'success'){
         const resultApi: Unit[]  = response.data.value?.data ?? [];
@@ -2401,7 +2402,7 @@ const submit = async (formEl: FormInstance | undefined) => {
       ElMessage.success(`Berhasil Membuat Data Canvasing!`)
       formEl?.resetFields() 
       resetFormState()
-      router.push(`/sales/canvassing/${response.data.value?.data.unique_id}`);
+      router.push(`/sales/canvassing/${response.data.value?.data?.unique_id}`);
     }  
   } catch (error: any) {
     ElMessage.error(error.response?.message ?? error)

@@ -586,7 +586,7 @@ import FormAddress from '~/components/trums/FormAddress.vue';
 
             const response = await useFetchApi<BaseResponse<Catalogue>>('/catalogues-create', 'catalogue-create', 'post', formData);
             if(response.status.value == 'success'){
-                const catalogue_result: Catalogue = response.data.value!.data;
+                const catalogue_result: Catalogue|undefined = response.data.value?.data;
                 return catalogue_result;
             }
         } catch (error: any) {
@@ -608,6 +608,7 @@ import FormAddress from '~/components/trums/FormAddress.vue';
                 }
           }
         ]
+        request_search.value.flag = 'form';
 
         axios.post('/catalogues-inventory', {
           keyword: queryString,
@@ -639,6 +640,7 @@ import FormAddress from '~/components/trums/FormAddress.vue';
               "type": ['place']
           }
         ]
+        request_search.value.flag = 'form';
 
         axios.post('/search', request_search.value).then((response) => {
           if(response.status == 200){
@@ -664,6 +666,7 @@ import FormAddress from '~/components/trums/FormAddress.vue';
         request_search.value.keyword = queryString,
         request_search.value.table = 'contacts';
         request_search.value.column = [];
+        request_search.value.flag = 'form';
 
         axios.post('/search', request_search.value).then((response) => {
           if(response.status == 200){
@@ -701,6 +704,7 @@ import FormAddress from '~/components/trums/FormAddress.vue';
       params.keyword = queryString;
       params.table = 'units';
       params.column = [];
+      params.flag = 'form';
       axios.post('/search', params).then((response) => {
           if(response.status == 200){
               const resultApi: Unit[]  = response.data.data;
@@ -1091,6 +1095,7 @@ import FormAddress from '~/components/trums/FormAddress.vue';
         ];
         newSearch.limit = "10";
         newSearch.offset = "1";
+        newSearch.flag = "form";
 
         
         useFetchApi<ResponsePagination<AddressType[]>>('/search', 'address', 'post', newSearch).then((response) => {

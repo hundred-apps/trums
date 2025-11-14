@@ -792,6 +792,7 @@ const querySearchCustomer =  (query: string, cb: (arg: any) => void) => {
     const request_contact = {...request_search.value};
     request_contact.table = 'contacts';
     request_contact.keyword = query;
+    request_contact.flag = "form";
 
     useFetchApi<ResponsePagination<Contact>>('/search', 'search-customer', 'post', request_contact).then((response) => {
       if(response.status.value == 'success'){
@@ -840,6 +841,7 @@ const querySearchAddress =  (query: string, cb: (arg: any) => void) => {
         contact_id: ruleForm.customer_id,
       }
     ];
+    request_contact.flag = "form";
 
     useFetchApi<ResponsePagination<AddressType>>('/search', 'search-address', 'post', request_contact).then((response) => {
       if(response.status.value == 'success'){
@@ -981,6 +983,7 @@ const querySearchCatalogue = (query: string, cb: (arg: any) => void) => {
     }
 
     request_contact.keyword = query;
+    request_contact.flag = "form";
     // request_contact.column = [
     //   {
     //     type: ['']
@@ -1250,9 +1253,11 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         const response = await useFetchApi<BaseResponse<Invoice>>('/invoice-create', 'invoice-out-create', 'post', formData);
 
         if(response.status.value == 'success'){
-          const invoiceData: Invoice = response.data.value!.data;
-          ruleForm.unique_id = invoiceData.unique_id;
-          ruleForm.invoice_item = invoiceData.invoice_item;
+          const invoiceData: Invoice|null = response.data.value?.data ?? null;
+          if(invoiceData){
+            ruleForm.unique_id = invoiceData.unique_id;
+            ruleForm.invoice_item = invoiceData.invoice_item;
+          }
           ElMessage.success('Bill Berhasil Dibuat!')
         }else{
           ElMessage.error(response.error.value ?? 'Gagal Membuat Data Bill!')
@@ -1281,6 +1286,7 @@ const querySearchUnit = (queryString: string, cb: (arg: any) => void) => {
   params.keyword = queryString;
   params.table = "units";
   params.column = [];
+  params.flag = "form";
   
   useFetchApi<ResponsePagination<Unit[]>>('/search', 'units', 'post', params).then((response) => {
     if (response.status.value == 'success') {
@@ -1355,16 +1361,18 @@ const fetchDataEdit = async () => {
     const response = await useFetchApi<BaseResponse<Invoice>>(`/invoice-read/${unique_id.value}`, 'detail-invoice', 'get', null);
     if(response.status.value == 'success'){
 
-      const invoice: Invoice = response.data.value!.data as Invoice;
+      const invoice: Invoice|null = response.data.value?.data ?? null;
 
-      Object.assign(ruleForm, response.data.value!.data);
-      ruleForm.payment_term = invoice.payment_term;
-      // console.log(new Date(formatLocalDate(response.data.value!.data.invoice_date!)));
-      ruleForm.invoice_date = new Date(response.data.value!.data.invoice_date! * 1000).getTime();
-      ruleForm.due_date = new Date(response.data.value!.data.due_date! * 1000).getTime();
-      ruleForm.billing_address_view = invoice.billing_address?.address_name ?? '';
+      if(invoice){
+        Object.assign(ruleForm, response.data.value!.data);
+        ruleForm.payment_term = invoice.payment_term;
+        // console.log(new Date(formatLocalDate(response.data.value!.data.invoice_date!)));
+        ruleForm.invoice_date = new Date(invoice.invoice_date! * 1000).getTime();
+        ruleForm.due_date = new Date(invoice.due_date! * 1000).getTime();
+        ruleForm.billing_address_view = invoice.billing_address?.address_name ?? '';
 
-      transactionBanks.value = invoice.purchase_order_bank;
+        transactionBanks.value = invoice.purchase_order_bank ?? [];
+      }
     }
   } catch (error: any) {
     ElMessage.error(error.response?.message ?? error);

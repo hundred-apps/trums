@@ -445,6 +445,7 @@ import TrumsUploadFile from '~/components/trums/form/TrumsUploadFile.vue';
         type: ["place"],
       },
     ];
+    requestSearchLocation.value.flag = 'form';
 
     useFetchApi<ResponsePagination<Catalogue[]>>('/search', 'warehouse', 'post', requestSearchLocation.value).then((response) => {
       if(response.status.value == 'success'){
@@ -465,6 +466,7 @@ import TrumsUploadFile from '~/components/trums/form/TrumsUploadFile.vue';
     requestSearchLocation.value.keyword = queryString;
     requestSearchLocation.value.table = "offers";
     requestSearchLocation.value.column = [];
+    requestSearchLocation.value.flag = "form";
 
     useFetchApi<ResponsePagination<Quotation[]>>('/search', 'offers', 'post', requestSearchLocation.value).then((response) => {
       if(response.status.value == 'success'){
@@ -523,6 +525,7 @@ import TrumsUploadFile from '~/components/trums/form/TrumsUploadFile.vue';
     params.keyword = queryString;
     params.table = 'units';
     params.column = [];
+    params.flag = "form";
     useFetchApi<ResponsePagination<Unit[]>>('/search','search-unit', 'post', params).then((response) => {
         if(response.status.value === 'success'){
             const resultApi: Unit[]  = response.data.value?.data ?? [];
@@ -717,7 +720,7 @@ import TrumsUploadFile from '~/components/trums/form/TrumsUploadFile.vue';
 
           const response = await useFetchApi<BaseResponse<Catalogue>>('/catalogues-create', 'catalogue-create', 'post', formData);
           if(response.status.value == 'success'){
-              const catalogue_result: Catalogue = response.data.value!.data;
+              const catalogue_result: Catalogue|undefined = response.data.value?.data;
               return catalogue_result;
           }
       } catch (error: any) {
@@ -997,52 +1000,56 @@ import TrumsUploadFile from '~/components/trums/form/TrumsUploadFile.vue';
       );
 
       if(response.status.value == 'success'){
-        const canvassing: Canvassing = response.data.value!.data;
+        const canvassing: Canvassing | null = response.data.value?.data ?? null;
 
-        ruleForm.reference = ReferencePriceTag.CANVASSING;
-        ruleForm.reference_id = canvassing.unique_id;
-        ruleForm.reference_version = canvassing.version;
-        ruleForm.start_date_view = (Date.now() / 1000).toString();
-        ruleForm.type = 'out';
+        if(canvassing != null){
 
-        ruleForm.pricetag_item = canvassing.canvassing_item.map((item) => ({
-          unique_id: null,
-          tag_id: null,
-          catalogue: item.catalogue ?? null,
-          catalogue_id: item.catalogue_id,
-          inventory_id: '',
-          inventory: null,
-          price: item.unit_selling_price,
-          is_new: true,
-          unit_id: item.unit_id,
-          unit_name: item.unit_name,
-          unit_version: item.unit_version,
-          sn: item.catalogue?.sn ?? 'N/A',
-          checked: false,
-          item_name: item.catalogue?.name ?? '',
-          quantity: item.quantity,
-        }))
+          ruleForm.reference = ReferencePriceTag.CANVASSING;
+          ruleForm.reference_id = canvassing.unique_id;
+          ruleForm.reference_version = canvassing.version;
+          ruleForm.start_date_view = (Date.now() / 1000).toString();
+          ruleForm.type = 'out';
+  
+          ruleForm.pricetag_item = canvassing.canvassing_item.map((item) => ({
+            unique_id: null,
+            tag_id: null,
+            catalogue: item.catalogue ?? null,
+            catalogue_id: item.catalogue_id,
+            inventory_id: '',
+            inventory: null,
+            price: item.unit_selling_price,
+            is_new: true,
+            unit_id: item.unit_id,
+            unit_name: item.unit_name,
+            unit_version: item.unit_version,
+            sn: item.catalogue?.sn ?? 'N/A',
+            checked: false,
+            item_name: item.catalogue?.name ?? '',
+            quantity: item.quantity,
+          }))
+  
+          contact_condition.value.push({
+            operation: "is_equal",
+            variable: VariablePriceTag.KONTAK,
+            unique_id: null,
+            tag_id: null,
+            value: `${canvassing.source?.request_by?.unique_id}`,
+            value_display: `${canvassing.source?.request_by?.name}`,
+            variable_pricetag: {
+              unique_id: '',
+              name: VariablePriceTag.KONTAK,
+              type: 'variable',
+              slug: ''
+            },
+            operation_pricetag: {
+              unique_id: '',
+              name: OperationPriceTag.IS_EQUAL,
+              type: 'operation',
+              slug: ''
+            },
+          });
+        }
 
-        contact_condition.value.push({
-          operation: "is_equal",
-          variable: VariablePriceTag.KONTAK,
-          unique_id: null,
-          tag_id: null,
-          value: `${canvassing.source?.request_by?.unique_id}`,
-          value_display: `${canvassing.source?.request_by?.name}`,
-          variable_pricetag: {
-            unique_id: '',
-            name: VariablePriceTag.KONTAK,
-            type: 'variable',
-            slug: ''
-          },
-          operation_pricetag: {
-            unique_id: '',
-            name: OperationPriceTag.IS_EQUAL,
-            type: 'operation',
-            slug: ''
-          },
-        });
 
       }
 

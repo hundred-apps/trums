@@ -28,6 +28,7 @@
     "nuxt-openid-connect": "^0.8.1",
     "nuxt-pdfeasy": "^1.4.0",
     "nuxt-twemoji": "^3.6.2",
+    "oidc-client-ts": "^3.4.0",
     "pdfmake": "^0.2.18",
     "pinia": "^2.2.2",
     "universal-cookie": "^7.2.0",

@@ -24,6 +24,11 @@ const { t } = useI18n();
 const router = useRouter();
 const userdata = ref<userData | null>(null);
 const imageUrl = config.public.baseImageURL;
+const id_token = localStorage.getItem("id_token");
+
+
+const issuer = config.public.baseOIDCIssuer;
+
 
 const navigateToSetting = (name = "") => {
   const path = `/setting/profile/${name}`;
@@ -46,6 +51,13 @@ onMounted(() => {
 
   nameFront.value = userdata.value?.name.split(" ")[0] || "";
 });
+
+const logOut = async () => {
+  const url = `${issuer}/session/end?id_token_hint=${id_token}&post_logout_redirect_uri=http://localhost:8000`;
+
+  window.location.href = url;
+
+}
 
 const handleMenuClick = (menuKey: string) => {
   router.push(menuKey);
@@ -99,7 +111,7 @@ const handleMenuClick = (menuKey: string) => {
                   {{ t("menu.setting") }}
                 </TrumsLink></el-dropdown-item
               ><el-dropdown-item>
-                <TrumsLink @click="$oidc.logout()">
+                <TrumsLink @click="logOut">
                   {{ t("buttons.logout") }}
                 </TrumsLink></el-dropdown-item
               >

@@ -33,7 +33,7 @@
           <el-input v-model="ruleForm.password" type="password" show-password />
         </el-form-item>
         <el-form-item :label="`${t('form.label.gender')}`" prop="gender">
-          <el-radio-group v-model="ruleForm.gender">
+          <el-radio-group v-model="ruleForm.gender!">
             <el-radio value="pria">{{ t("form.label.genderMale") }}</el-radio>
             <el-radio value="wanita">{{
               t("form.label.genderFemale")
@@ -42,7 +42,7 @@
         </el-form-item>
         <el-form-item label="Nama Departemen" prop="departement">
           <el-autocomplete
-            v-model="ruleForm.departement"
+            v-model="ruleForm.departement!"
             :fetch-suggestions="querySearchDepartement"
             :trigger-on-focus="false"
             clearable
@@ -58,7 +58,7 @@
         />
         <el-form-item label="Nama Posisi" prop="position">
           <el-autocomplete
-            v-model="ruleForm.position"
+            v-model="ruleForm.position!"
             :fetch-suggestions="querySearchPosition"
             :trigger-on-focus="false"
             clearable
@@ -309,10 +309,10 @@ const selectContactApi = ref<Contact[]>([]);
 const requestSearch = ref<RequestSearch>({
   keyword: "",
   table: "",
-  column: null,
+  column: [],
   sort: null,
-  limit: limit,
-  offset: currentPage,
+  limit: `${limit.value}`,
+  offset: `${currentPage.value}`,
 });
 interface RuleForm {
   id: number;
@@ -385,10 +385,10 @@ const rules = reactive<FormRules<RuleForm>>({
 const requestSearchContact = ref<RequestSearch>({
   keyword: "",
   table: "contacts",
-  column: null,
-  sort: null,
-  limit: limit,
-  offset: currentPage,
+  column: [],
+  limit: `${limit.value}`,
+  offset: `${currentPage.value}`,
+  sort: null
 });
 
 interface RuleFormContact {
@@ -419,6 +419,7 @@ const ruleFormContact = reactive<RuleFormContact>({
   website: "",
   title: "",
   tags: "",
+  unique_id: ""
 });
 
 const rulesContact = reactive<FormRules<RuleFormContact>>({
@@ -456,6 +457,7 @@ const querySearchDepartement = (
 ) => {
   requestSearch.value.keyword = queryString;
   requestSearch.value.table = "departements";
+  requestSearch.value.flag = "form";
   api
     .post("/search", requestSearch.value, {
       headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
@@ -514,6 +516,7 @@ const handleSelectDepartement = async (item: Record<string, any>) => {
 const querySearchPosition = (queryString: string, cb: (arg: any) => void) => {
   requestSearch.value.keyword = queryString;
   requestSearch.value.table = "positions";
+  requestSearch.value.flag = "form";
   api
     .post("/search", requestSearch.value, {
       headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
@@ -575,9 +578,9 @@ const submit = async (formEl: FormInstance | undefined) => {
   loading.value = true;
 
   try {
-    const arrayContact = ref([]);
+    const arrayContact: string[] = []
     Object.values(selectContact.value).forEach((contact) => {
-      arrayContact.value.push(contact.unique_id);
+      arrayContact.push(contact?.unique_id ?? '');
     });
     const response = await api.post(
       "/people-create",
@@ -589,7 +592,7 @@ const submit = async (formEl: FormInstance | undefined) => {
         password: ruleForm.password,
         position_id: ruleForm.position_id,
         departement_id: ruleForm.departement_id,
-        contacts: arrayContact.value,
+        contacts: arrayContact,
         unique_id: ruleForm.unique_id ?? null,
       }
       // {
@@ -724,14 +727,14 @@ const handleSelectionChangeContact = (selection: Contact[]) => {
   if (selectContactApi.value?.length === 2) {
     ElMessage.error("Hapus dahulu jika ingin mengubah data kontaknya");
   } else if (selectContactApi.value?.length === 1) {
-    if (selection.length <= 1) {
+    if (selection.length == 1) {
       selectContact.value = selection;
     } else {
       ElMessage.warning(
         "Pilih maksimal 1 orang contact karena sudah ada 1 data yang lain"
       );
-      selectContact.value = selection.slice(0, 1);
     }
+    selectContact.value = selection.slice(0, 1);
   } else {
     if (selection.length <= 2) {
       selectContact.value = selection;
@@ -743,7 +746,7 @@ const handleSelectionChangeContact = (selection: Contact[]) => {
 };
 const tableContact = ref([]);
 
-const handleDeleteSelectedContact = async (row: Contact) => {
+const handleDeleteSelectedContact = async (row: Contact[]) => {
   for (const contact of row) {
     await api.post("/contact-create", {
       internal_id: null,
@@ -756,7 +759,7 @@ const handleDeleteSelectedContact = async (row: Contact) => {
 };
 const handleCloseOuterVisible = (done: () => void) => {
   outerVisible.value = false;
-  tableContact.value!.clearSelection();
+  tableContact.value = [];
 };
 
 const handleSubmitSelectContact = () => {
@@ -795,11 +798,11 @@ const detail = async () => {
       ruleForm.password = people.password;
       ruleForm.gender = people.gender;
       ruleForm.position_id = people.position_id ?? "";
-      ruleForm.position = people.position_name ?? "";
-      ruleForm.departement = people.departement_name;
+      ruleForm.position = people.position ?? "";
+      ruleForm.departement = people.departement;
       ruleForm.departement_id = people.departement_id;
       ruleForm.unique_id = people.unique_id;
-      selectContactApi.value = people.contacts;
+      // selectContactApi.value = people.contacts;
     }
   } catch (error: any) {
     ElMessage.error(`${error.response?.data?.message}`);
