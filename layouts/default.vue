@@ -28,6 +28,7 @@ const id_token = localStorage.getItem("id_token");
 
 
 const issuer = config.public.baseOIDCIssuer;
+const logoutUri = config.public.baseOIDCILOGOUTURL;
 
 
 const navigateToSetting = (name = "") => {
@@ -53,7 +54,7 @@ onMounted(() => {
 });
 
 const logOut = async () => {
-  const url = `${issuer}/session/end?id_token_hint=${id_token}&post_logout_redirect_uri=http://localhost:8000`;
+  const url = `${issuer}/session/end?id_token_hint=${id_token}&post_logout_redirect_uri=${logoutUri}`;
 
   window.location.href = url;
 

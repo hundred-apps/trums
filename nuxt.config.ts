@@ -13,6 +13,7 @@ export default defineNuxtConfig({
       baseOIDCICID: process.env.NUXT_OPENID_CONNECT_OP_CLIENT_ID,
       baseOIDCICSecret: process.env.NUXT_OPENID_CONNECT_OP_CLIENT_SECRET,
       baseOIDCICBURL: process.env.NUXT_OPENID_CONNECT_OP_CALLBACK_URL,
+      baseOIDCILOGOUTURL: process.env.NUXT_OPENID_CONNECT_OP_POST_LOGOUT_URL,
     },
   },
   app: {

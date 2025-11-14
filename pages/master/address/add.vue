@@ -1,6 +1,11 @@
 <template>
     <TrumsWrapper>
-        <el-card>
+        <el-page-header @back="goBack">
+            <template #content>
+                <span class="text-large font-600 mr-3">Buat Alamat baru</span>
+            </template>
+        </el-page-header>
+        <el-card shadow="never" class="mt-6">
         
             <el-form 
                 :model="ruleFormAddress" 
@@ -63,11 +68,15 @@ import type { RequestSearch } from '~/types/request_search';
 import type { BaseResponse } from '~/types/response';
 import type { ResponsePagination } from '~/types/response_pagination';
 
-const props = defineProps<{
-    onSuccess?: (value: AddressType) => void,
-    onBack?: () => void,
-    onSetInitital?: Record<string, any>,
-}>();
+definePageMeta({
+  middleware: ["auth", "app"],
+  name: "Add New Address",
+})
+
+
+const router = useRouter();
+
+const goBack = () => router.back();
 
 interface formAddress {
     contact_id?: string,
@@ -215,10 +224,7 @@ const onSubmitAddress = async () => {
         if(response.status.value == 'success'){
             ElMessage.success('Berhasil!');
             const address:AddressType|undefined = (response.data.value?.data as unknown as BaseResponse<AddressType>).data;
-            if(address){
-                ruleFormRefAddress.value?.resetFields();
-                props.onSuccess!(address);
-            }
+            ruleFormRefAddress.value?.resetFields();
         }
     } catch (error: any) {
         ElMessage.success(error?.response?.messaage ?? error);
@@ -226,8 +232,8 @@ const onSubmitAddress = async () => {
 }
 
 onMounted(() => {
-  if (props.onSetInitital) {
-    Object.assign(ruleFormAddress, props.onSetInitital);
-  }
+//   if (props.onSetInitital) {
+//     Object.assign(ruleFormAddress, props.onSetInitital);
+//   }
 });
 </script>

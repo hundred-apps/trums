@@ -55,7 +55,7 @@
       </el-radio-group>
       <NuxtLink 
         class="el-button el-button--primary el-button--default" 
-        href="/address/add"
+        href="/master/address/add"
       >
         Tambah Alamat Baru
       </NuxtLink>
