@@ -12,6 +12,20 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
+      # ==== TEST SSH TERLEBIH DAHULU ====
+      - name: Test SSH Connection
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            echo "SSH BERHASIL TERHUBUNG KE SERVER!"
+            whoami
+            hostname
+
+      # ==== LANJUT STEP ASLI =====
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
@@ -37,7 +51,7 @@ jobs:
           source: "output.tar.gz"
           target: "${{ secrets.APP_DIR }}/output.tar.gz"
 
-      # Eksekusi di server untuk mengekstrak dan me-restart aplikasi
+      # Eksekusi di server
       - name: Deploy di server
         uses: appleboy/ssh-action@v1.0.3
         with:
