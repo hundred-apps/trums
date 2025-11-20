@@ -12,12 +12,38 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
+      # ==== CEK SECRETS TERSEDIA ====
+      - name: Cek SSH Secrets
+        run: |
+          echo "Cek secrets SSH..."
+          if [ -z "${{ secrets.SSH_HOST }}" ]; then
+            echo "❌ SSH_HOST tidak tersedia!"
+            exit 1
+          fi
+          if [ -z "${{ secrets.SSH_USER }}" ]; then
+            echo "❌ SSH_USER tidak tersedia!"
+            exit 1
+          fi
+          if [ -z "${{ secrets.SSH_PORT }}" ]; then
+            echo "❌ SSH_PORT tidak tersedia!"
+            exit 1
+          fi
+          if [ -z "${{ secrets.SSH_KEY }}" ]; then
+            echo "❌ SSH_KEY tidak tersedia!"
+            exit 1
+          fi
+          if [ -z "${{ secrets.APP_DIR }}" ]; then
+            echo "❌ APP_DIR tidak tersedia!"
+            exit 1
+          fi
+          echo "✅ Semua secrets tersedia."
+
       # ==== SETUP SSH AGENT ====
       - name: Setup SSH Agent
         uses: webfactory/ssh-agent@v0.5.2
         with:
           ssh-private-key: ${{ secrets.SSH_KEY }}
-
+          
       # ==== TEST SSH TERLEBIH DAHULU ====
       - name: Test SSH Connection
         run: |
