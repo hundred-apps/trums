@@ -12,59 +12,48 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
+      # ==== SETUP SSH AGENT ====
+      - name: Setup SSH Agent
+        uses: webfactory/ssh-agent@v0.5.2
+        with:
+          ssh-private-key: ${{ secrets.SSH_KEY }}
+
       # ==== TEST SSH TERLEBIH DAHULU ====
       - name: Test SSH Connection
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
-            echo "SSH BERHASIL TERHUBUNG KE SERVER!"
-            whoami
-            hostname
+        run: |
+          ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
+            "echo 'SSH BERHASIL TERHUBUNG KE SERVER!' && whoami && hostname"
 
-      # ==== BUILD DI GITHUB ====
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 22
+      # ==== BUILD DI GITHUB (DI COMMENT UNTUK SEMENTARA) ====
+      #- name: Setup Node.js
+      #  uses: actions/setup-node@v3
+      #  with:
+      #    node-version: 22
 
-      - name: Install dependencies
-        run: npm ci
+      #- name: Install dependencies
+      #  run: npm ci
 
-      - name: Build Nuxt 3
-        run: npm run build
+      #- name: Build Nuxt 3
+      #  run: npm run build
 
-      - name: Tar build output
-        run: tar -czf output.tar.gz .output
+      #- name: Tar build output
+      #  run: tar -czf output.tar.gz .output
 
-      # ==== UPLOAD KE SERVER ====
-      - name: Copy files via SCP
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          source: "output.tar.gz"
-          target: "${{ secrets.APP_DIR }}/output.tar.gz"
+      # ==== UPLOAD KE SERVER (DI COMMENT UNTUK SEMENTARA) ====
+      #- name: Copy files via SCP
+      #  run: |
+      #    scp -o StrictHostKeyChecking=no -P ${{ secrets.SSH_PORT }} output.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.APP_DIR }}/output.tar.gz
 
-      # ==== DEPLOY DI SERVER ====
-      - name: Deploy di server
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          key: ${{ secrets.SSH_KEY }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
-            cd ${{ secrets.APP_DIR }}
-            mkdir -p .output_tmp
-            tar -xzf output.tar.gz -C .output_tmp
-            rm -rf .output
-            mv .output_tmp .output
-            rm output.tar.gz
-            pm2 restart trums-FE
-            pm2 save
+      # ==== DEPLOY DI SERVER (DI COMMENT UNTUK SEMENTARA) ====
+      #- name: Deploy di server
+      #  run: |
+      #    ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
+      #      cd ${{ secrets.APP_DIR }}
+      #      mkdir -p .output_tmp
+      #      tar -xzf output.tar.gz -C .output_tmp
+      #      rm -rf .output
+      #      mv .output_tmp .output
+      #      rm output.tar.gz
+      #      pm2 restart trums-FE
+      #      pm2 save
+      #    EOF
