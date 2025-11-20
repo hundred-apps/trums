@@ -1,0 +1,54 @@
+name: Deploy Nuxt 3
+
+on:
+  push:
+    branches: ["konsinyasi"]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build Nuxt 3
+        run: npm run build
+
+      - name: Tar build output
+        run: tar -czf output.tar.gz .output
+
+      # Upload artifact ke server
+      - name: Copy files via SSH
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "output.tar.gz"
+          target: "${{ secrets.APP_DIR }}/output.tar.gz"
+
+      # Eksekusi di server
+      - name: Deploy di server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd ${{ secrets.APP_DIR }}
+            rm -rf .output
+            tar -xzf output.tar.gz
+            rm output.tar.gz
+            pm2 restart "trums-FE | 8008"
+            pm2 save
