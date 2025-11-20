@@ -14,7 +14,16 @@ jobs:
 
       # ==== TEST SSH TERLEBIH DAHULU ====
       - name: Test SSH Connection
-        run: ssh -v -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_KEY }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            echo "SSH BERHASIL TERHUBUNG KE SERVER!"
+            whoami
+            hostname
 
       # ==== LANJUT STEP ASLI =====
       - name: Setup Node.js
