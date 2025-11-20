@@ -26,7 +26,7 @@ jobs:
       - name: Tar build output
         run: tar -czf output.tar.gz .output
 
-      # Upload artifact ke server
+      # Upload artifact ke server via SCP
       - name: Copy files via SSH
         uses: appleboy/scp-action@v0.1.7
         with:
@@ -37,7 +37,7 @@ jobs:
           source: "output.tar.gz"
           target: "${{ secrets.APP_DIR }}/output.tar.gz"
 
-      # Eksekusi di server
+      # Eksekusi di server untuk mengekstrak dan me-restart aplikasi
       - name: Deploy di server
         uses: appleboy/ssh-action@v1.0.3
         with:
