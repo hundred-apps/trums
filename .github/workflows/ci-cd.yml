@@ -1,67 +1,17 @@
-name: Deploy Nuxt 3
-
+name: Remote SSH Command
 on:
   push:
     branches: ["konsinyasi"]
-
 jobs:
-  build-and-deploy:
+  build:
+    name: Build
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
-        
-      - name: Cek SSH Secrets
-        run: |
-          echo "SSH_HOST: ${{ secrets.SSH_HOST }}"
-          echo "SSH_USER: ${{ secrets.SSH_USER }}"
-          echo "SSH_PORT: ${{ secrets.SSH_PORT }}"
-          # jangan tampilkan SSH_KEY di log karena sensitif
-          echo "APP_DIR: ${{ secrets.APP_DIR }}"
-
-      # ==== SETUP SSH AGENT ====
-      - name: Setup SSH Agent
-        uses: webfactory/ssh-agent@v0.5.2
+      - name: Execute remote SSH commands using password
+        uses: appleboy/ssh-action@v1
         with:
-          ssh-private-key: ${{ secrets.SSH_KEY }}
-          
-      # ==== TEST SSH TERLEBIH DAHULU ====
-      - name: Test SSH Connection
-        run: |
-          ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} \
-            "echo 'SSH BERHASIL TERHUBUNG KE SERVER!' && whoami && hostname"
-
-      # ==== BUILD DI GITHUB (DI COMMENT UNTUK SEMENTARA) ====
-      #- name: Setup Node.js
-      #  uses: actions/setup-node@v3
-      #  with:
-      #    node-version: 22
-
-      #- name: Install dependencies
-      #  run: npm ci
-
-      #- name: Build Nuxt 3
-      #  run: npm run build
-
-      #- name: Tar build output
-      #  run: tar -czf output.tar.gz .output
-
-      # ==== UPLOAD KE SERVER (DI COMMENT UNTUK SEMENTARA) ====
-      #- name: Copy files via SCP
-      #  run: |
-      #    scp -o StrictHostKeyChecking=no -P ${{ secrets.SSH_PORT }} output.tar.gz ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:${{ secrets.APP_DIR }}/output.tar.gz
-
-      # ==== DEPLOY DI SERVER (DI COMMENT UNTUK SEMENTARA) ====
-      #- name: Deploy di server
-      #  run: |
-      #    ssh -o StrictHostKeyChecking=no -p ${{ secrets.SSH_PORT }} ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} << 'EOF'
-      #      cd ${{ secrets.APP_DIR }}
-      #      mkdir -p .output_tmp
-      #      tar -xzf output.tar.gz -C .output_tmp
-      #      rm -rf .output
-      #      mv .output_tmp .output
-      #      rm output.tar.gz
-      #      pm2 restart trums-FE
-      #      pm2 save
-      #    EOF
+          host: 147.139.163.50
+          username: root
+          password: D3v3lop3r#
+          port: 22
+          script: whoami
