@@ -16,7 +16,7 @@ jobs:
 
     - name: Deploy via SSH password
       run: |
-        sshpass -p "${{ secrets.PASSWORD }}" \
+        sshpass -p "${{ secrets.SSH_PASSWORD }}" \
         ssh -o StrictHostKeyChecking=no \
         ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
           cd ${{ secrets.APP_DIR }}
