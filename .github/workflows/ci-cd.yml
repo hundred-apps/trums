@@ -1,39 +1,50 @@
-# name: Remote SSH Command
-# on:
-#   push:
-#     branches: ["konsinyasi"]
-# jobs:
-#   build:
-#     name: Build
-#     runs-on: ubuntu-latest
-#     steps:
-#       - name: Execute remote SSH commands using password
-#         uses: appleboy/ssh-action@v1
-#         with:
-#           host: 147.139.163.50
-#           username: root
-#           password: D3v3lop3r#
-#           port: 22
-#           script: whoami
-
-name: Deploy Nuxt 3
-
+name: Deploy to Digital Ocean with password
 on:
   push:
-    branches: ["konsinyasi"]
+    branches:
+      - "konsinyasi"
 
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repo
-        uses: actions/checkout@v3
+    - uses: actions/checkout@v2
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: 22
+    - name: Install sshpass
+      run: sudo apt-get update && sudo apt-get install -y sshpass
+
+    - name: Deploy via SSH password
+      run: |
+        sshpass -p "${{ secrets.PASSWORD }}" \
+        ssh -o StrictHostKeyChecking=no \
+        ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+          cd ${{ secrets.APP_DIR }}
+          git pull
+          npm install
+          npm run build
+          pm2 restart all
+        "
+
+
+# name: Deploy Nuxt 3
+
+# on:
+#   push:
+#     branches: ["konsinyasi"]
+
+# jobs:
+#   build-and-deploy:
+#     runs-on: ubuntu-latest
+
+#     steps:
+#       - name: Checkout repo
+#         uses: actions/checkout@v3
+
+#       - name: Setup Node.js
+#         uses: actions/setup-node@v3
+#         with:
+#           node-version: 22
 
       # - name: Install dependencies
       #   run: npm i
@@ -56,23 +67,18 @@ jobs:
       #     target: "${{ secrets.APP_DIR }}/output.tar.gz"
 
       # Eksekusi di server
-      - name: Deploy di server
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: ${{ secrets.SSH_USER }}
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT }}
-          script_shell: bash
-          command_timeout: 200m
-          script_stop: true
-          script: |
-            sudo -n /root/.nvm/versions/node/v18.17.1/bin/node /root/.nvm/versions/node/v18.17.1/bin/pm2 restart 7
-
-
-
-
-
+      # - name: Deploy di server
+      #   uses: appleboy/ssh-action@v1
+      #   with:
+      #     host: ${{ secrets.SSH_HOST }}
+      #     username: ${{ secrets.SSH_USER }}
+      #     password: ${{ secrets.SSH_PASSWORD }}
+      #     port: ${{ secrets.SSH_PORT }}
+      #     script_shell: bash
+      #     command_timeout: 200m
+      #     script_stop: true
+      #     script: |
+      #       sudo -n /root/.nvm/versions/node/v18.17.1/bin/node /root/.nvm/versions/node/v18.17.1/bin/pm2 restart 7
      #       # rm -rf .output
      #       # tar -xzf output.tar.gz
      #       # rm output.tar.gz
