@@ -63,4 +63,11 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd ${{ secrets.APP_DIR_BE }}
-            ls -all
+            echo "📌 Backup output lama"
+            [ -d ".output" ] && mv .output .output-backup-$(date +%s)
+            echo "📌 Extract build baru"
+            tar -xzf output.tar.gz
+            echo "📌 Hapus file tar"
+            rm -f output.tar.gz
+     #       echo "🔄 Restart PM2"
+     #       pm2 restart nuxt-app
