@@ -69,7 +69,7 @@ jobs:
           script: |
             cd /home
             ls -la
-            /root/.nvm/versions/node/v18.17.1/bin/pm2 restart 7
+            sudo /root/.nvm/versions/node/v18.17.1/bin/pm2 restart 7
 
      #       # rm -rf .output
      #       # tar -xzf output.tar.gz
