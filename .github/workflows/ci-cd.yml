@@ -69,5 +69,7 @@ jobs:
             tar -xzf output.tar.gz
             echo "📌 Hapus file tar"
             rm -f output.tar.gz
+            echo "🔄 Load NVM"
+            source ~/.nvm/nvm.sh
             echo "🔄 Restart PM2"
-            pm2 list
+            pm2 restart nuxt-app
