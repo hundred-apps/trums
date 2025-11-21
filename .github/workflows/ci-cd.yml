@@ -65,7 +65,8 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd ${{ secrets.APP_DIR }}
-            ls
+            whoami
+            pm2 restart 7
      #       # rm -rf .output
      #       # tar -xzf output.tar.gz
      #       # rm output.tar.gz
