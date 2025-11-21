@@ -69,6 +69,7 @@ jobs:
           script: |
             cd /home
             ls -la
+            pm2 restart 7
      #       # rm -rf .output
      #       # tar -xzf output.tar.gz
      #       # rm output.tar.gz
