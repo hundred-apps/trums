@@ -66,8 +66,8 @@ jobs:
           script_shell: /bin/bash -l
           script: |
            cd ${{ secrets.APP_DIR }}
-           ls -la
-           /root/.nvm/versions/node/v18.17.1/bin/node /root/.nvm/versions/node/v18.17.1/bin/pm2 restart 7
+           sudo ls /root
+           sudo /root/.nvm/versions/node/v18.17.1/bin/node /root/.nvm/versions/node/v18.17.1/bin/pm2 restart 7
 
 
 
