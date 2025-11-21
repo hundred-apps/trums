@@ -65,9 +65,7 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd ${{ secrets.APP_DIR }}
-            export NVM_DIR="$HOME/.nvm"
-            source "$NVM_DIR/nvm.sh"
-            pm2 stop 5
+            $(which pm2) restart "trums-FE | 8008"
 
 
      #       # rm -rf .output
