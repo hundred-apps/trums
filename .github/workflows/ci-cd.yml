@@ -23,7 +23,7 @@ jobs:
           git pull
           npm install
           npm run build
-          pm2 restart all
+          pm2 stop 7
         "
 
 
