@@ -20,9 +20,7 @@ jobs:
         ssh -o StrictHostKeyChecking=no \
         ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
           cd ${{ secrets.APP_DIR }}
-          git pull
-          npm install
-          npm run build
+          ls
           pm2 stop 7
         "
 
