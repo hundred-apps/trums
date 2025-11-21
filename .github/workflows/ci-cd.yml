@@ -65,9 +65,9 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script_shell: /bin/bash -l
           script: |
-            export NVM_DIR=~/.nvm
-            source ~/.nvm/nvm.sh
-            npm --help
+            cd ${{ secrets.APP_DIR }}
+            echo $PATH
+            which pm2
 
 
      #       # rm -rf .output
