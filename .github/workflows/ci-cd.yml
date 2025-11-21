@@ -69,5 +69,5 @@ jobs:
             tar -xzf output.tar.gz
             echo "📌 Hapus file tar"
             rm -f output.tar.gz
-     #       echo "🔄 Restart PM2"
-     #       pm2 restart nuxt-app
+            echo "🔄 Restart PM2"
+            pm2 list
