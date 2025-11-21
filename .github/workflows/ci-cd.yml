@@ -63,10 +63,12 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
+          debug: true
           script: |
             cd ${{ secrets.APP_DIR }}
             whoami
-            pm2 restart 7
+            pm2 stop 5
+
      #       # rm -rf .output
      #       # tar -xzf output.tar.gz
      #       # rm output.tar.gz
