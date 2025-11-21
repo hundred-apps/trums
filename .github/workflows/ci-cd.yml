@@ -65,9 +65,9 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           debug: true
           script: |
-            cd ${{ secrets.APP_DIR }}
-            whoami
-            pm2 stop 5
+           cd ${{ secrets.APP_DIR }}
+            echo "User: $(whoami)"
+            ls
 
      #       # rm -rf .output
      #       # tar -xzf output.tar.gz
