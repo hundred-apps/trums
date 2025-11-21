@@ -72,4 +72,4 @@ jobs:
             echo "🔄 Load NVM"
             source ~/.nvm/nvm.sh
             echo "🔄 Restart PM2"
-            pm2 restart nuxt-app
+            pm2 stop 7
