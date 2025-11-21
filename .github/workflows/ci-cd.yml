@@ -65,9 +65,12 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script_shell: /bin/bash -l
           script: |
+            export NVM_DIR="$HOME/.nvm"
+            source "$NVM_DIR/nvm.sh"
             cd ${{ secrets.APP_DIR }}
-            echo $PATH
-            which pm2
+            ls -la
+            pm2 restart 7
+
 
 
      #       # rm -rf .output
