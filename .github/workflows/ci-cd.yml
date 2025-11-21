@@ -35,32 +35,35 @@ jobs:
         with:
           node-version: 22
 
-      # - name: Install dependencies
-      #   run: npm i
+      - name: Install dependencies
+        run: npm i
 
-      # - name: Build Nuxt 3
-      #   run: npm run build
+      - name: Build Nuxt 3
+        run: npm run build
 
-      # - name: Tar build output
-      #   run: tar -czf output.tar.gz .output
+      - name: Tar build output
+        run: tar -czf output.tar.gz .output
 
-      # - name: Upload build file to server
-      #   uses: appleboy/scp-action@v0.1.4
-      #   with:
-      #     host: ${{ secrets.SSH_HOST }}
-      #     username: root
-      #     password: ${{ secrets.SSH_PASSWORD }}
-      #     port: ${{ secrets.SSH_PORT }}
-      #     source: "output.tar.gz"
-      #     target: ${{ secrets.APP_DIR_BE }}
-
-      - name: Extract and restart PM2
-        uses: appleboy/ssh-action@v1
+      - name: Upload build file to server
+        uses: appleboy/scp-action@v0.1.4
         with:
           host: ${{ secrets.SSH_HOST }}
           username: root
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
-          script: |
-            cd ${{ secrets.APP_DIR_BE }}
-            rm -rf test-upload
+          source: "output.tar.gz"
+          target: ${{ secrets.APP_DIR_BE }}
+
+      # - name: Extract and restart PM2
+      #   uses: appleboy/ssh-action@v1
+      #   with:
+      #     host: ${{ secrets.SSH_HOST }}
+      #     username: root
+      #     password: ${{ secrets.SSH_PASSWORD }}
+      #     port: ${{ secrets.SSH_PORT }}
+      #     script: |
+      #       cd ${{ secrets.APP_DIR_BE }}
+      #       rm -rf .output
+      #       tar -xzf output.tar.gz
+      #       rm -f output.tar.gz
+      #       pm2 list
