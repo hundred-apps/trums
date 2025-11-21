@@ -35,44 +35,38 @@ jobs:
         with:
           node-version: 22
 
-      # - name: Install dependencies
-      #   run: npm i
+      - name: Install dependencies
+        run: npm i
 
-      # - name: Build Nuxt 3
-      #   run: npm run build
+      - name: Build Nuxt 3
+        run: npm run build
 
-      # - name: Tar build output
-      #   run: tar -czf output.tar.gz .output
+      - name: Tar build output
+        run: tar -czf output.tar.gz .output
 
-      # # Upload artifact ke server
-      # - name: Copy files via SSH
-      #   uses: appleboy/ssh-action@v1
-      #   with:
-      #     host: ${{ secrets.SSH_HOST }}
-      #     username: ${{ secrets.SSH_USER }}
-      #     password: ${{ secrets.SSH_PASSWORD }}
-      #     port: ${{ secrets.SSH_PORT }}
-      #     source: "output.tar.gz"
-      #     target: "${{ secrets.APP_DIR }}/output.tar.gz"
-
-      # Eksekusi di server
-      - name: Deploy di server
+      # Upload artifact ke server
+      - name: Copy files via SSH
         uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.SSH_HOST }}
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
-          script_shell: bash
-          command_timeout: 200m
-          script_stop: true
-          script: |
-            cd /home
-            ls -la
-            sudo /root/.nvm/versions/node/v18.17.1/bin/pm2 restart 7
+          source: "output.tar.gz"
+          target: "/home/trumecs/trums/trums-be/output.tar.gz"
 
-     #       # rm -rf .output
-     #       # tar -xzf output.tar.gz
-     #       # rm output.tar.gz
-     #       # pm2 restart "trums-FE | 8008"
-     #       # pm2 save
+      # Eksekusi di server
+      # - name: Deploy di server
+      #   uses: appleboy/ssh-action@v1
+      #   with:
+      #     host: ${{ secrets.SSH_HOST }}
+      #     username: ${{ secrets.SSH_USER }}
+      #     password: ${{ secrets.SSH_PASSWORD }}
+      #     port: ${{ secrets.SSH_PORT }}
+      #     script: |
+      #       cd ${{ secrets.APP_DIR }}
+      #       rm -rf .output
+      #       tar -xzf output.tar.gz
+      #       rm output.tar.gz
+      #       pm2 restart "trums-FE | 8008"
+      #       pm2 save
