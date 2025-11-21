@@ -67,9 +67,14 @@ jobs:
           command_timeout: 200m
           script_stop: true
           script: |
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
             cd /home
+
             ls -la
-            pm2 restart 7
+
+            pm2 list
      #       # rm -rf .output
      #       # tar -xzf output.tar.gz
      #       # rm output.tar.gz
