@@ -63,11 +63,11 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           password: ${{ secrets.SSH_PASSWORD }}
           port: ${{ secrets.SSH_PORT }}
-          script_shell: /bin/bash -l
+          script_shell: bash
+          command_timeout: 200m
+          script_stop: true
           script: |
-           cd ${{ secrets.APP_DIR }}
-           sudo ls /root
-           sudo /root/.nvm/versions/node/v18.17.1/bin/node /root/.nvm/versions/node/v18.17.1/bin/pm2 restart 7
+            sudo -n /root/.nvm/versions/node/v18.17.1/bin/node /root/.nvm/versions/node/v18.17.1/bin/pm2 restart 7
 
 
 
