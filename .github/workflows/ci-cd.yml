@@ -17,25 +17,6 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install dependencies
-        run: npm i
-
-      - name: Build Nuxt 3
-        run: npm run build
-
-      - name: Tar build output
-        run: tar -czf output.tar.gz .output
-
-      - name: Upload build file to server
-        uses: appleboy/scp-action@v0.1.4
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: root
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT }}
-          source: "output.tar.gz"
-          target: ${{ secrets.APP_DIR }}
-
       - name: Create .env file on server
         uses: appleboy/ssh-action@v1
         with:
@@ -59,6 +40,25 @@ jobs:
             NUXT_OPENID_CONNECT_OP_POST_LOGOUT_URL=${{ secrets.NUXT_OPENID_CONNECT_OP_POST_LOGOUT_URL }}
             NUXT_OPENID_CONNECT_CONFIG_COOKIE_FLAGS_ACCESS_TOKEN_SECURE=${{ secrets.NUXT_OPENID_CONNECT_CONFIG_COOKIE_FLAGS_ACCESS_TOKEN_SECURE }}
             EOF
+
+      - name: Install dependencies
+        run: npm i
+
+      - name: Build Nuxt 3
+        run: npm run build
+
+      - name: Tar build output
+        run: tar -czf output.tar.gz .output
+
+      - name: Upload build file to server
+        uses: appleboy/scp-action@v0.1.4
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: root
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          source: "output.tar.gz"
+          target: ${{ secrets.APP_DIR }}
 
       - name: Extract and restart PM2
         uses: appleboy/ssh-action@v1
