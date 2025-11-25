@@ -330,7 +330,8 @@ const querySearchAdjustmentTransaction = ref<RequestSearch>({
   column: [],
   sort: null,
   limit: "10",
-  offset: "1"
+  offset: "1",
+  flag: "form",
 })
 
 const adjustmentTransactions = await useFetchApi<ResponsePagination<AdjustmentTransaction[]>>(
@@ -867,107 +868,121 @@ const fetchCanvassing = async () => {
     );
 
     if(response.status.value == 'success'){
-      canvassingData.value = response.data.value!.data;
+      if(response.data.value?.data){
+        canvassingData.value = response.data.value!.data;
 
-      console.log(canvassingData.value);
+        console.log(canvassingData.value);
 
-      contactsFee.value = [];
-      (response.data.value?.data.reference_transaction ?? []).forEach(element => {
-        if(element.party_type == PartyType.CONTACT){
-          contactsFee.value.push(element);
-        }
-        if((element.adjustments_transaction?.name ?? '').toLowerCase() !== 'fee' && (element.adjustments_transaction?.name ?? '').toLowerCase() !== 'ongkos kirim'){
-          references.value.push(element);
-        }
-      });
+        contactsFee.value = [];
+        (response.data.value?.data.reference_transaction ?? []).forEach(element => {
+          if(element.party_type == PartyType.CONTACT){
+            contactsFee.value.push(element);
+          }
+          if((element.adjustments_transaction?.name ?? '').toLowerCase() !== 'fee' && (element.adjustments_transaction?.name ?? '').toLowerCase() !== 'ongkos kirim'){
+            references.value.push(element);
+          }
+        });
 
-      (response.data.value?.data.canvassing_item ?? []).forEach(element => {
-        item_canvassing.value.push({
-          
-          index: `${element.unique_id}`,
-          canvassing_id: element.canvassing_id,
-          canvaasing_version: element.canvaasing_version,
-          item_request_trail_version: element.item_request_trail_version,
-          item_request_trail_id: element.item_request_trail_id,
-          unique_id: element.unique_id,
-          vendor_id: null,
-          vendor_name: '',
-          unit_id: element.unit_id,
-          unit_name: element.unit_name,
-          unit_version: null,
-          offer_item_id: null,
-          offer_item_version: 0,
-          catalogue_id: element.catalogue_id ?? '',
-          parent_catalogue_id: '',
-          catalogue_name: element.catalogue_name ?? '',
-          sn: element.catalogue?.sn ?? 'N/A',
-          quantity: element.quantity ?? 1,
-          unit_price: 0,
-          total_price: Number(element.unit_selling_price) * Number(element.quantity),
-          status: CanvassingVendorStatus.SUBMITTED,
-          taxes: [],
-          editing: null,
-          type: 'parent',
-          type_item: element.type_item,
-          equivalent_id: element.equivalent_id,
-          children: element.canvassing_vendor.map((child) => ({
-            type_item: child.type_item,
-            equivalent_id: child.equivalent_id,
-            index: `${child.unique_id}`,
-            canvassing_id: null,
-            canvaasing_version: null,
-            item_request_trail_version: null,
-            item_request_trail_id: null,
-            unique_id: child.unique_id,
-            vendor_id: child.vendor_id ?? '',
-            vendor_name: child.vendor?.name ?? '',
-            unit_id: child.unit_id,
-            unit_name: child.unit_name,
+        (response.data.value?.data.canvassing_item ?? []).forEach(element => {
+          item_canvassing.value.push({
+            
+            index: `${element.unique_id}`,
+            canvassing_id: element.canvassing_id,
+            canvaasing_version: element.canvaasing_version,
+            item_request_trail_version: element.item_request_trail_version,
+            item_request_trail_id: element.item_request_trail_id,
+            unique_id: element.unique_id,
+            vendor_id: null,
+            vendor_name: '',
+            unit_id: element.unit_id,
+            unit_name: element.unit_name,
             unit_version: null,
             offer_item_id: null,
             offer_item_version: 0,
-            catalogue_id: child.catalogue_id ?? '',
-            parent_catalogue_id: child.catalogue_id,
-            catalogue_name: child.catalogue?.name ?? '',
-            sn: child.catalogue?.sn ?? '',
-            quantity: child.quantity,
-            unit_price: child.unit_price,
-            total_price: child.total_price,
-            status: child.status,
-            checked: child.status == CanvassingVendorStatus.SELECTED ? true : false,
+            catalogue_id: element.catalogue_id ?? '',
+            parent_catalogue_id: '',
+            catalogue_name: element.catalogue_name ?? '',
+            sn: element.catalogue?.sn ?? 'N/A',
+            quantity: element.quantity ?? 1,
+            unit_price: 0,
+            total_price: Number(element.unit_selling_price) * Number(element.quantity),
+            status: CanvassingVendorStatus.SUBMITTED,
             taxes: [],
             editing: null,
-            type: 'child',
-            children: [],
-            selling_price: child.selling_price ?? 0,
-            profit: child.profit,
-            profit_unit: child.profit_unit,
-            fee: child.fee,
-            fee_unit: child.fee_unit,
-            ongkir: child.ongkir,
-            ongkir_unit: child.ongkir_unit,
-            pricetag_item_id: child.pricetag_item_id ?? '',
-            pricetag_item_version: child.pricetag_item_version ?? 0,
-            contacts_fee: child.reference_transaction.filter((value) => value.party_type == PartyType.CONTACT),
-          })),
-          selling_price: element.unit_selling_price,
-          profit: 0,
-          profit_unit: 'percent',
-          fee: 0,
-          fee_unit: 'percent',
-          ongkir: 0,
-          ongkir_unit: 'percent',
-          pricetag_item_id: '',
-          pricetag_item_version: 0,
-          contacts_fee: [],
+            type: 'parent',
+            type_item: element.type_item,
+            equivalent_id: element.equivalent_id,
+            children: element.canvassing_vendor.map((child) => ({
+              type_item: child.type_item,
+              equivalent_id: child.equivalent_id,
+              index: `${child.unique_id}`,
+              canvassing_id: null,
+              canvaasing_version: null,
+              item_request_trail_version: null,
+              item_request_trail_id: null,
+              unique_id: child.unique_id,
+              vendor_id: child.vendor_id ?? '',
+              vendor_name: child.vendor?.name ?? '',
+              unit_id: child.unit_id,
+              unit_name: child.unit_name,
+              unit_version: null,
+              offer_item_id: null,
+              offer_item_version: 0,
+              catalogue_id: child.catalogue_id ?? '',
+              parent_catalogue_id: child.catalogue_id,
+              catalogue_name: child.catalogue?.name ?? '',
+              sn: child.catalogue?.sn ?? '',
+              quantity: child.quantity,
+              unit_price: child.unit_price,
+              total_price: child.total_price,
+              status: child.status,
+              checked: child.status == CanvassingVendorStatus.SELECTED ? true : false,
+              taxes: [],
+              editing: null,
+              type: 'child',
+              children: [],
+              selling_price: child.selling_price ?? 0,
+              profit: child.profit,
+              profit_unit: child.profit_unit,
+              fee: child.fee,
+              fee_unit: child.fee_unit,
+              ongkir: child.ongkir,
+              ongkir_unit: child.ongkir_unit,
+              pricetag_item_id: child.pricetag_item_id ?? '',
+              pricetag_item_version: child.pricetag_item_version ?? 0,
+              contacts_fee: child.reference_transaction.filter((value) => value.party_type == PartyType.CONTACT),
+            })),
+            selling_price: element.unit_selling_price,
+            profit: 0,
+            profit_unit: 'percent',
+            fee: 0,
+            fee_unit: 'percent',
+            ongkir: 0,
+            ongkir_unit: 'percent',
+            pricetag_item_id: '',
+            pricetag_item_version: 0,
+            contacts_fee: [],
+          })
+        });
+
+        const equivalent: CanvassingItemForm[] = item_canvassing.value.filter((value) => value.type_item === "equivalent");
+
+        item_canvassing.value = item_canvassing.value.filter((value) => value.type_item !== "equivalent");
+
+        equivalent.forEach(element => {
+          const indexParent = item_canvassing.value.findIndex((data) => data.unique_id === element.equivalent_id);
+          if(indexParent >= 0){
+              item_canvassing.value.splice(indexParent + 1, 0, element);
+          }
+        });
+
+        item_canvassing.value.forEach((parent) => {
+          setProfit(parent);
         })
-      });
 
-      item_canvassing.value.forEach((parent) => {
-        setProfit(parent);
-      })
-
-      console.log('item canvassing', item_canvassing.value);
+        console.log('item canvassing', item_canvassing.value);
+      }
+      
 
     }
   } catch (error) {

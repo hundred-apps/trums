@@ -22,7 +22,7 @@
                     Loading.....
                 </div>
                 <div v-else-if="!canvassing.pending && canvassing.data">
-                    <CanvassingDetail :canvassing-data="canvassing.data"/>
+                    <CanvassingDetail :canvassing-data="canvassing.data" :privilages="privilages"/>
                 </div>
                 <div v-else-if="canvassing.code === 403">
                     <ActionNotPermitted button-label="Kembali" redirect-to="/sales/inquiry" />
@@ -83,6 +83,7 @@
     import CanvassingDetail from '../quotation/components/CanvassingDetail.vue';
     import InquiryDetail from './components/InquiryDetail.vue';
 import type { Canvassing } from '~/types/scm/canvasing';
+import type { Permission } from '~/types/menu';
 
     definePageMeta({
         middleware: ["auth", "app"],
@@ -115,6 +116,8 @@ import type { Canvassing } from '~/types/scm/canvasing';
         message: '',
         pending: true,
     })
+
+    const privilages = ref<Permission[]>([]);
 
     const loadingPenawaran = ref<boolean>(false);
     const loadingSO = ref<boolean>(false);
@@ -178,7 +181,8 @@ import type { Canvassing } from '~/types/scm/canvasing';
                     data: (response.data.value?.data ?? []).length > 0 ? response.data.value!.data![0] : null,
                     message: response.status.value,
                     pending: response.pending.value,
-                }
+                };
+                privilages.value = response.data.value?.privilege ?? [];
             }
 
             if(response.code == 403){

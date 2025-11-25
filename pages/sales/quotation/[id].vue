@@ -8,19 +8,20 @@
       </template>
     </el-page-header>
 
-    <CanvassingDetail v-if="canvassingData" :canvassingData="canvassingData" />
+    <CanvassingDetail v-if="canvassingData" :canvassingData="canvassingData" :privilages="currentPrivilage" />
   </TrumsWrapper>
 </template>
 
-<script lang="ts" setup>
+<script lang="tsx" setup>
 import { CanvassingStatus, CanvassingVendorStatus } from '~/types/scm/canvasing'
-import type { Canvassing, CanvassingItemForm } from '~/types/scm/canvasing'
+import type { Canvassing, CanvassingItem, CanvassingItemForm } from '~/types/scm/canvasing'
 import type { BaseResponse } from '~/types/response';
 import type { ElTable, FormProps } from 'element-plus';
 import { FeeType, PartyType, ReferenceAdjustment, type AdjustmentTransaction, type ReferenceTransactionAdjustment } from '~/types/attribute_adjustment';
 import { type RequestSearch } from '~/types/request_search';
 import type { ResponsePagination } from '~/types/response_pagination';
 import CanvassingDetail from './components/CanvassingDetail.vue';
+import type { Permission } from '~/types/menu';
 
 // ========== PAGE META & ROUTING ==========
 definePageMeta({
@@ -45,6 +46,7 @@ const item_canvassing = ref<CanvassingItemForm[]>([])
 const contactsFee = ref<ReferenceTransactionAdjustment[]>([])
 const contactsFeeToEdit = ref<ReferenceTransactionAdjustment[]>([])
 const selectedChildren = ref<CanvassingItemForm[]>([])
+const currentPrivilage = ref<Permission[]>([])
 
 // Form State
 const feeState = ref<string>('minus')
@@ -77,7 +79,8 @@ const querySearchAdjustmentTransaction = ref<RequestSearch>({
   column: [],
   sort: null,
   limit: "10",
-  offset: "1"
+  offset: "1",
+  flag: "form",
 })
 
 const adjustmentTransactions = await useFetchApi<ResponsePagination<AdjustmentTransaction[]>>(
@@ -351,6 +354,7 @@ const fetchCanvassing = async () => {
     )
 
     if(response.status.value == 'success' && response.data.value?.data){
+      currentPrivilage.value = response.data.value.privilege ?? [];
       initialCanvassing(response.data.value.data)
     }
   } catch (error) {
@@ -363,16 +367,17 @@ const fetchCanvassing = async () => {
 }
 
 const initialCanvassing = (data: Canvassing) => {
-  canvassingData.value = data
-  contactsFee.value = []
+  canvassingData.value = data;
+  contactsFee.value = [];
   
-  ;(canvassingData.value.reference_transaction ?? []).forEach(element => {
+  (canvassingData.value.reference_transaction ?? []).forEach((element: ReferenceTransactionAdjustment) => {
     if(element.party_type == PartyType.CONTACT){
-      contactsFee.value.push(element)
+      contactsFee.value.push(element);
     }
-  })
+  });
+  
 
-  ;(canvassingData.value.canvassing_item ?? []).forEach(element => {
+  (canvassingData.value.canvassing_item ?? []).forEach((element: CanvassingItem) => {
     item_canvassing.value.push({
       index: `${element.unique_id}`,
       canvassing_id: element.canvassing_id,
@@ -522,21 +527,7 @@ watch(() => item_canvassing.value, () => {
   updateTableSelection()
 }, { deep: true })
 
-watch(() => item_canvassing.value, () => {
-  item_canvassing.value.forEach((element) => {
-    const findCanvassingItem = (canvassingData.value?.canvassing_item ?? []).findIndex((item) => item.unique_id == element.unique_id)
-    element.children.forEach(child => {
-      if(findCanvassingItem >= 0){
-        const vendorIndex = (canvassingData.value?.canvassing_item[findCanvassingItem].canvassing_vendor ?? [])
-          .findIndex((v) => v.unique_id == child.unique_id)
-        if(vendorIndex >= 0){
-          canvassingData.value!.canvassing_item[findCanvassingItem].canvassing_vendor[vendorIndex].status = 
-            child.checked ? CanvassingVendorStatus.SELECTED : CanvassingVendorStatus.SUBMITTED
-        }
-      }
-    })
-  })
-}, { deep: true })
+
 
 // ========== LIFECYCLE ==========
 onMounted(() => {

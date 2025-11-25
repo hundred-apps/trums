@@ -3,7 +3,7 @@
 
         <el-page-header @back="goBack">
           <template #content>
-              <span class="text-large font-600 mr-3"> Detail - {{ data?.data.name }} </span>
+              <span class="text-large font-600 mr-3"> Detail - {{ data?.data?.name }} </span>
           </template>
         </el-page-header>
         <el-card class="my-3" shadow="never">
@@ -15,8 +15,10 @@
                   <el-radio value="total">Total</el-radio>
                 </el-radio-group>
               </el-form-item>
-              <NuxtLink 
-                  :href="`/sales/offer/add?id=${data?.data.unique_id}`"
+              <div>
+                <NuxtLink 
+                  v-if="canAccess('pricetag-update', data?.privilege ?? [])"
+                  :href="`/sales/offer/add?id=${data?.data?.unique_id}`"
                   class="el-button el-button--defult"
                 >
                 Edit
@@ -27,6 +29,7 @@
                 >
                 Cetak Penawaran
               </el-button>
+              </div>
               
             </div>
           </template>
@@ -39,11 +42,11 @@
                         size="small"
                         border
                     >
-                    <el-descriptions-item label="Nomor Penawaran">{{data?.data.name}}</el-descriptions-item>
+                    <el-descriptions-item label="Nomor Penawaran">{{data?.data?.name}}</el-descriptions-item>
                     <el-descriptions-item label="Dari">{{data?.data?.owner?.name ?? 'N/A'}}</el-descriptions-item>
                     <el-descriptions-item label="Kepada">{{data?.data?.to?.name ?? 'N/A'}}</el-descriptions-item>
-                    <el-descriptions-item label="Berlaku Mulai Tanggal">{{formatLocalDate(data?.data.start_date ?? 0)}}</el-descriptions-item>
-                    <el-descriptions-item label="Berakhir Tanggal">{{formatLocalDate(data?.data.end_date ?? 0)}}</el-descriptions-item>
+                    <el-descriptions-item label="Berlaku Mulai Tanggal">{{formatLocalDate(data?.data?.start_date ?? 0)}}</el-descriptions-item>
+                    <el-descriptions-item label="Berakhir Tanggal">{{formatLocalDate(data?.data?.end_date ?? 0)}}</el-descriptions-item>
                     </el-descriptions>
                 </div>
             </div>
@@ -57,7 +60,7 @@
             
           </el-row>
           
-          <el-table :data="data?.data.pricetag_item" size="small" border>
+          <el-table :data="data?.data?.pricetag_item" size="small" border>
               <el-table-column prop="name" label="item" width="300">
                   <template #default="scope">
                       {{ scope.row.catalogue.name }}
@@ -182,7 +185,7 @@ const size = ref<ComponentSize>('default')
 
 
 const addNewLine = () => {
-    console.log(data.value!.data.pricetag_item);
+    
     // data.value!.data.pricetag_item = [...data.value!.data.pricetag_item, {
     //     catalogue: {
     //         id: null,
@@ -218,7 +221,7 @@ const addNewLine = () => {
 }
 
 const getContactPricetag = computed(() => {
-    return data.value?.data.pricetag_condition.filter((value) => value.variable_pricetag!.name == VariablePriceTag.KONTAK);
+    return (data.value?.data?.pricetag_condition ?? []).filter((value) => value.variable_pricetag!.name == VariablePriceTag.KONTAK);
 })
 
 function handleSelectContact(row: Pricetag_condition) {
@@ -228,7 +231,7 @@ console.log(row);
 }
 
 const getNote = computed(() => {
-    let message = data.value?.data.note ?? '';
+    let message = data.value?.data?.note ?? '';
     message = message.replace(/\r?\n/g, '<br>');
     return message;
 })
@@ -292,23 +295,23 @@ const generateQuotationPdf = async () => {
 
   // Info
   doc.setFontSize(11)
-  doc.text(`Number: ${data.value?.data.name}`, 10, 60)
+  doc.text(`Number: ${data.value?.data?.name}`, 10, 60)
   doc.text(`Subject: -`, 10, 66)
   doc.text(`Jakarta, ${formatted}`, 160, 60)
 
-  doc.text(`To: ${data.value?.data.to?.name ?? '-'}`, 10, 72)
+  doc.text(`To: ${data.value?.data?.to?.name ?? '-'}`, 10, 72)
   // doc.text(`PIC: ${quotationToName.value}`, 10, 77)
 
   // Body text
   doc.text("Bersama ini kami kirimkan penawaran sebagai berikut:", 10, 90)
 
-  const grandTotal = (data.value?.data.pricetag_item ?? []).reduce((acc, item) => {
+  const grandTotal = (data.value?.data?.pricetag_item ?? []).reduce((acc, item) => {
     return acc + (item.quantity * item.price);
   }, 0);
 
   
 
-  let rowData: RowInput[] = (data.value?.data.pricetag_item ?? []).map((item: Pricetag_item, i: number) => [
+  let rowData: RowInput[] = (data.value?.data?.pricetag_item ?? []).map((item: Pricetag_item, i: number) => [
     { content: `${i + 1}`, styles: { halign: 'left' } },
     { content: `${item.catalogue?.name}`, styles: { halign: 'left' } },
     { content: `${item.quantity}`, styles: { halign: 'right' } },
@@ -348,7 +351,7 @@ const generateQuotationPdf = async () => {
   // doc.text(`Grand Total: Rp ${currency(grandTotal.value)}`, 140, finalY)
 
 
-  const canvassing: Canvassing = data.value?.data.reference_data as Canvassing;
+  const canvassing: Canvassing = data.value?.data?.reference_data as Canvassing;
 
   // Notes
   doc.text("Notes:", 10, finalY + 5)
@@ -389,7 +392,7 @@ const querySearchAsyncInventories = (queryString: string, cb: (arg: any) => void
         table: 'inventories',
         column: [
             {
-                location_id: [data.value?.data.location_id],
+                location_id: [data.value?.data?.location_id],
             },
         ],
         keyword: queryString,
@@ -411,23 +414,6 @@ const querySearchAsyncInventories = (queryString: string, cb: (arg: any) => void
     })
 }
 
-const onHandleSelectItemAutocomplete = (record: Record<string, any>, scope: any) => {
-    console.log(record)
-    if(record.object != undefined){
-        const inventory: Inventory = record.object as Inventory;
-        data.value!.data.pricetag_item[scope.$index].inventory_id = inventory.unique_id!;
-        data.value!.data.pricetag_item[scope.$index].price = inventory.selling_price ?? 0;
-    }
-
-}
-
-const onChangeQuantity = (e: string, scope: any) => {
-    // data.value!.data.items[scope.$index]. = parseInt(e);
-}
-
-const onChangeSellingPrice = (e: string, scope: any) => {
-    data.value!.data.pricetag_item[scope.$index].price = parseInt(e ?? '0');
-}
 
 
 </script>

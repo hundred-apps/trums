@@ -59,15 +59,12 @@
               <el-descriptions-item label="Tanggal Permintaan">
                 {{ formatLocalDate(ruleForm.inquiry?.date!) }}
               </el-descriptions-item>
-              <el-descriptions-item label="Permintaan">
-                {{ ruleForm.inquiry?.reference === "non_maintenance" ? 'Non-Maintenance' : "Maintenance" }}
-              </el-descriptions-item>
             </el-descriptions>
           </div>
           <div class="flex-1">
             <el-descriptions :column="1" size="large" border>
-              <el-descriptions-item label="Lokasi">
-                {{ ruleForm.inquiry.location?.name ?? 'Tidak Ada' }}
+              <el-descriptions-item label="Ditujukan Untuk">
+                {{ ruleForm.inquiry.request_to?.name ?? 'Tidak Ada' }}
               </el-descriptions-item>
               <el-descriptions-item label="Diminta Oleh">
                 {{ ruleForm.inquiry?.request_by?.name ?? '-' }}
@@ -75,6 +72,9 @@
             </el-descriptions>
           </div>
         </div>
+        <el-descriptions title="Alamat">
+          <el-descriptions-item label="">{{ generateResultSearchAddress(ruleForm?.inquiry?.address ?? null).street }}</el-descriptions-item>
+        </el-descriptions>
         <el-descriptions title="Note">
           <el-descriptions-item label="">{{ ruleForm.inquiry?.description }}</el-descriptions-item>
         </el-descriptions>
@@ -210,7 +210,7 @@
             <div v-if="row.type == 'parent' && row.type_item == 'request'">
               {{ row.sn }}
             </div>
-            <el-input v-else v-model="row.sn" placeholder="Please Input SN/PN" />
+            <el-input :disabled="true" v-else v-model="row.sn" placeholder="Please Input SN/PN" />
           </template>
         </el-table-column>
         <el-table-column prop="qty" label="QTY" width="200">
@@ -218,7 +218,7 @@
             <div v-if="row.type == 'parent'&& row.type_item == 'request'">
               {{ row.quantity }}
             </div>
-            <el-input-number v-else v-model="row.quantity" :min="1" @change="calculateSellingPrice(row)" @input="calculateSellingPrice(row)" />
+            <el-input-number :disabled="true" v-else v-model="row.quantity" :min="1" @change="calculateSellingPrice(row)" @input="calculateSellingPrice(row)" />
           </template>
         </el-table-column>
         <el-table-column prop="unit_name" label="UOM" width="100">
@@ -232,6 +232,7 @@
                 v-model="row.unit_name"
                 placeholder="Input Units"
                 @select="(item: Record<string, any>) => handleSelectUnit(item, row.index, row)"
+                :disabled="true"
               />
           </template>
         </el-table-column>
@@ -248,6 +249,7 @@
                 placeholder="Cari vendor"
                 @select="item => onHandleSelectVendor(item, row.index)"
                 style="width: 100%"
+                :disabled="true"
               />
             </div>
           </template>
@@ -353,6 +355,7 @@ import type { ItemSearch } from '~/types/item_search'
 import type { Pagination } from '~/types/pagination'
 import type { Catalogue } from '~/types/catalogue'
 import type { Unit } from '~/types/unit'
+import type { AddressType } from '~/types/address'
 
 
 
@@ -427,6 +430,7 @@ const request_search_inquiry = ref<RequestSearch>({
     order: OrderColumn.DESC,
   },
   table: 'inquiries',
+  flag: "form",
 })
 
 const request_search_contact = ref<RequestSearch>({
@@ -436,6 +440,7 @@ const request_search_contact = ref<RequestSearch>({
   offset: '1',
   sort: null,
   table: 'contacts',
+  flag: "form",
 })
 
 const request_search_pricetag_item = ref({
@@ -449,6 +454,7 @@ const request_search_pricetag_item = ref({
   type: "multi" as "single"|"multi",
   offset: 1,
   limit: 10,
+  flag: "form",
 })
 
 // API Calls
@@ -456,7 +462,7 @@ const priceTagItem = await useFetchApi<ResponsePagination<Pricetag_item[]>>(
   `/pricetag-item-read`, 
   'pricetag-search-items', 
   'post', 
-  request_search_pricetag_item
+  request_search_pricetag_item.value
 )
 
 const inquiry = ref<ResponsePagination<Inquiry[]>>()
@@ -466,7 +472,8 @@ const querySearchAdjustmentTransaction = ref<RequestSearch>({
   column: [],
   sort: null,
   limit: "10",
-  offset: "1"
+  offset: "1",
+  flag: "form",
 })
 
 const adjustmentTransactions = await useFetchApi<ResponsePagination<AdjustmentTransaction[]>>(
@@ -723,6 +730,30 @@ const finalTotal = computed(() => {
 
   return total
 })
+
+const generateResultSearchAddress = (address: AddressType|null) => {
+    if(address){
+        const name = `(${address.contact_name})`;
+        const street = `${address.street}, ${address.village}, ${address.city}, ${address.regency}, ${address.province}`;
+        const address_id = address.unique_id;
+        const address_version = address.version;
+        return {
+            value: name,
+            name: name,
+            street: street,
+            address_id: address_id,
+            address_version: address.version,
+        }
+    }else{
+        return {
+            value: '',
+            name: '',
+            street: '',
+            address_id: '',
+            address_version: 0,
+        }
+    }
+}
 
 const onInputAdjustment = (row:ReferenceTransactionAdjustment) => {
   if(row.adjustment?.name.toLowerCase() == 'ongkos kirim'){
@@ -1435,12 +1466,54 @@ const calculateSellingPrice = (row: CanvassingItemForm) => {
   }
 }
 
-const removeItem = (item: CanvassingItemForm) => {
+const removeItem = async (item: CanvassingItemForm) => {
+
+  
+
   if (item.type === "parent") {
-    item_canvassing.value = item_canvassing.value.filter(value => value.index !== item.index)
+    if(item.unique_id){
+      const deleted: boolean = await canvasingItemRemove([item.unique_id]);
+      if(deleted){
+        item_canvassing.value = item_canvassing.value.filter(value => value.index !== item.index)
+      }
+    }
+    
   } else if (item.type === "child") {
-    item_canvassing.value.forEach((parent) => parent.children = parent.children.filter((child) => child.index != item.index));
+    if(item.unique_id){
+      const deleted: boolean = await canvasingItemVendorRemove([item.unique_id]);
+      if(deleted){
+        item_canvassing.value.forEach((parent) => parent.children = parent.children.filter((child) => child.index != item.index));
+      }
+    }
+    
     // removeVendor(item.vendor_id)
+  }
+}
+
+const canvasingItemRemove = async (ids: string[]): Promise<boolean> => {
+  try {
+    const response = await useApiFetch<BaseResponse<any>>('/canvassing-item-delete', {
+      method: "POST",
+      body: ids,
+    })
+
+    return response.success;
+  } catch (error: any) {
+    ElMessage.error(`${error?.response?.data?.message ?? error}`);
+    return false;
+  }
+}
+const canvasingItemVendorRemove = async (ids: string[]): Promise<boolean> => {
+  try {
+    const response = await useApiFetch<BaseResponse<any>>('/canvassing-vendor-delete', {
+      method: "POST",
+      body: ids,
+    })
+
+    return response.success;
+  } catch (error: any) {
+    ElMessage.error(`${error?.response?.data?.message ?? error}`);
+    return false;
   }
 }
 
@@ -1668,12 +1741,15 @@ const addToOfferVendor = (val: Pricetag_item[]) => {
     startIndex = findChildIndex(item_canvassing.value[getIndex].children, itemStartIndex.value);
   }
 
+
   
   val.forEach((item: Pricetag_item, index: number) => {
-    console.log('item', item);
+    console.log('startIndex', startIndex);
+
+    // const childLength = item_canvassing.value[getIndex].children.length;
     
     const child: CanvassingItemForm = {
-      index: `${itemIndex.value}-${index}`,
+      index: `${itemIndex.value}-${startIndex}`,
       type_item: "quotation",
       equivalent_id: null,
       canvassing_id: null,
@@ -1984,6 +2060,7 @@ const querySearchCatalogueEquivalent = (queryString: string, cb: (arg: any) => v
     useFetchApi<Pagination<ItemSearch[]>>('/catalogues-inventory','search-catalogues-inventory','post', {
       keyword: queryString,
       limit: 10,
+      flag: "form",
     }).then((response) => {
       if(response.status.value == 'success'){
         const resultApi: ItemSearch[] = response.data.value?.query ?? [];
@@ -2219,7 +2296,7 @@ const fetchInquiry = async () => {
 const fetchDataEdit = async () => {
   loading.value = true
   try {
-    const response = await useFetchApi<any>(
+    const response = await useFetchApi<BaseResponse<Canvassing>>(
       `/canvassing-read/${id.value}`, 
       'detail-canvassing', 
       'get', 
@@ -2236,6 +2313,102 @@ const fetchDataEdit = async () => {
           status: canvasing.status,
           source_document: canvasing.source_document,
         })
+
+        if(canvasing.source){
+          ruleForm.source_document = canvasing.source.unique_code;
+          ruleForm.inquiry = canvasing.source;
+          canvasing.canvassing_item.forEach((item, index) => {
+            item_canvassing.value.push({
+              type_item: item.type_item,
+              equivalent_id: null,
+              index: `${index}`,
+              canvassing_id: null,
+              canvaasing_version: null,
+              item_request_trail_version: null,
+              item_request_trail_id: null,
+              unique_id: item.unique_id,
+              vendor_id: null,
+              vendor_name: '',
+              unit_id: item.unit_id,
+              unit_name: item.unit_name,
+              unit_version: 1,
+              offer_item_id: null,
+              offer_item_version: 0,
+              catalogue_id: item.catalogue_id ?? '',
+              parent_catalogue_id: '',
+              catalogue_name: item.catalogue_name ?? '',
+              sn: item.catalogue?.sn ?? 'N/A',
+              quantity: item.quantity ?? 1,
+              unit_price: 0,
+              total_price: 0,
+              status: CanvassingVendorStatus.SUBMITTED,
+              taxes: [],
+              editing: null,
+              type: 'parent',
+              children: item.canvassing_vendor.map((vendor, vIndex) => ({
+                index: `${index}-${vIndex}`,
+                type_item: vendor.type_item,
+                equivalent_id: null,
+                canvassing_id: null,
+                canvaasing_version: null,
+                item_request_trail_version: null,
+                item_request_trail_id: null,
+                unique_id: vendor.unique_id,
+                vendor_id: vendor.vendor_id ?? '',
+                vendor_name: vendor.vendor?.name ?? '',
+                unit_id: vendor.unit_id,
+                unit_name: vendor.unit_name,
+                unit_version: null,
+                offer_item_id: null,
+                offer_item_version: 0,
+                catalogue_id: vendor.catalogue_id ?? '',
+                parent_catalogue_id: vendor.catalogue_id,
+                catalogue_name: item.catalogue?.name ?? '',
+                sn: vendor.catalogue?.sn ?? '',
+                quantity: vendor.quantity,
+                unit_price: vendor.unit_price,
+                total_price: 0,
+                status: vendor.status,
+                taxes: [],
+                editing: null,
+                type: 'child',
+                children: [],
+                selling_price: 0,
+                profit: vendor.profit,
+                profit_unit: vendor.profit_unit,
+                fee: vendor.fee,
+                fee_unit: vendor.fee_unit,
+                ongkir: vendor.ongkir,
+                ongkir_unit: vendor.ongkir_unit,
+                pricetag_item_id: vendor.pricetag_item_id ?? '',
+                pricetag_item_version: vendor.pricetag_item_version ?? 0,
+                contacts_fee: [],
+              })),
+              selling_price: 0,
+              profit: 0,
+              profit_unit: 'percent',
+              fee: 0,
+              fee_unit: 'percent',
+              ongkir: 0,
+              ongkir_unit: 'percent',
+              pricetag_item_id: '',
+              pricetag_item_version: 0,
+              contacts_fee: [],
+            })
+          })
+
+          const equivalent: CanvassingItemForm[] = item_canvassing.value.filter((value) => value.type_item === "equivalent");
+
+          item_canvassing.value = item_canvassing.value.filter((value) => value.type_item !== "equivalent");
+
+          equivalent.forEach(element => {
+            const indexParent = item_canvassing.value.findIndex((data) => data.unique_id === element.equivalent_id);
+            if(indexParent >= 0){
+                item_canvassing.value.splice(indexParent + 1, 0, element);
+            }
+          });
+
+        }
       }
     }
   } catch (error: any) {

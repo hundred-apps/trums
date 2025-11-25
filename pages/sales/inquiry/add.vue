@@ -28,7 +28,7 @@
     import { TypeInquiry, type Inquiry } from '~/types/inquiry';
     import { type ComponentSize, ElButton, ElText, ElTag, type FormInstance, type FormRules, ElMessage, TableV2FixedDir, ElTooltip, ElIcon,} from 'element-plus'
     import type { Column, InputInstance, MainInstance, UploadUserFile } from 'element-plus'
-    import { Search, Timer, Plus, Operation, User, Warning } from '@element-plus/icons-vue'
+    import { Search, Timer, Plus, Operation, User, Warning, Delete } from '@element-plus/icons-vue'
     import type { Maintenance } from '~/types/maintenance';
     import type { Contact } from '~/types/contact';
     import type { Catalogue } from '~/types/catalogue';
@@ -815,7 +815,7 @@
     const fetchCatalogueDetail = async (unique_id: string): Promise<Catalogue|undefined> => {
       loading.value = true;
       try {
-        const response = await useApiFetch<BaseResponse<Catalogue>>(`/catalogues-read/${unique_id}`, {
+        const response = await useApiFetch<BaseResponse<Catalogue>>(`/catalogues-read/${unique_id}?flag=form`, {
           method: 'GET',
         });
 
@@ -1212,6 +1212,26 @@
         tmpCatalogue.value = null;
     }
 
+    const delete_item = async (index: number) => {
+      try {
+        const data:ItemInterface = dataTable.value[index];
+        if(data.unique_id){
+          const response = await useApiFetch<BaseResponse<any>>('/item-request-delete', {
+            method: "POST",
+            body: [data.unique_id]
+          })
+
+          if(response.success){
+            dataTable.value.splice(index, 1);
+          }
+        }else{
+          dataTable.value.splice(index, 1);
+        }
+      } catch (error: any) {
+        ElMessage.error(`${error?.response?.data?.message ?? error}`);
+      }
+    }
+
 
     onMounted(() => {
       // getContacts();
@@ -1379,6 +1399,11 @@
                 placeholder="Input Units"
                 @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteUnit(item, scope)"
               />
+            </template>
+          </el-table-column>
+          <el-table-column label="Aksi" width="100">
+            <template #default="scope">
+              <el-button :icon="Delete" type="danger" @click="() => delete_item(scope.$index)"/>
             </template>
           </el-table-column>
         </el-table>

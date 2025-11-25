@@ -85,7 +85,8 @@ const request_search = ref<RequestSearch>({
     sort: {
       column: 'created_at',
       order: OrderColumn.ASC,
-    }
+    },
+    flag: "list",
 });
 
 // Data state

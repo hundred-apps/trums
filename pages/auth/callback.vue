@@ -23,7 +23,7 @@ const user = localStorage.getItem("user");
 const appUserData = useCookie("userdata");
 const userToken = useCookie("token");
 const router = useRouter();
-const { $oidc } = useNuxtApp();
+const oidc = useOIDC();
 
 const { t } = useI18n();
 const config = useRuntimeConfig();
@@ -140,7 +140,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       formData.append("gender", ruleForm.gender);
 
       if (fileList.value.length > 0) {
-        formData.append("photo", fileList.value[0].raw);
+        formData.append("photo", fileList.value[0].raw as Blob);
       }
 
       // const jsonUser = JSON.parse(user ?? "");
@@ -158,6 +158,9 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         if (response.status == 201) {
           const dataUser: People = response.data.data;
           appUserData.value = JSON.stringify(dataUser);
+          localStorage.setItem('user_data', JSON.stringify(dataUser))
+          console.log('data user ', dataUser);
+
           userToken.value = response.data.token;
 
           console.log('user token',userToken.value);
@@ -217,7 +220,7 @@ const getUser = async () => {
 
 const initial = async () => {
   loading.value = true;
-  const user = await $oidc.signinRedirectCallback();
+  const user = await oidc.signinRedirectCallback();
   profile.value = user.profile;
   console.log("✅ Login sukses:", user)
 

@@ -4,10 +4,10 @@ definePageMeta({
 });
 const { t } = useI18n();
 // const oidc = useOidc();
-const { $oidc } = useNuxtApp();
+const oidc = useOIDC();
 
 const login = async () => {
-  await $oidc.signinRedirect()
+  await oidc.signinRedirect()
 }
 
 </script>

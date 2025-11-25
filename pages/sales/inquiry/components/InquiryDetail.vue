@@ -389,13 +389,15 @@
             const inquiry = await useFetchApi<BaseResponse<Inquiry>>(`/inquiries-read/${inquiryData.value.unique_id}`, 'inquiry', 'get', null);
             
             if (inquiry.status.value === 'success') {
-                inquiryData.value = inquiry.data.value!.data;
-
-                request_sugestion_item.value.column = [
-                    {
-                        "catalogue_id": (inquiryData.value?.item_request ?? []).map((value) => value.catalogue_id),
-                    }
-                ];
+                if(inquiry.data.value?.data){
+                    inquiryData.value = inquiry.data.value!.data;
+    
+                    request_sugestion_item.value.column = [
+                        {
+                            "catalogue_id": (inquiryData.value?.item_request ?? []).map((value) => value.catalogue_id),
+                        }
+                    ];
+                }
             }
         } catch (error) {
             console.error('Failed to fetch related data', error)

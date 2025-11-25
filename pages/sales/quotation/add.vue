@@ -754,11 +754,11 @@ import type { AddressType } from '~/types/address'
 
 const { removeDuplicates } = useArray();
 const router = useRouter()
-const route = useRoute()
 const config = useRuntimeConfig();
 const baseImageURL = config.public.baseImageURL;
 
 
+const route = useRoute()
 const id = computed(() => route.query.id as string)
 const inquiry_id = computed(() => route.query.inquiry_id as string)
 
@@ -833,6 +833,7 @@ const request_search_inquiry = ref<RequestSearch>({
     order: OrderColumn.DESC,
   },
   table: 'inquiries',
+  flag: 'form',
 })
 
 const request_search_contact = ref<RequestSearch>({
@@ -842,6 +843,7 @@ const request_search_contact = ref<RequestSearch>({
   offset: '1',
   sort: null,
   table: 'contacts',
+  flag: "form",
 })
 
 const request_search_pricetag_item = ref({
@@ -855,6 +857,7 @@ const request_search_pricetag_item = ref({
   type: "multi" as "single"|"multi",
   offset: 1,
   limit: 10,
+  flag: "form",
 })
 
 const query_search_pricetag_item = ref<RequestSearch>({
@@ -868,6 +871,7 @@ const query_search_pricetag_item = ref<RequestSearch>({
   offset: '1',
   sort: null,
   table: 'pricetag_item',
+  flag: "form",
 })
 
 // API Calls
@@ -885,7 +889,8 @@ const querySearchAdjustmentTransaction = ref<RequestSearch>({
   column: [],
   sort: null,
   limit: "10",
-  offset: "1"
+  offset: "1",
+  flag: "form",
 })
 
 const adjustmentTransactions = await useFetchApi<ResponsePagination<AdjustmentTransaction[]>>(
@@ -1858,12 +1863,51 @@ const calculateSellingPrice = (row: CanvassingItemForm) => {
   }
 }
 
-const removeItem = (item: CanvassingItemForm) => {
+const removeItem = async (item: CanvassingItemForm) => {
   if (item.type === "parent") {
-    item_canvassing.value = item_canvassing.value.filter(value => value.index !== item.index)
+    if(item.unique_id){
+      const deleted: boolean = await canvasingItemRemove([item.unique_id]);
+      if(deleted){
+        item_canvassing.value = item_canvassing.value.filter(value => value.index !== item.index)
+      }
+    }
+    
   } else if (item.type === "child") {
-    item_canvassing.value.forEach((parent) => parent.children = parent.children.filter((child) => child.index != item.index));
+    if(item.unique_id){
+      const deleted: boolean = await canvasingItemVendorRemove([item.unique_id]);
+      if(deleted){
+        item_canvassing.value.forEach((parent) => parent.children = parent.children.filter((child) => child.index != item.index));
+      }
+    }
+    
     // removeVendor(item.vendor_id)
+  }
+}
+
+const canvasingItemRemove = async (ids: string[]): Promise<boolean> => {
+  try {
+    const response = await useApiFetch<BaseResponse<any>>('/canvassing-item-delete', {
+      method: "POST",
+      body: ids,
+    })
+
+    return response.success;
+  } catch (error: any) {
+    ElMessage.error(`${error?.response?.data?.message ?? error}`);
+    return false;
+  }
+}
+const canvasingItemVendorRemove = async (ids: string[]): Promise<boolean> => {
+  try {
+    const response = await useApiFetch<BaseResponse<any>>('/canvassing-vendor-delete', {
+      method: "POST",
+      body: ids,
+    })
+
+    return response.success;
+  } catch (error: any) {
+    ElMessage.error(`${error?.response?.data?.message ?? error}`);
+    return false;
   }
 }
 
@@ -2307,8 +2351,8 @@ const create_catalogue = async (catalogue: Catalogue) : Promise<Catalogue|null> 
 
       const response = await useFetchApi<BaseResponse<Catalogue>>('/catalogues-create', 'catalogue-create', 'post', formData);
       if(response.status.value == 'success'){
-          const catalogue_result: Catalogue = response.data.value!.data;
-          return catalogue_result ?? null;
+          const catalogue_result: Catalogue|null = response.data.value?.data ?? null;
+          return catalogue_result;
       }else{
         return null
       }
@@ -2727,6 +2771,11 @@ const fetchDataEdit = async () => {
           if((element.adjustments_transaction?.name ?? '').toLowerCase() !== 'fee' && (element.adjustments_transaction?.name ?? '').toLowerCase() !== 'ongkos kirim'){
             references.value.push(element);
           }
+
+          if((element.adjustments_transaction?.name ?? '').toLowerCase() == 'ongkos kirim'){
+            adjustmentTransactionOngkirTotal.value = element;
+            adjustmentTransactionOngkirTotal.value.adjustment = element.adjustments_transaction;
+          }
         });
 
         canvasing.canvassing_item.forEach((value) => {
@@ -2808,6 +2857,19 @@ const fetchDataEdit = async () => {
             equivalent_id: value.equivalent_id,
           })
         })
+
+        
+
+        const equivalent: CanvassingItemForm[] = item_canvassing.value.filter((value) => value.type_item === "equivalent");
+
+        item_canvassing.value = item_canvassing.value.filter((value) => value.type_item !== "equivalent");
+
+        equivalent.forEach(element => {
+          const indexParent = item_canvassing.value.findIndex((data) => data.unique_id === element.equivalent_id);
+          if(indexParent >= 0){
+              item_canvassing.value.splice(indexParent + 1, 0, element);
+          }
+        });
 
         item_canvassing.value.forEach((element) => setProfit(element));
       }
@@ -3105,7 +3167,7 @@ const submit = async (formEl: FormInstance | undefined) => {
       ElMessage.success(`Berhasil Membuat Data Canvasing!`)
       formEl?.resetFields() 
       resetFormState()
-      router.push(`/sales/quotation/${response.data.value?.data.unique_id}`);
+      router.push(`/sales/quotation/${response.data.value?.data?.unique_id}`);
     }  
   } catch (error: any) {
     ElMessage.error(error.response?.message ?? error)

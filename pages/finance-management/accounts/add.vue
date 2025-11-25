@@ -202,6 +202,7 @@ const clearParent = () => {
   accountForm.parent_code = '';
 };
 
+const id = computed(() => route.query.id as string)
 const goBack = () => router.back();
 
 const resetForm = (formEl: FormInstance | undefined) => {
@@ -235,7 +236,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           }
 
           ElMessage.success(
-              `Account berhasil ${formMode.value === 'add' ? 'ditambahkan' : 'diupdate'}`
+              `Account berhasil ${id.value ? 'diubah' : 'ditambahkan'}`
           );
         }  
 
@@ -243,7 +244,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       } catch (error: any) {
         ElMessage.error(
           error.response?.data?.message || 
-          `Gagal ${formMode.value === 'add' ? 'menambahkan' : 'mengupdate'} account`
+          `Gagal ${id.value === 'add' ? 'menambahkan' : 'mengupdate'} account`
         );
       } finally {
         loading.value = false;
@@ -257,7 +258,7 @@ const fetchDataEdit = async () => {
   loading.value = true;
   try {
     const unique_id = useCookie('unique_id');
-    const response = await useFetchApi<BaseResponse<Account>>(`/account-read/${unique_id.value}`, 'fetch-detail', 'get', null);
+    const response = await useFetchApi<BaseResponse<Account>>(`/account-read/${id.value}`, 'fetch-detail', 'get', null);
     if(response.status.value == 'success'){
       const account: Account|null = response.data.value?.data as Account;
       if(account != null){
@@ -282,8 +283,8 @@ const fetchDataEdit = async () => {
 };
 
 onMounted(() => {
-  const unique_id = useCookie('unique_id');
-  if(unique_id.value != null && unique_id.value != undefined){
+ 
+  if(id.value){
     fetchDataEdit();
   }
 });

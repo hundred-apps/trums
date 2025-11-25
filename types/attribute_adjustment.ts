@@ -55,7 +55,7 @@ export type ReferenceTransactionAdjustment = {
   // Polymorphic relation
   party_type?: PartyType; // could be 'contact' | 'warehouse' | 'agent' etc.
   party_id?: string | null;
-  party?: Contact|Canvassing|PurchaseOrder,
-  changeType?: boolean,
+  party?: Contact|Canvassing|PurchaseOrder;
+  changeType?: boolean;
   created_at?: number;       // unix timestamp
 };

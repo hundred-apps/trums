@@ -1,7 +1,10 @@
+import type { Permission } from "./menu"
+
 export type BaseResponse<T> = {
     success: boolean,
     message: string,
-    data?: T
+    data?: T,
+    privilege: Permission[],
 }
 
 export type DataInterface<T> = {

@@ -132,7 +132,7 @@ const columnAccount: Column<Account>[] = [
     title: 'Aksi',
     cellRenderer: ({rowData: row}) => (
       <>
-        <ElButton size="small" onClick={() => onEdit(row)}>Edit</ElButton>
+        <NuxtLink class="el-button el-button--small" href={`/finance-management/accounts/add?id=${row.unique_id}`}>Edit</NuxtLink>
         <ElButton size="small" type="danger" onClick={() => onDelete(row)}>Hapus</ElButton>
       </>
     ),

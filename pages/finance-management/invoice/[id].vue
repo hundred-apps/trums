@@ -59,8 +59,9 @@
             <el-descriptions-item label="Status">
               {{ formatStatus(invoiceData?.status ?? null) }}
             </el-descriptions-item>
-            <el-descriptions-item v-if="invoiceData?.is_tempo" label="Pembayaran">
-              {{ invoiceData?.payment_term_value ?? '-' }} ({{ invoiceData?.payment_term_unit }})
+            <el-descriptions-item label="Pembayaran">
+              <p v-if="invoiceData?.payment_term == PaymentTerm.TEMPO">{{ invoiceData?.payment_term_value ?? '-' }} ({{ invoiceData?.payment_term_unit }})</p>
+              <p v-else>{{ (invoiceData?.payment_term ?? '-').toUpperCase() }}</p>
             </el-descriptions-item>
             <el-descriptions-item label="Metode Pembayaran">
               <el-tag :type="getPaymentMethodTagType(invoiceData?.payment_method ?? PaymentMethod.BankTransfer)">
@@ -126,7 +127,7 @@
       </el-table>
     </el-card>
     
-<el-card class="mb-3">
+    <el-card el-card class="mb-3">
       <template #header>
         <div class="card-header">
           <span>Rekening Pembayaran</span>
@@ -150,6 +151,21 @@
         </el-table-column>
       </el-table>
     </el-card>
+
+    <el-card class="mb-3">
+      <template #header>
+        <div class="card-header">
+          <span>Rincian Pembayaran</span>
+        </div>
+      </template>
+      
+      <el-descriptions :column="1" border >
+        <el-descriptions-item :width="100" label="Subtotal">{{ formatCurrency(invoiceData?.subtotal || 0) }}</el-descriptions-item>
+        <el-descriptions-item :width="100" v-for="ref in invoiceData?.reference_transaction ?? []" :key="ref.adjustment_id" :label="ref.adjustments_transaction?.name ?? ''">{{ formatCurrency(ref.type == "amount" ? ref.amount : displayAmount(ref, (invoiceData?.subtotal || 0)) ) }}</el-descriptions-item>
+        <el-descriptions-item :width="100" label="Grand Total">{{ formatCurrency(invoiceData?.total_amount || 0) }}</el-descriptions-item>
+      </el-descriptions>
+    </el-card>
+
     <el-card class="mb-3">
       <template #header>
         <div class="card-header">
@@ -189,8 +205,9 @@ import { Delete, Edit, CircleCheck, ArrowDown } from '@element-plus/icons-vue'
 import { twCookie } from 'nuxt-twemoji/emojis';
 import type { AddressType } from '~/types/address';
 import { PaymentStatus, PaymentMethod } from '~/types/finance/bill'
-import type { Invoice, InvoiceItem } from '~/types/finance/invoice'
+import { FinanceReference, type Invoice, type InvoiceItem } from '~/types/finance/invoice'
 import type { BaseResponse } from '~/types/response';
+import { PaymentTerm } from '~/types/scm/canvasing';
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -225,6 +242,8 @@ const availableStatuses = [
 
 const goBack = () => router.back()
 
+
+
 // Fetch invoice data
 const fetchInvoice = async () => {
   loading.value = true
@@ -234,7 +253,7 @@ const fetchInvoice = async () => {
 
 
     if(response.status.value == 'success'){
-      invoiceData.value = response.data.value!.data;
+      invoiceData.value = response.data.value?.data ?? null;
     }
   } catch (error) {
     ElMessage.error('Failed to fetch invoice data')

@@ -58,7 +58,7 @@
           clearable 
         />
       </el-col>
-      <NuxtLink class="el-button el-button--primary el-button--default" @click="() => {
+      <NuxtLink v-if="canAccess('invoices-create', data?.privilege ?? [])" class="el-button el-button--primary el-button--default" @click="() => {
         const cookie = useCookie('unique_id');
           cookie.value = null;
       }" href="/finance-management/invoice/add">
@@ -68,7 +68,7 @@
         size="default"
         :loading-icon="Eleme"
         :loading="loading"
-        @click="fetchData"
+        @click="() => refreshNuxtData('invoice')"
       >
         Muat Ulang
       </el-button>
@@ -260,7 +260,8 @@ const request_search = ref<RequestSearch>({
     sort: {
       column: 'created_at',
       order: OrderColumn.ASC,
-    }
+    },
+    flag: "list",
 });
 
 // Data state
@@ -817,20 +818,6 @@ const querySearchCustomer =  (query: string, cb: (arg: any) => void) => {
 // }
 
 
-const fetchData = async () => {
-  loading.value = true;
-  try {
-    const response = await useFetchApi<ResponsePagination<Invoice[]>>(`/search`, 'invoice', 'post', request_search.value);
-    if(response.status.value == 'success'){
-      data.value = response.data.value!;
-    }
-  } catch (error: any) {
-    ElMessage.error(`${error.response?.message ?? error}`);
-  } finally {
-    loading.value = false;
-    console.log(loading.value)
-  }
-}
 
 const onFilter = () => {
   loading.value = true;

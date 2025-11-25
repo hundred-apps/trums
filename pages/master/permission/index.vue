@@ -4,10 +4,10 @@
     <el-row :gutter="16">
       <el-col :span="6">
         <div class="statistic-card">
-          <el-statistic :value="(data?.data ?? []).filter((item: Menu) => item.parent_id === null).length">
+          <el-statistic :value="(data?.data ?? []).filter((item: Permission) => item.type === PermissionType.PERMISSION).length">
             <template #title>
               <div style="display: inline-flex; align-items: center">
-                Menu Utama
+                Basic Permission
               </div>
             </template>
           </el-statistic>
@@ -15,10 +15,10 @@
       </el-col>
       <el-col :span="6">
         <div class="statistic-card">
-          <el-statistic :value="(data?.data ?? []).filter((item: Menu) => item.parent_id !== null).length">
+          <el-statistic :value="(data?.data ?? []).filter((item: Permission) => item.type === PermissionType.APPROVAL).length">
             <template #title>
               <div style="display: inline-flex; align-items: center">
-                Submenu
+                Approval Permission
               </div>
             </template>
           </el-statistic>
@@ -26,10 +26,10 @@
       </el-col>
       <el-col :span="6">
         <div class="statistic-card">
-          <el-statistic :value="totalSubmenus">
+          <el-statistic :value="totalApprovalPIC">
             <template #title>
               <div style="display: inline-flex; align-items: center">
-                Total Submenu
+                Total PIC Approval
               </div>
             </template>
           </el-statistic>
@@ -40,7 +40,7 @@
           <el-statistic :value="data?.total_data ?? 0">
             <template #title>
               <div style="display: inline-flex; align-items: center">
-                Total Menu
+                Total Permission
               </div>
             </template>
           </el-statistic>
@@ -49,30 +49,31 @@
     </el-row>
 
     <!-- Action Bar -->
-    <el-row :gutter="20" class="mb-3">
+    <el-row :gutter="20" class="mb-3" align="middle">
       <el-col :span="6">
         <el-input
           v-model="request_search.keyword"
           size="default"
-          placeholder="Cari menu..."
+          placeholder="Cari permission..."
           clearable 
         />
       </el-col>
-      <el-radio-group v-model="is_menu" class="mr-3" size="default" @change="(val) => onChangeMenuFilter(val as string)">
-        <el-radio-button label="Menu" value="1" />
-        <el-radio-button label="SubMenu" value="0" />
+      <el-radio-group v-model="permission_type" class="mr-3" size="default" @change="onChangePermissionFilter">
+        <el-radio-button label="Semua" value="" />
+        <el-radio-button label="Basic" :value="PermissionType.PERMISSION" />
+        <el-radio-button label="Approval" :value="PermissionType.APPROVAL" />
       </el-radio-group>
       <NuxtLink 
         class="el-button el-button--primary el-button--default" 
-        href="/master/menu/add"
+        href="/master/permission/add"
       >
-        Tambah Menu Baru
+        Tambah Permission Baru
       </NuxtLink>
       <el-button
         size="default"
         :loading-icon="Eleme"
         :loading="loading"
-        @click="() => refreshNuxtData('get-menus')"
+        @click="() => refreshNuxtData('get-permissions')"
       >
         Muat Ulang
       </el-button>
@@ -96,14 +97,22 @@
 
     <!-- Pagination -->
     <div class="flex justify-end mt-3">
-      <el-pagination background layout="prev, pager, next, size" :total="data?.total_data" @next-click="paginationClick" @prev-click="paginationClick" @change="paginationClick"/>
+      <el-pagination 
+        background 
+        layout="prev, pager, next, sizes" 
+        :total="data?.total_data ?? 0" 
+        :page-size="parseInt(request_search.limit)"
+        :current-page="parseInt(request_search.offset)"
+        @current-change="handlePageChange"
+        @size-change="handleSizeChange"
+      />
     </div>
   </TrumsWrapper>
 </template>
 
 <script lang="tsx" setup>
-import { Eleme, SetUp, Filter } from '@element-plus/icons-vue'
-import { type Column, type CheckboxValueType, TableV2FixedDir, ElPopover, ElCheckbox, ElIcon, type SortBy, ElCheckboxGroup } from 'element-plus'
+import { Eleme, SetUp } from '@element-plus/icons-vue'
+import { type Column, type CheckboxValueType, TableV2FixedDir, ElPopover, ElCheckbox, ElIcon, type SortBy, ElCheckboxGroup, ElTag } from 'element-plus'
 import type { Pagination } from '~/types/pagination'
 import { NuxtLink } from '#components';
 import CustomTable from '~/components/trums/table/customTable.vue'
@@ -111,97 +120,120 @@ import type { ResponsePagination } from '~/types/response_pagination'
 import { OrderColumn, type RequestSearch } from '~/types/request_search'
 import type { BaseResponse } from '~/types/response'
 import SelectionCell from '~/components/trums/table/SelectionCell.vue';
-import type { Menu } from '~/types/menu';
+import type { Permission } from '~/types/menu'
+import { PermissionType, ApprovalType } from '~/types/menu'
 
 definePageMeta({
   middleware: ["auth", "app"],
 })
 
-
-const is_menu = ref<string>('1');
-
+// Permission type filter
+const permission_type = ref<string>('')
 
 // Search request
 const request_search = ref<RequestSearch>({
   keyword: '',
-  column: [
-    {
-      parent_id: ['null'],
-    }
-  ],
+  column: [],
   limit: "10",
   offset: "1",
-  table: 'menus',
+  table: 'permissions',
   sort: {
-    column: 'name',
-    order: OrderColumn.ASC,
+    column: 'created_at',
+    order: OrderColumn.DESC,
   }
 });
 
 // Data state
-const {data} = await useFetchApi<ResponsePagination<Menu[]>>('/search', 'get-menus', 'post', request_search.value);
+const { data } = await useFetchApi<ResponsePagination<Permission[]>>('/search', 'get-permissions', 'post', request_search.value);
 
-const selectedMenus = ref<Menu[]>([])
+const selectedPermissions = ref<Permission[]>([])
 const loading = ref<boolean>(false)
-const columnsSelected = ref<string[]>(['selection', 'name', 'type', 'route', 'order', 'submenus', 'created_at', 'operations', 'setup'])
+const columnsSelected = ref<string[]>(['selection', 'permission_name', 'menu_id', 'type', 'approval_type', 'approval_length', 'slug', 'created_at', 'operations', 'setup'])
 
 // Computed
-const totalSubmenus = computed(() => {
-  return (data.value?.data ?? []).reduce((total, menu) => total + (menu.menus?.length || 0), 0) || 0
+const totalApprovalPIC = computed(() => {
+  return (data.value?.data ?? []).reduce((total, permission) => {
+    return total + (permission.approval_permission_pic?.length || 0)
+  }, 0)
+})
+
+const hasSelected = computed(() => {
+  return data.value?.data?.some(item => item.checked) || false
 })
 
 // Columns
-const columns: Column<Menu>[] = [
+const columns: Column<Permission>[] = [
   {
-    key: 'name',
-    title: 'Nama Menu',
-    dataKey: 'name',
+    key: 'permission_name',
+    title: 'Nama Permission',
+    dataKey: 'permission_name',
     width: 250,
-    
+    sortable: true,
   },
   {
-    key: 'icon',
-    title: 'Icon',
-    dataKey: 'icon',
+    key: 'menu_id',
+    title: 'Menu ID',
+    dataKey: 'menu_id',
     width: 120,
   },
   {
-    key: 'route',
-    title: 'Route',
-    dataKey: 'route',
+    key: 'slug',
+    title: 'Slug',
+    dataKey: 'slug',
     width: 200,
-    cellRenderer: ({ rowData }: { rowData: Menu }) => (
-      <span class="text-blue-500 font-mono text-sm">{rowData.route}</span>
+    cellRenderer: ({ rowData }: { rowData: Permission }) => (
+      <span class="text-blue-500 font-mono text-sm">{rowData.slug}</span>
     )
   },
   {
-    key: 'order',
-    title: 'Urutan',
-    dataKey: 'order',
-    width: 100,
-    sortable: true,
-    cellRenderer: ({ rowData }: { rowData: Menu }) => (
-      <span>{rowData.order || '-'}</span>
-    ),
-    
+    key: 'type',
+    title: 'Tipe',
+    dataKey: 'type',
+    width: 120,
+    cellRenderer: ({ rowData }: { rowData: Permission }) => {
+      const typeConfig = {
+        [PermissionType.PERMISSION]: { type: 'success', text: 'Basic' },
+        [PermissionType.APPROVAL]: { type: 'warning', text: 'Approval' }
+      }
+      const config = typeConfig[rowData.type]
+      return <ElTag type={config.type as  "success" | "warning" | "info" | "primary" | "danger" | undefined}>{config.text}</ElTag>
+    }
   },
   {
-    key: 'parent',
-    title: 'Parent Menu',
-    dataKey: 'parent',
+    key: 'approval_type',
+    title: 'Tipe Approval',
+    dataKey: 'approval_type',
     width: 150,
-    cellRenderer: ({ rowData }: { rowData: Menu }) => (
-      <span>{rowData.parent?.name || ''}</span>
-    )
+    cellRenderer: ({ rowData }: { rowData: Permission }) => {
+      if (rowData.type !== PermissionType.APPROVAL) return <span>-</span>
+      
+      const typeConfig = {
+        [ApprovalType.PARALLEL]: { type: 'info', text: 'Parallel' },
+        [ApprovalType.SEQUENTIAL]: { type: 'primary', text: 'Sequential' }
+      }
+      const config = typeConfig[rowData.approval_type]
+      return <ElTag type={config.type as  "success" | "warning" | "info" | "primary" | "danger" | undefined}>{config.text}</ElTag>
+    }
   },
   {
-    key: 'submenus',
-    title: 'Jumlah Submenu',
-    dataKey: 'submenus',
-    width: 150,
-    cellRenderer: ({ rowData }: { rowData: Menu }) => (
-      <span>{rowData.menus?.length || 0}</span>
-    )
+    key: 'approval_length',
+    title: 'Jumlah Approval',
+    dataKey: 'approval_length',
+    width: 140,
+    cellRenderer: ({ rowData }: { rowData: Permission }) => {
+      if (rowData.type !== PermissionType.APPROVAL) return <span>-</span>
+      return <span>{rowData.approval_length} PIC</span>
+    }
+  },
+  {
+    key: 'approval_pic',
+    title: 'PIC Approval',
+    dataKey: 'approval_pic',
+    width: 180,
+    cellRenderer: ({ rowData }: { rowData: Permission }) => {
+      if (!rowData.approval_permission_pic?.length) return <span>-</span>
+      return <span>{rowData.approval_permission_pic.length} orang</span>
+    }
   },
   {
     key: 'created_at',
@@ -209,18 +241,18 @@ const columns: Column<Menu>[] = [
     dataKey: 'created_at',
     width: 150,
     sortable: true,
-    cellRenderer: ({ rowData }: { rowData: Menu }) => (
+    cellRenderer: ({ rowData }: { rowData: Permission }) => (
       <span>{formatDate(rowData.created_at)}</span>
     )
   },
   {
     key: 'operations',
     title: 'Aksi',
-    cellRenderer: ({ rowData }: { rowData: Menu }) => (
+    cellRenderer: ({ rowData }: { rowData: Permission }) => (
       <div class="flex gap-2">
         <NuxtLink 
           class="el-button el-button--small el-button--primary" 
-          href={`/master/menu/add?id=${rowData.unique_id}`}
+          href={`/master/permission/add?id=${rowData.unique_id}`}
         >
           Edit
         </NuxtLink>
@@ -305,10 +337,6 @@ const filteredColumns = computed(() => {
   return columns.filter(col => columnsSelected.value.includes(col.key!.toString()))
 })
 
-const hasSelected = computed(() => {
-  return data.value?.data?.some(item => item.checked) || false
-})
-
 // Methods
 const formatDate = (timestamp: number) => {
   return new Date(timestamp * 1000).toLocaleDateString('id-ID', {
@@ -318,33 +346,25 @@ const formatDate = (timestamp: number) => {
   })
 }
 
-const handleSelectionChange = (selection: Menu[]) => {
-  selectedMenus.value = selection
+const handleSelectionChange = (selection: Permission[]) => {
+  selectedPermissions.value = selection
 }
 
 const handlePageChange = (page: number) => {
   request_search.value.offset = `${page}`
-  // fetchData()
+  refreshNuxtData('get-permissions')
 }
 
 const handleSizeChange = (size: number) => {
   request_search.value.limit = `${size}`
-  // fetchData()
-}
-
-const paginationClick = (val: number) => {
-  
-  request_search.value.offset = val.toString();
-}
-
-const onEdit = (menu: Menu) => {
-  navigateTo(`/menu/edit/${menu.unique_id}`)
+  request_search.value.offset = '1'
+  refreshNuxtData('get-permissions')
 }
 
 const onDelete = async (uniques: string[]) => {
   try {
     const confirmed = await ElMessageBox.confirm(
-      'Apakah Anda yakin ingin menghapus menu yang dipilih?',
+      'Apakah Anda yakin ingin menghapus permission yang dipilih?',
       'Konfirmasi Hapus',
       {
         confirmButtonText: 'Ya, Hapus',
@@ -354,17 +374,14 @@ const onDelete = async (uniques: string[]) => {
     )
     
     if (confirmed) {
-      // Implement delete API call here
-      await useFetchApi<BaseResponse<any>>('/menu-delete', 'delete-menu', 'post', uniques);
+      await useFetchApi<BaseResponse<any>>('/permission-delete', 'delete-permission', 'post', uniques);
       
-      
-      ElMessage.success('Menu berhasil dihapus')
-      refreshNuxtData('get-menus');
+      ElMessage.success('Permission berhasil dihapus')
+      refreshNuxtData('get-permissions');
     }
   } catch (error) {
-    // User canceled or error occurred
     if (error !== 'cancel') {
-      ElMessage.error('Gagal menghapus menu')
+      ElMessage.error('Gagal menghapus permission')
     }
   }
 }
@@ -380,56 +397,32 @@ const batchDelete = async () => {
 }
 
 const onSort = (sortBy: SortBy) => {
-  console.log('sort column ', sortBy.key.toString());
   request_search.value.sort = {
     column: sortBy.key.toString(),
     order: request_search.value.sort?.order === OrderColumn.ASC ? OrderColumn.DESC : OrderColumn.ASC
   }
-  
+  refreshNuxtData('get-permissions')
 }
 
-// Fetch data
-const fetchData = async () => {
-  loading.value = true
-  try {
-    const response = await useFetchApi<ResponsePagination<Menu[]>>('/menus', 'get-menus', 'get', request_search);
-    if(response.status.value == 'success'){
-      data.value = response.data.value ?? {
-        currentPage: 0,
-        data: [],
-        success: true,
-        total_data: 0,
-        total_page: 0
-      }
-    }
-  } catch (error) {
-    ElMessage.error('Gagal memuat data menu')
-  } finally {
-    loading.value = false
-  }
-}
-
-const onChangeMenuFilter = (val: string) => {
-  if(val === '1'){
+const onChangePermissionFilter = (val: string|any) => {
+  if (val) {
     request_search.value.column = [
       {
-        parent_id: ['null']
+        type: [val]
       }
     ]
-  }else{
-    request_search.value.column = [
-      {
-        parent_id: ['not null']
-      }
-    ];
+  } else {
+    request_search.value.column = []
   }
+  request_search.value.offset = '1'
+  refreshNuxtData('get-permissions')
 }
 
 // Watch search query
 watchDebounced(
   request_search,
   () => {
-    refreshNuxtData('get-menus')
+    refreshNuxtData('get-permissions')
   },
   { debounce: 500, deep: true }
 )
@@ -448,37 +441,15 @@ watchDebounced(
   background-color: var(--el-bg-color-overlay);
 }
 
-.statistic-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-  margin-top: 16px;
-}
-
-.statistic-footer .footer-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.statistic-footer .footer-item span:last-child {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 4px;
-}
-
-:deep(.ml-4) {
-  margin-left: 1rem;
-}
-
-:deep(.font-semibold) {
-  font-weight: 600;
-}
-
 :deep(.font-mono) {
   font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace;
+}
+
+.mb-3 {
+  margin-bottom: 1rem;
+}
+
+.mr-3 {
+  margin-right: 1rem;
 }
 </style>

@@ -297,8 +297,29 @@ const generateRoute = () => {
   }
 }
 
-const onDeleteList = (index: number) => {
+const onDeleteList = async (index: number) => {
+  const permission: Permission = ruleForm.permissions[index];
+  if(permission.unique_id){
+    const deleted:boolean = await deletePermission([permission.unique_id ?? '']);
+    if(deleted){
+      ruleForm.permissions.splice(index, 1);
+    }
+  }else{
     ruleForm.permissions.splice(index, 1);
+  }
+}
+
+const deletePermission = async (ids: string[]): Promise<boolean> => {
+  try {
+    const response = await useApiFetch<BaseResponse<any>>('/permission-delete', {
+      method: 'POST',
+      body: ids,
+    });
+    return response.success;  
+  } catch (error: any) {
+    ElMessage.error(`${error.response?.data?.message ?? error}`);
+    return false;
+  }
 }
 
 // Watch for name changes to auto-generate route
@@ -340,7 +361,7 @@ const create_people = async (people: People) => {
     
     const response = await useFetchApi<BaseResponse<People>>('/catalogues-create', 'catalogue-create', 'post', people);
     if(response.status.value == 'success'){
-        const people_result: People = response.data.value!.data;
+        const people_result: People|null = response.data.value?.data ?? null;
         return people_result;
     }
   } catch (error: any) {
@@ -759,7 +780,10 @@ const initialApprovalSetting = () => {
                     <el-button
                       type="danger"
                       size="small"
-                      @click="() => onDeleteList(scope.$index)"
+                      @click="() => {
+                        onDeleteList(scope.$index)
+                        cancel;
+                      }"
                     >
                       Yes?
                     </el-button>

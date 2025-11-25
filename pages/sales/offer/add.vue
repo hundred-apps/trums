@@ -491,6 +491,7 @@ import type { AppFile } from '~/types/file';
           column: 'created_at',
           order: OrderColumn.ASC,
         },
+        flag: "form",
         table: 'contacts'
       }
 
@@ -676,6 +677,7 @@ import type { AppFile } from '~/types/file';
         location_id: ruleForm.location_id,
         keyword: queryString,
         limit: 50,
+        flag: "form",
     }
     useFetchApi<Pagination<ItemSearch[]>>('/catalogues-inventory', 'catalogues-inventory', 'post', data).then((response) => {
         if(response.status.value == 'success'){

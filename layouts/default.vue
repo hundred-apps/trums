@@ -17,12 +17,14 @@ import {
 import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import { useRouter } from "vue-router";
 import type { Menu } from "~/types/menu";
+import type { People } from "~/types/people";
 
 const config = useRuntimeConfig();
 const { t } = useI18n();
 
+
 const router = useRouter();
-const userdata = ref<userData | null>(null);
+const userdata = ref<People | null>(null);
 const imageUrl = config.public.baseImageURL;
 const id_token = localStorage.getItem("id_token");
 
@@ -47,7 +49,7 @@ const showIcon = (icon: any) => {
 };
 
 onMounted(() => {
-  userdata.value = user.value as unknown as userData;
+  userdata.value = JSON.parse(localStorage.getItem('user_data') ?? '');
   menus.value = JSON.parse(localStorage.getItem('menu') ?? '[]');
 
   nameFront.value = userdata.value?.name.split(" ")[0] || "";
@@ -103,7 +105,7 @@ const handleMenuClick = (menuKey: string) => {
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item
-                ><TrumsLink @click="navigateToSetting(userdata?.name)">
+                ><TrumsLink :href="`/profile/${userdata?.unique_id}`">
                   {{ t("menu.profile") }}
                 </TrumsLink></el-dropdown-item
               >

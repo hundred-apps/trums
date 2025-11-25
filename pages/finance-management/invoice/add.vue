@@ -327,6 +327,36 @@
         Add New Item
       </el-button>
     </el-card>
+
+    <el-card class="mb-3">
+      <template #header>
+        <div class="card-header"><span>Biaya Lainya</span></div>
+      </template>
+      <div>
+        <div class="flex justify-between items-center mb-2" v-for="ref in references">
+          <span class="font-bold text-sm">{{ref.adjustment?.name ?? ''}}</span>
+          <span class="text-sm">
+            <el-input
+              v-model="ref.amount"
+              style="max-width: 300px"
+              placeholder="Masukan Nilai"
+              @change="(value) => onInputAdjustment(ref)"
+            >
+              <template #append>
+                <el-select v-model="ref.type" :disabled="ref.changeType == false" style="width: 100px">
+                  <el-option label="%" value="percent" />
+                  <el-option label="Rp" value="amount" />
+                </el-select>
+              </template>
+            </el-input>
+          </span>
+        </div>
+      </div>
+      
+      <el-button class="mt-4" style="width: 100%" @click="visibleModalAdjustmentTransaction = true">
+        Tambah Item
+      </el-button>
+    </el-card>
     
     <!-- Summary Section -->
     <el-card class="mb-3">
@@ -336,11 +366,25 @@
         </div>
       </template>
       
-      <el-descriptions :column="1" border>
-        <el-descriptions-item label="Total">{{ formatCurrency(subtotal) }}</el-descriptions-item>
-       
+      <el-descriptions :column="1" border >
+        <el-descriptions-item :width="100" label="Subtotal">{{ formatCurrency(ruleForm.subtotal || 0) }}</el-descriptions-item>
+        <el-descriptions-item :width="100" v-for="ref in references" :key="ref.adjustment_id" :label="ref.adjustment?.name ?? ''">{{ formatCurrency(ref.type == "amount" ? ref.amount : displayAmount(ref, ruleForm.subtotal || 0) ) }}</el-descriptions-item>
+        <el-descriptions-item :width="100" label="Grand Total">{{ formatCurrency(grandTotal) }}</el-descriptions-item>
       </el-descriptions>
+      
     </el-card>
+
+    <ModalAdjustmentTransaction 
+      v-model:visible="visibleModalAdjustmentTransaction"
+      @select-adjustment="handleSelectAdjustment"
+      @create-new="visibleModalNewAdjustment = true"
+      :data="adjustmentTransactions.data?.value?.data ?? []"
+      :search-params="querySearchAdjustmentTransaction"
+    />
+
+    <el-dialog v-model="visibleModalNewAdjustment" title="Buat Biaya Lain" width="1000">
+      <AddAdjustment @submit="handleAdjustmentSubmit" />
+    </el-dialog>
 
     <el-dialog v-model="dialogNewAddress" title="Create New Address" width="500">
       <FormAddress 
@@ -373,7 +417,12 @@
             </el-table-column>
             <el-table-column label="Pembayaran" >
                 <template #default="scope">
-                    <p>{{scope.row.is_tempo ? `${scope.row.term_payment} ${scope.row.term_payment_unit}` : '-'}}</p>
+                    <p>{{ paymentTermView(scope.row.payment_term) }}</p>
+                </template>
+            </el-table-column>
+            <el-table-column label="Tempo" >
+                <template #default="scope">
+                    <p>{{ `${scope.row.payment_term_value ?? ''} ${scope.row.payment_term_unit ?? ''}` }}</p>
                 </template>
             </el-table-column>
             <el-table-column label="Total" >
@@ -472,7 +521,9 @@ import type { Unit } from '~/types/unit'
 import TrumsUploadFile from '~/components/trums/form/TrumsUploadFile.vue'
 import { TransactionBankReference, type TransactionBank } from '~/types/finance/transaction'
 import { PaymentTerm } from '~/types/scm/canvasing'
-
+import { paymentTermView } from '../../../types/scm/canvasing'
+import { ReferenceAdjustment, type AdjustmentTransaction, type ReferenceTransactionAdjustment } from '~/types/attribute_adjustment'
+import ModalAdjustmentTransaction from '~/components/trums/ModalAdjustmentTransaction.vue'
 const router = useRouter()
 const ruleFormRef = ref<FormInstance>()
 const dialogNewAddress = ref(false)
@@ -480,6 +531,8 @@ const loading = ref(false)
 const visibleModalPurchaseOrder = ref(false)
 const drawerVisibleCreateNewBank = ref(false)
 const drawerVisibleCreateAccount = ref(false)
+const visibleModalAdjustmentTransaction = ref(false)
+const visibleModalNewAdjustment = ref(false)
 
 // Payment method options
 const paymentMethods = [
@@ -494,6 +547,7 @@ const currentAccount = ref<BankAccount | null>(null)
 const rekeningBanks = ref<string[]>([])
 const transactionBanks = ref<TransactionBank[]>([])
 const rekeningBanksOptions = ref<BankAccount[]>([])
+const references = ref<ReferenceTransactionAdjustment[]>([])
 
 // Form data structure
 const ruleForm = reactive<Invoice>({
@@ -555,6 +609,7 @@ const ruleForm = reactive<Invoice>({
   reference_id: null,
   reference_number: null,
   total_amount: 0,
+  subtotal: 0,
   invoice_date_view: Date.now().toString(),
   due_date_view: Date.now().toString(),
 })
@@ -572,6 +627,23 @@ const request_search = ref<RequestSearch>({
     order: OrderColumn.ASC,
   }
 });
+
+const querySearchAdjustmentTransaction = ref<RequestSearch>({
+  keyword: "",
+  table: "adjustments_transaction",
+  column: [],
+  sort: null,
+  limit: "10",
+  offset: "1",
+  flag: "form",
+})
+
+const adjustmentTransactions = await useFetchApi<ResponsePagination<AdjustmentTransaction[]>>(
+  '/search', 
+  'search-adjustment', 
+  'post', 
+  querySearchAdjustmentTransaction
+)
 
 // Form validation rules
 const rules = reactive({
@@ -625,7 +697,8 @@ const request_search_purchase_order = ref<RequestSearch>({
   sort: {
     column: 'created_at',
     order: OrderColumn.ASC,
-  }
+  },
+  flag: 'form',
 });
 
 const purchase_order = await useFetchApi<ResponsePagination<PurchaseOrder[]>>('/search', 'search-reference-purchase-order', 'post', request_search_purchase_order);
@@ -637,32 +710,87 @@ const handlePoSizeChange = (limit: number) => {
   request_search_purchase_order.value.limit = limit.toString();
 }
 
+const handleSelectAdjustment = (items: AdjustmentTransaction[]) => {
+  items.forEach(element => {
+    references.value.push({
+      unique_id: '',
+      reference: ReferenceAdjustment.CANVASSING,
+      reference_id: '',
+      adjustment_id: element.unique_id,
+      type: element.type,
+      amount: element.default_value,
+      created_at: 0,
+      value: element.default_value,
+      adjustment: element,
+      changeType: true,
+    })
+  })
+  visibleModalAdjustmentTransaction.value = false
+}
+
 watch(
   request_search_purchase_order.value,
   () => refreshNuxtData('search-reference-purchase-order'),
-  {immediate: true}
+  {immediate: true} 
 );
 
 
-// Computed values
-const subtotal = computed(() => {
-  if(ruleForm.reference === FinanceReference.SALES){
-    return ruleForm.total_amount;
+const handleAdjustmentSubmit = () => {
+  visibleModalNewAdjustment.value = false
+  refreshNuxtData('search-adjustment')
+}
+
+const displayAmount = (ref: any, multiplier: number) => {
+  
+  console.log('type ', ref.type);
+  console.log('amount ', ref.amount);
+  
+  if (ref.type === "percent") {
+    return (multiplier || 0) * (ref.amount / 100)
   }else{
-    return ruleForm.invoice_item.reduce((sum, item) => sum + (item.total_amount || 0), 0)
+    return ref.amount;
   }
+}
+const displayPercentage = (ref: any, multiplier: number) => {
+  if (ref.type === "amount") {
+    return (ref.amount / multiplier)||0 * 100
+  }else{
+    return displayAmount(ref, multiplier)
+  }
+  
+}
+
+
+const grandTotal = computed(() => {
+  let amount: number = ruleForm.subtotal || 0;
+  let referenceTotal: number = 0;
+
+
+
+  references.value.forEach(element => {
+    if(element.type == "amount"){
+      referenceTotal += Number(element.amount);
+    }else{
+      referenceTotal += displayAmount(element, amount);
+    }
+  });
+  
+
+  console.log('ref total', referenceTotal);
+  console.log('amount', amount);
+  return amount + referenceTotal;
+
 })
 
-const tax = computed(() => {
-  return subtotal.value * 0.1 // Example 10% tax
-})
-
-const total = computed(() => {
-  return subtotal.value;
-})
 
 // Methods
 const goBack = () => router.back()
+
+const onInputAdjustment = (row:ReferenceTransactionAdjustment) => {
+  if(row.adjustment?.name.toLowerCase() == 'ongkos kirim'){
+    
+  }
+}
 
 const formatCurrency = (value: number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -887,7 +1015,8 @@ const querySearchAccounts = (query: string, cb: (arg: any) => void) => {
           order: OrderColumn.ASC
         },
         offset: '1',
-        limit: '10'
+        limit: '10',
+        flag: 'form',
       }
 
       useFetchApi<ResponsePagination<Account[]>>('/search', 'search-account', 'post', request_search).then((response) => {
@@ -1086,7 +1215,7 @@ const onHandleSelectReference = (item: any) => {
           updated_at: 0
         });
       })
-      ruleForm.total_amount = po.total_price;
+      ruleForm.subtotal = po.total_price;
       ruleForm.billing_address_id = po.address?.unique_id ?? '';
       ruleForm.billing_address_view = po.address?.address_name ?? '';
       ruleForm.billing_address_version = po.address?.version || 1;
@@ -1216,7 +1345,8 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         formData.append("account_bank_number", (ruleForm.account_bank_number ?? ''))
         formData.append("status", ruleForm.status)
         formData.append("received_date", String(receivedDate.getTime() / 1000))
-        formData.append("total_amount", subtotal.value.toString());
+        formData.append("subtotal", (ruleForm.subtotal || 0).toString());
+        formData.append("total_amount", grandTotal.value.toString());
 
         // Loop untuk invoice_items
         ruleForm.invoice_item.forEach((value, index) => {
@@ -1243,6 +1373,24 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           formData.append(`purchase_order_bank[${index}][bank_account_name]`, element.bank_account_name);
           formData.append(`purchase_order_bank[${index}][bank_account_version]`, `${element.bank_account_version}`);
         });
+
+        references.value.forEach((ref, i) => {
+          const refFields = {
+            unique_id: ref.unique_id,
+            adjustment_id: ref.adjustment_id,
+            value: ref.value,
+            amount: ref.amount,
+            type: ref.type,
+            party_type: ref.party_type,
+            party_id: ref.party_id,
+            reference: ref.reference,
+            reference_id: ref.reference_id,
+          }
+
+          Object.entries(refFields).forEach(([key, value]) => {
+            formData.append(`reference_transaction[${i}][${key}]`, `${value}`)
+          })
+        })
 
         
         const response = await useFetchApi<BaseResponse<Invoice>>('/invoice-create', 'invoice-out-create', 'post', formData);
@@ -1365,8 +1513,11 @@ const fetchDataEdit = async () => {
         ruleForm.invoice_date = new Date(invoice.invoice_date! * 1000).getTime();
         ruleForm.due_date = new Date(invoice.due_date! * 1000).getTime();
         ruleForm.billing_address_view = invoice.billing_address?.address_name ?? '';
+        ruleForm.subtotal = invoice.subtotal;
+
 
         transactionBanks.value = invoice.purchase_order_bank ?? [];
+        references.value = (invoice.reference_transaction ?? []).map((value) => ({...value, adjustment: value.adjustments_transaction}))
       }
     }
   } catch (error: any) {

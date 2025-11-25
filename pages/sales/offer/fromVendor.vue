@@ -308,7 +308,7 @@ import type { Pricetag } from '~/types/pricetag';
     <div class="w-auto">
       <el-row :gutter="20" class="mb-3">
         <el-col :span="6"><el-input v-model="request_search.keyword"  size="default" placeholder="Type to search" /></el-col>
-        <NuxtLink href="/sales/offer/add" @click="() => {
+        <NuxtLink v-if="canAccess('pricetag-create', data?.privilege ?? [])" href="/sales/offer/add" @click="() => {
           const cookie = useCookie('tag_id');
           cookie.value = null;
         }" class="el-button el-button--default">Buat Penawaran Dari Vendor</NuxtLink>

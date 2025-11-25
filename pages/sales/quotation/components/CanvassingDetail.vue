@@ -14,7 +14,7 @@
           <el-button type="danger" :icon="Delete" @click="confirmDelete">Hapus</el-button>
           <NuxtLink 
             :to="`/sales/quotation/add?id=${canvassingData?.unique_id}`" 
-            class="el-button el-button--default"
+            class="el-button el-button--primary"
           >
             <el-icon class="me-2"><Edit /></el-icon> Edit
           </NuxtLink>
@@ -27,11 +27,19 @@
           </el-button>
           <el-button 
             type="success" 
-            v-if="canvassingData?.status === CanvassingStatus.PENDING_APPROVAL"
+            v-if="canvassingData?.status === CanvassingStatus.PENDING_APPROVAL && canAccess('canvassing-approve', privilages, 2)"
             
             @click="approve"
           >
             <el-icon class="me-2"><CircleCheck /></el-icon> Approve
+          </el-button>
+          <el-button 
+            type="default" 
+            v-if="canvassingData?.status === CanvassingStatus.PENDING_APPROVAL"
+            
+            @click="dialogCancelApproval = true"
+          >
+            Batalkan Pengajuan
           </el-button>
           <el-button
             v-if="canvassingData?.status === CanvassingStatus.PENDING_APPROVAL_RAB && editState == false"
@@ -48,7 +56,7 @@
           >
             <el-icon class="me-2"><CircleCheck /></el-icon> Approve dan Buat RAP
           </NuxtLink> -->
-          <NuxtLink v-if="canvassingData?.status === CanvassingStatus.DONE" :href="`/sales/offer/add?canvassing_id=${canvassingData?.unique_id}`" class="el-button el-button--default">
+          <NuxtLink v-if="canvassingData?.status === CanvassingStatus.DONE && permissionCreateOffer" :href="`/sales/offer/add?canvassing_id=${canvassingData?.unique_id}`" class="el-button el-button--default">
             Buat Penawaran
           </NuxtLink>
         </div>
@@ -178,7 +186,7 @@
           <el-radio value="plus" size="large">Per Item</el-radio>
         </el-radio-group>
       </div>
-      <el-table :data="contactsFee" border style="width: 100%">
+      <el-table :data="contactsFee" style="width: 100%" border>
         <el-table-column label="Nama">
           <template #default="{ row, $index }">
             <el-autocomplete
@@ -544,7 +552,7 @@
       </div>
     </el-card>
 
-    <el-card class="mb-3" shadow="never" v-if="editState">
+    <el-card class="mb-3" shadow="never">
       <template #header>
         <div class="card-header"><span>Biaya Lainya</span></div>
       </template>
@@ -553,13 +561,14 @@
           <span class="font-bold text-sm">{{ref.adjustments_transaction?.name ? ref.adjustments_transaction?.name : ref.adjustment?.name ? ref.adjustment?.name : ''}}</span>
           <span class="text-sm">
             <el-input
+              :disabled="!editState"
               v-model="ref.amount"
               style="max-width: 300px"
               placeholder="Masukan Nilai"
               @change="(value) => onInputAdjustment(ref)"
             >
               <template #append>
-                <el-select v-model="ref.type" :disabled="ref.changeType == false" style="width: 100px">
+                <el-select v-model="ref.type" :disabled="ref.changeType == false || !editState" style="width: 100px">
                   <el-option label="%" value="percent" />
                   <el-option label="Rp" value="amount" />
                 </el-select>
@@ -569,7 +578,7 @@
         </div>
       </div>
       
-      <el-button class="mt-4" style="width: 100%" @click="visibleModalAdjustmentTransaction = true">
+      <el-button class="mt-4" :disabled="!editState" style="width: 100%" @click="visibleModalAdjustmentTransaction = true">
         Tambah Item
       </el-button>
     </el-card>
@@ -577,7 +586,7 @@
 
     <el-card class="mb-3" shadow="never">
       <el-table :data="summeryData ?? []" style="width: 100%">
-        <el-table-column label="" prop="label" fixed="left">
+        <el-table-column label="" prop="label" fixed="left" width="250">
           <template #default="{ row }">
             <div class="font-bold">{{ row.label }}</div>
           </template>
@@ -798,13 +807,30 @@
     <el-dialog v-model="visibleModalNewAdjustment" title="Buat Biaya Lain" width="1000">
       <AddAdjustment @submit="handleAdjustmentSubmit" />
     </el-dialog>
+
+    <el-dialog
+      v-model="dialogCancelApproval"
+      title="Batalkan pengajuan?"
+      width="500"
+    >
+      <span>Apakah anda yakin ingin membatalkan pengajuan?</span>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="dialogCancelApproval = false">Batal</el-button>
+          <el-button type="primary" @click="cancelSubmissionApproval">
+            Confirm
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
 </div>
 </template>
 
 <script lang="ts" setup>
 
 const props = defineProps<{
-  canvassingData: Canvassing
+  canvassingData: Canvassing,
+  privilages: Permission[],
 }>()
 
 import { Delete, Edit, CircleCheck, ArrowDown, Operation, Download } from '@element-plus/icons-vue'
@@ -824,6 +850,7 @@ import FeeDrawer from '~/components/trums/FeeDrawer.vue'
 import type { AddressType } from '~/types/address';
 import ModalAdjustmentTransaction from '~/components/trums/ModalAdjustmentTransaction.vue'
 import AddAdjustment from '~/components/trums/AddAdjustment.vue'
+import type { Permission } from '~/types/menu';
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -850,6 +877,7 @@ const svg = `
   " style="stroke-width: 4px; fill: rgba(0, 0, 0, 0)"/>
 `
 
+const dialogCancelApproval = ref(false);
 const dialogNewAddress = ref(false)
 const dialogSelectedItem = ref<boolean>(false);
 const loading = ref(false)
@@ -918,7 +946,8 @@ const querySearchAdjustmentTransaction = ref<RequestSearch>({
   column: [],
   sort: null,
   limit: "10",
-  offset: "1"
+  offset: "1",
+  flag: "form",
 })
 
 const request_search_contact = ref<RequestSearch>({
@@ -928,6 +957,7 @@ const request_search_contact = ref<RequestSearch>({
   offset: '1',
   sort: null,
   table: 'contacts',
+  flag: "form",
 })
 const request_search_pricetag_item = ref<RequestSearch>({
   column: [
@@ -940,7 +970,10 @@ const request_search_pricetag_item = ref<RequestSearch>({
   offset: '1',
   sort: null,
   table: 'pricetag_item',
+  flag: "form",
 })
+
+const permissionCreateOffer = await checkPermission('pricetag-create');
 
 const rules: FormRules = {
   source_document: [
@@ -964,6 +997,8 @@ const adjustmentTransactions = await useFetchApi<ResponsePagination<AdjustmentTr
   'post', 
   querySearchAdjustmentTransaction
 )
+
+
 
 const pricetagList = computed(() => {
   const list = removeDuplicates<Pricetag>(pricetags.value, 'unique_id');
@@ -2018,8 +2053,12 @@ const tableRowClassName = ({
   rowIndex: number
 }) => {
   console.log('row', row);
-  if (row.status === CanvassingVendorStatus.SELECTED) {
-    return 'success-row'
+  if(row.type_item != 'request' && row.type_item != 'equivalent'){
+    if (row.status === CanvassingVendorStatus.SELECTED) {
+      return 'success-row'
+    }else if(row.status === CanvassingVendorStatus.SUBMITTED){
+      return 'primary-row'
+    }
   }
   return ''
 }
@@ -2346,7 +2385,7 @@ watch(() => item_canvassing.value, () => {
         const vendorIndex = (canvassingData.value?.canvassing_item[findCanvassingItem].canvassing_vendor ?? []).findIndex((v) => v.unique_id == child.unique_id);
 
         if(vendorIndex >= 0){
-          if(child.checked == true) {
+          if(child.checked == true && CanvassingStatus.DONE) {
             canvassingData.value!.canvassing_item[findCanvassingItem].canvassing_vendor[vendorIndex].status = CanvassingVendorStatus.SELECTED;
           }else{
             canvassingData.value!.canvassing_item[findCanvassingItem].canvassing_vendor[vendorIndex].status = CanvassingVendorStatus.SUBMITTED;
@@ -2608,6 +2647,57 @@ const submitApproveRab = async() => {
       item_canvassing.value = [];
       contactsFee.value = [];
       editState.value = false;
+      fetchCanvassing();
+    }  
+  } catch (error: any) {
+    ElMessage.error(error.response?.message ?? error)
+  } finally {
+    loading.value = false
+  }
+}
+const cancelSubmissionApproval = async() => {
+  loading.value = true
+  try {
+
+    
+
+    const referenceAdjustment: ReferenceTransactionAdjustment[] = [...references.value, ...contactsFee.value, adjustmentTransactionOngkirTotal.value as ReferenceTransactionAdjustment];
+    const referenceAdjustmentVendor: ReferenceTransactionAdjustment[] = [];
+    
+
+    item_canvassing.value.forEach(element => {
+      element.children.forEach((child) => {
+        child.contacts_fee.forEach((fee) => {
+          fee.reference_id = child.unique_id ?? '';
+          referenceAdjustmentVendor.push(fee);
+        })
+        referenceAdjustmentVendor.push({
+              unique_id: '',
+              reference: ReferenceAdjustment.CANVASSINGVENDOR,
+              reference_id: child.unique_id ?? '',
+              adjustment_id: `${adjustmentOngkir.value?.unique_id}`,
+              adjustment: adjustmentOngkir.value,
+              value: child.ongkir,
+              type: child.ongkir_unit as FeeType,
+              amount: child.ongkir,
+          });
+      })
+    });
+    
+        // Membuat FormData
+    const formData = new FormData();
+
+    // Menambahkan data utama
+    formData.append('unique_id', canvassingData.value?.unique_id || '');
+    formData.append('status', CanvassingStatus.RAB || '');
+
+    const response = await useFetchApi<BaseResponse<Canvassing>>('/canvassing-create', 'create-canvasing', 'post', formData)
+    if (response.status.value === 'success') {
+      ElMessage.success(`Berhasil Membatalkan RAB!`)
+      item_canvassing.value = [];
+      contactsFee.value = [];
+      editState.value = false;
+      dialogCancelApproval.value = false;
       fetchCanvassing();
     }  
   } catch (error: any) {
@@ -3192,6 +3282,9 @@ onMounted(() => {
 }
 :deep(.el-table .success-row) {
   --el-table-tr-bg-color: var(--el-color-success-light-9);
+}
+:deep(.el-table .primary-row) {
+  --el-table-tr-bg-color: var(--el-color-primary-light-9);
 }
 </style>
 

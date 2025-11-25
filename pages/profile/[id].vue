@@ -27,7 +27,7 @@
 
     <el-row :gutter="24">
       <!-- Kolom Kiri: Informasi Personal & Pekerjaan -->
-      <el-col :span="12">
+      <el-col :span="24">
         <!-- Informasi Personal -->
         <el-card class="mb-6">
           <template #header>
@@ -55,7 +55,7 @@
         <!-- Informasi Pekerjaan -->
         
       </el-col>
-      <el-col :span="12">
+      <el-col :span="24">
           <el-card>
             <template #header>
               <div class="flex items-center">
@@ -82,17 +82,7 @@
       
     </el-row>
 
-    <el-card class="my-3" v-if="!loading">
-      <template #header>
-        Setting Permission
-      </template>
-      <PermissionTreeManager 
-        :people-id="peopleId"
-        :current-permissions="peopleData.user_permissions ?? []"
-        @permissions-updated="handlePermissionsUpdated"
-        @cancel="showPermissionDialog = false"
-      />
-    </el-card>
+    
   </TrumsWrapper>
     
 </template>

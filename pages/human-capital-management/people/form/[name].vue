@@ -789,7 +789,7 @@ watch(selectContactApi, async (newValue) => {}, { immediate: true });
 const detail = async () => {
   loading.value = true;
   try {
-    const response = await api.get(`/people-read/${unique_id}`);
+    const response = await api.post(`/people-read/${unique_id}`);
     if (response.status == 200) {
       const people: People = response.data.data;
       ruleForm.name = people.name ?? "";

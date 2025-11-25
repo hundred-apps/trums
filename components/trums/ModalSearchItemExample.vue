@@ -29,6 +29,7 @@
     <el-table 
       :data="data" 
       style="width: 100%" 
+      ref="tableRef"
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="55" /> 
@@ -85,12 +86,27 @@ interface Emits {
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
 
+
 const visible = computed({
   get: () => props.visible,
   set: (value) => emit('update:visible', value)
 })
 
 const selectedItems = ref<Pricetag_item[]>([])
+const tableRef = ref()
+
+// Watcher untuk reset selection ketika modal dibuka
+watch(visible, (newVal) => {
+  if (newVal) {
+    // Reset selection ketika modal dibuka
+    selectedItems.value = []
+    nextTick(() => {
+      if (tableRef.value) {
+        tableRef.value.clearSelection()
+      }
+    })
+  }
+})
 
 const handleSelectionChange = (val: Pricetag_item[]) => {
   selectedItems.value = val;

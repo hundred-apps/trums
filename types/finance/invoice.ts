@@ -1,4 +1,5 @@
 import type { AddressType } from "../address";
+import type { ReferenceTransactionAdjustment } from "../attribute_adjustment";
 import type { PaymentTerm } from "../scm/canvasing";
 import type { PaymentMethod, PaymentStatus } from "./bill";
 import type { TransactionBank, TransactionItem } from "./transaction";
@@ -47,6 +48,7 @@ export type Invoice = {
 
   status: PaymentStatus;
 
+  subtotal?: number;
   total_amount: number;
 
   invoice_item: InvoiceItem[];
@@ -64,6 +66,7 @@ export type Invoice = {
   history_payment?: TransactionItem[],
   purchase_order_bank?: TransactionBank[], 
   data_reference?: any,
+  reference_transaction?: ReferenceTransactionAdjustment[],
 }
 
 

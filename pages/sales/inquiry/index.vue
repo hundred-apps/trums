@@ -16,7 +16,7 @@
   import DeleteButton from '~/components/trums/DeleteButton.vue';
   import { NuxtLink } from '#components';
 import type { BaseResponse } from '~/types/response';
-const column_selected = ref<string[]>(['selection', 'unique_code', 'date', 'reference', 'reference_view','operation', 'setup']);
+const column_selected = ref<string[]>(['selection', 'unique_code', 'date', 'request_by', 'request_to','operation', 'setup']);
   const popoverRef = ref();
   const config = useRuntimeConfig();
 
@@ -39,6 +39,7 @@ const request_search = ref<RequestSearch>({
     column: "created_at",
     order: OrderColumn.DESC,
   },
+  flag: "list",
 });
 
 const { data } = await useFetchApi<ResponsePagination<Inquiry[]>>(
@@ -113,49 +114,20 @@ const availableColumn: Column<Inquiry>[] = [
     ),
   },
   {
-    title: "Reference Type",
-    dataKey: "reference",
-    key: "reference",
+    title: "Diminta oleh",
+    dataKey: "request_by",
+    key: "request_by",
     width: 200,
-    headerCellRenderer: () => (
-      <div class="flex items-center justify-center">
-        <span class="mr-2 text-xs">Reference Type</span>
-        <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
-          {{
-            default: () => (
-              <div class="filter-wrapper">
-                <div class="filter-group flex flex-col">
-                  <ElCheckboxGroup v-model={request_search.value.column[0].reference}>
-                    <ElCheckbox
-                      value={"internal"}
-                    >
-                      Internal
-                    </ElCheckbox>
-                    <ElCheckbox
-                      value={"repair"}
-                    >
-                      Repair
-                    </ElCheckbox>
-                  </ElCheckboxGroup>
-                </div>
-              </div>
-            ),
-            reference: () => (
-              <ElIcon class="cursor-pointer">
-                <Filter />
-              </ElIcon>
-            ),
-          }}
-        </ElPopover>
-      </div>
+    cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
+      <p>{rowData.request_by?.name ?? ''}</p>
     ),
   },
   {
-    title: "Reference",
-    dataKey: "reference_view",
-    key: "reference_view",
+    title: "Ditujukan Untuk",
+    dataKey: "request_to",
+    key: "request_to",
     width: 200,
-    cellRenderer: ({ rowData: row }) => getReference(row),
+    cellRenderer: ({ rowData }: { rowData: Inquiry }) => <p>{rowData.request_to?.name ?? 'Tidak Ada'}</p>,
   },
   {
     title: "Priority",
@@ -439,16 +411,16 @@ const handleSelectionChange = (selection: Inquiry[]) => {
       <el-col :span="6"
         ><el-input
           v-model="request_search.keyword"
-          size="large"
+          size="default"
           placeholder="Type to search"
       /></el-col>
-      <NuxtLink v-if="data?.privilege.find((value) => value.name == 'inquiries-create')" class="el-button el-button--large" href="/sales/inquiry/add"
+      <NuxtLink v-if="(data?.privilege ?? []).find((value) => value.name == 'inquiries-create')" class="el-button el-button--default" href="/sales/inquiry/add"
         >Buat Inquiri</NuxtLink
       >
       <el-button
         v-if="tmpInquiries.length > 0"
         @click="dialogConfirmDelete = true"
-        size="large"
+        size="default"
         type="danger"
         >Hapus</el-button
       >
