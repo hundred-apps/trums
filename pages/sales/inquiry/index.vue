@@ -414,7 +414,7 @@ const handleSelectionChange = (selection: Inquiry[]) => {
           size="default"
           placeholder="Type to search"
       /></el-col>
-      <NuxtLink v-if="(data?.privilege ?? []).find((value) => value.name == 'inquiries-create')" class="el-button el-button--default" href="/sales/inquiry/add"
+      <NuxtLink v-if="canAccess('inquiries-create', data?.privilege ?? [])" class="el-button el-button--default" href="/sales/inquiry/add"
         >Buat Inquiri</NuxtLink
       >
       <el-button
