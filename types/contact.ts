@@ -16,7 +16,7 @@ export type Contact = {
     tax_id: string | null;
     website: string | null;
     title: string | null;
-    tags: string | string[] | null;
+    tags: string;
     tmp_tags?: string[],
     created_at: number;
     created_by: string;

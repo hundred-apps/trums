@@ -34,6 +34,14 @@
             <el-icon class="me-2"><CircleCheck /></el-icon> Approve
           </el-button>
           <el-button 
+            type="danger" 
+            v-if="canvassingData?.status === CanvassingStatus.PENDING_APPROVAL && canAccess('canvassing-approve', privilages, 2)"
+            
+            @click="decline"
+          >
+            <el-icon class="me-2"><CircleClose /></el-icon> Tolak
+          </el-button>
+          <el-button 
             type="default" 
             v-if="canvassingData?.status === CanvassingStatus.PENDING_APPROVAL"
             
@@ -558,23 +566,25 @@
       </template>
       <div>
         <div class="flex justify-between items-center mb-2" v-for="ref in [...references,adjustmentTransactionOngkirTotal]">
-          <span class="font-bold text-sm">{{ref.adjustments_transaction?.name ? ref.adjustments_transaction?.name : ref.adjustment?.name ? ref.adjustment?.name : ''}}</span>
-          <span class="text-sm">
-            <el-input
-              :disabled="!editState"
-              v-model="ref.amount"
-              style="max-width: 300px"
-              placeholder="Masukan Nilai"
-              @change="(value) => onInputAdjustment(ref)"
-            >
-              <template #append>
-                <el-select v-model="ref.type" :disabled="ref.changeType == false || !editState" style="width: 100px">
-                  <el-option label="%" value="percent" />
-                  <el-option label="Rp" value="amount" />
-                </el-select>
-              </template>
-            </el-input>
-          </span>
+          <div v-if="ref.adjustment_id != ''">
+            <span class="font-bold text-sm">{{ref.adjustments_transaction?.name ? ref.adjustments_transaction?.name : ref.adjustment?.name ? ref.adjustment?.name : ''}}</span>
+            <span class="text-sm">
+              <el-input
+                :disabled="!editState"
+                v-model="ref.amount"
+                style="max-width: 300px"
+                placeholder="Masukan Nilai"
+                @change="(value) => onInputAdjustment(ref)"
+              >
+                <template #append>
+                  <el-select v-model="ref.type" :disabled="ref.changeType == false || !editState" style="width: 100px">
+                    <el-option label="%" value="percent" />
+                    <el-option label="Rp" value="amount" />
+                  </el-select>
+                </template>
+              </el-input>
+            </span>
+          </div>
         </div>
       </div>
       
@@ -614,6 +624,21 @@
           <el-button @click="visibleApproveDialog = false">Cancel</el-button>
           <el-button type="primary" @click="submitApprove">
             Approve
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+    <el-dialog v-model="visibleDeclineDialog" title="Tolak RAB!" width="500">
+      <el-form :model="canvassingData!" :label-position="formApproveLabel">
+        <el-form-item label="Catatan" prop="note">
+          <el-input v-model="canvassingData!.note" type="textarea" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="visibleDeclineDialog = false">Cancel</el-button>
+          <el-button type="primary" @click="submitDecline">
+            Tolak
           </el-button>
         </div>
       </template>
@@ -833,7 +858,7 @@ const props = defineProps<{
   privilages: Permission[],
 }>()
 
-import { Delete, Edit, CircleCheck, ArrowDown, Operation, Download } from '@element-plus/icons-vue'
+import { Delete, Edit, CircleCheck, CircleClose, ArrowDown, Operation, Download } from '@element-plus/icons-vue'
 import { CanvassingStatus, CanvassingVendorStatus, PaymentTerm, paymentTermView } from '~/types/scm/canvasing'
 import type { Canvassing, CanvassingItem, CanvassingItemForm, CanvassingItemVendorSummery, CanvassingVendor } from '~/types/scm/canvasing'
 import type { BaseResponse } from '~/types/response';
@@ -890,6 +915,7 @@ const pricetags = ref<Pricetag[]>([])
 const itemDialogVisible = ref(false)
 const selectedItem = ref<CanvassingItem | null>(null)
 const visibleApproveDialog = ref<boolean>(false);
+const visibleDeclineDialog = ref<boolean>(false);
 const drawerFeeVisible = ref(false)
 const formApproveLabel = ref<FormProps['labelPosition']>('top')
 const contactsFee = ref<ReferenceTransactionAdjustment[]>([]);
@@ -1038,6 +1064,11 @@ const handleAdjustmentSubmit = () => {
   visibleModalNewAdjustment.value = false
   refreshNuxtData('search-adjustment')
 }
+
+watch(() =>contactsFee.value, () => {
+  adjustmentTransactionFeeTotal.value.amount = contactsFee.value.reduce((sum, c) => Number(sum) + Number((c.amount || 0)), 0);
+}, {deep: true})
+
 
 const changeDiscount = (vendor: CanvassingItemVendorSummery|null, price: number) => {
   if(vendor){
@@ -1980,7 +2011,11 @@ const summeryData = computed(() => {
         selectedBeli: `${safePercent(grossProfitSelected.value, totalBuyingPriceSelected.value)} %`,
         selectedJual: `${grandTotal.value == 0 ? 0 : safePercent(grossProfitSelected.value, grandTotal.value)} %`,
       },
-      {
+      
+    ];
+
+    if(adjustmentTransactionOngkirTotal.value.adjustment_id != ''){
+      tableData.push({
         label: "Ongkos Kirim",
         max: currency(adjustmentTransactionOngkirTotal.value?.amount ?? 0),
         beli: `${safePercent(adjustmentTransactionOngkirTotal.value?.amount ?? 0, totalBuyingPrice.value)} %`,
@@ -1991,8 +2026,8 @@ const summeryData = computed(() => {
         selected: currency(adjustmentTransactionOngkirTotal.value?.amount ?? 0),
         selectedBeli: `${safePercent(adjustmentTransactionOngkirTotal.value?.amount ?? 0, totalBuyingPriceSelected.value)} %`,
         selectedJual: `${safePercent(adjustmentTransactionOngkirTotal.value?.amount ?? 0, grandTotal.value)} %`,
-      },
-    ];
+      });
+    }
 
     references.value.forEach((element) => {
       tableData.push({
@@ -2179,7 +2214,7 @@ const fetchPriceTagWithItems = async () => {
 const initialCanvassing = (data: Canvassing) => {
   canvassingData.value = data;
       
-
+console.log('reference ', canvassingData.value.reference_transaction);
   contactsFee.value = [];
   (canvassingData.value.reference_transaction ?? []).forEach(element => {
     if(element.party_type == PartyType.CONTACT){
@@ -2188,9 +2223,13 @@ const initialCanvassing = (data: Canvassing) => {
     if((element.adjustments_transaction?.name ?? '').toLowerCase() !== 'fee' && (element.adjustments_transaction?.name ?? '').toLowerCase() !== 'ongkos kirim'){
       references.value.push(element);
     }
+
+    
+
     if((element.adjustments_transaction?.name ?? '').toLowerCase() == 'ongkos kirim'){
       adjustmentTransactionOngkirTotal.value = element;
     }
+
     if((element.adjustments_transaction?.name ?? '').toLowerCase() == 'fee'){
       adjustmentTransactionFeeTotal.value = element;
     }
@@ -2633,6 +2672,24 @@ const submitApproveRab = async() => {
       })
     })
 
+    referenceAdjustment.forEach((ref, i) => {
+      const refFields = {
+        unique_id: ref.unique_id,
+        adjustment_id: ref.adjustment_id,
+        value: ref.value,
+        amount: ref.amount,
+        type: ref.type,
+        party_type: ref.party_type,
+        party_id: ref.party_id,
+        reference: ref.reference,
+        reference_id: ref.reference_id,
+      }
+
+      Object.entries(refFields).forEach(([key, value]) => {
+        formData.append(`reference_transaction[${i}][${key}]`, `${value}`)
+      })
+    })
+    
 
     // Untuk debugging: lihat semua entries FormData
     console.log('=== FORM DATA ENTRIES ===')
@@ -3069,6 +3126,11 @@ const approve = async () => {
   visibleApproveDialog.value = true;
 }
 
+const decline = async () => {
+  
+  visibleDeclineDialog.value = true;
+}
+
 const submitApprove = async() => {
 
   canvassingData.value?.canvassing_item.forEach(element => {
@@ -3086,6 +3148,24 @@ const submitApprove = async() => {
   
 
   await updateStatus(CanvassingStatus.DONE);
+
+  
+
+  visibleApproveDialog.value = false;
+}
+const submitDecline = async() => {
+
+  canvassingData.value?.canvassing_item.forEach(element => {
+    
+    
+    element.canvassing_vendor.forEach(element => {
+      element.status = CanvassingVendorStatus.REJECTED;
+    });
+  });
+
+  
+
+  await updateStatus(CanvassingStatus.CANCEL);
 
   
 

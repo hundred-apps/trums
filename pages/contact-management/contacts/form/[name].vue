@@ -80,7 +80,7 @@
         <el-table-column prop="city" label="Kecamatan" />
         <el-table-column prop="regency" label="Kota" />
         <el-table-column prop="province" label="Provinsi" />
-        <el-table-column prop="postal_code" label="Kode Pos" />
+        <el-table-column prop="codepos" label="Kode Pos" />
         <el-table-column prop="country" label="Negara" />
       </el-table>
     </el-card>
@@ -158,7 +158,7 @@ const router = useRouter();
 const { t } = useI18n();
 const dialogNewAddress = ref<boolean>(false);
 
-const mode = toPascalCase(route.query.mode);
+const mode = toPascalCase(`${route.query.mode}`);
 
 const goBack = () => router.back();
 const unique_id = route.query.unique_id;
@@ -178,7 +178,7 @@ interface RuleForm {
   tax_id: string | null;
   website: string | null;
   title: string | null;
-  tags: string | [] | null;
+  tags: string[];
   ownership: boolean;
   address: formAddress[]
 }
@@ -215,7 +215,7 @@ const ruleForm = reactive<RuleForm>({
   tax_id: "",
   website: "",
   title: "",
-  tags: "",
+  tags: [],
   ownership: ownership,
   address: []
 });
@@ -296,7 +296,7 @@ const resetForm = (formEl: FormInstance | undefined) => {
   ruleForm.title = "";
   ruleForm.is_personal = false;
   ruleForm.is_company = false;
-  ruleForm.tags = "";
+  ruleForm.tags = [];
 };
 
 
@@ -325,7 +325,7 @@ const submit = async (formEl: FormInstance | undefined) => {
             "regency": value.regency,
             "province": value.province,
             "country": "indonesia",
-            "codepos": value.codepos,
+            "codepos": parseInt(value.codepos ?? '0'),
             "lat": value.lat,
             "lng": value.lng
       }))
@@ -361,7 +361,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 
 const querySearchGeolocation = (queryString: string, cb: (arg: any) => void) => {
         
-    useFetchApi<ResponsePagination<AddressSearch[]>>('/search-indonesia', 'address', 'post', {keyword: queryString, limit: 500, offset: 1}).then((response) => {
+    useFetchApi<ResponsePagination<AddressSearch[]>>('/search-indonesia', 'address', 'post', {keyword: queryString, limit: 500, offset: 1, flag: "form"}).then((response) => {
         if(response.status.value == 'success'){
             
             const resultApi: AddressSearch[]  = response.data.value?.data!;
@@ -435,7 +435,9 @@ const detail = async () => {
       ruleForm.title = contact.title;
       ruleForm.is_personal = contact.is_personal;
       ruleForm.is_company = contact.is_company;
-      ruleForm.tags = contact.tags ? contact.tags.split(",") : [];
+      if(contact.tags){
+        ruleForm.tags = contact.tags.split(",") as string[];
+      }
       ruleForm.unique_id = contact.unique_id;
     }
   } catch (error: any) {
