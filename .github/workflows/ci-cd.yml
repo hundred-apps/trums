@@ -17,29 +17,20 @@ jobs:
         with:
           node-version: 22
 
-      - name: Create .env file on server
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.SSH_HOST }}
-          username: root
-          password: ${{ secrets.SSH_PASSWORD }}
-          port: ${{ secrets.SSH_PORT }}
-          script: |
-            cd ${{ secrets.APP_DIR }}
-            echo "Menulis file .env ..."
+      - name: Create .env for build
+        run: |
+          cat > .env << 'EOF'
+          PORT=${{ secrets.PORT }}
+          NUXT_API_URL=${{ secrets.NUXT_API_URL }}
+          NUXT_API_BASE=${{ secrets.NUXT_API_BASE }}
 
-            cat > .env << 'EOF'
-            PORT=${{ secrets.PORT }}
-            NUXT_API_URL=${{ secrets.NUXT_API_URL }}
-            NUXT_API_BASE=${{ secrets.NUXT_API_BASE }}
+          NUXT_OPENID_CONNECT_OP_ISSUER=${{ secrets.NUXT_OPENID_CONNECT_OP_ISSUER }}
+          NUXT_OPENID_CONNECT_OP_CLIENT_ID=${{ secrets.NUXT_OPENID_CONNECT_OP_CLIENT_ID }}
+          NUXT_OPENID_CONNECT_OP_CLIENT_SECRET=${{ secrets.NUXT_OPENID_CONNECT_OP_CLIENT_SECRET }}
+          NUXT_OPENID_CONNECT_OP_CALLBACK_URL=${{ secrets.NUXT_OPENID_CONNECT_OP_CALLBACK_URL }}
+          NUXT_OPENID_CONNECT_OP_POST_LOGOUT_REDIRECT_URI=${{ secrets.NUXT_OPENID_CONNECT_OP_POST_LOGOUT_REDIRECT_URI }}
+          EOF
 
-            NUXT_OPENID_CONNECT_OP_ISSUER=${{ secrets.NUXT_OPENID_CONNECT_OP_ISSUER }}
-            NUXT_OPENID_CONNECT_OP_CLIENT_ID=${{ secrets.NUXT_OPENID_CONNECT_OP_CLIENT_ID }}
-            NUXT_OPENID_CONNECT_OP_CLIENT_SECRET=${{ secrets.NUXT_OPENID_CONNECT_OP_CLIENT_SECRET }}
-            NUXT_OPENID_CONNECT_OP_CALLBACK_URL=${{ secrets.NUXT_OPENID_CONNECT_OP_CALLBACK_URL }}
-            NUXT_OPENID_CONNECT_OP_POST_LOGOUT_URL=${{ secrets.NUXT_OPENID_CONNECT_OP_POST_LOGOUT_URL }}
-            NUXT_OPENID_CONNECT_CONFIG_COOKIE_FLAGS_ACCESS_TOKEN_SECURE=${{ secrets.NUXT_OPENID_CONNECT_CONFIG_COOKIE_FLAGS_ACCESS_TOKEN_SECURE }}
-            EOF
 
       - name: Install dependencies
         run: npm i
@@ -78,4 +69,4 @@ jobs:
             echo "🔄 Load NVM"
             source ~/.nvm/nvm.sh
             echo "🔄 Restart PM2"
-            pm2 restart "trums-FE | 8008"
+            pm2 restart "trums-FE | 8008" --update-env
