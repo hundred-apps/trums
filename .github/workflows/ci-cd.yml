@@ -31,7 +31,6 @@ jobs:
           NUXT_OPENID_CONNECT_OP_POST_LOGOUT_REDIRECT_URI=${{ secrets.NUXT_OPENID_CONNECT_OP_POST_LOGOUT_REDIRECT_URI }}
           EOF
 
-
       - name: Install dependencies
         run: npm i
 
@@ -60,13 +59,21 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           script: |
             cd ${{ secrets.APP_DIR }}
+
             echo "📌 Backup output lama"
             [ -d ".output" ] && mv .output .output-backup-$(date +%s)
+
+            echo "🧹 Hapus semua backup kecuali yang terbaru"
+            ls -dt .output-backup-* 2>/dev/null | tail -n +2 | xargs rm -rf || true
+
             echo "📌 Extract build baru"
             tar -xzf output.tar.gz
+
             echo "📌 Hapus file tar"
             rm -f output.tar.gz
+
             echo "🔄 Load NVM"
             source ~/.nvm/nvm.sh
+
             echo "🔄 Restart PM2"
             pm2 restart "trums-FE | 8008" --update-env
