@@ -35,6 +35,29 @@ jobs:
           port: ${{ secrets.SSH_PORT }}
           source: "output.tar.gz"
           target: ${{ secrets.APP_DIR }}
+          
+      - name: Create .env file on server
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: root
+          password: ${{ secrets.SSH_PASSWORD }}
+          port: ${{ secrets.SSH_PORT }}
+          script: |
+            cd ${{ secrets.APP_DIR }}
+            echo "Menulis file .env ..."
+
+            cat > .env << 'EOF'
+            NUXT_API_URL=${{ secrets.NUXT_API_URL }}
+            NUXT_API_BASE=${{ secrets.NUXT_API_BASE }}
+
+            NUXT_OPENID_CONNECT_OP_ISSUER=${{ secrets.NUXT_OPENID_CONNECT_OP_ISSUER }}
+            NUXT_OPENID_CONNECT_OP_CLIENT_ID=${{ secrets.NUXT_OPENID_CONNECT_OP_CLIENT_ID }}
+            NUXT_OPENID_CONNECT_OP_CLIENT_SECRET=${{ secrets.NUXT_OPENID_CONNECT_OP_CLIENT_SECRET }}
+            NUXT_OPENID_CONNECT_OP_CALLBACK_URL=${{ secrets.NUXT_OPENID_CONNECT_OP_CALLBACK_URL }}
+            NUXT_OPENID_CONNECT_OP_POST_LOGOUT_URL=${{ secrets.NUXT_OPENID_CONNECT_OP_POST_LOGOUT_URL }}
+            NUXT_OPENID_CONNECT_CONFIG_COOKIE_FLAGS_ACCESS_TOKEN_SECURE=${{ secrets.NUXT_OPENID_CONNECT_CONFIG_COOKIE_FLAGS_ACCESS_TOKEN_SECURE }}
+            EOF
 
       - name: Extract and restart PM2
         uses: appleboy/ssh-action@v1
