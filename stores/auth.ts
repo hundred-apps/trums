@@ -63,20 +63,15 @@ export const useAuthStore = defineStore('auth', () => {
     scope.value = data.scope
     refreshToken.value = data.refresh_token || null
 
-
-    console.log('proses', process);
-
     // Simpan ke localStorage atau cookie
-    if (process.client) {
-      localStorage.setItem('auth_data', JSON.stringify({
+    localStorage.setItem('auth_data', JSON.stringify({
         access_token: data.access_token,
         id_token: data.id_token,
         expires_at: data.expires_at,
         profile: data.profile,
         scope: data.scope,
         refresh_token: data.refresh_token
-      }))
-    }
+    }))
   }
 
   const clearAuth = () => {

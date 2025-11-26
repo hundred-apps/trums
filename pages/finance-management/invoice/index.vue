@@ -239,6 +239,7 @@ import type { Contact } from '~/types/contact'
 definePageMeta({
   middleware: ["auth", "check-access"],
   requiredPermission: "invoices-read",
+  name: "List Invoice",
 })
 
 interface ListItem {

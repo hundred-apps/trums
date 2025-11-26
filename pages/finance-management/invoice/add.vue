@@ -524,6 +524,13 @@ import { PaymentTerm } from '~/types/scm/canvasing'
 import { paymentTermView } from '../../../types/scm/canvasing'
 import { ReferenceAdjustment, type AdjustmentTransaction, type ReferenceTransactionAdjustment } from '~/types/attribute_adjustment'
 import ModalAdjustmentTransaction from '~/components/trums/ModalAdjustmentTransaction.vue'
+
+definePageMeta({
+  middleware: ["auth", "check-access"],
+  requiredPermission: "invoices-create",
+  name: "Create Invoice",
+})
+
 const router = useRouter()
 const ruleFormRef = ref<FormInstance>()
 const dialogNewAddress = ref(false)

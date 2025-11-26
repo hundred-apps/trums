@@ -67,7 +67,9 @@ import { OrderColumn, type RequestSearch } from '~/types/request_search';
 import { unique } from 'element-plus/es/utils/arrays.mjs';
 import type { BaseResponse } from '~/types/response';
 definePageMeta({
-  middleware: ["auth", "app"],
+  middleware: ["auth", "check-access"],
+  requiredPermission: "invoices-read",
+  name: "List Bill",
 })
 
 

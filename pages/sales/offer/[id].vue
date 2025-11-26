@@ -378,8 +378,14 @@ const generateQuotationPdf = async () => {
 
   // Signature
   doc.text("Best Regards,", 10, finalY + 80)
-  doc.text("Stanislaus Adrian Pratama,", 10, finalY + 110)
-  doc.text("Operation Manager", 10, finalY + 120)
+
+  if(data.value?.data?.type === "in"){
+    doc.text(data.value?.data?.owner?.name ?? '', 10, finalY + 110)
+  }else{
+    doc.text("Stanislaus Adrian Pratama,", 10, finalY + 110)
+    doc.text("Operation Manager", 10, finalY + 120)
+  }
+
 
   return doc
 }
