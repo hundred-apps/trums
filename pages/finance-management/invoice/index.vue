@@ -237,7 +237,8 @@ import type { BaseResponse } from '~/types/response'
 import type { Contact } from '~/types/contact'
 
 definePageMeta({
-  middleware: ["auth", "app"],
+  middleware: ["auth", "check-access"],
+  requiredPermission: "invoices-read",
 })
 
 interface ListItem {

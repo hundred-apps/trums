@@ -261,7 +261,8 @@ import type { DefaultResponsePagination } from '~/types/pagination'
 import TrumsUploadFile from '~/components/trums/form/TrumsUploadFile.vue'
 
 definePageMeta({
-  middleware: ["auth", "app"],
+  middleware: ["auth", "check-access"],
+  requiredPermission: "transactions-create",
 })
 
 const router = useRouter()

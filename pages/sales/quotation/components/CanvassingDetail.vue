@@ -999,7 +999,7 @@ const request_search_pricetag_item = ref<RequestSearch>({
   flag: "form",
 })
 
-const permissionCreateOffer = await checkPermission('pricetag-create');
+const permissionCreateOffer = false;
 
 const rules: FormRules = {
   source_document: [

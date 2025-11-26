@@ -223,7 +223,8 @@ import type { Canvassing } from '~/types/scm/canvasing';
 import TrumsUploadFile from '~/components/trums/form/TrumsUploadFile.vue';
 import type { AppFile } from '~/types/file';
   definePageMeta({
-    middleware: ["auth", "app"],
+    middleware: ["auth", "check-access"],
+    requiredPermission: "pricetag-create",
   });
   const loading = ref<boolean>(false);
   const router = useRouter();

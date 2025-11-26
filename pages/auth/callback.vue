@@ -23,13 +23,14 @@ const user = localStorage.getItem("user");
 const appUserData = useCookie("userdata");
 const userToken = useCookie("token");
 const router = useRouter();
+
 const oidc = useOIDC();
+const authStore = useAuthStore();
 
 const { t } = useI18n();
 const config = useRuntimeConfig();
 
 definePageMeta({
-  middleware: "auth",
   layout: false,
 });
 
@@ -158,14 +159,15 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         if (response.status == 201) {
           const dataUser: People = response.data.data;
           appUserData.value = JSON.stringify(dataUser);
-          localStorage.setItem('user_data', JSON.stringify(dataUser))
-          console.log('data user ', dataUser);
-
+          
+          
           userToken.value = response.data.token;
 
           console.log('user token',userToken.value);
-
-          localStorage.setItem('menu', JSON.stringify(dataUser.menu))
+          
+          authStore.setUserData(dataUser);
+          authStore.setMenu(dataUser.menu || []);
+          
 
           window.location.href = "/dashboard";
         } else {
@@ -182,12 +184,40 @@ const submitForm = async (formEl: FormInstance | undefined) => {
   });
 };
 
+const completeLogin = async (userData: People, token: string) => {
+  try {
+    // Store user data using cookies and localStorage
+    const appUserData = useCookie("userdata");
+    const userToken = useCookie("token");
+    
+    appUserData.value = JSON.stringify(userData);
+    userToken.value = token;
+
+    // Store in localStorage for immediate access
+    localStorage.setItem('user_data', JSON.stringify(userData));
+    localStorage.setItem('menu', JSON.stringify(userData.menu || []));
+
+    
+
+    ElMessage.success("Login successful! Redirecting...");
+
+    // Redirect to dashboard
+    setTimeout(() => {
+      window.location.href = "/dashboard";
+    }, 1000);
+
+  } catch (error) {
+    console.error("Complete login failed:", error);
+    ElMessage.error("Login completion failed");
+  }
+};
+
 const resetForm = (formEl: FormInstance | undefined) => {
   if (!formEl) return;
   formEl.resetFields();
 };
 
-const getUser = async () => {
+const checkUserExists = async () => {
   loading.value = true;
   try {
     // const jsonUser = JSON.parse(user || "");
@@ -218,19 +248,44 @@ const getUser = async () => {
   }
 };
 
-const initial = async () => {
-  loading.value = true;
-  const user = await oidc.signinRedirectCallback();
-  profile.value = user.profile;
-  console.log("✅ Login sukses:", user)
+const handleOIDCCallback = async () => {
+  try {
+    loading.value = true;
+    
+    // Process OIDC callback
+    const user = await oidc.signinRedirectCallback();
+    profile.value = user.profile;
+    
+    console.log("✅ OIDC Login successful:", user);
 
-  localStorage.setItem('id_token', user.id_token ?? '');
-  localStorage.setItem('access_token', user.access_token ?? '');
+    // Store tokens using auth store instead of localStorage directly
+    if (authStore) {
+      authStore.setAuthData({
+        access_token: user.access_token || '',
+        id_token: user.id_token || '',
+        expires_at: user.expires_at || Math.floor(Date.now() / 1000) + 3600,
+        profile: user.profile,
+        scope: user.scope || 'openid profile email',
+      });
+    } else {
+      // Fallback to localStorage if store not available
+      localStorage.setItem('id_token', user.id_token || '');
+      localStorage.setItem('access_token', user.access_token || '');
+    }
 
-  getUser();
+    // Check if user exists in our system
+    await checkUserExists();
 
-  loading.value = false;
-}
+  } catch (error: any) {
+    console.error("❌ OIDC Callback failed:", error);
+    ElMessage.error("Authentication failed. Please try again.");
+    
+    // Redirect to login page on error
+    await router.push("/login");
+  } finally {
+    loading.value = false;
+  }
+};
 
 onMounted(() => {
   // console.log('oidc', oidc.user);
@@ -239,7 +294,7 @@ onMounted(() => {
   // console.log("json: ", user);
   // ruleForm.email = jsonUser.email || "";
   // getUser();
-  initial();
+  handleOIDCCallback();
 });
 
 // const oidc = useOidc();

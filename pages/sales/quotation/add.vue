@@ -752,6 +752,12 @@ import type { Unit } from '~/types/unit'
 import FormAddress from '~/components/trums/FormAddress.vue'
 import type { AddressType } from '~/types/address'
 
+definePageMeta({
+  middleware: ["auth", "check-access"],
+  requiredPermission: "canvassing-create",
+  name: "Create RAB"
+})
+
 const { removeDuplicates } = useArray();
 const router = useRouter()
 const config = useRuntimeConfig();

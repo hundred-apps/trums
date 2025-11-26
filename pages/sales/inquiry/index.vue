@@ -1,6 +1,7 @@
 <script lang="tsx" setup>
   definePageMeta({
-    middleware: ["auth", "app"],
+    middleware: ["auth", "check-access"],
+    requiredPermission: "inquiries-read",
   });
   import { ref, onMounted } from 'vue';
   import { Filter, SetUp } from '@element-plus/icons-vue'

@@ -67,7 +67,8 @@ import type { BaseResponse } from '~/types/response'
 import { unique } from 'element-plus/es/utils/arrays.mjs'
 
 definePageMeta({
-  middleware: ["auth", "app"],
+  middleware: ["auth", "check-access"],
+  requiredPermission: "transactions-read",
 })
 
 const request_search = ref<RequestSearch>({

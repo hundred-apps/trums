@@ -358,6 +358,12 @@ import { ReferenceAdjustment, type AdjustmentTransaction, type ReferenceTransact
 import ModalAdjustmentTransaction from '~/components/trums/ModalAdjustmentTransaction.vue'
 import AddAdjustment from '~/components/trums/AddAdjustment.vue'
 
+definePageMeta({
+  middleware: ["auth", "check-access"],
+  requiredPermission: "purchase-order-create",
+  name: "Create Sales Order",
+})
+
 const fileList = ref<UploadUserFile[]>([])
 
 const router = useRouter()

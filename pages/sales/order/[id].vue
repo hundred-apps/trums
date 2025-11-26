@@ -18,7 +18,8 @@ import type { BaseResponse } from '~/types/response'
 import SalesOrderDetail from './components/SalesOrderDetail.vue';
 
 definePageMeta({
-  middleware: ["auth", "app"],
+  middleware: ["auth", "check-access"],
+  requiredPermission: "purchase-order-read",
   name: "Sales Order Detail",
 });
 
@@ -47,7 +48,7 @@ const fetchPurchaseOrder = async () => {
     )
 
     if (response.status.value === 'success') {
-      purchaseOrderData.value = response.data.value!.data
+      purchaseOrderData.value = response.data.value?.data ?? null;
     //   await fetchPurchaseOrderItems()
     //   await fetchRelatedDocuments()
     }

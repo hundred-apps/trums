@@ -119,7 +119,8 @@ import SelectionCell from '~/components/trums/table/SelectionCell.vue';
 import { TypeInquiry } from '~/types/inquiry';
 
 definePageMeta({
-  middleware: ["auth", "app"],
+  middleware: ["auth", "check-access"],
+  requiredPermission: "canvassing-read",
 })
 
 

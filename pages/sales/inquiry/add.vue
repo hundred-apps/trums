@@ -1,6 +1,7 @@
 <script lang="tsx" setup>
   definePageMeta({
-    middleware: ["auth", "app"],
+    middleware: ["auth", "check-access"],
+    requiredPermission: "inquiries-create",
   });
     interface RuleForm {
       unique_id: string

@@ -147,7 +147,8 @@ import { PaymentTerm, paymentTermView, type Canvassing } from '~/types/scm/canva
 
 
 definePageMeta({
-    middleware:['auth', 'app'],
+    middleware:['auth', "check-access"],
+    requiredPermission: "pricetag-read",
     name: "Trums Offer Detail",
 })
 
@@ -351,12 +352,15 @@ const generateQuotationPdf = async () => {
   // doc.text(`Grand Total: Rp ${currency(grandTotal.value)}`, 140, finalY)
 
 
-  const canvassing: Canvassing = data.value?.data?.reference_data as Canvassing;
+  const canvassing: Canvassing|undefined = data.value?.data?.reference_data;
 
   // Notes
   doc.text("Notes:", 10, finalY + 5)
-  doc.text(`\u2022 Dikirim ke ${generateResultSearchAddress(canvassing.address ?? null).name}`, 20, finalY + 15)
-  doc.text(`\u2022 ${canvassing.payment_term == PaymentTerm.TEMPO ? `${paymentTermView(canvassing.payment_term)} ${canvassing.tempo_value} Hari` : paymentTermView(canvassing.payment_term)}`, 20, finalY + 20)
+
+  if(canvassing){
+    doc.text(`\u2022 Dikirim ke ${generateResultSearchAddress(canvassing?.address ?? null).name}`, 20, finalY + 15)
+    doc.text(`\u2022 ${canvassing.payment_term == PaymentTerm.TEMPO ? `${paymentTermView(canvassing.payment_term)} ${canvassing.tempo_value} Hari` : paymentTermView(canvassing.payment_term)}`, 20, finalY + 20)
+  }
   
   if(data.value?.data?.note){
     const splits = `${data.value?.data?.note}`.split('\n');

@@ -262,8 +262,9 @@ import { OperationPriceTag, ReferencePriceTag, VariablePriceTag } from '~/types/
 import FeeDrawer from '~/components/trums/FeeDrawer.vue'
 
 definePageMeta({
-  middleware: ["auth", "app"],
+  middleware: ["auth", "check-access"],
   name: "Detail Canvassing SI",
+  requiredPermission: "canvassing-read",
 });
 
 const router = useRouter()

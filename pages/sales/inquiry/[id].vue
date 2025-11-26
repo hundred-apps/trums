@@ -86,8 +86,9 @@ import type { Canvassing } from '~/types/scm/canvasing';
 import type { Permission } from '~/types/menu';
 
     definePageMeta({
-        middleware: ["auth", "app"],
+        middleware: ["auth", "check-access"],
         name: "Detail Permintaan SI",
+        requiredPermission: "canvassing-read",
     });
     const router = useRouter();
 

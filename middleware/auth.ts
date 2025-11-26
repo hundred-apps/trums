@@ -1,17 +1,24 @@
-// export default defineNuxtRouteMiddleware((to, from) => {
-//   if (import.meta.server) {
-//     return;
-//   }
-//   const { $oidc } = useNuxtApp();
-//   if (!$oidc.isLoggedIn) {
-//     window.location.href = "/";
-//   }
-// });
+// middleware/auth.ts
+export default defineNuxtRouteMiddleware(async (to, from) => {
+  const auth = useAuthStore()
+  
+  // Check jika user authenticated dan token masih valid
+  if (!auth.isAuthenticated) {
+    // Coba load dari storage
+    auth.loadFromStorage()
+    
+    if (!auth.isAuthenticated) {
+      return navigateTo(`/`)
+    }
+  }
 
-export default defineNuxtRouteMiddleware((to, from) => {
-    // if (import.meta.server) { return }
-    // const { $oidc } = useNuxtApp()
-    // if (!$oidc.isLoggedIn) {
-    //   window.location.href = '/';
-    // }
-  })
+  // Check token expiry
+  const isTokenValid = await auth.checkTokenExpiry()
+  
+  if (!isTokenValid) {
+    // Token expired dan refresh gagal
+    return navigateTo(`/`)
+  }
+
+  
+})

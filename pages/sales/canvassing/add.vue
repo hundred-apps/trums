@@ -357,7 +357,10 @@ import type { Catalogue } from '~/types/catalogue'
 import type { Unit } from '~/types/unit'
 import type { AddressType } from '~/types/address'
 
-
+definePageMeta({
+  middleware: ["auth", "check-access"],
+  requiredPermission: "canvassing-create",
+})
 
 const router = useRouter()
 const route = useRoute()

@@ -12,7 +12,8 @@
     import fromVendor from './fromVendor.vue';
     import toCustomer from './toCustomer.vue';
     definePageMeta({
-        middleware: ["auth", "app"],
+        middleware: ["auth", "check-access"],
+        requiredPermission: "pricetag-read",
         name: "Daftar Penawaran",
     });
 

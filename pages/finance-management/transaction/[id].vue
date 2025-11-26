@@ -161,7 +161,8 @@ import type { Transaction, TransactionItem } from '~/types/finance/transaction'
 import type { BaseResponse } from '~/types/response';
 
 definePageMeta({
-  middleware: ["auth", "app"],
+  middleware: ["auth", "check-access"],
+  requiredPermission: "transactions-read",
   name: "Transaction Detail",
 });
 

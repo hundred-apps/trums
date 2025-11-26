@@ -25,7 +25,8 @@ import type { Permission } from '~/types/menu';
 
 // ========== PAGE META & ROUTING ==========
 definePageMeta({
-  middleware: ["auth", "app"],
+  middleware: ["auth", "check-access"],
+  requiredPermission: "canvassing-read",
   name: "Quotation Detail",
 });
 

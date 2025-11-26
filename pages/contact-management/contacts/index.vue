@@ -10,7 +10,8 @@ import type { Pagination } from "~/types/pagination";
 const config = useRuntimeConfig();
 
 definePageMeta({
-  middleware: ["auth", "app"],
+  middleware: ["auth", "app", "check-access"],
+  requiredPermission: "contacts-read",
 });
 
 const router = useRouter();
@@ -99,10 +100,10 @@ const currentPage = ref(1);
 
 const request_search = ref<RequestSearch>({
   keyword: "",
-  column: null,
+  column: [],
   sort: null,
-  limit: limit,
-  offset: currentPage,
+  limit: limit.value.toString(),
+  offset: currentPage.value.toString(),
   table: "contacts",
 });
 

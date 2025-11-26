@@ -21,12 +21,16 @@ import type { People } from "~/types/people";
 
 const config = useRuntimeConfig();
 const { t } = useI18n();
-
+const authStore = useAuthStore();
 
 const router = useRouter();
 const userdata = ref<People | null>(null);
+const visibleDialogLogOut = ref<boolean>(false);
+
+
 const imageUrl = config.public.baseImageURL;
 const id_token = localStorage.getItem("id_token");
+const client_id = config.public.baseOIDCICID;
 
 
 const issuer = config.public.baseOIDCIssuer;
@@ -52,12 +56,19 @@ onMounted(() => {
   userdata.value = JSON.parse(localStorage.getItem('user_data') ?? '');
   menus.value = JSON.parse(localStorage.getItem('menu') ?? '[]');
 
-  nameFront.value = userdata.value?.name.split(" ")[0] || "";
+  nameFront.value = userdata.value?.name?.split(" ")[0] || "";
 });
 
 const logOut = async () => {
-  const url = `${issuer}/session/end?id_token_hint=${id_token}&post_logout_redirect_uri=${logoutUri}`;
 
+  
+
+  const id_token = authStore.idToken;
+
+
+  const url = `${issuer}/session/end?id_token_hint=${id_token}&post_logout_redirect_uri=${logoutUri}&client_id=${client_id}`;
+  authStore.clearAuth();
+  user.value = null;
   window.location.href = url;
 
 }
@@ -114,7 +125,7 @@ const handleMenuClick = (menuKey: string) => {
                   {{ t("menu.setting") }}
                 </TrumsLink></el-dropdown-item
               ><el-dropdown-item>
-                <TrumsLink @click="logOut">
+                <TrumsLink @click="visibleDialogLogOut = true">
                   {{ t("buttons.logout") }}
                 </TrumsLink></el-dropdown-item
               >
@@ -293,6 +304,20 @@ const handleMenuClick = (menuKey: string) => {
         <slot />
       </TrumsContentDefault>
     </div>
+
+    <el-dialog v-model="visibleDialogLogOut" title="Warning" width="500" center>
+      <span class="text-center">
+        Anda Yakin Ingin Keluar Dari Aplikasi?
+      </span>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="visibleDialogLogOut = false">Cancel</el-button>
+          <el-button type="danger" @click="logOut">
+            Log Out
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
