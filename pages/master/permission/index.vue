@@ -172,9 +172,12 @@ const columns: Column<Permission>[] = [
   },
   {
     key: 'menu_id',
-    title: 'Menu ID',
+    title: 'Menu',
     dataKey: 'menu_id',
     width: 120,
+    cellRenderer: ({ rowData }: { rowData: Permission }) => (
+      <span class="text-blue-500 font-mono text-sm">{rowData.menu?.name ?? 'N/A'}</span>
+    )
   },
   {
     key: 'slug',

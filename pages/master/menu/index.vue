@@ -63,6 +63,7 @@
         <el-radio-button label="SubMenu" value="0" />
       </el-radio-group>
       <NuxtLink 
+        v-if="canAccess('menus-create', data?.privilege ?? [])"
         class="el-button el-button--primary el-button--default" 
         href="/master/menu/add"
       >
@@ -76,7 +77,8 @@
       >
         Muat Ulang
       </el-button>
-      <el-button 
+      <el-button
+        v-if="canAccess('menus-delete', data?.privilege ?? [])"
         type="danger" 
         :disabled="!hasSelected"
         @click="batchDelete"
@@ -114,11 +116,17 @@ import SelectionCell from '~/components/trums/table/SelectionCell.vue';
 import type { Menu } from '~/types/menu';
 
 definePageMeta({
-  middleware: ["auth", "app"],
+  middleware: ["auth", "check-access"],
+  requiredPermission: "menus-read",
+  name: "Daftar Menu"
 })
 
 
 const is_menu = ref<string>('1');
+
+const hasCreate = await checkPermission('menus-create');
+const hasUpdate = await checkPermission('menus-update');
+const hasDelete = await checkPermission('menus-delete');
 
 
 // Search request
@@ -216,14 +224,28 @@ const columns: Column<Menu>[] = [
   {
     key: 'operations',
     title: 'Aksi',
-    cellRenderer: ({ rowData }: { rowData: Menu }) => (
-      <div class="flex gap-2">
+    cellRenderer: ({ rowData }: { rowData: Menu }) =>
+    
+    h('div', { class: 'flex gap-2' }, [
+      (canAccess('menus-update', data.value?.privilege ?? []) && h(
         <NuxtLink 
+          
           class="el-button el-button--small el-button--primary" 
           href={`/master/menu/add?id=${rowData.unique_id}`}
         >
           Edit
         </NuxtLink>
+      )),
+      // (canAccess('menus-update', data.value?.privilege ?? []) && h(
+      //   <NuxtLink 
+          
+      //     class="el-button el-button--small el-button--primary" 
+      //     href={`/master/menu/add?id=${rowData.unique_id}`}
+      //   >
+      //     Edit
+      //   </NuxtLink>
+      // )),
+      (canAccess('menus-delete', data.value?.privilege ?? []) && h(
         <el-button 
           size="small" 
           type="danger" 
@@ -231,8 +253,21 @@ const columns: Column<Menu>[] = [
         >
           Hapus
         </el-button>
-      </div>
-    ),
+      ))
+    ]),
+    
+    // (
+    //   <div class="flex gap-2">
+        
+        // <el-button 
+        //   size="small" 
+        //   type="danger" 
+        //   onClick={() => onDelete([rowData.unique_id])}
+        // >
+        //   Hapus
+        // </el-button>
+    //   </div>
+    // ),
     width: 200,
     align: 'center'
   },

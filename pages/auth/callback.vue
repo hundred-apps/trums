@@ -169,7 +169,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           authStore.setMenu(dataUser.menu || []);
           
 
-          window.location.href = "/dashboard";
+          // window.location.href = "/dashboard";
         } else {
           ElMessage.error(response?.data?.message);
         }

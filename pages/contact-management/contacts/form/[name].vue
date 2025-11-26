@@ -228,14 +228,6 @@ const rules = reactive<FormRules<RuleForm>>({
       trigger: "blur",
     },
   ],
-  email: [
-    { required: true, message: `${t("form.validate.email")}`, trigger: "blur" },
-    {
-      type: "email",
-      message: `${t("form.validate.emailAddress")}`,
-      trigger: ["blur", "change"],
-    },
-  ],
   phone: [
     { required: true, message: `${t("form.validate.phone")}`, trigger: "blur" },
     {

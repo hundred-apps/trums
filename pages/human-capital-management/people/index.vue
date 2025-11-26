@@ -93,7 +93,8 @@ const columns: Column<People>[] = [
     cellRenderer: ({ rowData }: any) =>
       h('div', { class: 'flex justify-center gap-2' }, [
         // 🟡 Tombol Edit dengan Tooltip
-        h(
+
+        (canAccess('peoples-update', data?.value?.privilege ?? []) && h(
           ElTooltip,
           {
             content: 'Edit',
@@ -109,10 +110,11 @@ const columns: Column<People>[] = [
                 onClick: () => navigateToForm('update', rowData.name, rowData.unique_id),
               })
           }
-        ),
+        ) ),
+        
 
         // 🔴 Tombol Delete dengan Popconfirm (tanpa nested Tooltip)
-        h(
+        (canAccess('peoples-delete', data?.value?.privilege ?? []) && h(
           ElPopconfirm,
           {
             title: 'Are you sure to delete this?',
@@ -131,7 +133,7 @@ const columns: Column<People>[] = [
                 plain: true,
               })
           }
-        ),
+        )),
       ]),
   }
 ];
@@ -251,6 +253,7 @@ const onSort = (sortBy: SortBy) => {
           placeholder="Type to search"
       /></el-col>
       <el-button
+        v-if="canAccess('peoples-create', data?.privilege ?? [])"
         size="large"
         @click="
           () => {

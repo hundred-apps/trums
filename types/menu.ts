@@ -42,6 +42,7 @@ export type Permission = {
     approval_length: number;
     approval_permission_pic?: ApprovalPermissionPIC[],
     checked?: boolean;
+    menu?: Menu,
 }
 
 export enum ApprovalPermissionStatus {

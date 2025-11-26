@@ -210,7 +210,8 @@ import type { BaseResponse } from '~/types/response';
 import { PaymentTerm } from '~/types/scm/canvasing';
 
 definePageMeta({
-  middleware: ["auth", "app"],
+  middleware: ["auth", "check-access"],
+  requiredPermission: "invoices-read",
   name: "Bill Detail",
 });
 

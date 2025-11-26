@@ -516,6 +516,13 @@ import { TransactionBankReference, type TransactionBank } from '~/types/finance/
 import AccountForm from '~/components/trums/AccountForm.vue'
 import { ReferenceAdjustment, type AdjustmentTransaction, type ReferenceTransactionAdjustment } from '~/types/attribute_adjustment'
 import ModalAdjustmentTransaction from '~/components/trums/ModalAdjustmentTransaction.vue'
+
+definePageMeta({
+  middleware: ["auth", "check-access"],
+  requiredPermission: "invoices-create",
+  name: "Create Bill",
+})
+
 const router = useRouter()
 const ruleFormRef = ref<FormInstance>()
 const dialogNewAddress = ref(false)

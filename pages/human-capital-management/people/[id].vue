@@ -15,7 +15,7 @@
       </template>
       <template #extra>
         <div class="flex gap-2">
-          <el-button type="primary" @click="editPeople">
+          <el-button v-if="permissionEdit" type="primary" @click="editPeople">
             Edit Profile
           </el-button>
           <el-button @click="goBack">
@@ -82,7 +82,7 @@
       
     </el-row>
 
-    <el-card class="my-3" v-if="!loading">
+    <el-card class="my-3" v-if="!loading && canAssignPermission">
       <template #header>
         Setting Permission
       </template>
@@ -142,9 +142,11 @@ const totalPermissions = computed(() => {
   return peopleData.value.user_permissions?.length || 0;
 })
 
+const permissionEdit = await checkPermission('peoples-update');
+const canAssignPermission = await checkPermission('user-permission-create');
 
 // Methods
-const goBack = () => router.push('/people')
+const goBack = () => router.back();
 
 const fetchPeopleDetail = async () => {
   loading.value = true;
@@ -276,7 +278,7 @@ const handlePermissionsUpdated = () => {
 }
 
 const editPeople = () => {
-  router.push(`/people/edit/${peopleId.value}`)
+  router.push(`/human-capital-management/people/form/${peopleData.value.name}?mode=update&unique_id=${peopleData.value.unique_id}`)
 }
 
 const formatDate = (timestamp: number) => {
