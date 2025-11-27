@@ -74,9 +74,12 @@
 </template>
 
 <script lang="ts" setup>
+
 definePageMeta({
-  middleware: ["auth", "app"],
-});
+    middleware: ["auth", "check-access"],
+    requiredPermission: "brands-create",
+    name: "Create New Brands"
+})
 
 interface RuleForm {
   unique_id: string | null;

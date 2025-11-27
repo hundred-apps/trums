@@ -106,6 +106,11 @@ import type { Menu, Permission } from '~/types/menu'
 import type { People, UserPermission } from '~/types/people'
 import PermissionTreeManager from '~/components/trums/PermissionTreeManager.vue'
 
+definePageMeta({
+    middleware: ["auth", "check-access"],
+    requiredPermission: "peoples-read",
+    name: "Detail Of Peoples"
+})
 
 interface PermissionTreeNode {
   unique_id: string

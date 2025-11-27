@@ -123,7 +123,9 @@ import type { Brands } from '~/types/brand';
 
 
 definePageMeta({
-  middleware: ["auth", "app"],
+    middleware: ["auth", "check-access"],
+    requiredPermission: "brands-read",
+    name: "List Of Brands"
 })
 
 const is_main_brand = ref<string>('1');

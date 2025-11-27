@@ -9,8 +9,10 @@ import DeleteButton from '~/components/trums/DeleteButton.vue';
 import CustomTable from '~/components/trums/table/customTable.vue';
 import { InfoFilled } from '@element-plus/icons-vue'
   definePageMeta({
-    middleware: ["auth", "app"],
-  });
+    middleware: ["auth", "check-access"],
+    requiredPermission: "transaction-recaps-read",
+    name: "List Of Consigment"
+  })
 
   const request_search = ref<RequestSearch>({
     keyword: '',

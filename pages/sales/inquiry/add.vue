@@ -583,6 +583,8 @@
             formData.append('type', catalogue.type);
 
             const response = await useFetchApi<BaseResponse<Catalogue>>('/catalogues-create', 'catalogue-create', 'post', formData);
+
+            console.log(response.status);
             if(response.status.value == 'success'){
                 const catalogue_result: Catalogue|undefined = response.data.value?.data;
                 return catalogue_result;
@@ -788,6 +790,7 @@
           dataTable.value[scope.$index].sn = selected.sn ?? '';
           dataTable.value[scope.$index].catalogue = selected;
 
+          itemActive.value = scope.$index;
           tmpCatalogue.value = selected;
           drawerCatalogue.value = true;
 
@@ -1181,19 +1184,21 @@
         
         try {
 
-            const catalogueInsert = await create_catalogue(catalogue) ?? null;
-
-            if(catalogueInsert != null){
-              dataTable.value[itemActive.value].item = catalogueInsert.name ?? '';
-              dataTable.value[itemActive.value].item_id = catalogueInsert.unique_id ?? '';
-              dataTable.value[itemActive.value].sn = catalogueInsert.sn ?? '';
+            const catalogueInsert = await create_catalogue(catalogue) ?? undefined;
+            console.log('catalogue insert',catalogueInsert?.sn);
+            console.log('item active', itemActive.value);
+            if(catalogueInsert != undefined){
+              // dataTable.value[itemActive.value].item = catalogueInsert?.name ?? '';
+              // dataTable.value[itemActive.value].item_id = catalogueInsert?.unique_id ?? '';
+              dataTable.value[itemActive.value].sn = catalogueInsert?.sn ?? '';
               dataTable.value[itemActive.value].catalogue = catalogueInsert;
             }else{
               ElMessage.error('Kesalahan saat menyimpan data catalogue!');
             }
             
-        } catch (error) {
-            ElMessage.error('Gagal menyimpan catalogue');
+        } catch (error: any) {
+          console.log(error);
+            ElMessage.error(`Gagal menyimpan catalogue`);
         } finally {
             loading.value = false;
         }

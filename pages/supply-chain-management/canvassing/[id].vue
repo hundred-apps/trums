@@ -189,9 +189,10 @@ import type { ItemRequest, ItemRequestTrail } from '~/types/item_request';
 import type { FormProps } from 'element-plus';
 
 definePageMeta({
-  middleware: ["auth", "app"],
-  name: "Canvassing Detail",
-});
+  middleware: ["auth", "check-access"],
+  requiredPermission: "canvassing-read",
+  name: "Canvassing Detail"
+})
 
 const router = useRouter()
 const route = useRoute()

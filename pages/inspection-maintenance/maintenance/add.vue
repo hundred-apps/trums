@@ -250,6 +250,13 @@ import {
 } from '@element-plus/icons-vue'
 import InventoryAdd from "~/components/trums/InventoryAdd.vue";
 
+
+definePageMeta({
+    middleware: ["auth", "check-access"],
+    requiredPermission: "maintenances-read",
+    name: "Create New Maintenances"
+})
+
 interface RuleForm {
   location_id: string;
   location_name: string;

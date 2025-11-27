@@ -18,6 +18,7 @@ export type Account = {
   created_by: string;      // ID/user yang membuat,
   parent?: Account|null,
   children?: Account[],
+  version?: number;
 }
 
 export const sampleAccount: Account[] = [

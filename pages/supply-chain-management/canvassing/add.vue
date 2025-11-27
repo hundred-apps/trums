@@ -372,6 +372,12 @@ import TrumsUploadFile from '~/components/trums/form/TrumsUploadFile.vue'
 import type { PurchaseRequestItem } from '~/types/purchase_request'
 import type { Unit } from '~/types/unit'
 
+definePageMeta({
+  middleware: ["auth", "check-access"],
+  requiredPermission: "canvassing-create",
+  name: "Add New Canvassing"
+})
+
 const router = useRouter()
 const route = useRoute()
 const ruleFormRef = ref<FormInstance>()
@@ -1042,7 +1048,10 @@ const addVendor = (val: Contact[]) => {
             fee_unit: 'percent',
             ongkir: 0,
             ongkir_unit: 'percent',
-            contacts_fee: []
+            contacts_fee: [],
+            equivalent_id: '',
+            type_item: "request",
+            
           })),
         })
         
@@ -1598,7 +1607,10 @@ const fetchDataEdit = async () => {
           fee_unit: 'percent',
           ongkir: 0,
           ongkir_unit: 'percent',
-          contacts_fee: []
+          contacts_fee: [],
+          equivalent_id: "",
+          type_item: "request",
+        
         }));
         
         vendors.value = groupByVendor(canvasing.canvassing_item);
@@ -1734,7 +1746,9 @@ function groupByVendor(canvassingItems: CanvassingItem[]): CanvasingVendorView[]
             fee_unit: value.fee_unit,
             ongkir: value.ongkir,
             ongkir_unit: value.ongkir_unit,
-            contacts_fee: []
+            contacts_fee: [],
+            equivalent_id: "",
+            type_item: "request",
           })),
           selling_price: 0,
           profit: 0,

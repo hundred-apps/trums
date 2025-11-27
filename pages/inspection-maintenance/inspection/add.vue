@@ -96,8 +96,10 @@
 
 <script lang="ts" setup>
 definePageMeta({
-  middleware: ["auth", "app"],
-});
+    middleware: ["auth", "check-access"],
+    requiredPermission: "inspection-create",
+    name: "Create New Inspection"
+})
 interface RuleForm {
   inspection_name: string;
   inspection_date: number;
@@ -142,7 +144,7 @@ const loading = ref<boolean>();
 const requestSearch = ref<RequestSearch>({
   keyword: "",
   table: "inventories",
-  column: null,
+  column: [],
   sort: null,
   limit: "50",
   offset: "1",

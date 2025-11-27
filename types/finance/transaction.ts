@@ -21,15 +21,34 @@ export type TransactionBank = {
 export type Transaction = {
   unique_id: string;
   unique_code: string;
-  type: 'income' | 'expense';
-  bank_id: string|null;
+  type: 'income' | 'expense' | 'transfer';
 
-  account_id: string|null;
+  recipient_bank: string|null;
+  recipient_bank_version?: number;
+
+  
   account?: Account;
+  account_id: string|null;
   account_name: string|null;
-
+  account_version?: number;
+  
+  
   account_bank_name: string | null;
   account_bank_number: string | null;
+  account_bank_version?: number;
+  
+  
+  recipient_bank_to?: string;
+  recipient_bank_to_version?: number;
+
+  account_bank_to_name?: string;
+  account_bank_to_number?: string;
+  account_bank_to_version?: number;
+
+  account_to_id?: string;
+  account_to_name?: string;
+  account_to_version?: number;
+
   date: number; 
   description: string;
   amount: number; 

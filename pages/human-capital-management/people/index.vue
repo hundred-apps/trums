@@ -14,8 +14,10 @@ import customTable from "~/components/trums/table/customTable.vue";
 
 
 definePageMeta({
-  middleware: ["auth", "app"],
-});
+    middleware: ["auth", "check-access"],
+    requiredPermission: "peoples-read",
+    name: "List Of Peoples"
+})
 
 const router = useRouter();
 const token = useCookie("token");

@@ -29,8 +29,9 @@
         <!-- Transaction Type -->
         <el-form-item label="Jenis Transaksi" prop="type">
           <el-radio-group v-model="ruleForm.type">
-            <el-radio-button label="income">Pemasukan</el-radio-button>
-            <el-radio-button label="expense">Pengeluaran</el-radio-button>
+            <el-radio-button value="income">Pemasukan</el-radio-button>
+            <el-radio-button value="transfer">Transfer</el-radio-button>
+            <el-radio-button value="expense">Pengeluaran</el-radio-button>
           </el-radio-group>
         </el-form-item>
         
@@ -80,7 +81,31 @@
             :fetch-suggestions="querySearchAccounts"
             placeholder="Cari Account"
             class="w-full"
-            @select="handleSelectAccount"
+            @select="(item) => handleSelectAccount(item, 'from')"
+          >
+            <template #default="{ item }">
+              <div v-if="item.isNew" class="flex items-center text-blue-500">
+                <el-icon><Plus /></el-icon>
+                <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+              </div>
+              <div v-else>
+                {{ item.name }} ({{ item.code }})
+              </div>
+            </template>
+          </el-autocomplete>
+        </el-form-item>
+
+        <h3 v-if="ruleForm.type == 'transfer'" class="text-lg font-medium mb-4">
+           CoA Tujuan
+        </h3>
+        
+        <el-form-item v-if="ruleForm.type == 'transfer'" label="Account" prop="account_to_name">
+          <el-autocomplete
+            v-model="ruleForm.account_to_name!"
+            :fetch-suggestions="querySearchAccounts"
+            placeholder="Cari Account"
+            class="w-full"
+            @select="(item) => handleSelectAccount(item, 'to')"
           >
             <template #default="{ item }">
               <div v-if="item.isNew" class="flex items-center text-blue-500">
@@ -100,13 +125,13 @@
           Informasi Bank {{ ruleForm.type === 'income' ? 'Penerima' : 'Pengirim' }}
         </h3>
         
-        <el-form-item label="Rekening Bank" prop="bank_id">
+        <el-form-item label="Rekening Bank" prop="account_bank_name">
           <el-autocomplete
             v-model="ruleForm.account_bank_name!"
             :fetch-suggestions="querySearchBanks"
             placeholder="Cari rekening bank"
             class="w-full"
-            @select="handleSelectBank"
+            @select="(item) => handleSelectBank(item, 'from')"
           >
             <template #default="{ item }">
               <div v-if="item.isNew" class="flex items-center text-blue-500">
@@ -119,6 +144,31 @@
             </template>
           </el-autocomplete>
         </el-form-item>
+
+        <h3 v-if="ruleForm.type == 'transfer'" class="text-lg font-medium mb-4">
+          Informasi Bank Penerima
+        </h3>
+        
+        <el-form-item v-if="ruleForm.type == 'transfer'" label="Rekening Bank Penerima" prop="account_bank_to_name">
+          <el-autocomplete
+            v-model="ruleForm.account_bank_to_name!"
+            :fetch-suggestions="querySearchBanks"
+            placeholder="Cari rekening bank"
+            class="w-full"
+            @select="(item) => handleSelectBank(item, 'to')"
+          >
+            <template #default="{ item }">
+              <div v-if="item.isNew" class="flex items-center text-blue-500">
+                <el-icon><Plus /></el-icon>
+                <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+              </div>
+              <div v-else>
+                {{ item.account_name }} ({{ item.account_number }})
+              </div>
+            </template>
+          </el-autocomplete>
+        </el-form-item>
+
         <el-divider />
         <h3 class="text-lg font-medium mb-4">
           File Lampiran
@@ -289,22 +339,42 @@ const createEmptyItem = () : TransactionItem => {
 const ruleForm = reactive<Transaction>({
   unique_id: '',
   unique_code: '',
-  type: 'income' as 'income' | 'expense',
+  type: 'income' as 'income' | 'expense' | 'transfer',
   date: Date.now(),
   amount: 0,
   description: '',
-  bank_id: null,
+  recipient_bank: null,
+  recipient_bank_version: 0,
+
+  recipient_bank_to: '',
+  recipient_bank_to_version: 0,
+
   account_bank_name: '',
   account_bank_number: '',
+  account_bank_version: 0,
+
+
   created_at: Date.now(),
   created_by: '',
   transaction_items: [createEmptyItem()],
   account_id: null,
-  account_name: null
+  account_name: null,
+  account_version: 0,
+  
+  
+
+  account_bank_to_name: '',
+  account_bank_to_number: '',
+  account_bank_to_version: 0,
+
+  account_to_id: '',
+  account_to_name: '',
+  account_to_version: 0,
+
 })
 
 
-// Calculate total amount from items
+// Calculate total amacount from items
 const totalAmount = computed(() => {
   return ruleForm.transaction_items.reduce((sum, item) => sum + (item.amount || 0), 0)
 })
@@ -327,7 +397,7 @@ const rules = reactive<FormRules>({
       message: 'Nama bank wajib diisi', 
       trigger: 'blur',
       validator: (rule, value, callback) => {
-        if (!ruleForm.bank_id && !value) {
+        if (!ruleForm.recipient_bank && !value) {
           callback(new Error('Pilih bank atau isi manual nama bank'))
         } else {
           callback()
@@ -341,7 +411,7 @@ const rules = reactive<FormRules>({
       message: 'Nomor rekening wajib diisi', 
       trigger: 'blur',
       validator: (rule, value, callback) => {
-        if (!ruleForm.bank_id && !value) {
+        if (!ruleForm.recipient_bank && !value) {
           callback(new Error('Pilih bank atau isi manual nomor rekening'))
         } else {
           callback()
@@ -551,11 +621,20 @@ const querySearchAccounts = (query: string, cb: (arg: any) => void) => {
   }
 };
 
-const handleSelectAccount = (item: any) => {
+const handleSelectAccount = (item: any, type: 'to'|'from') => {
   if(item.isNew == false){
     const account = item as Account;
-    ruleForm.account_id = account.unique_id;
-    ruleForm.account_name = account.name;
+
+    if(type == 'to'){
+      ruleForm.account_to_id = account.unique_id;
+      ruleForm.account_to_name = account.name;
+      ruleForm.account_to_version = account.version ?? 0;
+    }else{
+      ruleForm.account_id = account.unique_id;
+      ruleForm.account_name = account.name;
+      ruleForm.account_version = account.version ?? 0;
+    }
+
   }
 }
 
@@ -579,13 +658,21 @@ const querySearchBanks = (query: string, cb: (arg: any) => void) => {
   }
 };
 
-const handleSelectBank = (item: any) => {
+const handleSelectBank = (item: any, type: 'from'|'to') => {
   console.log(item);
   if(item.isNew == false){
     const bank: BankAccount = item as BankAccount;
-    ruleForm.bank_id = bank.unique_id;
-    ruleForm.account_bank_name = bank.account_name;
-    ruleForm.account_bank_number = bank.account_number;
+    if(type == 'from'){
+      ruleForm.recipient_bank = bank.unique_id;
+      ruleForm.account_bank_name = bank.account_name;
+      ruleForm.account_bank_number = bank.account_number;
+      ruleForm.account_bank_version = bank.version;
+    }else{
+      ruleForm.recipient_bank_to = bank.unique_id;
+      ruleForm.account_bank_to_name = bank.account_name;
+      ruleForm.account_bank_to_number = bank.account_number;
+      ruleForm.account_bank_to_version = bank.version;
+    }
   }
 };
 
@@ -657,9 +744,22 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           "amount" : totalAmount.value,
           "account_id": ruleForm.account_id,
           "account_name" : ruleForm.account_name,
-          "recipient_bank" : ruleForm.bank_id,
+          "account_to_id": ruleForm.account_to_id,
+          "account_to_name": ruleForm.account_to_name,
+          "account_version": ruleForm.account_version ?? 1,
+          "account_to_version": ruleForm.account_to_version ?? 1,
+
+          "recipient_bank" : ruleForm.recipient_bank,
+          "recipient_bank_version": ruleForm.recipient_bank_version ?? 1, 
+
+          "recipient_bank_to" : ruleForm.recipient_bank_to,
+          "recipient_bank_to_version": ruleForm.recipient_bank_to_version ?? 1,
+
           "accont_bank_name" : ruleForm.account_bank_name,
           "account_bank_number" : ruleForm.account_bank_number,
+          "account_bank_to_number" : ruleForm.account_bank_to_number,
+          "account_bank_to_name" : ruleForm.account_bank_to_name,
+
           "transaction_items": ruleForm.transaction_items.map((value) => ({
             "reference": value.reference,
             "reference_id": value.reference_id,
@@ -681,6 +781,9 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         formData.append('amount', payload.amount.toString())
         formData.append('account_id', `${payload.account_id}`)
         formData.append('account_name', `${payload.account_name}`)
+        
+        formData.append('account_name', `${payload.account_name}`)
+
         formData.append('recipient_bank', `${payload.recipient_bank}`)
         formData.append('account_bank_name', `${payload.accont_bank_name}`)
         formData.append('account_bank_number', `${payload.account_bank_number}`)

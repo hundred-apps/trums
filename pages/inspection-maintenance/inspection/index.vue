@@ -11,8 +11,10 @@
   import { NuxtLink } from '#components';
 
   definePageMeta({
-    middleware: ["auth", "app"],
-  });
+      middleware: ["auth", "check-access"],
+      requiredPermission: "inspections-read",
+      name: "List Of Inspection"
+  })
 
   const inspections = ref<Inspection[]>([]);
   const inspectionsPaginate = ref<Pagination<Inspection[]>>();

@@ -180,9 +180,10 @@ import {
 } from '@element-plus/icons-vue'
 
 definePageMeta({
-  middleware: ["auth", "app"],
-  name: "Maintenance Detail",
-});
+    middleware: ["auth", "check-access"],
+    requiredPermission: "maintenances-read",
+    name: "Detail Of Maintenances"
+})
 
 const router = useRouter();
 const goBack = () => router.back();

@@ -104,16 +104,15 @@
 </template>
 
 <script lang="tsx" setup>
-import { Eleme, SetUp, Filter } from '@element-plus/icons-vue'
+import { Eleme, SetUp } from '@element-plus/icons-vue'
 import { type Column, type CheckboxValueType, TableV2FixedDir, ElPopover, ElCheckbox, ElIcon, type SortBy, ElCheckboxGroup } from 'element-plus'
-import type { Pagination } from '~/types/pagination'
-import { NuxtLink } from '#components';
 import CustomTable from '~/components/trums/table/customTable.vue'
 import type { ResponsePagination } from '~/types/response_pagination'
 import { OrderColumn, type RequestSearch } from '~/types/request_search'
 import type { BaseResponse } from '~/types/response'
 import SelectionCell from '~/components/trums/table/SelectionCell.vue';
 import type { Menu } from '~/types/menu';
+import { NuxtLink } from '#components'
 
 definePageMeta({
   middleware: ["auth", "check-access"],

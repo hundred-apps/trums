@@ -1,13 +1,15 @@
 <script lang="tsx" setup>
 definePageMeta({
-  middleware: ["auth", "app"],
-});
+    middleware: ["auth", "check-access"],
+    requiredPermission: "catalogues-read",
+    name: "Detail Of Catalogues"
+})
 
-import { InfoFilled, SetUp, Filter } from '@element-plus/icons-vue'
+import { InfoFilled, SetUp, Filter, Refresh } from '@element-plus/icons-vue'
 import CustomTable from '~/components/trums/table/customTable.vue';
 import { OrderColumn, type RequestSearch } from '~/types/request_search';
 import type { ResponsePagination } from '~/types/response_pagination';
-import { ElButton, TableV2FixedDir, ElCheckbox, ElIcon, ElPopover, ElTag, type CheckboxValueType, type Column, type SortBy } from 'element-plus';
+import { ElButton, TableV2FixedDir, ElCheckbox, ElIcon, ElPopover, ElTag, type CheckboxValueType, type Column, type SortBy, ElCheckboxGroup } from 'element-plus';
 import SelectionCell from '~/components/trums/table/SelectionCell.vue';
 import DeleteButton from '~/components/trums/DeleteButton.vue';
 import { NuxtLink } from '#components';
@@ -92,12 +94,10 @@ const availableColumn: Column<Catalogue>[] = [
             default: () => (
               <div class="filter-wrapper">
                 <div class="filter-group flex flex-col">
-                  <ElCheckbox value="place" v-model={request_search.value.column[0].type}>
-                    Place
-                  </ElCheckbox>
-                  <ElCheckbox value="item" v-model={request_search.value.column[0].type}>
-                    Item
-                  </ElCheckbox>
+                  <ElCheckboxGroup v-model={request_search.value.column[0].type}>
+                    <ElCheckbox key={'place'} value={'place'} label={'Place'} />
+                    <ElCheckbox key={'item'} value={'item'} label={'Item'} />
+                  </ElCheckboxGroup>
                 </div>
               </div>
             ),
@@ -161,16 +161,19 @@ const availableColumn: Column<Catalogue>[] = [
             default: () => (
               <div class="filter-wrapper">
                 <div class="filter-group flex flex-col">
-                  {availableColumn.map((col) => (
-                    col.key !== 'selection' && col.key !== 'setup' && (
-                      <ElCheckbox 
-                        v-model={column_selected.value} 
-                        value={col.key!.toString()}
-                      >
-                        {col.title}
-                      </ElCheckbox>
-                    )
-                  ))}
+                  <ElCheckboxGroup v-model={column_selected.value}>
+                    {
+                      availableColumn
+                        .filter(c => c.key !== 'selection' && c.key !== 'setup')
+                        .map(c => (
+                          <ElCheckbox 
+                            key={c.key} 
+                            value={c.key!.toString()} 
+                            label={c.title} 
+                          />
+                        ))
+                    }
+                  </ElCheckboxGroup>
                 </div>
               </div>
             ),
@@ -186,33 +189,36 @@ const availableColumn: Column<Catalogue>[] = [
   }
 ];
 
-availableColumn[10].headerCellRenderer = () => {
-    return (<div class="flex items-center justify-center">
-      <span class="mr-2 text-xs"></span>
-      <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
-        {{
-          default: () => (
-            <div class="filter-wrapper">
-              <div class="filter-group flex flex-col">
-                {
-                  availableColumn.map((value) => (
-                    value.key != 'selection' && value.key != 'setup' ? <ElCheckbox onChange={() => console.log("ok")} value={value.key!.toString()} v-model={column_selected.value}>
-                      {value.title}
-                    </ElCheckbox> : <></>
-                ))
-                }
-              </div>
-            </div>
-          ),
-          reference: () => (
-            <ElIcon class="cursor-pointer">
-              <SetUp />
-            </ElIcon>
-          ),
-        }}
-      </ElPopover>
-    </div>)
-  }
+// availableColumn[10].headerCellRenderer = () => {
+//     return (<div class="flex items-center justify-center">
+//       <span class="mr-2 text-xs"></span>
+//       <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
+//         {{
+//           default: () => (
+//             <div class="filter-wrapper">
+//               <div class="filter-group flex flex-col">
+//                 <ElCheckboxGroup v-model={column_selected.value}>
+
+//                 {
+//                   availableColumn.map((value) => (
+//                     value.key != 'selection' && value.key != 'setup' ? <ElCheckbox onChange={() => console.log("ok")} value={value.key!.toString()}>
+//                       {value.title}
+//                     </ElCheckbox> : <></>
+//                 ))
+//                 }
+//                 </ElCheckboxGroup>
+//               </div>
+//             </div>
+//           ),
+//           reference: () => (
+//             <ElIcon class="cursor-pointer">
+//               <SetUp />
+//             </ElIcon>
+//           ),
+//         }}
+//       </ElPopover>
+//     </div>)
+//   }
 
 const filteredColumn = computed(() => {
   return availableColumn.filter(col => column_selected.value.includes(col.key!.toString()));
@@ -252,7 +258,7 @@ const handleEdit = (row: Catalogue) => {
 
 const handleDelete = async (ids: string[]) => {
   try {
-    await useFetchApi('/catalogues-delete', 'delete-catalogue', 'delete', ids);
+    await useFetchApi('/catalogues-delete', 'delete-catalogue', 'post', ids);
     ElMessage.success('Katalog berhasil dihapus');
     refreshNuxtData('get-catalogues');
   } catch (error: any) {
@@ -337,6 +343,8 @@ const shortcutsDate = [
       }" class="el-button el-button--primary">
         Tambah Katalog
       </NuxtLink>
+
+      <el-button :icon="Refresh" size="default" type="default" @click="() => refreshNuxtData('get-catalogues')">Reload</el-button>
       
       
       <el-popconfirm

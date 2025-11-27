@@ -146,8 +146,10 @@
 
 <script lang="ts" setup>
 definePageMeta({
-  middleware: ["auth", "app"],
-});
+    middleware: ["auth", "check-access"],
+    requiredPermission: "catalogues-create",
+    name: "Create New Catalogues"
+})
 
 interface RuleForm {
   id: number | null;

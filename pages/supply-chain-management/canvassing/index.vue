@@ -118,7 +118,9 @@ import type { BaseResponse } from '~/types/response'
 import SelectionCell from '~/components/trums/table/SelectionCell.vue';
 
 definePageMeta({
-  middleware: ["auth", "app"],
+  middleware: ["auth", "check-access"],
+  requiredPermission: "canvassing-read",
+  name: "Daftar Canvassing"
 })
 
 // Enums

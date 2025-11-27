@@ -57,8 +57,9 @@ import type { FunctionalComponent } from 'vue';
 import CustomTable from '~/components/trums/table/customTable.vue';
 
     definePageMeta({
-        middleware:['auth', 'app'],
-        name: "Detail Request",
+        middleware: ["auth", "check-access"],
+        requiredPermission: "catalogues-read",
+        name: "Detail Location"
     })
     const router = useRouter();
     
@@ -94,7 +95,7 @@ import CustomTable from '~/components/trums/table/customTable.vue';
 
     
         if(response.status.value == 'success'){
-            detail.value = (response.data.value as BaseResponse<Catalogue>).data;
+            detail.value = (response.data.value as BaseResponse<Catalogue>).data ?? null;
         }
         } catch (error: any) {
             ElMessage.error(error.response?.data?.message ?? error);

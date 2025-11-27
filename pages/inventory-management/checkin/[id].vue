@@ -76,8 +76,9 @@ import type { InventoryMovement } from '~/types/inventory_movement';
     import type { BaseResponse } from '~/types/response';
 
     definePageMeta({
-        middleware:['auth', 'app'],
-        name: "Detail Check In/Out",
+        middleware: ["auth", "check-access"],
+        requiredPermission: "inventory-movements-read",
+        name: "Detail Of Inventory Movement"
     })
     const router = useRouter();
     

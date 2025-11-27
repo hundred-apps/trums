@@ -150,10 +150,14 @@ import type { Inventory } from '~/types/inventory';
 import { Delete, Upload, CircleClose, CircleCheck, Edit, Refresh } from '@element-plus/icons-vue';
 import type { PurchaseOrder } from '~/types/scm/purchase_order';
 import type { AddressType } from '~/types/address';
+
+
     definePageMeta({
-        middleware: ["auth", "app"],
-        name: "Detail Permintaan",
-    });
+        middleware: ["auth", "check-access"],
+        requiredPermission: "inquiries-read",
+        name: "Detail Inquiries"
+    })
+
     const router = useRouter();
 
     const errorPage = ref<boolean>(false);

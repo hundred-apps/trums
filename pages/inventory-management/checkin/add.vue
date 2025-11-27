@@ -21,8 +21,9 @@
     import NonSales from './components/NonSales.vue';
     import Sales from './components/Sales.vue';
     definePageMeta({
-        middleware:['auth', 'app'],
-        name: "Check In/Out",
+        middleware: ["auth", "check-access"],
+        requiredPermission: "inventory-movements-create",
+        name: "Add New Inventory Movement"
     })
     const router = useRouter();
     

@@ -47,8 +47,9 @@
 import type { ResponsePagination } from '~/types/response_pagination'
 
     definePageMeta({
-        middleware:['auth', 'app'],
-        name: "Trums Conssigment",
+        middleware: ["auth", "check-access"],
+        requiredPermission: "transaction-recaps-create",
+        name: "Add New Consigment"
     })
 
     interface TabViewInterface {

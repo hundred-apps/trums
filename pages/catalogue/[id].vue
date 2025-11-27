@@ -99,8 +99,9 @@ import type { Unit } from '~/types/unit';
 import CustomTable from '~/components/trums/table/customTable.vue';
 import SelectionCell from '~/components/trums/table/SelectionCell.vue';
 definePageMeta({
-  middleware: ['auth', 'app'],
-  name: "Detail Catalogue",
+    middleware: ["auth", "check-access"],
+    requiredPermission: "catalogues-read",
+    name: "Detail Of Catalogues"
 })
 
 const router = useRouter();

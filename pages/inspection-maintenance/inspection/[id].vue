@@ -75,9 +75,11 @@ import ListNameAndValue from "~/components/trums/ListNameAndValue.vue";
 import { formatDate } from "@vueuse/core";
 
 definePageMeta({
-  middleware: ["auth", "app"],
-  name: "Inspection Detail",
-});
+    middleware: ["auth", "check-access"],
+    requiredPermission: "inspection-read",
+    name: "Detail Of Inspection"
+})
+
 const router = useRouter();
 
 const goBack = () => router.back();

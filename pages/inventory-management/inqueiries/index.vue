@@ -1,7 +1,9 @@
 <script lang="tsx" setup>
   definePageMeta({
-    middleware: ["auth", "app"],
-  });
+    middleware: ["auth", "check-access"],
+    requiredPermission: "inquiries-read",
+    name: "List Of Inquiries"
+  })
   import { ref, onMounted } from 'vue';
   import { Filter, SetUp } from '@element-plus/icons-vue'
   import type { Inquiry } from '~/types/inquiry';

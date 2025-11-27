@@ -98,9 +98,11 @@
 </template>
 
 <script lang="ts" setup>
-definePageMeta({
-  middleware: ["auth", "app"],
-});
+  definePageMeta({
+    middleware: ["auth", "check-access"],
+    requiredPermission: "inventories-create",
+    name: "Add New Inventory"
+  })
 
 interface RuleForm {
   id: number;

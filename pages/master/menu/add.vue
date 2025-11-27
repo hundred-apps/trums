@@ -158,6 +158,8 @@ const fetchMenuDetail = async () => {
       const menuData = response.data.value?.data;
       if (menuData) {
         Object.assign(ruleForm, menuData);
+        ruleForm.parent_id = menuData.parent_id;
+        ruleForm.parent_view = menuData.parent?.name ?? '';
       }
 
       initialApprovalSetting();

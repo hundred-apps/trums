@@ -10,8 +10,10 @@ import { OrderColumn, type RequestSearch } from '~/types/request_search';
 import type { ResponsePagination } from '~/types/response_pagination';
 import { NuxtLink } from '#components';
   definePageMeta({
-        middleware: ["auth", "app"],
-  });
+      middleware: ["auth", "check-access"],
+      requiredPermission: "maintenances-read",
+      name: "Detail Of Maintenances"
+  })
 
 const sortState = ref<SortState>({
   maintenance_date: TableV2SortOrder.DESC,

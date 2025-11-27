@@ -49,6 +49,12 @@ import { column } from 'element-plus/es/components/table-v2/src/common.mjs';
 import { NuxtLink } from '#components';
 import DeleteButton from '~/components/trums/DeleteButton.vue';
 
+definePageMeta({
+  middleware: ["auth", "check-access"],
+  requiredPermission: "catalogues-read",
+  name: "List Of Location"
+})
+
 const config = useRuntimeConfig()
 
 

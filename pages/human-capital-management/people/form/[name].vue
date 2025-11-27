@@ -259,8 +259,10 @@
 
 <script lang="ts" setup>
 definePageMeta({
-  middleware: ["auth", "app"],
-});
+    middleware: ["auth", "check-access"],
+    requiredPermission: "peoples-create",
+    name: "Create New Peoples"
+})
 import { reactive, ref, onMounted, watch } from "vue";
 import {
   type Column,

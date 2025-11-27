@@ -1,7 +1,9 @@
 <script lang="tsx" setup>
   definePageMeta({
-    middleware: ["auth", "app"],
-  });
+    middleware: ["auth", "check-access"],
+    requiredPermission: "inventory-movements-read",
+    name: "List Of Inventory Movement"
+  })
   import { ref, onMounted } from 'vue';
   import { InfoFilled, SetUp } from '@element-plus/icons-vue'
   import CustomTable from '~/components/trums/table/customTable.vue';

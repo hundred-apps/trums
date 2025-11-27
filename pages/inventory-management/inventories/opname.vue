@@ -1,7 +1,9 @@
 <script lang="tsx" setup>
   definePageMeta({
-    middleware: ["auth", "app"],
-  });
+    middleware: ["auth", "check-access"],
+    requiredPermission: "inventories-read",
+    name: "List Of Stok Opname"
+  })
   import { ref, onMounted, type FunctionalComponent } from 'vue';
   import type { Catalogue } from '~/types/catalogue';
   import { type Inventory } from '~/types/inventory';
