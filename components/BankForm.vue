@@ -31,26 +31,34 @@ const resetFormData = (bank?: Bank | null) => {
   form.unique_id = bank?.unique_id || ''
 }
 
-watch(() => props.bank, (newBank) => {
-  resetFormData(newBank)
-}, { immediate: true })
+// watch(() => props.bank, (newBank) => {
+//   resetFormData(newBank)
+// }, { immediate: true })
 
 
-const submitForm = async () => {
+const submitForm = async (formEl: FormInstance|undefined) => {
+  console.log('submitForm called', new Date().toISOString())  // Log 1
+  console.log('Form data:', JSON.stringify(form))            // Log 2
+  
+  loading.value = true
   try {
-    await formRef.value?.validate()
-    loading.value = true
+    formEl?.validate()
 
-    
+    // const response = await useFetchApi<BaseResponse<Bank>>('/banks-create', 'create-bank', 'post', form);
 
-    await useFetchApi<BaseResponse<Bank>>('/banks-create', 'create-bank', 'post', form);
-      
 
-    ElMessage.success(`Bank berhasil ${props.isEditing ? 'diubah' : 'ditambahkan'}`)
-    emit('submitted')
-    
+    const response = await useApiFetch<BaseResponse<Bank>>('/banks-create', {
+      method: 'post',
+      body: form,
+    })
+
+    if(response.success){
+      ElMessage.success(`Bank berhasil ${props.isEditing ? 'diubah' : 'ditambahkan'}`)
+      emit('submitted')
+    }
+
     if (!props.isEditing) {
-      formRef.value?.resetFields()
+      formEl?.resetFields()
     }
     
   } catch (error) {
@@ -76,14 +84,15 @@ onMounted(() => {
     label-position="top"
   >
     <el-form-item label="Nama Bank/E-Wallet" prop="bank_name">
-      <el-input v-model="form.bank_name" placeholder="Contoh: Bank Mandiri" />
+      <el-input v-model="form.bank_name"  placeholder="Contoh: Bank Mandiri" />
     </el-form-item>
   
     <div class="flex justify-end gap-3 mt-6">
       <el-button @click="emit('cancel')">Batal</el-button>
       <el-button 
+        :disabled="loading"
         type="primary" 
-        @click="submitForm"
+        @click="() => submitForm(formRef)"
         :loading="loading"
       >
         {{ isEditing ? 'Update' : 'Simpan' }}

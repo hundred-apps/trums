@@ -222,6 +222,7 @@ import type { Pagination } from '~/types/pagination';
 import type { Canvassing } from '~/types/scm/canvasing';
 import TrumsUploadFile from '~/components/trums/form/TrumsUploadFile.vue';
 import type { AppFile } from '~/types/file';
+import type { AddressType } from '~/types/address';
   definePageMeta({
     middleware: ["auth", "check-access"],
     requiredPermission: "pricetag-create",
@@ -1119,6 +1120,22 @@ import type { AppFile } from '~/types/file';
     }
   }
 
+  const initialSetting = () => {
+    const store = localStorage.getItem('setting');
+    if(store){
+      const setting: {
+        company: Contact,
+        address: AddressType
+      } = JSON.parse(store);
+
+      ruleForm.to = setting.company;
+      ruleForm.to_id = setting.company.unique_id;
+      ruleForm.to_version = setting.company.version;
+      ruleForm.to_name = setting.company.name;
+
+    }
+  }
+
   onMounted(() => {
 
     if(canvassing_id.value){
@@ -1131,7 +1148,9 @@ import type { AppFile } from '~/types/file';
       fetchInitialData();
     }else{
       initialSpecialPrice();
-      
+      initialSetting();
     }
+
+
   })
 </script>

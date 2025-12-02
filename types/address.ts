@@ -11,6 +11,7 @@ export type AddressType = {
     regency: string,
     province: string,
     country: string,
+    codepos?: number,
     created_at: number,
     created_by: number,
     updated_at: number,

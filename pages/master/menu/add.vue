@@ -1,7 +1,9 @@
 <script lang="tsx" setup>
 definePageMeta({
-  middleware: ["auth", "app"],
-});
+  middleware: ["auth", "check-access"],
+  requiredPermission: "menus-create",
+  name: "Create Menu"
+})
 
 interface MenuForm {
   unique_id: string

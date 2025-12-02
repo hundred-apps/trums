@@ -37,6 +37,7 @@ export type AdjustmentTransaction = {
   created_at: number;       // unix timestamp
   updated_at: number;     
   checked?: boolean;
+  version?: number;
 };
 
 // Reference transaction adjustment (usage of adjustment in a transaction)

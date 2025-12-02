@@ -8,13 +8,27 @@ import type { DefaultResponse, DefaultResponsePagination, Pagination } from '~/t
 import CustomTable from '~/components/trums/table/customTable.vue'
 import SelectionCell from '~/components/trums/table/SelectionCell.vue'
 import DeleteButton from '~/components/trums/DeleteButton.vue'
+import { OrderColumn, type RequestSearch } from '~/types/request_search'
+import type { ResponsePagination } from '~/types/response_pagination'
 
 definePageMeta({
   middleware: ["auth", "app"],
 })
 
+const request_search = ref<RequestSearch>({
+  keyword: '',
+  column: [],
+  limit: "10",
+  offset: "1",
+  table: 'banks',
+  sort: {
+    column: 'bank_name',
+    order: OrderColumn.ASC,
+  }
+});
+
 // Data state
-const {data} = await useFetchApi<DefaultResponsePagination<Bank[]>>('/banks-read', 'get-banks', 'get', null);
+const {data} = await useFetchApi<ResponsePagination<Bank[]>>('/search', 'get-banks', 'post', request_search.value);
 const loading = ref(false)
 const drawerVisible = ref(false)
 const currentBank = ref<Bank | null>(null)
@@ -26,7 +40,7 @@ const selectedBank = ref<Bank[]>([])
 
 // Filter data based on search
 const filterTableData = computed(() =>
-  data.value?.data.query.filter(
+  (data.value?.data ?? []).filter(
     (data) =>
       !search.value ||
       data.bank_name.toLowerCase().includes(search.value.toLowerCase()) ||
@@ -76,7 +90,7 @@ const columns: Column<Bank>[] = [
         <ElButton size="small" onClick={() => openEditDrawer(row)}>
           Edit
         </ElButton>
-        <DeleteButton  onConfirm={() => handleDelete(row.unique_id)} onCancel={() => {}} />
+        <DeleteButton size="small" onConfirm={() => handleDelete([row.unique_id])} onCancel={() => {}} />
       </>
     ),
   }
@@ -92,9 +106,9 @@ columns.unshift({
     return <SelectionCell value={rowData.checked} onChange={onChange} />
   },
   headerCellRenderer: () => {
-    const _data = unref(data.value?.data.query)
+    const _data = unref(data.value?.data)
     const onChange = (value: CheckboxValueType) =>
-      (data.value!.data.query = _data!.map((row: any) => {
+      (data.value!.data = _data!.map((row: any) => {
         row.checked = value
         return row
       }))
@@ -112,10 +126,10 @@ columns.unshift({
 })
 
 // Handle delete
-const handleDelete = async (id: string) => {
+const handleDelete = async (id: string[]) => {
   try {
     // await axios.delete(`/banks/${id}`)
-    await useFetchApi<any>(`/banks-delete/${id}`, 'delete-bank', 'delete', null);
+    await useFetchApi<any>(`/banks-delete`, 'delete-bank', 'post', id);
     ElMessage.success('Bank berhasil dihapus')
     refreshNuxtData('get-banks');
   } catch (error) {
@@ -140,9 +154,9 @@ const openCreateDrawer = () => {
   drawerVisible.value = true
 }
 
-const checkSelect = () => data?.value?.data.query.some((row) => row.checked);
+const checkSelect = () => data?.value?.data.some((row) => row.checked);
 const countSelect = () => {
-  return data!.value!.data.query.reduce((count, row) => {
+  return data!.value!.data.reduce((count, row) => {
     return row.checked ? count + 1 : count
   }, 0)
 }
@@ -166,14 +180,19 @@ const batchDelete = async () => {
       { type: 'warning' }
     )
     
-    // const ids = selectedBank.value.map((invoice) => invoice.unique_id)
-    // await axios.post('/invoices/batch-delete', { ids })
-    ElMessage.success(`${selectedBank.value.length} invoice berhasil dihapus`)
-    // selectedInvoices.value = []
-    refreshNuxtData('get-banks')
+    const ids: string[] = (data?.value?.data ?? []).filter((value) => value.checked).map((row) => row.unique_id) ?? [];
+
+    if(ids.length > 0){
+      handleDelete(ids);
+    }
   } catch (error) {
     // User canceled or error occurred
   }
+}
+
+const paginationClick = (val: number) => {
+  
+  request_search.value.offset = val.toString();
 }
 
 onMounted(() => {
@@ -192,7 +211,7 @@ onMounted(() => {
       </el-button>
       <el-button
         size="default"
-        @click="() => {}"
+        @click="() => refreshNuxtData('get-banks')"
         :loading-icon="Eleme"
         :loading="loading"
       >
@@ -215,14 +234,7 @@ onMounted(() => {
     />
     
     <div class="flex justify-end mt-3">
-      <el-pagination
-        background
-        layout="prev, pager, next"
-        :total="data?.data.total_data"
-        :page-size="10"
-        :current-page="data?.data.currentPage"
-        @current-change="(page) => {}"
-      />
+      <el-pagination background layout="prev, pager, next, size" :total="data?.total_data" @next-click="paginationClick" @prev-click="paginationClick" @change="paginationClick"/>
     </div>
 
     <ElDrawer
@@ -237,6 +249,7 @@ onMounted(() => {
         @submitted="handleDrawerSubmit"
         @cancel="drawerVisible = false"
       />
+      
     </ElDrawer>
   </TrumsWrapper>
 </template>

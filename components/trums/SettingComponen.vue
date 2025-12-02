@@ -1,12 +1,7 @@
 <template>
-  <TrumsWrapper>
-    <el-page-header @back="goBack">
-      <template #content>
-        <span class="text-large font-600 mr-3"> Pengaturan Sistem </span>
-      </template>
-    </el-page-header>
 
-    <el-card class="my-3" shadow="never">
+    <div>
+        <el-card class="my-3" shadow="never">
       <template #header>
         <div class="card-header">
           <span class="text-lg font-bold">Pengaturan Default</span>
@@ -197,8 +192,8 @@
         </div>
       </template>
     </el-dialog>
+    </div>
     
-  </TrumsWrapper>
 </template>
 
 <script lang="tsx" setup>
@@ -212,10 +207,6 @@ import type { BaseResponse } from '~/types/response'
 import FormAddress from '~/components/trums/FormAddress.vue'
 import { unique } from 'element-plus/es/utils/arrays.mjs'
 
-definePageMeta({
-  middleware: ["auth"],
-  name: "Setting System"
-})
 
 const router = useRouter()
 const loading = ref<boolean>(false)
@@ -236,6 +227,10 @@ const currentSettings = ref<{
   company: null,
   address: null
 })
+
+const props = defineProps<{
+    onSaveSetting: () => void,
+}>();
 
 const tempCompany = ref<Contact>({
   id: 0,
@@ -480,6 +475,7 @@ const saveSetting = () => {
   try {
     localStorage.setItem('setting', JSON.stringify(currentSettings.value));
     ElMessage.success('Berhasil Menyimpan Pengaturan');
+    props.onSaveSetting();
   } catch (error: any) {
     ElMessage.error(error?.response?.message ?? error);
   } finally {
@@ -559,10 +555,7 @@ onMounted(async () => {
   align-items: center;
 }
 
-.dialog-footer {
-  display: flex;
-  justify-content: center;
-}
+
 
 :deep(.el-select .el-select__tags) {
   max-width: 100%;

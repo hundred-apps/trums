@@ -69,7 +69,7 @@ const columns: Column<BankAccount>[] = [
         <ElButton size="small" onClick={() => openEditDrawer(rowData)}>
           Edit
         </ElButton>
-        <DeleteButton size="small" onConfirm={() => handleDelete(rowData.id)} onCancel={() => {}} />
+        <DeleteButton size="small"  onConfirm={() => handleDelete(rowData.id)} onCancel={() => {}} />
       </>
     )
   }

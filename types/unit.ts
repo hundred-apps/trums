@@ -7,4 +7,5 @@ export type Unit = {
     created_by: string,
     updated_at: number,
     version: number,
+    checked?: boolean,
 }

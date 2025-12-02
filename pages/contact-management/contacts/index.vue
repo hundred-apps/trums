@@ -1,4 +1,4 @@
-<script lang="ts" setup>
+<script lang="tsx" setup>
 import { ref, onMounted } from "vue";
 import { type Contact } from "~/types/contact";
 import { useApi } from "~/composables/useApi";
@@ -7,6 +7,7 @@ import { useRouter } from "vue-router";
 import { InfoFilled, Delete, Edit } from "@element-plus/icons-vue";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { Pagination } from "~/types/pagination";
+import { NuxtLink } from "#components";
 const config = useRuntimeConfig();
 
 definePageMeta({
@@ -38,6 +39,11 @@ const columns = [
     sortable: true,
     fixed: true,
     width: 200,
+    cellRenderer: ({ rowData }: { rowData: Contact }) => (
+      <NuxtLink href={`/contact-management/contacts/${rowData.unique_id}`} class="text-blue-500">
+        {rowData.name}
+      </NuxtLink>
+    )
   },
   {
     label: "Phone",
@@ -210,6 +216,7 @@ console.log("data:", data);
           <span v-if="col.prop === 'people_internal'">{{
             scope.row[col.prop]
           }}</span>
+          <NuxtLink v-if="col.prop == 'name'" :href="`/contact-management/contacts/${scope.row.unique_id}`" class="text-blue-600">{{ scope.row.name }}</NuxtLink>
         </template>
       </el-table-column>
       <el-table-column fixed="right" label="Operations" width="150">

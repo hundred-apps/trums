@@ -8,6 +8,7 @@
         <el-card shadow="never" class="mt-6">
         
             <el-form 
+                :disabled="loading"
                 :model="ruleFormAddress" 
                 ref="ruleFormRefAddress"
                 :rules="rulesAddress"
@@ -28,7 +29,7 @@
                 </el-form-item>
                 <el-form-item label="Alamat" prop="village">
                     <el-autocomplete
-                        v-model="ruleFormAddress.address_id"
+                        v-model="ruleFormAddress.address_view"
                         :fetch-suggestions="querySearchGeolocation"
                         :trigger-on-focus="false"
                         clearable
@@ -40,18 +41,15 @@
                 <el-form-item label="Detail Alamat" prop="street">
                     <el-input v-model="ruleFormAddress.street" autocomplete="off"/>
                 </el-form-item>
-                <el-form-item label="Latitude" prop="lat">
-                    <el-input v-model="ruleFormAddress.lat" autocomplete="off"/>
-                </el-form-item>
-                <el-form-item label="Longitude" prop="lng">
-                    <el-input v-model="ruleFormAddress.lng" autocomplete="off"/>
+                <el-form-item label="Kode Pos" prop="codepos">
+                    <el-input v-model="ruleFormAddress.codepos" autocomplete="off"/>
                 </el-form-item>
                 
             </el-form>
             <template #footer>
                 <div class="flex">
-                    <el-button @click="() => {}">Batal</el-button>
-                    <el-button type="primary" @click="() => submitFormAddress(ruleFormRefAddress)">
+                    <el-button :disabled="loading" @click="() => {}">Batal</el-button>
+                    <el-button :disabled="loading" type="primary" @click="() => submitFormAddress(ruleFormRefAddress)">
                     Simpan
                     </el-button>
                 </div>
@@ -69,16 +67,22 @@ import type { BaseResponse } from '~/types/response';
 import type { ResponsePagination } from '~/types/response_pagination';
 
 definePageMeta({
-  middleware: ["auth", "app"],
-  name: "Add New Address",
+  middleware: ["auth", "check-access"],
+  requiredPermission: "address-read",
+  name: "Add New Address"
 })
 
 
 const router = useRouter();
+const route = useRoute()
+const id = computed(() => route.query.id as string);
 
 const goBack = () => router.back();
 
+const loading = ref<boolean>(false);
+
 interface formAddress {
+    unique_id: string|null,
     contact_id?: string,
     contact_name?: string,
     contact_version?: number,
@@ -91,11 +95,23 @@ interface formAddress {
     regency?: string,
     province?: string,
     country?: string,
+    codepos: string,
     lat?: string,
     lng?: string,
+    address_view: string,
 }
 
-const ruleFormAddress = reactive<formAddress>({});
+const ruleFormAddress = reactive<formAddress>({
+    unique_id: null,
+    contact_id: '',
+    contact_name: '',
+    address_name: '',
+    street: '',
+    village_id: '',
+    codepos: '',
+    address_view: '',
+
+});
 const ruleFormRefAddress = ref<FormInstance>();
 
 const rulesAddress = reactive<FormRules<formAddress>>({
@@ -108,8 +124,7 @@ const rulesAddress = reactive<FormRules<formAddress>>({
     city: [{ required: true, message: "Masukan Kecamatan", trigger: "blur" }],
     regency: [{ required: true, message: "Masukan Kota/Kabupaten", trigger: "blur" }],
     province: [{ required: true, message: "Masukan Provinsi", trigger: "blur" }],
-    lat: [{ required: true, message: "Masukan Latitude", trigger: "blur" }],
-    lng: [{ required: true, message: "Masukan Longitude", trigger: "blur" }],
+    codepos: [{ required: true, message: "Masukan Kode Pos", trigger: "blur" }],
     
 });
 
@@ -138,6 +153,8 @@ const handleSelectGeoLocation = (record: Record<string, any>) => {
     ruleFormAddress.city = names[2];
     ruleFormAddress.regency = names[3];
     ruleFormAddress.province = names[4];
+
+    ruleFormAddress.address_view = address.name;
 }
 
 const submitFormAddress = async (formEl: FormInstance | undefined) => {
@@ -199,11 +216,13 @@ const handleSelectContact = (record: Record<string, any>) => {
     ruleFormAddress.contact_name = contact.name;
     ruleFormAddress.contact_version = contact.version;
     ruleFormAddress.address_name = contact.name;
+    
 }
 
 const onSubmitAddress = async () => {
     console.log(ruleFormAddress)
     const data = {
+        "unique_id": ruleFormAddress.unique_id,
         "contact_id": ruleFormAddress.contact_id,
         "contact_name": ruleFormAddress.contact_name,
         "contact_version": ruleFormAddress.contact_version,
@@ -217,6 +236,7 @@ const onSubmitAddress = async () => {
         "country": "indonesia",
         "lat": ruleFormAddress.lat,
         "lng": ruleFormAddress.lng,
+        "codepos": parseInt(ruleFormAddress.codepos),
     }
 
     try {
@@ -225,15 +245,35 @@ const onSubmitAddress = async () => {
             ElMessage.success('Berhasil!');
             const address:AddressType|undefined = (response.data.value?.data as unknown as BaseResponse<AddressType>).data;
             ruleFormRefAddress.value?.resetFields();
+            ruleFormAddress.address_view = '';
         }
     } catch (error: any) {
         ElMessage.success(error?.response?.messaage ?? error);
     }
 }
 
+const getDetail = async () => {
+    loading.value = true;
+    try {
+        const response = await useApiFetch<BaseResponse<AddressType>>(`/address-read/${id.value}`, {
+            method: 'GET'
+        });
+
+        if(response.success && response.data){
+            const addressType: AddressType = response.data;
+            Object.assign(ruleFormAddress, response.data);
+            ruleFormAddress.address_view = `${addressType.village}, ${addressType.city}, ${addressType.regency}, ${addressType.province}`;
+        }
+    } catch (error: any) {
+        ElMessage.error(`${error.response?.data?.message ?? error}`);
+    } finally {
+        loading.value = false;
+    }
+}
+
 onMounted(() => {
-//   if (props.onSetInitital) {
-//     Object.assign(ruleFormAddress, props.onSetInitital);
-//   }
+    if(id.value){
+        getDetail();
+    }
 });
 </script>

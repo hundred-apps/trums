@@ -97,6 +97,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (stored) {
         try {
           const data = JSON.parse(stored)
+          console.log('stored data', data);
           setAuthData(data)
         } catch (error) {
           console.error('Failed to load auth data from storage:', error)
@@ -110,7 +111,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!isAuthenticated.value) {
       return false
     }
-
+    
     // Jika token hampir expired (kurang dari 5 menit), try refresh
     if (tokenExpiresIn.value < 300) { // 5 minutes
       return await tryRefreshToken()

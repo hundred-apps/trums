@@ -10,6 +10,8 @@ import { Filter } from '@element-plus/icons-vue';
 import { NuxtLink } from '#components';
 import { InfoFilled, SetUp } from '@element-plus/icons-vue'
 import type { Pricetag } from '~/types/pricetag';
+import type { Contact } from '~/types/contact';
+import type { AddressType } from '~/types/address';
   definePageMeta({
     middleware: ["auth", "app"],
     name: "Penawaran ke vendor",
@@ -297,6 +299,8 @@ import type { Pricetag } from '~/types/pricetag';
     handleDelete(checkeds?.map((value) => value.unique_id) ?? [])
     
   }
+
+  
 
   onMounted(() => {
     fetchLocation();

@@ -3,8 +3,6 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
   
   // Support berbagai format permission requirement
   const permissionReq: string = meta.requiredPermission as string;
-  console.log('permission ', meta);
-  console.log('to path', to.path);
   if (!permissionReq) {
     return // No permission requirement
   }

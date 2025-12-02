@@ -1,6 +1,5 @@
 <template>
-  <TrumsWrapper>
-    <el-result
+  <el-result
         icon="warning"
         title="403"
         sub-title="Maaf, Anda tidak memiliki izin untuk mengakses halaman ini"
@@ -9,10 +8,15 @@
           <NuxtLink :href="`/dashboard`" class="el-button el-button--primary">Kembali Ke Beranda</NuxtLink>
         </template>
     </el-result>
-  </TrumsWrapper>
 </template>
 
 <script setup lang="ts">
+
+definePageMeta({
+  layout: false,
+});
+
+
 const router = useRouter();
 
 // Cek apakah user sudah login (sesuaikan dengan auth system Anda)

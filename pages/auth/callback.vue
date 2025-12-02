@@ -169,7 +169,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           authStore.setMenu(dataUser.menu || []);
           
           ElMessage.success('Berhasil Login!');
-          window.location.href = "/dashboard";
+          window.location.href = "/initial/setting";
         } else {
           ElMessage.error(response?.data?.message);
         }

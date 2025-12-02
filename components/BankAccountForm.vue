@@ -60,9 +60,9 @@ const fetchBankOptions = async () => {
 
 // Handle form submission
 const submitForm = async () => {
+  loading.value = true
   try {
     await formRef.value?.validate()
-    loading.value = true
 
     const endpoint = `/bank-accounts-create`;
     

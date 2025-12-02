@@ -70,7 +70,8 @@ const request_search = ref<RequestSearch>({
     keyword: '',
     column: [
       {
-        is_company: [true],
+        is_company: true,
+        ownership:true,
       }
     ],
     limit: "10",

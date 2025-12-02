@@ -743,9 +743,10 @@
               const resultApi: Unit[]  = response.data.data;
               
               if(resultApi.length > 0){
-                  cb(resultApi.map((value) => ({...value, value: value.name})));
+                const callback = resultApi.map((value) => ({...value, value: value.name}));
+                  cb([...callback, {value: queryString, label: `${queryString}`, isNew: true}]);
               }else{
-                  cb([{value: `Tambahkan ${queryString}`, label: `${queryString}`}]);
+                  cb([{value: `${queryString}`, label: `${queryString}`, isNew: true}]);
               }
           }
       }).catch((error: any) => {
@@ -933,11 +934,36 @@
       }
     }
 
-    const onHandleSelectItemAutocompleteUnit = (item: Record<string, any>, scope: any) => {
+
+    const handleNewUnit = async (name: string): Promise<Unit|null> => {
+      loading.value = true
+      try {
+        
+
+        // Call API to create unit
+        const response = await useFetchApi<BaseResponse<Unit>>('/unit-create', 'create-unit', 'post', {name: name})
+        
+        if(response.status.value == 'success'){
+          return response.data.value?.data ?? null;
+        }
+
+      } catch (error: any) {
+        ElMessage.error('Gagal menyimpan unit: ' + (error.response?.data?.message || error.message || 'Terjadi kesalahan'))
+        return null;
+      } finally {
+        loading.value = false
+        return null;
+      }
+    }
+    const onHandleSelectItemAutocompleteUnit = async (item: Record<string, any>, scope: any) => {
       console.log(scope.$index)
-      if(item.unique_id == undefined){
-        dataTable.value[scope.$index].unit_name = item.label;
-        dataTable.value[scope.$index].unit_id = '';
+      console.log('item', item);
+      if(item.isNew){
+        const unit: Unit|null = await handleNewUnit(item.label ?? '');
+        if(unit != null){
+          dataTable.value[scope.$index].unit_name = unit.name;
+          dataTable.value[scope.$index].unit_id = unit.unique_id;
+        }
       }else{
         dataTable.value[scope.$index].unit_name = item.value;
         dataTable.value[scope.$index].unit_id = `${item.id}`;
@@ -1404,7 +1430,19 @@
                 v-model="scope.row.unit_name"
                 placeholder="Input Units"
                 @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteUnit(item, scope)"
-              />
+              >
+            
+              <template #default="{ item }">
+                  <div v-if="item.isNew" class="flex items-center text-blue-500">
+                      <el-icon><Plus /></el-icon>
+                      <span class="ml-2">Tambahkan "{{ item.label }}"</span>
+                  </div>
+                  <div v-else>
+                      <p class="font-bold">{{ item.name }}</p>
+                  </div>
+              </template>
+            
+            </el-autocomplete>
             </template>
           </el-table-column>
           <el-table-column label="Aksi" width="100">

@@ -1,5 +1,5 @@
 <template>
-    <el-card style="max-width: 480px">
+    <el-card >
         
         <el-form 
             :model="ruleFormAddress" 
@@ -33,6 +33,9 @@
             </el-form-item>
             <el-form-item label="Detail Alamat" prop="street">
                 <el-input v-model="ruleFormAddress.street" autocomplete="off"/>
+            </el-form-item>
+            <el-form-item label="Kode Pos" prop="codepos">
+                <el-input v-model="ruleFormAddress.codepos" autocomplete="off"/>
             </el-form-item>
             <el-form-item label="Latitude" prop="lat">
                 <el-input v-model="ruleFormAddress.lat" autocomplete="off"/>
@@ -80,6 +83,7 @@ interface formAddress {
     regency?: string,
     province?: string,
     country?: string,
+    codepos?: string,
     lat?: string,
     lng?: string,
 }
@@ -97,8 +101,7 @@ const rulesAddress = reactive<FormRules<formAddress>>({
     city: [{ required: true, message: "Masukan Kecamatan", trigger: "blur" }],
     regency: [{ required: true, message: "Masukan Kota/Kabupaten", trigger: "blur" }],
     province: [{ required: true, message: "Masukan Provinsi", trigger: "blur" }],
-    lat: [{ required: true, message: "Masukan Latitude", trigger: "blur" }],
-    lng: [{ required: true, message: "Masukan Longitude", trigger: "blur" }],
+    
     
 });
 
@@ -222,6 +225,7 @@ const onSubmitAddress = async () => {
 }
 
 onMounted(() => {
+    console.log('prop', props.onSetInitital);
   if (props.onSetInitital) {
     Object.assign(ruleFormAddress, props.onSetInitital);
   }

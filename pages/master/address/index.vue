@@ -1,43 +1,6 @@
 <template>
   <TrumsWrapper>
-    <!-- Statistic Cards -->
-    <el-row :gutter="16">
-      <el-col :span="6">
-        <div class="statistic-card">
-          <el-statistic :value="(data?.data ?? []).filter((item: AddressType) => item.contact_id !== null).length">
-            <template #title>
-              <div style="display: inline-flex; align-items: center">
-                Alamat dengan Kontak
-              </div>
-            </template>
-          </el-statistic>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="statistic-card">
-          <el-statistic :value="(data?.data ?? []).filter((item: AddressType) => item.contact_id === null).length">
-            <template #title>
-              <div style="display: inline-flex; align-items: center">
-                Alamat Mandiri
-              </div>
-            </template>
-          </el-statistic>
-        </div>
-      </el-col>
-      
-      <el-col :span="6">
-        <div class="statistic-card">
-          <el-statistic :value="data?.total_data ?? 0">
-            <template #title>
-              <div style="display: inline-flex; align-items: center">
-                Total Alamat
-              </div>
-            </template>
-          </el-statistic>
-        </div>
-      </el-col>
-    </el-row>
-
+    
     <!-- Action Bar -->
     <el-row :gutter="20" class="mb-3">
       <el-col :span="6">
@@ -48,11 +11,7 @@
           clearable 
         />
       </el-col>
-      <el-radio-group v-model="address_type" class="mr-3" size="default" @change="onChangeAddressFilter">
-        <el-radio-button label="Semua" value="all" />
-        <el-radio-button label="Dengan Kontak" value="with_contact" />
-        <el-radio-button label="Mandiri" value="standalone" />
-      </el-radio-group>
+      
       <NuxtLink 
         class="el-button el-button--primary el-button--default" 
         href="/master/address/add"
@@ -113,7 +72,9 @@ import SelectionCell from '~/components/trums/table/SelectionCell.vue';
 import type { AddressType } from '~/types/address';
 
 definePageMeta({
-  middleware: ["auth", "app"],
+  middleware: ["auth", "check-access"],
+  requiredPermission: "address-read",
+  name: "List Of Address"
 })
 
 const address_type = ref<string>('all');
@@ -254,7 +215,7 @@ const columns: Column<AddressType>[] = [
         <div class="flex gap-2">
           <NuxtLink 
             class="el-button el-button--small el-button--primary" 
-            href={`/address/add?id=${rowData.unique_id}`}
+            href={`/master/address/add?id=${rowData.unique_id}`}
           >
             Edit
           </NuxtLink>
@@ -347,14 +308,6 @@ const filteredColumns = computed(() => {
   return columns.filter(col => columnsSelected.value.includes(col.key!.toString()))
 })
 
-// Methods
-const formatLocalDate = (timestamp: number) => {
-  return new Date(timestamp).toLocaleDateString('id-ID', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
-}
 
 const handleSelectionChange = (selection: AddressType[]) => {
   selectedAddresses.value = selection
@@ -384,7 +337,7 @@ const onDelete = async (uniques: string[]) => {
     )
     
     if (confirmed) {
-      await useFetchApi<BaseResponse<any>>('/addresses-delete', 'delete-addresses', 'post', uniques);
+      await useFetchApi<BaseResponse<any>>('/address-delete', 'delete-addresses', 'post', uniques);
       
       ElMessage.success('Alamat berhasil dihapus')
       refreshNuxtData('get-addresses');
