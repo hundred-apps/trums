@@ -10,6 +10,12 @@ const login = async () => {
   await oidc.signinRedirect()
 }
 
+onMounted(() => {
+  
+
+  console.log('device', getDeviceName(navigator.userAgent));
+})
+
 </script>
 <template>
   <TrumsWrapper class="content-center flex items-center justify-center">

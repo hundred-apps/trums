@@ -11,7 +11,7 @@ import {
 } from "element-plus";
 import { Plus } from "@element-plus/icons-vue";
 import { type User } from "~/types/user";
-import type { People } from "~/types/people";
+import { DevicePlatform, type DeviceInfo, type People } from "~/types/people";
 import type { UserProfile } from "oidc-client-ts";
 import type { BaseResponse } from "~/types/response";
 
@@ -30,6 +30,8 @@ const authStore = useAuthStore();
 const { t } = useI18n();
 const config = useRuntimeConfig();
 
+const { userAgent } = useDevice();
+
 definePageMeta({
   layout: false,
 });
@@ -44,7 +46,6 @@ interface RuleForm {
   gid?: string;
   unique_id?: string;
 }
-
 
 
 const loading = ref<boolean>(false);
@@ -149,6 +150,16 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       formData.append("gid", `${ruleForm.gid}`);
       formData.append("unique_id", `${ruleForm.unique_id}`);
 
+      const version = navigator.appVersion;
+
+  
+
+      formData.append("people_devices[0][platform]", `${DevicePlatform.WEB}`);
+      formData.append("people_devices[0][version]", `${version.split(' ')[0]}`);
+      formData.append("people_devices[0][identifier]", `${navigator.userAgent}`);
+      formData.append("people_devices[0][device_name]", `${getDeviceName(navigator.userAgent)}`);
+      // formData.append("people_devices[0][fcm_token]", null);
+
       loading.value = true;
 
       try {
@@ -163,7 +174,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           
           userToken.value = response.data.token;
 
-          console.log('user token',userToken.value);
+          console.log('user',response.data.data);
           
           authStore.setUserData(dataUser);
           authStore.setMenu(dataUser.menu || []);
@@ -288,6 +299,8 @@ const handleOIDCCallback = async () => {
 };
 
 onMounted(() => {
+  console.log('device', navigator);
+  // console.log('device', navigator);
   // console.log('oidc', oidc.user);
   
   // const jsonUser = JSON.parse(user || "");

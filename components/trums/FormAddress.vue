@@ -167,6 +167,7 @@ const querySearchContact = (queryString: string, cb: (arg: any) => void) => {
         keyword: queryString,
         limit: "20",
         offset: "1",
+        flag: 'form',
         sort: null,
     }
     useFetchApi<ResponsePagination<Contact[]>>('/search', 'contacts', 'post', data).then((response) => {
@@ -206,6 +207,7 @@ const onSubmitAddress = async () => {
         "city": ruleFormAddress.city,
         "regency": ruleFormAddress.regency,
         "province": ruleFormAddress.province,
+        "codepos": parseInt(ruleFormAddress.codepos ?? '0'),
         "country": "indonesia",
         "lat": ruleFormAddress.lat,
         "lng": ruleFormAddress.lng,

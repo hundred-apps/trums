@@ -25,7 +25,30 @@ export type People = {
   version: number,
   user_permissions?: UserPermission[],
   menu?: Menu[],
+  devices: DeviceInfo[],
 };
+
+export type DeviceInfo = {
+  unique_id: string,
+  device_name: string,
+  people_id: string,
+  is_active: boolean,
+  platform: DevicePlatform,
+  version: string,
+  identifier: string,
+  fcm_token: string,
+  access_token: string,
+  last_active: number,
+  created_at: number,
+  updated_at: number,
+}
+
+export enum DevicePlatform {
+  MOBILE = 'mobile',
+  WEB = 'web',
+  TABLET = 'tablet',
+  DESKTOP = 'desktop'
+}
 
 export type UserPermission = {
   unique_id: string,

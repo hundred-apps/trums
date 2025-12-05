@@ -18,6 +18,7 @@ import * as ElementPlusIconsVue from '@element-plus/icons-vue'
 import { useRouter } from "vue-router";
 import type { Menu } from "~/types/menu";
 import type { People } from "~/types/people";
+import type { BaseResponse } from "~/types/response";
 
 const config = useRuntimeConfig();
 const { t } = useI18n();
@@ -61,15 +62,26 @@ onMounted(() => {
 
 const logOut = async () => {
 
+  try {
+    const response = await useApiFetch<BaseResponse<any>>('/people-logout', {
+      method: 'GET',
+    })
+
+    if(response.success){
+      // const id_token = authStore.idToken;
+
+
+    // const url = `${issuer}/session/end?id_token_hint=${id_token}&post_logout_redirect_uri=${logoutUri}&client_id=${client_id}`;
+      authStore.clearAuth();
+      user.value = null;
+      window.location.href = '/';
+    }
+  } catch (error: any) {
+    ElMessage.error(error.response?.message ?? error);
+  }
   
 
-  const id_token = authStore.idToken;
-
-
-  const url = `${issuer}/session/end?id_token_hint=${id_token}&post_logout_redirect_uri=${logoutUri}&client_id=${client_id}`;
-  authStore.clearAuth();
-  user.value = null;
-  window.location.href = url;
+  
 
 }
 
@@ -108,7 +120,7 @@ const handleMenuClick = (menuKey: string) => {
             <div class="h-[30px] w-[30px]">
               <img
                 class="rounded-full w-full h-full avatar border border-gray-300"
-                :src="`${imageUrl}/${userdata?.photo?.filename}`"
+                :src="`${imageUrl}/${userdata?.photo?.image_path}/${userdata?.photo?.filename}`"
                 :alt="`${userdata?.photo?.filename}`"
               />
             </div>

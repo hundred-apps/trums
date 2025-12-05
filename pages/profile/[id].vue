@@ -4,20 +4,20 @@
     <el-page-header @back="goBack" class="mb-6">
       <template #content>
         <div class="flex items-center">
-          <el-avatar :size="60" :src="peopleData.file_id!" class="mr-4">
+          <el-avatar v-if="peopleData.photo" :size="60" :src="`${imageUrl}/${peopleData.photo?.image_path}/${peopleData.photo?.filename}`" class="mr-4">
             {{ peopleData.name?.charAt(0) || 'U' }}
           </el-avatar>
           <div>
-            <h1 class="text-2xl font-bold">{{ peopleData.name || 'No Name' }}</h1>
+            <h1 class="text-2xl font-bold">{{ peopleData.name}}</h1>
             <p class="text-gray-500">{{ peopleData.unique_code }}</p>
           </div>
         </div>
       </template>
       <template #extra>
         <div class="flex gap-2">
-          <el-button type="primary" @click="editPeople">
+          <NuxtLink class="el-button el-button--primary" :href="`/profile/edit?id=${peopleData.unique_id}`">
             Edit Profile
-          </el-button>
+          </NuxtLink>
           <el-button @click="goBack">
             Kembali
           </el-button>
@@ -46,9 +46,9 @@
                 {{ getGenderDisplay(peopleData.gender) }}
               </el-tag>
             </el-descriptions-item>
-            <el-descriptions-item label="Tanggal Bergabung">
-              {{ formatDate(peopleData.join_date) }}
-            </el-descriptions-item>
+            <!-- <el-descriptions-item label="Tanggal Bergabung">
+              {{ formatLocalDate(peopleData.join_date) }}
+            </el-descriptions-item> -->
           </el-descriptions>
         </el-card>
 
@@ -56,7 +56,7 @@
         
       </el-col>
       <el-col :span="24">
-          <el-card>
+          <el-card class="mb-6">
             <template #header>
               <div class="flex items-center">
                 <el-icon class="mr-2"><Briefcase /></el-icon>
@@ -79,6 +79,24 @@
             </el-descriptions>
           </el-card>
       </el-col>
+      <el-col :span="24">
+          <el-card>
+            <template #header>
+              <div class="flex items-center">
+                
+                <el-icon class="mr-2"><Platform /></el-icon>
+                <span>Perangkat Terhubung</span>
+              </div>
+            </template>
+            <el-descriptions border v-for="device in myDevices" >
+              <el-descriptions-item :key="device.unique_id" :label="device.device_name">
+                {{formatLocalDateTime(device.last_active)}}  
+                <el-tag type="primary" v-if="device.is_active">Active</el-tag>
+                <el-tag type="danger" v-else>InActive</el-tag>
+              </el-descriptions-item>
+            </el-descriptions>
+          </el-card>
+      </el-col>
       
     </el-row>
 
@@ -87,15 +105,17 @@
     
 </template>
 
-<script lang="ts" setup>
+<script lang="tsx" setup>
 import { 
   User, Briefcase, Lock, Plus, Delete, Check,
-  Unlock, Folder, FolderOpened, Key
+  Unlock, Folder, FolderOpened, Key,Platform
 } from '@element-plus/icons-vue'
 import type { Menu, Permission } from '~/types/menu'
-import type { People, UserPermission } from '~/types/people'
+import type { DeviceInfo, People, UserPermission } from '~/types/people'
 import PermissionTreeManager from '~/components/trums/PermissionTreeManager.vue'
-
+import type { RequestSearch } from '~/types/request_search'
+import type { ResponsePagination } from '~/types/response_pagination'
+import { formatLocalDate, formatLocalDateTime } from '#imports'
 
 interface PermissionTreeNode {
   unique_id: string
@@ -110,12 +130,16 @@ const router = useRouter()
 const route = useRoute()
 const peopleId = computed(() => route.params.id as string)
 
+const config = useRuntimeConfig();
+const imageUrl = config.public.baseImageURL;
+
 // State
 const peopleData = ref<People>({} as People)
 const userPermissions = ref<UserPermission[]>([]);
 const permissionTree = ref<PermissionTreeNode[]>([])
 const showPermissionDialog = ref(false)
 const loading = ref<boolean>(true);
+const myDevices = ref<DeviceInfo[]>([]);
 
 // Tree configuration
 const treeProps = {
@@ -136,6 +160,40 @@ const totalPermissions = computed(() => {
 // Methods
 const goBack = () => router.push('/people')
 
+const getMyDevices = async () => {
+  loading.value = true;
+  try {
+    const request_search: RequestSearch = {
+      column: [
+        {
+          people_id: [peopleId.value]
+        }
+      ],
+      keyword: '',
+      table: 'people_devices',
+      sort: null,
+      offset: '1',
+      limit: '10',
+      flag: 'form',
+    }
+    const response = await useApiFetch<ResponsePagination<DeviceInfo[]>>(
+      `/search`, 
+      {
+        method: 'post',
+        body: request_search,
+      }
+    )
+    
+    if (response.success) {
+      myDevices.value = response.data ?? [] as DeviceInfo[]
+    }
+  } catch (error) {
+    ElMessage.error('Gagal memuat detail people')
+  } finally {
+    loading.value = false;
+  }
+}
+
 const fetchPeopleDetail = async () => {
   loading.value = true;
   try {
@@ -145,8 +203,8 @@ const fetchPeopleDetail = async () => {
       'post',
       null
     )
-    
     if (response.status.value === 'success') {
+      console.log('masuk sini')
       peopleData.value = response.data.value?.data || {} as People
     }
   } catch (error) {
@@ -269,13 +327,7 @@ const editPeople = () => {
   router.push(`/people/edit/${peopleId.value}`)
 }
 
-const formatDate = (timestamp: number) => {
-  return new Date(timestamp * 1000).toLocaleDateString('id-ID', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
-}
+
 
 const getGenderDisplay = (gender: string | null) => {
   if (!gender) return 'Tidak Diketahui'
@@ -297,7 +349,9 @@ const getGenderTagType = (gender: string | null): "success" | "warning" | "info"
 
 // Lifecycle
 onMounted(async () => {
-  await Promise.all([fetchPeopleDetail()])
+  fetchPeopleDetail();
+  getMyDevices();
+  
 })
 </script>
 

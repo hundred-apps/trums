@@ -263,6 +263,7 @@ const request_search_companies = ref<RequestSearch>({
       ownership:true,
     } 
   ],
+  flag: 'form',
   limit: '10',
   offset: '1',
   sort: null,
@@ -505,7 +506,7 @@ watch(selectedCompany, (newCompanyId) => {
 const getCompanyDetail = async (unique_id: string) => {
   loading.value = false;
   try {
-    const response = await useFetchApi<BaseResponse<Contact>>(`/contact-read/${unique_id}`, 'detail-contact', 'get', null)
+    const response = await useFetchApi<BaseResponse<Contact>>(`/contact-read/${unique_id}?flag=form`, 'detail-contact', 'get', null)
     if(response.status.value == 'success'){
       const company: Contact | null = response.data.value?.data ?? null; 
       currentSettings.value.company = company;

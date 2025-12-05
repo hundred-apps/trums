@@ -612,13 +612,15 @@ import FormAddress from '~/components/trums/FormAddress.vue';
         ]
         request_search.value.flag = 'form';
 
-        axios.post('/catalogues-inventory', {
-          keyword: queryString,
+
+        useApiFetch<ResponsePagination<ItemSearch[]>>('/catalogues-inventory', {
+          method: 'post',
+          body: {keyword: queryString}
         }).then((response) => {
-          if(response.status == 200){
-            const resultApi: Pagination<ItemSearch[]> = response.data;
-            if(resultApi.query.length > 0){
-              const results = resultApi.query.map((data: ItemSearch) => {
+          if(response.success){
+            const resultApi: ItemSearch[] = response.data;
+            if(resultApi.length > 0){
+              const results = resultApi.map((data: ItemSearch) => {
                   return {...data, value: `${data.catalogue_name} ${data.sn_number ? ' - ' + data.sn_number : ''}`}
               });    
               cb(results)
@@ -626,11 +628,13 @@ import FormAddress from '~/components/trums/FormAddress.vue';
               cb([{ value: `${queryString}`, label: `Tambahkan ${queryString}`, isNew: true}])
             }
           }else{
-            ElMessage.error(response.data.message);
+            ElMessage.error(response.message ?? '');
           }
         }).catch((error: any) => {
-          ElMessage.error(error.response.data.message);
-        });
+          ElMessage.error(error.response?.message ?? error);
+        })
+
+        
     }
 
     const querySearchAsyncLocation = (queryString: string, cb: (arg: any) => void) => {
@@ -868,11 +872,39 @@ import FormAddress from '~/components/trums/FormAddress.vue';
       }
     }
 
-    const onHandleSelectItemAutocompleteUnit = (item: Record<string, any>, scope: any) => {
-      console.log(scope.$index)
+    const handleNewUnit = async (name: string): Promise<Unit|null> => {
+      loading.value = true
+      try {
+        
+
+        // Call API to create unit
+        const response = await useFetchApi<BaseResponse<Unit>>('/unit-create', 'create-unit', 'post', {name: name})
+        
+        if(response.status.value == 'success'){
+          return response.data.value?.data ?? null;
+        }
+
+      } catch (error: any) {
+        ElMessage.error('Gagal menyimpan unit: ' + (error.response?.data?.message || error.message || 'Terjadi kesalahan'))
+        return null;
+      } finally {
+        loading.value = false
+        return null;
+      }
+    }
+
+    const onHandleSelectItemAutocompleteUnit = async (item: Record<string, any>, scope: any) => {
+      
       if(item.unique_id == undefined){
-        dataTable.value[scope.$index].unit_name = item.label;
-        dataTable.value[scope.$index].unit_id = '';
+        const unit: Unit|null = await handleNewUnit(item.label ?? '');
+        
+        if(unit != null){
+          dataTable.value[scope.$index].unit_name = unit.name;
+          dataTable.value[scope.$index].unit_id = unit.unique_id;
+        }else{
+          dataTable.value[scope.$index].unit_name = item.label;
+          dataTable.value[scope.$index].unit_id = '';
+        }
       }else{
         dataTable.value[scope.$index].unit_name = item.value;
         dataTable.value[scope.$index].unit_id = `${item.id}`;
@@ -1323,7 +1355,7 @@ import FormAddress from '~/components/trums/FormAddress.vue';
               />
             </template>
           </el-table-column>
-          <el-table-column prop="unit" label="Unit">
+          <el-table-column prop="unit_name" label="Unit">
             <template #default="scope">
               <el-autocomplete
                 :fetch-suggestions="querySearchUnit"

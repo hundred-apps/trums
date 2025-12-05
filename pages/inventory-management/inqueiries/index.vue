@@ -5,7 +5,7 @@
     name: "List Of Inquiries"
   })
   import { ref, onMounted } from 'vue';
-  import { Filter, SetUp } from '@element-plus/icons-vue'
+  import { Filter, SetUp,Eleme  } from '@element-plus/icons-vue'
   import type { Inquiry } from '~/types/inquiry';
   import customTable from '~/components/trums/table/customTable.vue';
   import { OrderColumn, type RequestSearch } from '~/types/request_search';
@@ -17,6 +17,8 @@
   import SelectionCell from '~/components/trums/table/SelectionCell.vue';
   import DeleteButton from '~/components/trums/DeleteButton.vue';
   import { NuxtLink } from '#components';
+
+
 const column_selected = ref<string[]>(['selection', 'unique_code', 'date', 'reference', 'reference_view','operation', 'setup']);
   const popoverRef = ref();
   const config = useRuntimeConfig();
@@ -41,9 +43,9 @@ const request_search = ref<RequestSearch>({
   },
 });
 
-const { data } = await useFetchApi<ResponsePagination<Inquiry[]>>(
+const { data, pending } = await useFetchApi<ResponsePagination<Inquiry[]>>(
   `/search`,
-  "inventories",
+  "get-inquiries",
   "post",
   request_search.value
 );
@@ -280,7 +282,7 @@ const availableColumn: Column<Inquiry>[] = [
         <NuxtLink href={"/inventory-management/inqueiries/add?id=" + row.unique_id} class="el-button el-button--small">
           Edit
         </NuxtLink>
-        <DeleteButton size="default" onConfirm={() => handleDelete(row)} onCancel={() => {}} />
+        <DeleteButton size="small" onConfirm={() => handleDelete(row)} onCancel={() => {}} />
       </>
     ),
   },
@@ -393,28 +395,6 @@ const handleSelectionChange = (selection: Inquiry[]) => {
   tmpInquiries.value = selection;
 };
 
-const fetchData = async () => {
-  loading.value = true;
-  try {
-    const response = await useFetchApi<ResponsePagination<Inquiry[]>>(
-      `/search`,
-      "inventories",
-      "post",
-      request_search.value
-    );
-
-    if (response.status.value == "success") {
-      data.value = response.data.value as ResponsePagination<Inquiry[]>;
-    }
-  } catch (error: any) {
-    ElMessage.error(
-      `${error.response?.data?.message ?? "Gagal Mengambil Data!"}`
-    );
-    return [];
-  } finally {
-    loading.value = false;
-  }
-};
 
 
   const deleteBulk = async () => {
@@ -441,12 +421,12 @@ const fetchData = async () => {
 
   }
 
-  watch(request_search, fetchData, {immediate: true});
+watch(request_search, () => refreshNuxtData('get-inquiries'), {immediate: true});
 
-watch(request_search, fetchData, { immediate: true });
+watch(request_search, () => refreshNuxtData('get-inquiries'), { immediate: true });
 
 onMounted(() => {
-  fetchData();
+  
 });
 </script>
 <template>
@@ -455,11 +435,14 @@ onMounted(() => {
       <el-col :span="6"
         ><el-input
           v-model="request_search.keyword"
-          size="large"
+          size="default"
           placeholder="Type to search"
       /></el-col>
-      <el-button size="large" @click="$router.push('inqueiries/add')"
+      <el-button size="default" @click="$router.push('inqueiries/add')"
         >Buat Inquiri</el-button
+      >
+      <el-button size="default" type="primary" :loading="pending" :loading-icon="Eleme" @click="() => refreshNuxtData('get-inquiries')"
+        >Reload</el-button
       >
       <el-button
         v-if="tmpInquiries.length > 0"

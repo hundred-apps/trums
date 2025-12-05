@@ -108,7 +108,7 @@
 <script lang="tsx" setup>
 import { Eleme, SetUp, Filter } from '@element-plus/icons-vue'
 import { type Column, type CheckboxValueType, TableV2FixedDir, ElPopover, ElCheckbox, ElIcon, type SortBy, ElCheckboxGroup } from 'element-plus'
-import type { Canvassing } from '~/types/scm/canvasing'
+import { CanvassingStatus, type Canvassing } from '~/types/scm/canvasing'
 import type { Pagination } from '~/types/pagination'
 import { NuxtLink } from '#components';
 import CustomTable from '~/components/trums/table/customTable.vue'
@@ -123,19 +123,13 @@ definePageMeta({
   name: "Daftar Canvassing"
 })
 
-// Enums
-enum CanvassingStatus {
-  DRAFT = 'draft',
-  PENDING_APPROVAL = 'pending_approval',
-  CANCEL = 'cancel'
-}
 
 // Search request
 const request_search = ref<RequestSearch>({
   keyword: '',
   column: [
     {
-      status: [],
+      status: [CanvassingStatus.DRAFT, CanvassingStatus.PENDING_APPROVAL],
     }
   ],
   limit: "10",
