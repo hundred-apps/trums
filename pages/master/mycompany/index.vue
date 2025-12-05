@@ -162,7 +162,7 @@ const columns: Column<Contact>[] = [
     title: 'Aksi',
     cellRenderer: ({ rowData }: { rowData: Contact }) => (
       <>
-        <el-button size="small" onClick={() => onEdit(rowData)}>Edit</el-button>
+        <el-button size="small" onClick={() => navigateToForm('update', rowData.name, rowData.unique_id ?? '')}>Edit</el-button>
         
         <el-button size="small" type="danger" onClick={() => onDelete([rowData.unique_id])}>
           Hapus
@@ -209,6 +209,13 @@ columns.unshift({
     )
   },
 })
+
+const navigateToForm = (mode = "", name = "", unique_id: string) => {
+  const path = name
+    ? `/contact-management/contacts/form/${name}`
+    : "/contact-management/contacts/form/add";
+  router.push({ path, query: { mode, unique_id } });
+};
 
 // Tambahkan setup kolom di akhir
 columns[columns.length - 1].headerCellRenderer = () => {

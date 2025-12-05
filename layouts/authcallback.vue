@@ -1,7 +1,37 @@
 <script lang="ts" setup>
+import type { People } from '~/types/people';
+import type { BaseResponse } from '~/types/response';
+
 const route = useRequestURL();
 const base_url = route.origin;
 const { t } = useI18n();
+const authStore = useAuthStore();
+const user = useCookie("userdata");
+
+const logOut = async () => {
+
+  try {
+    const response = await useApiFetch<BaseResponse<any>>('/people-logout', {
+      method: 'GET',
+    })
+
+    if(response.success){
+      // const id_token = authStore.idToken;
+
+
+    // const url = `${issuer}/session/end?id_token_hint=${id_token}&post_logout_redirect_uri=${logoutUri}&client_id=${client_id}`;
+      authStore.clearAuth();
+      user.value = null;
+      window.location.href = '/';
+    }
+  } catch (error: any) {
+    ElMessage.error(error.response?.message ?? error);
+  }
+  
+
+  
+
+}
 </script>
 
 <template>

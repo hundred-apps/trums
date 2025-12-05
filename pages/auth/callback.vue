@@ -31,6 +31,9 @@ const { t } = useI18n();
 const config = useRuntimeConfig();
 
 const { userAgent } = useDevice();
+const userData = useCookie("userdata");
+
+const isCreate = ref<boolean>(false);
 
 definePageMeta({
   layout: false,
@@ -231,23 +234,56 @@ const resetForm = (formEl: FormInstance | undefined) => {
 const checkUserExists = async () => {
   loading.value = true;
   try {
-    // const jsonUser = JSON.parse(user || "");
-    const response = await api.post<BaseResponse<People|undefined>>(`people-read/`, {"phone": `${profile.value?.sub}`});
     
-    console.log(response)
+    const formData = new FormData();
+    formData.append("phone", profile.value?.sub ?? '');
 
-    if(response.status === 200 && response.data.data){
+    const version = navigator.appVersion;
 
-      const peopleData: People = response.data.data;
 
-      ruleForm.phone = peopleData.phone || "";
-      ruleForm.gender = peopleData.gender || "pria";
-      ruleForm.name = peopleData.name || "";
-      ruleForm.email = peopleData.email || "";
-      ruleForm.unique_id = peopleData.unique_id || "";
-      imageUrl.value = `${config.public.baseBE}${peopleData.photo?.image_path}/${peopleData.photo?.filename}`;
+
+    formData.append("people_devices[0][platform]", `${DevicePlatform.WEB}`);
+    formData.append("people_devices[0][version]", `${version.split(' ')[0]}`);
+    formData.append("people_devices[0][identifier]", `${navigator.userAgent}`);
+    formData.append("people_devices[0][device_name]", `${getDeviceName(navigator.userAgent)}`);
+    
+
+    const response = await api.post("/people-create", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    console.log(response.status)
+    console.log(response.data.data)
+
+    if(response.status === 201 && response.data.data){
+
+      const dataUser: People = response.data.data;
+      appUserData.value = JSON.stringify(dataUser);
+      
+      
+      userToken.value = response.data.token;
+
+      console.log('token',userToken.value);
+      console.log('user',response.data.data);
+      
+      authStore.setUserData(dataUser);
+      authStore.setMenu(dataUser.menu || []);
+      // const peopleData: People = response.data.data;
+
+      // ruleForm.phone = peopleData.phone || "";
+      // ruleForm.gender = peopleData.gender || "pria";
+      // ruleForm.name = peopleData.name || "";
+      // ruleForm.email = peopleData.email || "";
+      // ruleForm.unique_id = peopleData.unique_id || "";
+      // imageUrl.value = `${config.public.baseBE}${peopleData.photo?.image_path}/${peopleData.photo?.filename}`;
+
+      const storage = localStorage.getItem('setting');
+      if(storage){
+        window.location.href = "/dashboard";
+      }
+
     }else{
       ruleForm.phone = profile.value?.sub ?? '';
+      isCreate.value = true;
     }
 
     // console.log(imageUrl.value);
@@ -315,12 +351,14 @@ onMounted(() => {
 // if (loginSuccess) {
 //   setInterval(() => router.push("/dashboard"), 3000);
 // }
+
+
 </script>
 
 <template>
   <NuxtLayout :name="layout">
-    <div class="w-full h-screen flex items-center justify-center">
-      <el-card class="bg-red-800 dark:bg-slate-800 w-1/2">
+    <div class="w-full h-screen flex items-center justify-center" >
+      <el-card class="bg-red-800 dark:bg-slate-800 w-1/2" v-if="isCreate">
         <div class="flex justify-center mb-3">
           <el-upload
             class="avatar-uploader flex flex-col items-center gap-2"
@@ -412,6 +450,7 @@ onMounted(() => {
           </div>
         </div>
       </el-card> -->
+      <p>Tunggu Sebentar.....</p>
     </div>
   </NuxtLayout>
 </template>

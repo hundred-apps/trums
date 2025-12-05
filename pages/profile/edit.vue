@@ -84,9 +84,8 @@
                     placeholder="Pilih jenis kelamin"
                     style="width: 100%"
                   >
-                    <el-option label="Laki-laki" value="M" />
-                    <el-option label="Perempuan" value="F" />
-                    <el-option label="Lainnya" value="O" />
+                    <el-option label="Pria" value="pria" />
+                    <el-option label="Wanita" value="wanita" />
                   </el-select>
                 </el-form-item>
               </el-col>
@@ -108,7 +107,7 @@
           <el-form 
             ref="departmentFormRef" 
             :model="formData" 
-            :rules="departmentRules"
+            
             label-width="180px"
             label-position="top"
             size="large"
@@ -116,39 +115,23 @@
             <el-row :gutter="20">
               <el-col :span="12">
                 <el-form-item label="Departemen" prop="departement_id">
-                  <el-select
-                    v-model="formData.departement_id!"
-                    placeholder="Pilih departemen"
-                    filterable
-                    style="width: 100%"
-                    @change="handleDepartmentChange"
-                  >
-                    <el-option 
-                      v-for="dept in departments" 
-                      :key="dept.value" 
-                      :label="dept.label" 
-                      :value="dept.value"
-                    />
-                  </el-select>
+                  <el-autocomplete
+                    :fetch-suggestions="querySearchDepartement"
+                    v-model="formData.departement_name!"
+                    placeholder="Cari Departement"
+                    @select="onHandleSelectDepartement"
+                />
                 </el-form-item>
               </el-col>
               
               <el-col :span="12">
                 <el-form-item label="Posisi" prop="position_id">
-                  <el-select
-                    v-model="formData.position_id!"
-                    placeholder="Pilih posisi"
-                    filterable
-                    style="width: 100%"
-                    :disabled="!formData.departement_id"
-                  >
-                    <el-option 
-                      v-for="pos in filteredPositions" 
-                      :key="pos.value" 
-                      :label="pos.label" 
-                      :value="pos.value"
-                    />
-                  </el-select>
+                  <el-autocomplete
+                    :fetch-suggestions="querySearchPosition"
+                    v-model="formData.position_name!"
+                    placeholder="Cari Position"
+                    @select="onHandleSelectPosition"
+                />
                 </el-form-item>
               </el-col>
             </el-row>
@@ -173,31 +156,18 @@
 
           <div class="text-center">
             <el-upload
-              class="avatar-uploader"
-              :action="uploadUrl"
-              :show-file-list="false"
+              class="avatar-uploader flex flex-col items-center gap-2"
+              action=""
+              v-model:file-list="fileList"
               :on-success="handleAvatarSuccess"
               :before-upload="beforeAvatarUpload"
-              :on-error="handleUploadError"
-              :headers="uploadHeaders"
-              :data="uploadData"
+              :on-change="handleChange"
             >
-              <el-avatar 
-                v-if="peopleData.photo" 
-                :size="150" 
-                :src="`${imageUrl}/${peopleData.photo.image_path}/${peopleData.photo.filename}`"
-                class="mb-4 mx-auto cursor-pointer border-2 border-gray-200"
-              >
-                {{ formData.name?.charAt(0) || 'U' }}
-              </el-avatar>
-              <div 
-                v-else 
-                class="avatar-uploader-placeholder mb-4 mx-auto cursor-pointer"
-              >
-                <el-icon :size="60" class="text-gray-400">
-                  <Camera />
-                </el-icon>
-                <p class="text-sm text-gray-500 mt-2">Klik untuk upload foto</p>
+              <img v-if="tmp_image_url" :src="tmp_image_url" class="avatar" />
+              <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
+              <div class="overlay">
+                <div v-if="!tmp_image_url" class="text-overlay">Add Image</div>
+                <div v-else class="text-overlay">Change Image</div>
               </div>
             </el-upload>
 
@@ -207,19 +177,12 @@
               </p>
               <div class="flex gap-2 justify-center">
                 <el-button 
-                  v-if="formData.file_id" 
+                  v-if="fileList.length > 0" 
                   type="danger" 
                   size="small"
                   @click="removeProfilePhoto"
                 >
                   Hapus Foto
-                </el-button>
-                <el-button 
-                  type="info" 
-                  size="small"
-                  @click="openFileManager"
-                >
-                  Pilih dari File Manager
                 </el-button>
               </div>
             </div>
@@ -284,10 +247,13 @@ import {
   Setting, View, Lock, Unlock, InfoFilled, Key,
   Calendar, Warning, SuccessFilled, WarningFilled
 } from '@element-plus/icons-vue'
-import type { FormInstance, FormRules, UploadProps } from 'element-plus'
+import type { FormInstance, FormRules, UploadProps, UploadUserFile } from 'element-plus'
 import type { Contact } from '~/types/contact'
+import type { Departement } from '~/types/departement'
 import type { People } from '~/types/people'
+import type { Position } from '~/types/position'
 import type { RequestSearch } from '~/types/request_search'
+import type { BaseResponse } from '~/types/response'
 import type { ResponsePagination } from '~/types/response_pagination'
 
 const router = useRouter()
@@ -297,10 +263,15 @@ const peopleId = computed(() => route.query.id as string)
 const config = useRuntimeConfig();
 const imageUrl = config.public.baseImageURL;
 
+const fileList = ref<UploadUserFile[]>([]);
+const appUserData = useCookie("userdata");
+const authStore = useAuthStore();
+const api = useApi();
+
 // Refs
 const basicInfoFormRef = ref<FormInstance>()
 const departmentFormRef = ref<FormInstance>()
-
+const tmp_image_url = ref("");
 // State
 const peopleData = ref<People>({} as People)
 const formData = ref<People>({
@@ -316,6 +287,8 @@ const formData = ref<People>({
   gender: '',
   departement_id: '',
   position_id: '',
+  departement_name: '',
+  position_name: '',
   file_id: '',
   created_at: 0,
   created_by: null,
@@ -343,6 +316,8 @@ const loading = ref({
   confirm: false
 })
 
+const onLoading = ref<boolean>(false)
+
 const showConfirmDialog = ref(false)
 const showFileManager = ref(false)
 const joinDateFormatted = ref('')
@@ -357,41 +332,18 @@ const dialogConfig = ref({
   action: '' as 'submit' | 'reset_password' | 'deactivate'
 })
 
-// Data Options
-const departments = ref([
-  { label: 'IT & Development', value: 'it', positions: ['software_engineer', 'senior_dev'] },
-  { label: 'Human Resources', value: 'hr', positions: ['hr_manager', 'recruiter'] },
-  { label: 'Marketing', value: 'marketing', positions: ['marketing_specialist', 'content_writer'] },
-  { label: 'Finance', value: 'finance', positions: ['accountant', 'financial_analyst'] },
-  { label: 'Operations', value: 'operations', positions: ['ops_manager', 'logistics'] },
-])
 
-const allPositions = ref([
-  { value: 'software_engineer', label: 'Software Engineer', department: 'it' },
-  { value: 'senior_dev', label: 'Senior Developer', department: 'it' },
-  { value: 'hr_manager', label: 'HR Manager', department: 'hr' },
-  { value: 'recruiter', label: 'Recruiter', department: 'hr' },
-  { value: 'marketing_specialist', label: 'Marketing Specialist', department: 'marketing' },
-  { value: 'content_writer', label: 'Content Writer', department: 'marketing' },
-  { value: 'accountant', label: 'Accountant', department: 'finance' },
-  { value: 'financial_analyst', label: 'Financial Analyst', department: 'finance' },
-  { value: 'ops_manager', label: 'Operations Manager', department: 'operations' },
-  { value: 'logistics', label: 'Logistics Coordinator', department: 'operations' },
-])
+
+
 
 const parentPeopleOptions = ref<People[]>([])
 
-// Computed
-const filteredPositions = computed(() => {
-  if (!formData.value.departement_id) return []
-  
-  const department = departments.value.find(d => d.value === formData.value.departement_id)
-  if (!department) return []
-  
-  return allPositions.value.filter(pos => 
-    department.positions.includes(pos.value)
-  )
-})
+
+const handleChange: UploadProps["onChange"] = (uploadFile, uploadFiles) => {
+  var data = uploadFiles[uploadFiles.length - 1];
+  fileList.value = [data];
+  // console.log(fileList.value);
+};
 
 const uploadUrl = computed(() => {
   return '/api/upload' // Ganti dengan endpoint upload Anda
@@ -465,6 +417,129 @@ const fetchPeopleDetail = async () => {
   }
 }
 
+const departement_create = async (name: string): Promise<Departement | undefined> => {
+  onLoading.value = true;
+  try {
+    const response = await useFetchApi<BaseResponse<Departement>>('/departement-create?flag=form', 'departement-create', 'post', {name: name});
+    if(response.status.value == 'success'){
+      return response.data.value?.data
+    }
+  } catch (error: any) {
+    ElMessage.error(error.response?.message ?? error)
+  }finally {
+    onLoading.value = false;
+  }
+}
+const position_create = async (name: string): Promise<Position | undefined> => {
+  onLoading.value = true;
+  try {
+    const response = await useFetchApi<BaseResponse<Position>>('/position-create?flag=form', 'position-create', 'post', {name: name});
+    if(response.status.value == 'success'){
+      return response.data.value?.data
+    }
+  } catch (error: any) {
+    ElMessage.error(error.response?.message ?? error)
+  }finally {
+    onLoading.value = false;
+  }
+}
+
+const onHandleSelectDepartement = async (item: Record<string, any>) => {
+  console.log('on select', item);
+  if(item.isNew){
+    const departement: Departement|null = await departement_create(`${item.label}`) ?? null;
+    if(departement !== null){
+      formData.value.departement_id = departement.unique_id;
+      formData.value.departement_name = departement.name;
+    }
+  }else{
+    const departement: Departement = item as Departement;
+    formData.value.departement_id = departement.unique_id;
+      formData.value.departement_name = departement.name;
+  }
+
+
+  
+  
+}
+const onHandleSelectPosition = async (item: Record<string, any>) => {
+  
+  if(item.isNew){
+    const position: Position|null = await position_create(`${item.label}`) ?? null;
+    if(position !== null){
+      formData.value.position_id = position.unique_id;
+      formData.value.position_name = position.name;
+    }
+  }else{
+    const position: Position = item as Position;
+    formData.value.position_id = position.unique_id;
+      formData.value.position_name = position.name;
+  }
+
+
+  
+  
+}
+
+const querySearchPosition = (queryString: string, cb: (arg: any) => void) => {
+      
+    request_search.value.keyword = queryString,
+    request_search.value.table = 'positions';
+    request_search.value.column = [];
+    request_search.value.flag = "form";
+
+    useFetchApi<ResponsePagination<Position[]>>('/search', 'address', 'post', request_search).then((response) => {
+        if(response.status.value == 'success'){
+            
+            const resultApi: Position[]  = response.data.value?.data!;
+            
+            if(resultApi.length > 0){
+
+                if(resultApi.length > 0){
+                  const results = resultApi.map((data: Position) => {
+                      return {...data, value: `${data.name}`}
+                  });    
+                  cb([...results, { value: `${queryString}`, label: `Tambahkan ${queryString}`, isNew: true}])
+                }else{
+                  cb([{ value: `${queryString}`, label: `Tambahkan ${queryString}`, isNew: true}])
+                }
+            }else{
+                cb([{value: `Tambahkan ${queryString}`, isNew: true, label: `${queryString}`}]);
+            }
+        }
+    })
+    
+}
+const querySearchDepartement = (queryString: string, cb: (arg: any) => void) => {
+      
+    request_search.value.keyword = queryString,
+    request_search.value.table = 'departements';
+    request_search.value.column = [];
+    request_search.value.flag = "form";
+
+    useFetchApi<ResponsePagination<Departement[]>>('/search', 'address', 'post', request_search).then((response) => {
+        if(response.status.value == 'success'){
+            
+            const resultApi: Departement[]  = response.data.value?.data!;
+            
+            if(resultApi.length > 0){
+
+                if(resultApi.length > 0){
+                  const results = resultApi.map((data: Departement) => {
+                      return {...data, value: `${data.name}`}
+                  });    
+                  cb([...results, { value: `${queryString}`, label: `Tambahkan ${queryString}`, isNew: true}])
+                }else{
+                  cb([{ value: `${queryString}`, label: `Tambahkan ${queryString}`, isNew: true}])
+                }
+            }else{
+                cb([{value: `Tambahkan ${queryString}`, isNew: true, label: `${queryString}`}]);
+            }
+        }
+    })
+    
+}
+
 const fetchParentPeopleOptions = async () => {
   try {
     const response = await useFetchApi<{ data: People[] }>(
@@ -495,6 +570,11 @@ const populateFormData = () => {
     ...data,
     password: '' // Never populate password field
   }
+
+  formData.value.departement = peopleData.value.departement_name ?? '';
+  formData.value.position = peopleData.value.position_name ?? '';
+
+  tmp_image_url.value = `${config.public.baseBE}${formData.value.photo?.image_path}/${formData.value.photo?.filename}`;
 }
 
 const handleJoinDateChange = (date: string) => {
@@ -524,17 +604,42 @@ const handleSubmit = async () => {
       return
     }
 
-    // Show confirmation dialog
-    dialogConfig.value = {
-      title: 'Simpan Perubahan',
-      message: 'Apakah Anda yakin ingin menyimpan perubahan pada profil ini?',
-      confirmText: 'Ya, Simpan',
-      icon: SuccessFilled,
-      color: '#67C23A',
-      buttonType: 'primary',
-      action: 'submit'
+    const formDataPayload = new FormData();
+    formDataPayload.append("name", `${formData.value.name}`);
+    formDataPayload.append("email", `${formData.value.email}`);
+    formDataPayload.append("phone", `${formData.value.phone}`);
+    formDataPayload.append("gender", `${formData.value.gender}`);
+    formDataPayload.append("departement_id", `${formData.value.departement_id}`);
+    formDataPayload.append("position_id", `${formData.value.position_id}`);
+
+    if (fileList.value.length > 0) {
+      formDataPayload.append("photo", fileList.value[0].raw as Blob);
     }
-    showConfirmDialog.value = true
+
+    // const jsonUser = JSON.parse(user ?? "");
+
+    formDataPayload.append("unique_id", `${formData.value.unique_id}`);
+
+    const response = await api.post("/people-create", formDataPayload, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+
+    if (response.status == 201) {
+      const dataUser: People = response.data.data;
+      appUserData.value = JSON.stringify(dataUser);
+      
+
+      console.log('user',response.data.data);
+      
+      authStore.setUserData(dataUser);
+      authStore.setMenu(dataUser.menu || []);
+      
+      ElMessage.success('Berhasil Login!');
+      fetchPeopleDetail();
+    } else {
+      ElMessage.error(response?.data?.message);
+    }
+    
   } catch (error) {
     console.error('Validation error:', error)
   }
@@ -602,12 +707,12 @@ const resetForm = () => {
   dialogConfig.value.action = 'submit'
 }
 
-const handleAvatarSuccess: UploadProps['onSuccess'] = (response) => {
-  if (response.data?.file_id) {
-    formData.value.file_id = response.data.file_id
-    ElMessage.success('Foto profil berhasil diunggah')
-  }
-}
+const handleAvatarSuccess: UploadProps["onSuccess"] = (
+  response,
+  uploadFile
+) => {
+  tmp_image_url.value = URL.createObjectURL(uploadFile.raw!);
+};
 
 const beforeAvatarUpload: UploadProps['beforeUpload'] = (rawFile) => {
   const isValidType = ['image/jpeg', 'image/png'].includes(rawFile.type)
@@ -631,8 +736,8 @@ const handleUploadError = () => {
 }
 
 const removeProfilePhoto = () => {
-  formData.value.file_id = ''
-  ElMessage.success('Foto profil dihapus')
+  fileList.value = [];
+  tmp_image_url.value = `${config.public.baseBE}${formData.value.photo?.image_path}/${formData.value.photo?.filename}`;
 }
 
 const openFileManager = () => {
@@ -729,17 +834,7 @@ const formatDate = (timestamp: number) => {
   })
 }
 
-const getDepartmentName = (deptId: string | null) => {
-  if (!deptId) return '-'
-  const dept = departments.value.find(d => d.value === deptId)
-  return dept?.label || deptId
-}
 
-const getPositionName = (posId: string | null) => {
-  if (!posId) return '-'
-  const pos = allPositions.value.find(p => p.value === posId)
-  return pos?.label || posId
-}
 
 const getPeopleName = (peopleId: number) => {
   const people = parentPeopleOptions.value.find(p => p.id === peopleId)

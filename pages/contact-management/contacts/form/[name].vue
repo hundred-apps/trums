@@ -184,6 +184,7 @@ interface RuleForm {
 }
 
 interface formAddress {
+    unique_id?: string,
     contact_id?: string,
     contact_name?: string,
     contact_version?: number,
@@ -217,7 +218,7 @@ const ruleForm = reactive<RuleForm>({
   title: "",
   tags: [],
   ownership: ownership,
-  address: []
+  address: [],
 });
 
 const rules = reactive<FormRules<RuleForm>>({
@@ -431,6 +432,22 @@ const detail = async () => {
         ruleForm.tags = contact.tags.split(",") as string[];
       }
       ruleForm.unique_id = contact.unique_id;
+      ruleForm.address = contact.address.map((address) => ({
+        unique_id: address.unique_id,
+        contact_id: address.contact_id ?? '',
+        contact_name: address.contact_name,
+        contact_version: address.contact_version,
+        address_id: address.unique_id,
+        address_name: address.address_name,
+        street: address.street,
+        village_id: `${address.village_id ?? 0}`,
+        village: address.village,
+        city: address.city,
+        regency: address.regency,
+        codepos: `${address.codepos}`,
+        province: address.province,
+        country: 'indonesia',
+      }));
     }
   } catch (error: any) {
     if (unique_id !== null) {

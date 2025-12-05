@@ -5,6 +5,7 @@ export type BaseResponse<T> = {
     message: string,
     data?: T,
     privilege: Permission[],
+    token?: string,
 }
 
 export type DataInterface<T> = {

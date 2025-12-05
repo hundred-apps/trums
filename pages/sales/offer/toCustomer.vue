@@ -38,7 +38,7 @@ import type { Pricetag } from '~/types/pricetag';
   const fetchData = async () => {
     loading.value = true;
     try {
-      const response = await useFetchApi<ResponsePagination<Pricetag[]>>(`/search`, 'Pricetag', 'post', request_search.value);
+      const response = await useFetchApi<ResponsePagination<Pricetag[]>>(`/search`, 'Pricetag-to-customer', 'post', request_search.value);
 
   
       if(response.status.value == 'success'){
@@ -55,7 +55,7 @@ import type { Pricetag } from '~/types/pricetag';
 
   const locations = ref<Catalogue[]>([]);
 
-  const {data} = await useFetchApi<ResponsePagination<Pricetag[]>>(`/search`, 'pricelist', 'post', request_search.value);
+  const {data} = await useFetchApi<ResponsePagination<Pricetag[]>>(`/search`, 'Pricetag-to-customer', 'post', request_search.value);
 
   const fetchLocation = async () => {
     loading.value = true;
@@ -308,7 +308,7 @@ import type { Pricetag } from '~/types/pricetag';
     <div class="w-auto">
       <el-row :gutter="20" class="mb-3">
         <el-col :span="6"><el-input v-model="request_search.keyword"  size="default" placeholder="Type to search" /></el-col>
-        <NuxtLink v-if="canAccess('pricetag-create', data?.privilege ?? [])" href="/sales/offer/add" @click="() => {
+        <NuxtLink v-if="canAccess('pricetag-create', data?.privilege ?? [])" href="/sales/offer/add?type=out" @click="() => {
           const cookie = useCookie('tag_id');
           cookie.value = null;
         }" class="el-button el-button--default">Buat Penawaran Ke Customer</NuxtLink>

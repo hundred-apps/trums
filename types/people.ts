@@ -14,6 +14,7 @@ export type People = {
   gender: string | null;
   departement_id: string | null;
   position_id: string | null;
+  position_name?: string|null;
   file_id: string | null;
   created_at: number;
   created_by: number | null;
@@ -21,6 +22,7 @@ export type People = {
   parent_people: string | null;
   position: string | null;
   departement: string | null;
+  departement_name?: string|null;
   photo?: AppFile;
   version: number,
   user_permissions?: UserPermission[],

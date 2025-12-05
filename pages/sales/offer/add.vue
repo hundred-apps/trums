@@ -32,7 +32,7 @@
         </el-form-item>
         
 
-        <el-form-item prop="owner_name" label="Vendor">
+        <el-form-item prop="owner_name" v-if="type == 'in'" label="Vendor">
           <el-autocomplete
             
               v-model="ruleForm.owner_name"
@@ -236,6 +236,7 @@ import type { AddressType } from '~/types/address';
   const route = useRoute()
   const canvassing_id = computed(() => route.query.canvassing_id as string)
   const id = computed(() => route.query.id as string)
+  const type = computed(() => route.query.type as "in"|"out" || 'in')
   const fileList = ref<UploadUserFile[]>([])
   const formSize = ref<ComponentSize>("default");
   const ruleFormRef = ref<FormInstance>();
@@ -253,7 +254,7 @@ import type { AddressType } from '~/types/address';
     created_by: '',
     updated_at: 0,
     version: 0,
-    type: "out",
+    type: type.value,
     note: '',
     pricetag_item: [{
       catalogue: {
@@ -1127,12 +1128,23 @@ import type { AddressType } from '~/types/address';
         company: Contact,
         address: AddressType
       } = JSON.parse(store);
+      console.log('type', ruleForm.type);
+      if(ruleForm.type == 'in'){
+        ruleForm.to = setting.company;
+        ruleForm.to_id = setting.company.unique_id;
+        ruleForm.to_version = setting.company.version;
+        ruleForm.to_name = setting.company.name;
 
-      ruleForm.to = setting.company;
-      ruleForm.to_id = setting.company.unique_id;
-      ruleForm.to_version = setting.company.version;
-      ruleForm.to_name = setting.company.name;
+      }else{
+        ruleForm.owner = setting.company;
+        ruleForm.owner_id = setting.company.unique_id;
+        ruleForm.owner_name = setting.company.name;
 
+      }
+
+      console.log('rule form', ruleForm);
+
+      
     }
   }
 

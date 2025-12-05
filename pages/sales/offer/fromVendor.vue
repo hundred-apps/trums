@@ -40,9 +40,8 @@ import type { AddressType } from '~/types/address';
   const fetchData = async () => {
     loading.value = true;
     try {
-      const response = await useFetchApi<ResponsePagination<Pricetag[]>>(`/search`, 'Pricetag', 'post', request_search.value);
+      const response = await useFetchApi<ResponsePagination<Pricetag[]>>(`/search`, 'Pricetag-to-vendor', 'post', request_search.value);
 
-  
       if(response.status.value == 'success'){
         data.value = response.data.value as ResponsePagination<Pricetag[]>;
       }
@@ -57,7 +56,7 @@ import type { AddressType } from '~/types/address';
 
   const locations = ref<Catalogue[]>([]);
 
-  const {data} = await useFetchApi<ResponsePagination<Pricetag[]>>(`/search`, 'pricelist', 'post', request_search.value);
+  const {data} = await useFetchApi<ResponsePagination<Pricetag[]>>(`/search`, 'Pricetag-to-vendor', 'post', request_search.value);
 
   const fetchLocation = async () => {
     loading.value = true;
