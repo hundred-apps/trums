@@ -56,6 +56,9 @@
               <el-tag v-else-if="contactData?.is_company" type="success">Company</el-tag>
               <span v-else>-</span>
             </el-descriptions-item>
+            <el-descriptions-item v-if="contactData?.is_personal" label="Perusahaan">
+              {{ contactData?.parent?.name ?? '-' }}
+            </el-descriptions-item>
             <el-descriptions-item label="Title">
               {{ contactData?.title ?? '-' }}
             </el-descriptions-item>
@@ -63,11 +66,8 @@
               <span v-if="contactData?.tags">{{ contactData.tags }}</span>
               <span v-else>-</span>
             </el-descriptions-item>
-            <el-descriptions-item label="Created At">
+            <el-descriptions-item label="Di Buat Pada">
               {{ contactData?.created_at != null ? formatLocalDate(contactData?.created_at) : '-' }}
-            </el-descriptions-item>
-            <el-descriptions-item label="Updated At">
-              {{ contactData?.updated_at != null ? formatLocalDate(contactData?.updated_at) : '-' }}
             </el-descriptions-item>
           </el-descriptions>
         </div>

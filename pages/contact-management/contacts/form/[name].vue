@@ -54,6 +54,20 @@
             placeholder="enter up to 3 tags"
           />
         </el-form-item>
+        <el-form-item label="Parent" prop="parent_name">
+          <el-autocomplete
+            v-model="ruleForm.parent_name!"
+            :fetch-suggestions="querySearchParent"
+            placeholder="Search Parent"
+            @select="onHandleSelectParent"
+          >
+            <template #default="{ item }">
+              <div>
+                {{ item.name }}
+              </div>
+            </template>
+          </el-autocomplete>
+        </el-form-item>
       </el-form>
       <template #footer>
         <div class="flex justify-start align-center">
@@ -152,6 +166,7 @@ import type { AddressSearch } from "~/types/address";
 import type { ResponsePagination } from "~/types/response_pagination";
 import { Search, Plus } from "@element-plus/icons-vue";
 import { useRoute } from "vue-router";
+import type { RequestSearch } from "~/types/request_search";
 
 const route = useRoute();
 const router = useRouter();
@@ -180,7 +195,10 @@ interface RuleForm {
   title: string | null;
   tags: string[];
   ownership: boolean;
-  address: formAddress[]
+  address: formAddress[],
+  parent_id: string,
+  parent_name: string,
+  perent_version: number,
 }
 
 interface formAddress {
@@ -219,6 +237,9 @@ const ruleForm = reactive<RuleForm>({
   tags: [],
   ownership: ownership,
   address: [],
+  parent_id: "",
+  parent_name: "",
+  perent_version: 0,
 });
 
 const rules = reactive<FormRules<RuleForm>>({
@@ -294,6 +315,7 @@ const resetForm = (formEl: FormInstance | undefined) => {
 
 
 
+
 const submit = async (formEl: FormInstance | undefined) => {
   loading.value = true;
   try {
@@ -309,6 +331,8 @@ const submit = async (formEl: FormInstance | undefined) => {
       tags: ruleForm.tags?.toString(),
       unique_id: ruleForm.unique_id,
       ownership: ruleForm.ownership,
+      parent_id: ruleForm.parent_id,
+      parent_version: ruleForm.perent_version,
       address: ruleForm.address.map((value) => ({
             "address_name": value.address_name,
             "street": value.street,
@@ -351,6 +375,50 @@ const submitForm = async (formEl: FormInstance | undefined) => {
     }
   });
 };
+
+const querySearchParent =  (query: string, cb: (arg: any) => void) => {
+  try {
+    
+    const request_contact: RequestSearch = {
+      column:[
+        {
+          is_company: true,
+        }
+      ],
+      keyword: query,
+      table: "contacts",
+      sort: null,
+      offset: "1",
+      limit: "10"
+    }
+    
+    useFetchApi<ResponsePagination<Contact>>('/search', 'search-publisher', 'post', request_contact).then((response) => {
+      if(response.status.value == 'success'){
+        const contacts: Contact[] = (response.data.value?.data ?? []) as Contact[];
+        if(contacts.length > 0){
+          cb(contacts.map((value) => ({
+            ...value,
+            value: value.name,
+            unique_id: value.unique_id,
+          })));
+        }
+        
+      }
+    });
+    
+    
+  } catch (error) {
+    console.error('Failed to fetch vendor', error)
+    cb([])
+  }
+}
+
+const onHandleSelectParent = (item: any) => {
+  const customer = item as Contact
+  ruleForm.parent_id = customer.unique_id;
+  ruleForm.parent_name = customer.name;
+  ruleForm.perent_version = customer.version || 1
+}
 
 const querySearchGeolocation = (queryString: string, cb: (arg: any) => void) => {
         

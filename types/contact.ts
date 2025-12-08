@@ -25,4 +25,5 @@ export type Contact = {
     version: number;
     address: AddressType[];
     checked?: boolean;
+    parent?: Contact,
 };

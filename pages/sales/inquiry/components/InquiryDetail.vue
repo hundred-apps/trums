@@ -66,7 +66,9 @@
                     <el-descriptions-item label="">{{generateResultSearchAddress(inquiryData?.address ?? null).street}}</el-descriptions-item>
                 </el-descriptions>
                 <el-descriptions title="Note">
-                    <el-descriptions-item label="">{{inquiryData?.description}}</el-descriptions-item>
+                    <el-descriptions-item label="">
+                        <div v-html="`${formattedText(inquiryData?.description)}`"></div>
+                    </el-descriptions-item>
                 </el-descriptions>
 
 
@@ -351,6 +353,9 @@
         }
         }
 
+const formattedText = (text: string) => {
+        return text.replace(/\n/g, '<br>');
+    }
 
     const fetchRelatedData = async () => {
         console.log('call');

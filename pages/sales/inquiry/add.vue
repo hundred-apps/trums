@@ -666,7 +666,11 @@
       
         request_search.value.keyword = queryString,
         request_search.value.table = 'contacts';
-        request_search.value.column = [];
+        request_search.value.column = [
+          {
+            parent_id: ruleForm.to_unique_id,
+          }
+        ];
         request_search.value.flag = "form";
 
         axios.post('/search', request_search.value).then((response) => {
@@ -909,7 +913,9 @@
                 created_at: 0,
                 created_by: '',
                 updated_at: 0,
-                version: 0
+                version: 0,
+                parent_id: ruleForm.to_unique_id ?? '',
+                parent_version: ruleForm.to_version,
             };
         }
         typeContactActive.value = type;
@@ -1468,7 +1474,7 @@
     </el-dialog>
     <el-dialog v-model="dialogNewAddress" title="Create New Address" width="500">
       <FormAddress 
-        :onSetInitital="{ contact_id: ruleForm.request_by, contact_name: ruleForm.request_by_name }" 
+        :onSetInitital="{ contact_id: ruleForm.to_unique_id, contact_name: ruleForm.to_name }" 
         :onSuccess="onAddNewAddress" 
       />
     </el-dialog>

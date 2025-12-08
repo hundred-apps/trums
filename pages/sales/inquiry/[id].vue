@@ -158,7 +158,6 @@ import type { Permission } from '~/types/menu';
     }
 
     
-
     const fetchCanvassing = async () => {
         loadingRAB.value = true;
         try {
