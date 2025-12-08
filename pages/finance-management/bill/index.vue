@@ -138,11 +138,11 @@ const columns: Column<Invoice>[] = [
   },
   {
     key: 'to_name',
-    title: 'Kepada',
+    title: 'Vendor',
     dataKey: 'to_name',
     width: 200,
     cellRenderer: ({ rowData }: { rowData: Invoice }) => (
-      <span>{rowData.customer_name}</span>
+      <span>{rowData.vendor?.name ?? '-'}</span>
     )
   },
   {

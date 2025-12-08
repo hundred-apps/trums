@@ -37,7 +37,7 @@
       <div class="flex gap-3 my-3">
         <div class="flex-1">
           <el-descriptions title="" :column="1" size="large" border>
-            <el-descriptions-item label="Customer">
+            <el-descriptions-item label="Kepada">
               {{ invoiceData?.customer_name ?? '-' }}
             </el-descriptions-item>
             
@@ -56,6 +56,9 @@
         </div>
         <div class="flex-1">
           <el-descriptions title=""  :column="1" size="large" border>
+            <el-descriptions-item label="Penerbit">
+              {{ invoiceData?.vendor?.name ?? '-' }}
+            </el-descriptions-item>
             <el-descriptions-item label="Status">
               {{ formatStatus(invoiceData?.status ?? null) }}
             </el-descriptions-item>

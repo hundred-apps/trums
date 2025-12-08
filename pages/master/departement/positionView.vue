@@ -23,28 +23,13 @@ import DeleteButton from '~/components/trums/DeleteButton.vue'
 import { OrderColumn, type RequestSearch } from '~/types/request_search'
 import type { ResponsePagination } from '~/types/response_pagination'
 import type { Position } from '~/types/position'
-import departementView from './departementView.vue'
-import positionView from './positionView.vue'
 
 definePageMeta({
   middleware: ["auth", "app"],
 })
 
-// Active tab
-const activeTab = ref('departement')
 
-// Search request for departement
-const request_search_departement = ref<RequestSearch>({
-  keyword: '',
-  column: [],
-  limit: "10",
-  offset: "1",
-  table: 'departements',
-  sort: {
-    column: 'name',
-    order: OrderColumn.ASC,
-  }
-});
+
 
 // Search request for position
 const request_search_position = ref<RequestSearch>({
@@ -59,13 +44,6 @@ const request_search_position = ref<RequestSearch>({
   }
 });
 
-// Data state
-const { data: departementData } = await useFetchApi<ResponsePagination<Departement[]>>(
-  '/search', 
-  'get-departements', 
-  'post', 
-  request_search_departement.value
-);
 
 const { data: positionData } = await useFetchApi<ResponsePagination<Position[]>>(
   '/search', 
@@ -85,52 +63,15 @@ const search = ref('')
 const selectedDepartements = ref<Departement[]>([])
 const selectedPositions = ref<Position[]>([])
 
-// Filter data based on search
-const filteredDepartements = computed(() => {
-  const data = departementData.value?.data ?? []
-  if (!search.value) return data
-  
-  return data.filter(
-    (item) =>
-      item.name.toLowerCase().includes(search.value.toLowerCase()) ||
-      item.unique_code.toLowerCase().includes(search.value.toLowerCase()) ||
-      formatLocalDate(item.created_at).toLowerCase().includes(search.value.toLowerCase())
-  )
-})
 
-const filteredPositions = computed(() => {
-  const data = positionData.value?.data ?? []
-  if (!search.value) return data
-  
-  return data.filter(
-    (item) =>
-      item.name.toLowerCase().includes(search.value.toLowerCase()) ||
-      item.unique_code.toLowerCase().includes(search.value.toLowerCase()) ||
-      formatLocalDate(item.created_at).toLowerCase().includes(search.value.toLowerCase())
-  )
-})
 
 const handleSelectionChange = (selection: any[]) => {
-  if (activeTab.value === 'departement') {
-    selectedDepartements.value = selection
-  } else {
-    selectedPositions.value = selection
-  }
+  selectedPositions.value = selection
 }
 
 // Columns for Departement
-const departementColumns: Column<Departement>[] = [
-  {
-    key: 'unique_code',
-    dataKey: 'unique_code',
-    title: 'Kode',
-    width: 120,
-    cellRenderer: ({ rowData: row }: { rowData: Departement }) => (
-      <ElTag type="info" size="small">
-        {row.unique_code}
-      </ElTag>
-    ),
-  },
+const positionColumn: Column<Position>[] = [
+ 
   {
     key: 'name',
     dataKey: 'name',
@@ -142,7 +83,7 @@ const departementColumns: Column<Departement>[] = [
     dataKey: 'created_at',
     title: 'Dibuat Pada',
     width: 180,
-    cellRenderer: ({ rowData: row }: { rowData: Departement }) => (
+    cellRenderer: ({ rowData: row }: { rowData: Position }) => (
       <>{formatLocalDate(row.created_at)}</>
     ),
   },
@@ -151,9 +92,9 @@ const departementColumns: Column<Departement>[] = [
     dataKey: 'created_by',
     title: 'Dibuat Oleh',
     width: 180,
-    cellRenderer: ({ rowData: row }: { rowData: Departement }) => (
+    cellRenderer: ({ rowData: row }: { rowData: Position }) => (
       <span class="text-gray-600">
-        {row.people?.name || '-'}
+        {row.created_by || '-'}
       </span>
     ),
   },
@@ -164,10 +105,10 @@ const departementColumns: Column<Departement>[] = [
     width: 150,
     cellRenderer: ({rowData: row}) => (
       <div class="flex gap-1">
-        <ElButton size="small" type="primary" onClick={() => openEditDepartement(row)}>
+        <ElButton size="small" type="primary" onClick={() => openEditPosition(row)}>
           Edit
         </ElButton>
-        <DeleteButton size="small" onCancel={() => {}} onConfirm={() => handleDeleteDepartement([row.unique_id])} />
+        <DeleteButton size="small" onCancel={() => {}} onConfirm={() => handleDeletePosition([row.unique_id])} />
       </div>
     ),
   }
@@ -175,17 +116,6 @@ const departementColumns: Column<Departement>[] = [
 
 // Columns for Position
 const positionColumns: Column<Position>[] = [
-  {
-    key: 'unique_code',
-    dataKey: 'unique_code',
-    title: 'Kode',
-    width: 120,
-    cellRenderer: ({ rowData: row }: { rowData: Position }) => (
-      <ElTag type="success" size="small">
-        {row.unique_code}
-      </ElTag>
-    ),
-  },
   {
     key: 'name',
     dataKey: 'name',
@@ -265,24 +195,12 @@ const addSelectionColumn = (columns: Column<any>[], data: any) => {
   return columnsWithSelection
 }
 
-const departementColumnsWithSelection = computed(() => 
-  addSelectionColumn(departementColumns, departementData.value?.data ?? [])
-)
+
 
 const positionColumnsWithSelection = computed(() => 
   addSelectionColumn(positionColumns, positionData.value?.data ?? [])
 )
 
-// Handle delete departement
-const handleDeleteDepartement = async (ids: string[]) => {
-  try {
-    await useFetchApi<any>(`/departements-delete`, 'delete-departement', 'post', ids);
-    ElMessage.success('Departemen berhasil dihapus')
-    refreshNuxtData('get-departements');
-  } catch (error) {
-    ElMessage.error('Gagal menghapus departemen')
-  }
-}
 
 // Handle delete position
 const handleDeletePosition = async (ids: string[]) => {
@@ -295,13 +213,6 @@ const handleDeletePosition = async (ids: string[]) => {
   }
 }
 
-// Open drawer for editing departement
-const openEditDepartement = (departement: Departement) => {
-  currentDepartement.value = departement
-  currentPosition.value = null
-  isEditing.value = true
-  drawerVisible.value = true
-}
 
 // Open drawer for editing position
 const openEditPosition = (position: Position) => {
@@ -313,45 +224,27 @@ const openEditPosition = (position: Position) => {
 
 // Open drawer for creating
 const openCreateDrawer = () => {
-  if (activeTab.value === 'departement') {
-    currentDepartement.value = null
-    currentPosition.value = null
-  } else {
-    currentPosition.value = null
-    currentDepartement.value = null
-  }
+  currentPosition.value = null
+  currentDepartement.value = null
   isEditing.value = false
   drawerVisible.value = true
 }
 
 const checkSelect = () => {
-  if (activeTab.value === 'departement') {
-    return (departementData.value?.data ?? []).some((row: any) => row.checked)
-  } else {
-    return (positionData.value?.data ?? []).some((row: any) => row.checked)
-  }
+  return (positionData.value?.data ?? []).some((row: any) => row.checked)
 }
 
 const countSelect = () => {
-  if (activeTab.value === 'departement') {
-    return (departementData.value?.data ?? []).reduce((count, row: any) => {
-      return row.checked ? count + 1 : count
-    }, 0)
-  } else {
     return (positionData.value?.data ?? []).reduce((count, row: any) => {
-      return row.checked ? count + 1 : count
+        return row.checked ? count + 1 : count
     }, 0)
-  }
 }
 
 // Handle drawer submit
 const handleDrawerSubmit = () => {
   drawerVisible.value = false
-  if (activeTab.value === 'departement') {
-    refreshNuxtData('get-departements');
-  } else {
-    refreshNuxtData('get-positions');
-  }
+  
+  refreshNuxtData('get-positions');
 }
 
 // Format date helper
@@ -367,67 +260,36 @@ const formatLocalDate = (timestamp: number) => {
 
 const batchDelete = async () => {
   try {
-    const itemType = activeTab.value === 'departement' ? 'Departemen' : 'Posisi'
+    
     await ElMessageBox.confirm(
-      `Apakah Anda yakin ingin menghapus ${countSelect()} ${itemType}?`,
+      `Apakah Anda yakin ingin menghapus ${countSelect()} Posisi?`,
       'Konfirmasi Hapus',
       { type: 'warning' }
     )
     
-    if (activeTab.value === 'departement') {
-      const ids: string[] = (departementData.value?.data ?? [])
-        .filter((value: any) => value.checked)
-        .map((row: any) => row.unique_id) ?? [];
-      if(ids.length > 0){
-        handleDeleteDepartement(ids);
-      }
-    } else {
-      const ids: string[] = (positionData.value?.data ?? [])
+    const ids: string[] = (positionData.value?.data ?? [])
         .filter((value: any) => value.checked)
         .map((row: any) => row.unique_id) ?? [];
       if(ids.length > 0){
         handleDeletePosition(ids);
       }
-    }
   } catch (error) {
     // User canceled or error occurred
   }
 }
 
 const paginationClick = (val: number) => {
-  if (activeTab.value === 'departement') {
-    request_search_departement.value.offset = val.toString();
-    refreshNuxtData('get-departements');
-  } else {
-    request_search_position.value.offset = val.toString();
-    refreshNuxtData('get-positions');
-  }
+  
+  request_search_position.value.offset = val.toString();
+  refreshNuxtData('get-positions');
 }
 
-const handleTabChange = (tab: TabsPaneContext, event: Event) => {
-  activeTab.value = tab.paneName as string;
-  search.value = '' // Reset search when changing tabs
-}
+
 
 const refreshData = () => {
-  if (activeTab.value === 'departement') {
-    refreshNuxtData('get-departements');
-  } else {
-    refreshNuxtData('get-positions');
-  }
+  refreshNuxtData('get-positions');
 }
 
-const getCurrentData = () => {
-  return activeTab.value === 'departement' ? departementData : positionData
-}
-
-const getCurrentColumns = () => {
-  return activeTab.value === 'departement' ? departementColumnsWithSelection : positionColumnsWithSelection
-}
-
-const getFilteredData = () => {
-  return activeTab.value === 'departement' ? filteredDepartements.value : filteredPositions.value
-}
 
 onMounted(() => {
   // Initial data fetch is done via useFetchApi
@@ -435,26 +297,80 @@ onMounted(() => {
 </script>
 
 <template>
-  <TrumsWrapper>
-    <!-- Header with title and stats -->
-    <div class="mb-6">
-      <h1 class="text-2xl font-bold text-gray-800">Departemen & Posisi</h1>
-      <p class="text-gray-600 mt-1">Kelola data departemen dan posisi perusahaan</p>
+  <div>
+    <el-row :gutter="20" class="my-6">
+      <el-col :span="6">
+        <el-input 
+          v-model="search" 
+          size="default" 
+          :placeholder="'Cari posisi...'"
+          clearable
+        />
+      </el-col>
+      <el-button size="default" type="primary" @click="openCreateDrawer">
+        <el-icon class="mr-1"><Plus /></el-icon>
+        Tambah Posisi Baru
+      </el-button>
+      <el-button
+        size="default"
+        @click="refreshData"
+        :loading-icon="Eleme"
+        :loading="loading"
+      >
+        Muat Ulang Data
+      </el-button>
+      <el-button 
+        type="danger" 
+        :disabled="!checkSelect()"
+        @click="batchDelete"
+      >
+        <el-icon class="mr-1"><Delete /></el-icon>
+        Hapus yang Dipilih ({{ countSelect() }})
+      </el-button>
+    </el-row>
+
+    <CustomTable 
+            :columns="positionColumn" 
+            :data="positionData?.data ?? []" 
+            :loading="loading"
+            @selection-change="handleSelectionChange"
+            class="mt-4"
+    />
+        
+    <!-- Pagination -->
+    <div class="flex justify-end mt-6">
+    <el-pagination 
+        background 
+        layout="prev, pager, next, sizes" 
+        :total="positionData?.total_data" 
+        :page-size="parseInt(request_search_position.limit || '10')"
+        @current-change="paginationClick"
+        @size-change="(val) => {
+          request_search_position.limit = val.toString()
+        refreshData()
+        }"
+    />
     </div>
     
-    <!-- Tabs Navigation -->
-    <el-tabs v-model="activeTab" type="border-card" @tab-click="handleTabChange">
-      <el-tab-pane name="departement" label="Departement">
-        <departementView/>
-      </el-tab-pane>
-      
-      <el-tab-pane label="Position" name="position">
-        <positionView/>
-      </el-tab-pane>
-    </el-tabs>
-
+    <ElDrawer
+      v-model="drawerVisible"
+      :title="isEditing 
+        ? 'Edit Posisi'
+        : 'Tambah Posisi Baru'"
+      direction="rtl"
+      size="50%"
+      destroy-on-close
+    >
     
-  </TrumsWrapper>
+      
+      <PositionForm 
+        :position="currentPosition"
+        :isEditing="isEditing"
+        @submitted="handleDrawerSubmit"
+        @cancel="drawerVisible = false"
+      />
+    </ElDrawer>
+    </div>
 </template>
 
 <style scoped>

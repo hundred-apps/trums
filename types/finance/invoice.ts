@@ -1,5 +1,6 @@
 import type { AddressType } from "../address";
 import type { ReferenceTransactionAdjustment } from "../attribute_adjustment";
+import type { Contact } from "../contact";
 import type { PaymentTerm } from "../scm/canvasing";
 import type { PaymentMethod, PaymentStatus } from "./bill";
 import type { TransactionBank, TransactionItem } from "./transaction";
@@ -19,6 +20,13 @@ export type Invoice = {
   customer_id: string|null;
   customer_name: string;
   customer_version: number;
+
+  vendor_id: string|null;
+  vendor_name: string;
+  vendor_version: number;
+  vendor_address_id: string;
+  vendor_address_view?: string;
+  vendor_address_version: number;
 
   billing_address_id: string|null;
   billing_address_view: string;
@@ -67,6 +75,8 @@ export type Invoice = {
   purchase_order_bank?: TransactionBank[], 
   data_reference?: any,
   reference_transaction?: ReferenceTransactionAdjustment[],
+  vendor?: Contact;
+  vendor_address?: AddressType;
 }
 
 

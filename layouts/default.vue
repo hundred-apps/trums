@@ -22,9 +22,9 @@ import type { BaseResponse } from "~/types/response";
 
 const config = useRuntimeConfig();
 const { t } = useI18n();
-const authStore = useAuthStore();
 
 const router = useRouter();
+const authStore = useAuthStore();
 const userdata = ref<People | null>(null);
 const visibleDialogLogOut = ref<boolean>(false);
 

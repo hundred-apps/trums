@@ -277,8 +277,11 @@ const checkUserExists = async () => {
       // imageUrl.value = `${config.public.baseBE}${peopleData.photo?.image_path}/${peopleData.photo?.filename}`;
 
       const storage = localStorage.getItem('setting');
+
       if(storage){
         window.location.href = "/dashboard";
+      }else{
+        window.location.href = "/initial/setting";
       }
 
     }else{

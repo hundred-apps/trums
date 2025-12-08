@@ -391,7 +391,7 @@ const handleClose = (tag: string, type: string) => {
 }
 
 // Columns
-const columnsSelected = ref<string[]>(['selection', 'unique_code', 'invoice_date', 'due_date','customer_name', 'total_amount', 'status', 'payment_method', 'operations', 'setup'])
+const columnsSelected = ref<string[]>(['selection', 'unique_code', 'invoice_date', 'due_date','customer_id', 'total_amount', 'status', 'payment_method', 'operations', 'setup'])
 const columns: Column<Invoice>[] = [
   {
     key: 'unique_code',

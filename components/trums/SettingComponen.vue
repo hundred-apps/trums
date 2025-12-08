@@ -2,11 +2,42 @@
 
     <div>
         <el-card class="my-3" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span class="text-lg font-bold">Pengaturan Default</span>
+        <template #header>
+          <div class="card-header">
+            <span class="text-lg font-bold">Pengaturan Default</span>
+          </div>
+        </template>
+
+        <el-card class="my-3" shadow="never" v-if="currentSettings.company">
+        <template #header>
+          <div class="card-header">
+            <span class="text-lg font-bold">Pengaturan Saat Ini</span>
+          </div>
+        </template>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <h4 class="text-sm font-semibold text-gray-500 mb-2">Default Company</h4>
+            <div class="flex items-center">
+              <el-icon class="mr-2 text-blue-500"><OfficeBuilding /></el-icon>
+              <span class="text-md">{{ currentSettings.company?.name || '-' }}</span>
+            </div>
+          </div>
+          
+          <div>
+            <h4 class="text-sm font-semibold text-gray-500 mb-2">Default Alamat</h4>
+            <div class="flex items-start">
+              <el-icon class="mr-2 text-green-500 mt-1"><Location /></el-icon>
+              <div>
+                <span class="text-md block">{{ currentSettings.address?.address_name || '-' }}</span>
+                <span class="text-sm text-gray-500" v-if="currentSettings.address">
+                  {{ generateAddressText(currentSettings.address!) }}
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
-      </template>
+        </el-card>
 
       <div class="max-w-2xl space-y-6">
         <!-- Default Company Selection -->
@@ -102,41 +133,13 @@
           <el-button @click="resetForm">
             Reset
           </el-button>
+          
         </div>
       </div>
     </el-card>
 
     <!-- Current Settings Summary -->
-    <el-card class="my-3" shadow="never" v-if="currentSettings.company">
-      <template #header>
-        <div class="card-header">
-          <span class="text-lg font-bold">Pengaturan Saat Ini</span>
-        </div>
-      </template>
-
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <h4 class="text-sm font-semibold text-gray-500 mb-2">Default Company</h4>
-          <div class="flex items-center">
-            <el-icon class="mr-2 text-blue-500"><OfficeBuilding /></el-icon>
-            <span class="text-md">{{ currentSettings.company?.name || '-' }}</span>
-          </div>
-        </div>
-        
-        <div>
-          <h4 class="text-sm font-semibold text-gray-500 mb-2">Default Alamat</h4>
-          <div class="flex items-start">
-            <el-icon class="mr-2 text-green-500 mt-1"><Location /></el-icon>
-            <div>
-              <span class="text-md block">{{ currentSettings.address?.address_name || '-' }}</span>
-              <span class="text-sm text-gray-500" v-if="currentSettings.address">
-                {{ generateAddressText(currentSettings.address!) }}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-    </el-card>
+    
 
     <!-- Success Dialog -->
     <el-dialog

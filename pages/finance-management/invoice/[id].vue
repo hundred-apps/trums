@@ -56,6 +56,9 @@
         </div>
         <div class="flex-1">
           <el-descriptions title=""  :column="1" size="large" border>
+            <el-descriptions-item label="Penerbit">
+              {{invoiceData?.vendor?.name ?? ''}}
+            </el-descriptions-item>
             <el-descriptions-item label="Status">
               {{ formatStatus(invoiceData?.status ?? null) }}
             </el-descriptions-item>

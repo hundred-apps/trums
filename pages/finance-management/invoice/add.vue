@@ -102,6 +102,44 @@
             </template>
           </el-autocomplete>
         </el-form-item>
+
+        <el-form-item label="Penerbit" prop="vendor_name">
+          <el-autocomplete
+            :fetch-suggestions="querySearchPublisher"
+            v-model="ruleForm.vendor_name"
+            placeholder="Search Publisher"
+            @select="onHandleSelectPublisher"
+          >
+            <template #default="{ item }">
+              <div v-if="item.isNew" class="flex items-center text-blue-500">
+                <el-icon><Plus /></el-icon>
+                <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+              </div>
+              <div v-else>
+                {{ item.value }} <span class="text-gray-400 ml-2">{{ item.additionalInfo }}</span>
+              </div>
+            </template>
+          </el-autocomplete>
+        </el-form-item>
+
+        <el-form-item label="Alamat Penerbit" prop="vendor_address_view">
+          <el-autocomplete
+            :fetch-suggestions="querySearchAddressPublisher"
+            v-model="ruleForm.vendor_address_view"
+            placeholder="Search Address"
+            @select="onHandleSelectAddressPublisher"
+          >
+            <template #default="{ item }">
+              <div v-if="item.isNew" class="flex items-center text-blue-500">
+                <el-icon><Plus /></el-icon>
+                <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+              </div>
+              <div v-else>
+                {{ item.value }} <span class="text-gray-400 ml-2">{{ item.additionalInfo }}</span>
+              </div>
+            </template>
+          </el-autocomplete>
+        </el-form-item>
         
         <el-form-item label="Tanggal Invoice" prop="invoice_date">
           <el-date-picker
@@ -388,7 +426,7 @@
 
     <el-dialog v-model="dialogNewAddress" title="Create New Address" width="500">
       <FormAddress 
-        :onSetInitital="{ contact_id: ruleForm.customer_id, contact_name: ruleForm.customer_name }" 
+        :onSetInitital="{ contact_id: stateAddress === 'customer' ? ruleForm.customer_id : ruleForm.vendor_id, contact_name: stateAddress === 'customer' ? ruleForm.customer_name : ruleForm.vendor_address_view }" 
         :onSuccess="onAddNewAddress" 
       />
     </el-dialog>
@@ -541,6 +579,8 @@ const drawerVisibleCreateAccount = ref(false)
 const visibleModalAdjustmentTransaction = ref(false)
 const visibleModalNewAdjustment = ref(false)
 
+const stateAddress = ref<"customer"|"vendor">("customer");
+
 // Payment method options
 const paymentMethods = [
   { value: PaymentMethod.Cash, label: 'Cash' },
@@ -619,6 +659,12 @@ const ruleForm = reactive<Invoice>({
   subtotal: 0,
   invoice_date_view: Date.now().toString(),
   due_date_view: Date.now().toString(),
+  vendor_id: null,
+  vendor_name: '',
+  vendor_version: 0,
+  vendor_address_id: '',
+  vendor_address_view: '',
+  vendor_address_version: 0,
 })
 
 
@@ -656,6 +702,12 @@ const adjustmentTransactions = await useFetchApi<ResponsePagination<AdjustmentTr
 const rules = reactive({
   customer_name: [
     { required: true, message: 'Please select customer', trigger: 'blur' }
+  ],
+  vendor_name: [
+    { required: true, message: 'Please select a publisher', trigger: 'blur' }
+  ],
+  vendor_address_view: [
+    { required: true, message: 'Please select a publisher address', trigger: 'blur' }
   ],
   invoice_date: [
     { required: true, message: 'Please select invoice date', trigger: 'change' }
@@ -879,7 +931,7 @@ const handlePaymentMethodChange = (method: PaymentMethod) => {
 
 const querySearchBanks = (query: string, cb: (arg: any) => void) => {
   try {
-    useFetchApi<DefaultResponsePagination<BankAccount[]>>('/bank-accounts-read', 'get-bank-accounts', 'get', null).then((response) => {
+    useFetchApi<DefaultResponsePagination<BankAccount[]>>('/bank-accounts-read?flag=form', 'get-bank-accounts', 'get', null).then((response) => {
       if(response.status.value == 'success'){
         const banks = (response.data.value?.data.query ?? []) as BankAccount[];
         if(banks.length > 0){
@@ -959,6 +1011,47 @@ const querySearchCustomer =  (query: string, cb: (arg: any) => void) => {
   }
 }
 
+const querySearchPublisher =  (query: string, cb: (arg: any) => void) => {
+  try {
+    
+    const request_contact = {...request_search.value};
+    
+    request_contact.table = 'contacts';
+    request_contact.keyword = query;
+    request_contact.flag = "form";
+    request_contact.column = [
+      {
+        is_company: true,
+        ownership:true,
+      } 
+    ]
+
+    useFetchApi<ResponsePagination<Contact>>('/search', 'search-publisher', 'post', request_contact).then((response) => {
+      if(response.status.value == 'success'){
+        const contacts: Contact[] = (response.data.value?.data ?? []) as Contact[];
+        if(contacts.length > 0){
+          cb(contacts.map((value) => ({
+          value: value.name,
+          unique_id: value.unique_id,
+          data: value,
+        })));
+        }else{
+          cb([{
+            value: query,
+            isNew: true,
+            keyword: query,
+          }])
+        }
+      }
+    });
+    
+    
+  } catch (error) {
+    console.error('Failed to fetch vendor', error)
+    cb([])
+  }
+}
+
 const querySearchAddress =  (query: string, cb: (arg: any) => void) => {
   try {
     // Replace with your actual API call
@@ -983,6 +1076,54 @@ const querySearchAddress =  (query: string, cb: (arg: any) => void) => {
     request_contact.flag = "form";
 
     useFetchApi<ResponsePagination<AddressType>>('/search', 'search-address', 'post', request_contact).then((response) => {
+      if(response.status.value == 'success'){
+        const address: AddressType[] = (response.data.value?.data ?? []) as AddressType[];
+        if(address.length > 0){
+          cb(address.map((value) => ({
+          value: value.address_name,
+          unique_id: value.unique_id,
+          data: value,
+        })));
+        }else{
+          cb([{
+            value: query,
+            isNew: true,
+            keyword: query,
+          }])
+        }
+      }
+    });
+    
+    
+  } catch (error) {
+    console.error('Failed to fetch customers', error)
+    cb([])
+  }
+}
+const querySearchAddressPublisher =  (query: string, cb: (arg: any) => void) => {
+  try {
+    // Replace with your actual API call
+    // const response = await $fetch('/api/customers', {
+    //   params: { search: query }
+    // })
+    
+    // const results = response.data.map((customer: any) => ({
+    //   value: customer.name,
+    //   id: customer.id,
+    //   data: customer
+    // }))
+
+    const request_contact = {...request_search.value};
+    request_contact.table = 'address';
+    request_contact.keyword = query;
+    request_contact.column = [
+      {
+        contact_id: ruleForm.vendor_id,
+      }
+    ];
+    request_contact.flag = "form";
+
+    useFetchApi<ResponsePagination<AddressType>>('/search', 'search-address-vendor', 'post', request_contact).then((response) => {
       if(response.status.value == 'success'){
         const address: AddressType[] = (response.data.value?.data ?? []) as AddressType[];
         if(address.length > 0){
@@ -1146,8 +1287,31 @@ const onHandleSelectCustomer = (item: any) => {
   }
 }
 
+
+const onHandleSelectPublisher = (item: any) => {
+  if (item.isNew) {
+    createNewCustomer(item.query).then(customer => {
+      if (customer) {
+        ruleForm.vendor_id = customer.unique_id;
+        ruleForm.vendor_name = customer.name;
+        ruleForm.vendor_version = customer.version
+      }else{
+        ruleForm.vendor_id = '';
+        ruleForm.vendor_name = '';
+        ruleForm.vendor_version = 0;
+      }
+    })
+  } else {
+    const customer = item.data as Contact
+    ruleForm.vendor_id = customer.unique_id;
+    ruleForm.vendor_name = customer.name;
+    ruleForm.vendor_version = customer.version || 1;
+  }
+}
+
 const onHandleSelectAddress = (item: any) => {
   if (item.isNew) {
+    stateAddress.value = "customer";
     dialogNewAddress.value = true
   } else {
     const address = item.data as AddressType
@@ -1156,11 +1320,28 @@ const onHandleSelectAddress = (item: any) => {
     ruleForm.billing_address_version = address.version || 1
   }
 }
+const onHandleSelectAddressPublisher = (item: any) => {
+  if (item.isNew) {
+    stateAddress.value = "vendor";
+    dialogNewAddress.value = true
+  } else {
+    const address = item.data as AddressType
+    ruleForm.vendor_address_id = address.unique_id;
+    ruleForm.vendor_address_view = address.address_name;
+    ruleForm.vendor_address_version = address.version || 1;
+  }
+}
 
 const onAddNewAddress = (address: AddressType) => {
-  ruleForm.billing_address_id = address.unique_id;
-  ruleForm.billing_address_view = address.address_name;
-  ruleForm.billing_address_version = address.version || 1;
+  if(stateAddress.value == "customer"){
+    ruleForm.billing_address_id = address.unique_id;
+    ruleForm.billing_address_view = address.address_name;
+    ruleForm.billing_address_version = address.version || 1;
+  }else{
+    ruleForm.vendor_address_id = address.unique_id;
+    ruleForm.vendor_address_view = address.address_name;
+    ruleForm.vendor_address_version = address.version || 1;
+  }
   dialogNewAddress.value = false
 }
 
@@ -1333,6 +1514,11 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         formData.append("customer_version", ruleForm.customer_version!.toString())
         formData.append("billing_address_id", ruleForm.billing_address_id!)
         formData.append("billing_address_version", ruleForm.billing_address_version!.toString())
+        formData.append("vendor_id", ruleForm.vendor_id!)
+        formData.append("vendor_name", ruleForm.vendor_name)
+        formData.append("vendor_version", ruleForm.vendor_version!.toString())
+        formData.append("vendor_address_id", ruleForm.vendor_address_id!)
+        formData.append("vendor_address_version", ruleForm.vendor_address_version!.toString())
         formData.append("invoice_date", String(invoiceDate.getTime() / 1000))
         formData.append("due_date", String(billDate.getTime() / 1000))
         formData.append("is_tempo", ruleForm.is_tempo == true ? 'true' : 'false')
@@ -1521,7 +1707,9 @@ const fetchDataEdit = async () => {
         ruleForm.due_date = new Date(invoice.due_date! * 1000).getTime();
         ruleForm.billing_address_view = invoice.billing_address?.address_name ?? '';
         ruleForm.subtotal = invoice.subtotal;
-
+        ruleForm.vendor_address_id = invoice.vendor_address?.unique_id ?? '';
+        ruleForm.vendor_address_view = invoice.vendor_address?.address_name ?? '';
+        ruleForm.vendor_address_version = invoice.vendor_address?.version ?? 0;
 
         transactionBanks.value = invoice.purchase_order_bank ?? [];
         references.value = (invoice.reference_transaction ?? []).map((value) => ({...value, adjustment: value.adjustments_transaction}))
@@ -1534,11 +1722,34 @@ const fetchDataEdit = async () => {
   }
 }
 
+const initialSetting = () => {
+  const store = localStorage.getItem('setting');
+  if(store){
+    const setting: {
+      company: Contact,
+      address: AddressType
+    } = JSON.parse(store);
+    
+    // ruleForm.vendor_id = setting.company;
+    ruleForm.vendor_id = setting.company.unique_id;
+    ruleForm.vendor_version = setting.company.version;
+    ruleForm.vendor_name = setting.company.name;
+
+    ruleForm.vendor_address_id = setting.address.unique_id;
+    ruleForm.vendor_address_version = setting.address.version;
+    ruleForm.vendor_address_view = setting.address.address_name;
+
+    
+  }
+}
+
 onMounted(()=> {
 
 const unique_id = useCookie('unique_id');
 if(unique_id.value != null && unique_id.value != undefined){
   fetchDataEdit();
+}else{
+  initialSetting();
 }
 
 });

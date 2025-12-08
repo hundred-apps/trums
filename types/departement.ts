@@ -1,3 +1,5 @@
+import type { People } from "./people";
+
 export type Departement = {
   id: number;
   unique_id: string;
@@ -6,4 +8,5 @@ export type Departement = {
   created_at: number;
   created_by: string;
   updated_at: number;
+  people?: People;
 };
