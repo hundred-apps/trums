@@ -67,7 +67,7 @@
                 </el-descriptions>
                 <el-descriptions title="Note">
                     <el-descriptions-item label="">
-                        <div v-html="`${formattedText(inquiryData?.description)}`"></div>
+                        <div v-html="`${formattedText(inquiryData?.description ?? '')}`"></div>
                     </el-descriptions-item>
                 </el-descriptions>
 

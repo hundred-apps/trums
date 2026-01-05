@@ -1471,7 +1471,7 @@ const calculateSellingPrice = (row: CanvassingItemForm) => {
 
 const removeItem = async (item: CanvassingItemForm) => {
 
-  
+  console.log('type', item.type);
 
   if (item.type === "parent") {
     if(item.unique_id){
@@ -1479,6 +1479,8 @@ const removeItem = async (item: CanvassingItemForm) => {
       if(deleted){
         item_canvassing.value = item_canvassing.value.filter(value => value.index !== item.index)
       }
+    }else{
+      item_canvassing.value = item_canvassing.value.filter(value => value.index !== item.index);
     }
     
   } else if (item.type === "child") {
@@ -1487,6 +1489,8 @@ const removeItem = async (item: CanvassingItemForm) => {
       if(deleted){
         item_canvassing.value.forEach((parent) => parent.children = parent.children.filter((child) => child.index != item.index));
       }
+    }else{
+      item_canvassing.value.forEach((parent) => parent.children = parent.children.filter((child) => child.index != item.index));
     }
     
     // removeVendor(item.vendor_id)
@@ -2035,28 +2039,30 @@ const handleSelectUnit = async (record: Record<string, any>, index: string, row:
 }
 
 const querySearchCatalogue = (queryString: string, cb: (arg: any) => void) => {
+  if(queryString != ''){
     request_search_pricetag_item.value.keyword = queryString;
     
     useFetchApi<ResponsePagination<Pricetag_item[]>>(
-        `/pricetag-item-read`, 
-        'pricetag-search-items', 
-        'post', 
-        request_search_pricetag_item
-    ).then((response) => {
-    if(response.status.value == 'success'){
-      const resultApi: Pricetag_item[] = response.data.value?.data ?? [];
-      if(resultApi.length > 0){
-        const results = resultApi.map((data: Pricetag_item) => {
-            return {...data, value: `${data.catalogue?.name} ${data.catalogue?.sn ? ' - ' + data.catalogue?.sn : ''}`}
-        });    
-        cb([...results, { value: `${queryString}`, label: `Tambahkan ${queryString}`, isNew: true}])
+          `/pricetag-item-read`, 
+          'pricetag-search-items', 
+          'post', 
+          request_search_pricetag_item
+      ).then((response) => {
+      if(response.status.value == 'success'){
+        const resultApi: Pricetag_item[] = response.data.value?.data ?? [];
+        if(resultApi.length > 0){
+          const results = resultApi.map((data: Pricetag_item) => {
+              return {...data, value: `${data.catalogue?.name} ${data.catalogue?.sn ? ' - ' + data.catalogue?.sn : ''}`}
+          });    
+          cb([...results, { value: `${queryString}`, label: `${queryString}`, isNew: true}])
+        }else{
+          cb([{ value: `${queryString}`, label: `${queryString}`, isNew: true}])
+        }
       }else{
-        cb([{ value: `${queryString}`, label: `Tambahkan ${queryString}`, isNew: true}])
+        cb([{value: `${queryString}`, isNew: true, query: queryString, label: `Tambahkan ${queryString}`}])
       }
-    }else{
-      cb([{value: `Tambahkan ${queryString}`, isNew: true, query: queryString, label: `Tambahkan ${queryString}`}])
-    }
-  })
+    })
+  }
 }
 
 const querySearchCatalogueEquivalent = (queryString: string, cb: (arg: any) => void) => {

@@ -84,6 +84,7 @@
     import InquiryDetail from './components/InquiryDetail.vue';
 import type { Canvassing } from '~/types/scm/canvasing';
 import type { Permission } from '~/types/menu';
+import { ReferencePriceTag, type Pricetag } from '~/types/pricetag';
 
     definePageMeta({
         middleware: ["auth", "check-access"],
@@ -112,6 +113,12 @@ import type { Permission } from '~/types/menu';
     
     const loadingRAB = ref<boolean>(false);
     const canvassing = ref<DataInterface<Canvassing>>({
+        code: 200,
+        data: null,
+        message: '',
+        pending: true,
+    })
+    const penawaran = ref<DataInterface<Pricetag>>({
         code: 200,
         data: null,
         message: '',
@@ -192,6 +199,8 @@ import type { Permission } from '~/types/menu';
                     message: response.error.value?.data?.message ?? 'Action Not Permited',
                     pending: response.pending.value,
                 }
+
+                fetchOffer();
             }
 
             console.log(response);
@@ -199,6 +208,50 @@ import type { Permission } from '~/types/menu';
             ElMessage.error(error.response?.message ?? error);
         } finally {
             loadingRAB.value = false;
+        }
+    }
+
+    const fetchOffer = async () => {
+        loadingPenawaran.value = true;
+        try {
+            const request_search: RequestSearch = {
+                keyword: '',
+                table: 'pricetag',
+                column: [
+                    {
+                        reference: [ReferencePriceTag.CANVASING_VENDOR],
+                        reference_id: [canvassing.value.data?.unique_id ??''],
+                    }
+                ],
+                sort: null,
+                offset: '1',
+                limit: '1'
+            }
+
+            const response = await useFetchApi<ResponsePagination<Pricetag[]>>('/search', 'fetch-penawaran', 'post', request_search);
+
+            if(response.status.value == 'success'){
+                penawaran.value = {
+                    code: response.code || 201,
+                    data: (response.data.value?.data ?? []).length > 0 ? response.data.value!.data![0] : null,
+                    message: response.status.value,
+                    pending: response.pending.value,
+                };
+                privilages.value = response.data.value?.privilege ?? [];
+            }
+
+            if(response.code == 403){
+                canvassing.value = {
+                    code: response.code,
+                    data: null,
+                    message: response.error.value?.data?.message ?? 'Action Not Permited',
+                    pending: response.pending.value,
+                }
+            }
+        } catch (error: any) {
+            ElMessage.error(`${error.response?.message ?? error}`);
+        } finally {
+            loadingPenawaran.value = false;
         }
     }
     

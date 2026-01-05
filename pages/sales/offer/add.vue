@@ -52,6 +52,9 @@
             </template>
           </el-autocomplete>
         </el-form-item>
+        <el-form-item label="Subject" prop="subject">
+          <el-input v-model="ruleForm.subject" placeholder="Masukan Subject" />
+        </el-form-item>
         <el-form-item prop="to_name" label="Kepada">
           <el-autocomplete
             
@@ -256,6 +259,7 @@ import type { AddressType } from '~/types/address';
     version: 0,
     type: type.value,
     note: '',
+    subject: '',
     pricetag_item: [{
       catalogue: {
         id: null,
@@ -856,6 +860,7 @@ import type { AddressType } from '~/types/address';
       formData.append('reference_id', `${ruleForm.reference_id}`)
       formData.append('reference_version', `${ruleForm.reference_version}`)
       formData.append('type', `${ruleForm.type}`)
+      formData.append('subject', `${ruleForm.subject}`)
       formData.append('note', `${ruleForm.note}`)
       formData.append('to_id', `${ruleForm.to_id}`)
       formData.append('to_version', `${ruleForm.to_version}`)

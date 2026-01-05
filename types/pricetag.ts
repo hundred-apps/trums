@@ -40,6 +40,7 @@ export type Pricetag = {
     to_version?: number,
     files: AppFile[],
     reference_data?: any | Canvassing,
+    subject?: string,
 }
 
 

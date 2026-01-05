@@ -296,7 +296,7 @@ const generateAddressLabel = (address: AddressType) => {
 }
 
 const generateAddressText = (address: AddressType) => {
-  return `${address.street}, ${address.village}, ${address.city}, ${address.regency}, ${address.province} ${address.codepos}`
+  return `${address.street ?? ''}, ${address.village ?? ''}, ${address.city ?? ''}, ${address.regency ?? ''}, ${address.province ?? ''} ${address.codepos ?? ''}`
 }
 
 const resetSetting = () => {
@@ -361,6 +361,7 @@ const handleSelectCompany = (item: Record<string, any>) => {
 
 const handleSelectAddress = (item: any) => {
   const address: AddressType = item as AddressType;
+  console.log('select address', address);
   selectedAddress.value = address.address_name;
   currentSettings.value.address = address;
 }

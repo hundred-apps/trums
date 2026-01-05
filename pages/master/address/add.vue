@@ -244,8 +244,8 @@ const onSubmitAddress = async () => {
         if(response.status.value == 'success'){
             ElMessage.success('Berhasil!');
             const address:AddressType|undefined = (response.data.value?.data as unknown as BaseResponse<AddressType>).data;
-            ruleFormRefAddress.value?.resetFields();
-            ruleFormAddress.address_view = '';
+            // ruleFormRefAddress.value?.resetFields();
+            // ruleFormAddress.address_view = '';
         }
     } catch (error: any) {
         ElMessage.success(error?.response?.messaage ?? error);

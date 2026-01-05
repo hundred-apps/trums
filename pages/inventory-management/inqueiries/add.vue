@@ -386,7 +386,7 @@ import FormAddress from '~/components/trums/FormAddress.vue';
 
         const data = {
             "date": dateObject.getTime() / 1000,
-            "type": TypeInquiry.SALES_INQUIRY,
+            "type": TypeInquiry.INTERNAL,
             "reference": ruleForm.reference,
             "reference_id": ruleForm.reference_id,
             "status": "draft",

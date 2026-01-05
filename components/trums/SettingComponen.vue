@@ -295,7 +295,8 @@ const generateAddressLabel = (address: AddressType) => {
 }
 
 const generateAddressText = (address: AddressType) => {
-  return `${address.street}, ${address.village}, ${address.city}, ${address.regency}, ${address.province} ${address.codepos}`
+  console.log('address', address.codepos);
+  return `${address.street}, ${address.village}, ${address.city}, ${address.regency}, ${address.codepos}`
 }
 
 const resetSetting = () => {

@@ -6,7 +6,7 @@
   })
   import { ref, onMounted } from 'vue';
   import { Filter, SetUp,Eleme  } from '@element-plus/icons-vue'
-  import type { Inquiry } from '~/types/inquiry';
+  import { TypeInquiry, type Inquiry } from '~/types/inquiry';
   import customTable from '~/components/trums/table/customTable.vue';
   import { OrderColumn, type RequestSearch } from '~/types/request_search';
   import type { ResponsePagination } from '~/types/response_pagination';
@@ -29,6 +29,7 @@ const request_search = ref<RequestSearch>({
   keyword: "",
   column: [
     {
+      type: [TypeInquiry.INTERNAL],
       reference: [],
       priority: [],
       status: [],

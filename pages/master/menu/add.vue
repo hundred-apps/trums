@@ -162,9 +162,12 @@ const fetchMenuDetail = async () => {
         Object.assign(ruleForm, menuData);
         ruleForm.parent_id = menuData.parent_id;
         ruleForm.parent_view = menuData.parent?.name ?? '';
+        ruleForm.permissions = menuData.permissions;
+        // console.log('permission', ruleForm.permissions);
       }
-
+      
       initialApprovalSetting();
+
     }
   } catch (error) {
     ElMessage.error('Gagal memuat detail menu');
@@ -530,56 +533,60 @@ const onHandleSelectPosition = async (item: Record<string, any>, index: number, 
 const initialApprovalSetting = () => {
   ruleForm.permissions.forEach(element => {
     if(element.type === PermissionType.APPROVAL){
-      element.approval_permission_pic = Array.from({ length: element.approval_length }, (_, i) => ({
-        unique_id: '',
-        permission_id: '',
-        permission: element,
-        pic_id: '',
-        pic: {
-          id: 0,
-          unique_id: '',
-          unique_code: '',
-          gid: '',
-          name: '',
-          email: '',
-          phone: '',
-          password: '',
-          join_date: 0,
-          gender: '',
-          departement_id: '',
-          position_id: '',
-          file_id: '',
-          created_at: 0,
-          created_by: 0,
-          updated_at: 0,
-          parent_people: '',
-          position: '',
-          departement: '',
-          version: 0,
-        },
-        departement_id: '',
-        departement: {
-          id: 0,
-          unique_id: '',
-          unique_code: '',
-          name: '',
-          created_at: 0,
-          created_by: '',
-          updated_at: 0,
-        },
-        position_id: '',
-        position: {
-          id: 0,
-          unique_id: '',
-          unique_code: '',
-          name: '',
-          created_at: 0,
-          created_by: '',
-          updated_at: 0,
-        },  
-        step: i + 1,
-        status: ApprovalPermissionStatus.APPROVE,
-      }))
+      element.approval_permission_pic = Array.from({ length: element.approval_length }, (_, i) => {
+        const approvals: ApprovalPermissionPIC | undefined = element.approval_permission_pic![i];
+        return {
+          unique_id: approvals?.unique_id ?? '',
+          permission_id: approvals.permission_id ?? '',
+          permission: approvals.permission,
+          pic_id: approvals.pic_id ?? '',
+          pic: approvals?.pic ?? {
+            id: 0,
+            unique_id: '',
+            unique_code: '',
+            gid: '',
+            name: '',
+            email: '',
+            phone: '',
+            password: '',
+            join_date: 0,
+            gender: '',
+            departement_id: '',
+            position_id: '',
+            file_id: '',
+            created_at: 0,
+            created_by: 0,
+            updated_at: 0,
+            parent_people: '',
+            position: '',
+            departement: '',
+            version: 0,
+            devices: [],
+          },
+          departement_id: approvals.departement_id ?? '',
+          departement: approvals.departement ?? {
+            id: 0,
+            unique_id: '',
+            unique_code: '',
+            name: '',
+            created_at: 0,
+            created_by: '',
+            updated_at: 0,
+          },
+          position_id: approvals.position_id ?? '',
+          position: approvals.position ?? {
+            id: 0,
+            unique_id: '',
+            unique_code: '',
+            name: '',
+            created_at: 0,
+            created_by: '',
+            updated_at: 0,
+          },  
+          step: i + 1,
+          status: ApprovalPermissionStatus.APPROVE,
+        }
+      })
     }else{
       element.approval_permission_pic = [];
     }

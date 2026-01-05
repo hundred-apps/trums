@@ -13,4 +13,5 @@ export type DataInterface<T> = {
     pending: boolean,
     message: string,
     data: T | null,
+    privilege?: Permission[],
 }

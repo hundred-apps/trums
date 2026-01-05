@@ -27,3 +27,10 @@ export function normalizePhone(number: any) {
   return number.replace(/^\+/, "").replace(/\D/g, "");
 }
 
+export function capitalizeWords(str: string) {
+  return str
+    .toLowerCase()
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+}

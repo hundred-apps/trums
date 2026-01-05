@@ -98,7 +98,7 @@ const { data } = await useFetchApi<ResponsePagination<AddressType[]>>('/search',
 
 const selectedAddresses = ref<AddressType[]>([])
 const loading = ref<boolean>(false)
-const columnsSelected = ref<string[]>(['selection', 'contact_name', 'address_name', 'street', 'village', 'city', 'province', 'created_at', 'updated_at', 'operations', 'setup'])
+const columnsSelected = ref<string[]>(['selection', 'contact_name', 'address_name', 'codepos', 'street', 'village', 'city', 'province', 'created_at', 'updated_at', 'operations', 'setup'])
 
 // Computed
 const totalProvinces = computed(() => {
@@ -135,6 +135,17 @@ const columns: Column<AddressType>[] = [
     width: 150,
     cellRenderer: ({ rowData }: { rowData: AddressType }) => (
       <span class="text-gray-600">{rowData.address_name}</span>
+    )
+  },
+  {
+    key: 'codepos',
+    title: 'Kode Pos',
+    dataKey: 'codepos',
+    width: 200,
+    cellRenderer: ({ rowData }: { rowData: AddressType }) => (
+        <el-text class="w-150px mb-2" truncated>
+            {rowData.codepos || '-'}
+        </el-text>
     )
   },
   {

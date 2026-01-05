@@ -157,11 +157,11 @@ const handleMenuClick = (menuKey: string) => {
                 <el-icon v-if="showIcon(menu.icon)">
                   <component :is="showIcon(menu.icon)" />
                 </el-icon>
-                {{menu.name}}
+                {{capitalizeWords(menu.name)}}
               </template>
               <el-menu-item-group>
                 <el-menu-item v-for="sub in menu.menus" :index="sub.route"
-                  >{{ sub.name }}</el-menu-item
+                  >{{ capitalizeWords(sub.name) }}</el-menu-item
                 >
               </el-menu-item-group>
             </el-sub-menu>
@@ -169,7 +169,7 @@ const handleMenuClick = (menuKey: string) => {
               <el-icon v-if="showIcon(menu.icon)">
                 <component :is="showIcon(menu.icon)" />
               </el-icon>
-              <span>{{menu.name}}</span>
+              <span>{{capitalizeWords(menu.name)}}</span>
             </el-menu-item>
             
           </div>
