@@ -18,7 +18,7 @@ import type { BaseResponse } from "~/types/response";
 const imageUrl = ref("");
 const fileList = ref<UploadUserFile[]>([]);
 const api = useApi();
-const profile = ref<UserProfile|null>(null);
+const profile = ref<UserProfile | null>(null);
 const user = localStorage.getItem("user");
 const appUserData = useCookie("userdata");
 const userToken = useCookie("token");
@@ -49,7 +49,6 @@ interface RuleForm {
   gid?: string;
   unique_id?: string;
 }
-
 
 const loading = ref<boolean>(false);
 
@@ -155,12 +154,16 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 
       const version = navigator.appVersion;
 
-  
-
       formData.append("people_devices[0][platform]", `${DevicePlatform.WEB}`);
-      formData.append("people_devices[0][version]", `${version.split(' ')[0]}`);
-      formData.append("people_devices[0][identifier]", `${navigator.userAgent}`);
-      formData.append("people_devices[0][device_name]", `${getDeviceName(navigator.userAgent)}`);
+      formData.append("people_devices[0][version]", `${version.split(" ")[0]}`);
+      formData.append(
+        "people_devices[0][identifier]",
+        `${navigator.userAgent}`
+      );
+      formData.append(
+        "people_devices[0][device_name]",
+        `${getDeviceName(navigator.userAgent)}`
+      );
       // formData.append("people_devices[0][fcm_token]", null);
 
       loading.value = true;
@@ -173,16 +176,15 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         if (response.status == 201) {
           const dataUser: People = response.data.data;
           appUserData.value = JSON.stringify(dataUser);
-          
-          
+
           userToken.value = response.data.token;
 
-          console.log('user',response.data.data);
-          
+          console.log("user", response.data.data);
+
           authStore.setUserData(dataUser);
           authStore.setMenu(dataUser.menu || []);
-          
-          ElMessage.success('Berhasil Login!');
+
+          ElMessage.success("Berhasil Login!");
           window.location.href = "/initial/setting";
         } else {
           ElMessage.error(response?.data?.message);
@@ -203,15 +205,13 @@ const completeLogin = async (userData: People, token: string) => {
     // Store user data using cookies and localStorage
     const appUserData = useCookie("userdata");
     const userToken = useCookie("token");
-    
+
     appUserData.value = JSON.stringify(userData);
     userToken.value = token;
 
     // Store in localStorage for immediate access
-    localStorage.setItem('user_data', JSON.stringify(userData));
-    localStorage.setItem('menu', JSON.stringify(userData.menu || []));
-
-    
+    localStorage.setItem("user_data", JSON.stringify(userData));
+    localStorage.setItem("menu", JSON.stringify(userData.menu || []));
 
     ElMessage.success("Login successful! Redirecting...");
 
@@ -219,7 +219,6 @@ const completeLogin = async (userData: People, token: string) => {
     setTimeout(() => {
       window.location.href = "/dashboard";
     }, 1000);
-
   } catch (error) {
     console.error("Complete login failed:", error);
     ElMessage.error("Login completion failed");
@@ -234,37 +233,39 @@ const resetForm = (formEl: FormInstance | undefined) => {
 const checkUserExists = async () => {
   loading.value = true;
   try {
-    
     const formData = new FormData();
-    formData.append("phone", profile.value?.sub ?? '');
+    formData.append("phone", profile.value?.sub ?? "");
 
     const version = navigator.appVersion;
 
-
+    console.log(navigator.userAgent);
 
     formData.append("people_devices[0][platform]", `${DevicePlatform.WEB}`);
-    formData.append("people_devices[0][version]", `${version.split(' ')[0]}`);
-    formData.append("people_devices[0][identifier]", `${navigator.userAgent}`);
-    formData.append("people_devices[0][device_name]", `${getDeviceName(navigator.userAgent)}`);
-    
+    formData.append("people_devices[0][version]", `${version.split(" ")[0]}`);
+    formData.append(
+      "people_devices[0][identifier]",
+      `${profile.value?.sub}-${navigator.userAgent}`
+    );
+    formData.append(
+      "people_devices[0][device_name]",
+      `${getDeviceName(navigator.userAgent)}`
+    );
 
     const response = await api.post("/people-create", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
-    console.log(response.status)
-    console.log(response.data.data)
+    console.log(response.status);
+    console.log(response.data.data);
 
-    if(response.status === 201 && response.data.data){
-
+    if (response.status === 201 && response.data.data) {
       const dataUser: People = response.data.data;
       appUserData.value = JSON.stringify(dataUser);
-      
-      
+
       userToken.value = response.data.token;
 
-      console.log('token',userToken.value);
-      console.log('user',response.data.data);
-      
+      console.log("token", userToken.value);
+      console.log("user", response.data.data);
+
       authStore.setUserData(dataUser);
       authStore.setMenu(dataUser.menu || []);
       // const peopleData: People = response.data.data;
@@ -276,23 +277,22 @@ const checkUserExists = async () => {
       // ruleForm.unique_id = peopleData.unique_id || "";
       // imageUrl.value = `${config.public.baseBE}${peopleData.photo?.image_path}/${peopleData.photo?.filename}`;
 
-      const storage = localStorage.getItem('setting');
+      const storage = localStorage.getItem("setting");
 
-      if(storage){
+      if (storage) {
         window.location.href = "/dashboard";
-      }else{
+      } else {
         window.location.href = "/initial/setting";
       }
-
-    }else{
-      ruleForm.phone = profile.value?.sub ?? '';
+    } else {
+      ruleForm.phone = profile.value?.sub ?? "";
       isCreate.value = true;
     }
 
     // console.log(imageUrl.value);
   } catch (error: any) {
     ElMessage.error(error.response?.data?.message);
-    ruleForm.phone = normalizePhone(profile.value?.sub ?? '');
+    ruleForm.phone = normalizePhone(profile.value?.sub ?? "");
   } finally {
     loading.value = false;
   }
@@ -301,35 +301,34 @@ const checkUserExists = async () => {
 const handleOIDCCallback = async () => {
   try {
     loading.value = true;
-    
+
     // Process OIDC callback
     const user = await oidc.signinRedirectCallback();
     profile.value = user.profile;
-    
+
     console.log("✅ OIDC Login successful:", user);
 
     // Store tokens using auth store instead of localStorage directly
     if (authStore) {
       authStore.setAuthData({
-        access_token: user.access_token || '',
-        id_token: user.id_token || '',
+        access_token: user.access_token || "",
+        id_token: user.id_token || "",
         expires_at: user.expires_at || Math.floor(Date.now() / 1000) + 3600,
         profile: user.profile,
-        scope: user.scope || 'openid profile email',
+        scope: user.scope || "openid profile email",
       });
     } else {
       // Fallback to localStorage if store not available
-      localStorage.setItem('id_token', user.id_token || '');
-      localStorage.setItem('access_token', user.access_token || '');
+      localStorage.setItem("id_token", user.id_token || "");
+      localStorage.setItem("access_token", user.access_token || "");
     }
 
     // Check if user exists in our system
     await checkUserExists();
-
   } catch (error: any) {
     console.error("❌ OIDC Callback failed:", error);
     ElMessage.error("Authentication failed. Please try again.");
-    
+
     // Redirect to login page on error
     await router.push("/login");
   } finally {
@@ -338,10 +337,10 @@ const handleOIDCCallback = async () => {
 };
 
 onMounted(() => {
-  console.log('device', navigator);
+  console.log("device", navigator);
   // console.log('device', navigator);
   // console.log('oidc', oidc.user);
-  
+
   // const jsonUser = JSON.parse(user || "");
   // console.log("json: ", user);
   // ruleForm.email = jsonUser.email || "";
@@ -354,13 +353,11 @@ onMounted(() => {
 // if (loginSuccess) {
 //   setInterval(() => router.push("/dashboard"), 3000);
 // }
-
-
 </script>
 
 <template>
   <NuxtLayout :name="layout">
-    <div class="w-full h-screen flex items-center justify-center" >
+    <div class="w-full h-screen flex items-center justify-center">
       <el-card class="bg-red-800 dark:bg-slate-800 w-1/2" v-if="isCreate">
         <div class="flex justify-center mb-3">
           <el-upload
