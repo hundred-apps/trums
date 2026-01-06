@@ -154,8 +154,8 @@
       >
         <el-table-column prop="image" label="Image" width="75">
           <template #default="{ row }">
-            <div class="demo-image__error" flex gap-2>
-              <div class="demo-image__preview">
+            <div class="demo-image__error items-center" flex gap-2>
+              <div class="demo-image__preview flex">
                 <el-image
                   v-if="(row as CanvassingItemForm).image"
                   style="width: 50px; height: 50px"
@@ -175,7 +175,7 @@
                 <el-image v-else>
                   <template #error>
                     <div class="image-viewer-slot image-slot">
-                      <el-icon><icon-picture /></el-icon>
+                      <p style="font-size: 10px">No Image</p>
                     </div>
                   </template>
                 </el-image>
@@ -2032,6 +2032,6 @@ onMounted(() => {
   color: #000;
 }
 :deep(.image-viewer-slot) {
-  height: 0px !important;
+  height: 30px !important;
 }
 </style>
