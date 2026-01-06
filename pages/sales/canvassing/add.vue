@@ -122,7 +122,7 @@
       >
         <el-table-column
           label="Actions"
-          width="190"
+          width="100"
           align="center"
           fixed="left"
         >
@@ -141,17 +141,32 @@
                 circle
                 @click="addItemVendor(scope.row)"
               />
-              <el-button
-                type="default"
-                :icon="Plus"
-                v-if="
-                  scope.row.type === 'parent' &&
-                  scope.row.type_item == 'request'
-                "
-                @click="addEquivalent(scope.row)"
-                >EQ</el-button
-              >
             </div>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="Image" fixed="left" width="100">
+          <template #default="{ row }">
+            <el-upload
+              class="avatar-uploader"
+              action="#"
+              :show-file-list="false"
+              :limit="1"
+              :on-success="
+                (res, upl) =>
+                  handleAvatarSuccess(
+                    res,
+                    upl,
+                    row.type == 'parent',
+                    row.parent_index,
+                    row.index
+                  )
+              "
+              :before-upload="beforeAvatarUpload"
+            >
+              <img v-if="row.image" :src="row.image" class="avatar" />
+              <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
+            </el-upload>
           </template>
         </el-table-column>
 
@@ -163,7 +178,6 @@
               placeholder="Select"
               style="width: 240px"
             >
-              <el-option :label="`Permintaan`" :value="'request'" />
               <el-option :label="`Canvassing`" :value="'quotation'" />
               <el-option :label="`Equivalent`" :value="'equivalent'" />
             </el-select>
@@ -190,6 +204,7 @@
                   :fetch-suggestions="querySearchCatalogue"
                   v-model="row.catalogue_name"
                   placeholder="Cari item"
+                  :trigger-on-focus="true"
                   @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteItem(item, row.index, row)"
                 >
                   <template #default="{ item }">
@@ -215,10 +230,7 @@
                     </div>
                   </template>
                   <template #prepend>
-                    <el-button
-                      @click="() => showPricetag(row)"
-                      :icon="Search"
-                    />
+                    <el-button @click="() => showPricetag(row)" :icon="Plus" />
                   </template>
                 </el-autocomplete>
                 <el-autocomplete
@@ -426,6 +438,8 @@ import {
   type FormInstance,
   type FormRules,
   type UploadUserFile,
+  type UploadProps,
+  type UploadFile,
 } from "element-plus";
 import {
   CanvassingStatus,
@@ -467,6 +481,10 @@ import type { Pagination } from "~/types/pagination";
 import type { Catalogue } from "~/types/catalogue";
 import type { Unit } from "~/types/unit";
 import type { AddressType } from "~/types/address";
+import { currency, formatLocalDate } from "#imports";
+import type { ItemRequest } from "~/types/item_request";
+import { urlToFile } from "#imports";
+import type { AppFile } from "~/types/file";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -501,6 +519,8 @@ const selectedItem = ref<{ index: string; name: string; vendor_name: string }>({
   name: "",
   vendor_name: "",
 });
+const config = useRuntimeConfig();
+const imageUrl = config.public.baseImageURL;
 
 // Data
 const fileList = ref<UploadUserFile[]>([]);
@@ -638,6 +658,50 @@ const adjustmentTransactionFeeTotal = computed(() => {
     created_at: 0,
   };
 });
+
+const handleAvatarSuccess = (
+  response: any,
+  uploadFile: UploadFile,
+  isParent: boolean,
+  parentIndex: string,
+  index: string
+) => {
+  console.log("is parent", isParent);
+  if (isParent) {
+    const getIndex = item_canvassing.value.findIndex(
+      (find) => find.index === index
+    );
+    item_canvassing.value[getIndex].image = URL.createObjectURL(
+      uploadFile.raw!
+    );
+    item_canvassing.value[getIndex].imageFile = uploadFile;
+  } else {
+    const getParentIndex = item_canvassing.value.findIndex(
+      (find) => find.index === parentIndex
+    );
+    const getChildIndex = item_canvassing.value[
+      getParentIndex
+    ].children.findIndex((child) => child.index === index);
+    item_canvassing.value[getParentIndex].children[getChildIndex].image =
+      URL.createObjectURL(uploadFile.raw!);
+    item_canvassing.value[getParentIndex].children[getChildIndex].imageFile =
+      uploadFile;
+  }
+  // imageUrl.value = URL.createObjectURL(uploadFile.raw!)
+};
+
+const beforeAvatarUpload: UploadProps["beforeUpload"] = (rawFile) => {
+  console.log("row file", rawFile);
+  if (rawFile.type !== "image/jpeg") {
+    ElMessage.error("Avatar picture must be JPG format!");
+    return false;
+  } else if (rawFile.size / 1024 / 1024 > 2) {
+    ElMessage.error("Avatar picture size can not exceed 2MB!");
+    return false;
+  }
+  return true;
+};
+
 const adjustmentTransactionOngkirTotal = ref<ReferenceTransactionAdjustment>({
   unique_id: "",
   reference: ReferenceAdjustment.CANVASSING,
@@ -1190,6 +1254,7 @@ const addItemVendor = (row: CanvassingItemForm) => {
       const startIndex = item.children.length;
       item.children.push({
         type_item: "quotation",
+        parent_index: item.index,
         equivalent_id: null,
         index: `${item.index}-${startIndex}`,
         canvassing_id: null,
@@ -1707,13 +1772,29 @@ const resetAllBulk = () => {
   ElMessage.info("Semua setting telah direset");
 };
 
+const getFile = (files: AppFile[]) => {
+  if (files!.length > 0) {
+    return `${imageUrl}/${files[0].image_path}/${files[0].filename}`;
+  } else {
+    return "";
+  }
+};
+
+const getFileName = (itemRequest: ItemRequest) => {
+  if (itemRequest.files != null && itemRequest.files!.length >= 0) {
+    return `${itemRequest.files![0].filename_original}`;
+  } else {
+    return "";
+  }
+};
+
 // Form Operations
-const addToForm = (val: Inquiry) => {
+const addToForm = async (val: Inquiry) => {
   ruleForm.source_document = val.unique_code;
   ruleForm.inquiry = val;
 
-  val.item_request.forEach((item, index) => {
-    item_canvassing.value.push({
+  val.item_request.forEach(async (item, index) => {
+    const tmp: CanvassingItemForm = {
       type_item: "request",
       equivalent_id: null,
       index: `${index}`,
@@ -1751,8 +1832,25 @@ const addToForm = (val: Inquiry) => {
       pricetag_item_id: "",
       pricetag_item_version: 0,
       contacts_fee: contactsFee.value,
-    });
+    };
+
+    if (getFile(item.files ?? []) != "") {
+      const file = await urlToFile(
+        getFile(item.files ?? []),
+        getFileName(item)
+      );
+      tmp.image = getFile(item.files ?? []);
+      tmp.imageFile = {
+        name: file.name,
+        url: getFile(item.files ?? []),
+        raw: file,
+        uid: Date.now(),
+      };
+    }
+    item_canvassing.value.push(tmp);
   });
+
+  console.log("items", item_canvassing.value);
 
   visibleModalRequest.value = false;
 };
@@ -2503,101 +2601,190 @@ const fetchDataEdit = async () => {
           ruleForm.source_document = canvasing.source.unique_code;
           ruleForm.inquiry = canvasing.source;
           canvasing.canvassing_item.forEach((item, index) => {
-            item_canvassing.value.push({
-              type_item: item.type_item,
-              equivalent_id: null,
-              index: `${index}`,
-              canvassing_id: null,
-              canvaasing_version: null,
-              item_request_trail_version: null,
-              item_request_trail_id: null,
-              unique_id: item.unique_id,
-              vendor_id: null,
-              vendor_name: "",
-              unit_id: item.unit_id,
-              unit_name: item.unit_name,
-              unit_version: 1,
-              offer_item_id: null,
-              offer_item_version: 0,
-              catalogue_id: item.catalogue_id ?? "",
-              parent_catalogue_id: "",
-              catalogue_name: item.catalogue_name ?? "",
-              sn: item.catalogue?.sn ?? "N/A",
-              quantity: item.quantity ?? 1,
-              unit_price: 0,
-              total_price: 0,
-              status: CanvassingVendorStatus.SUBMITTED,
-              taxes: [],
-              editing: null,
-              type: "parent",
-              children: item.canvassing_vendor.map((vendor, vIndex) => ({
-                index: `${index}-${vIndex}`,
-                type_item: vendor.type_item,
-                equivalent_id: null,
+            if (item.type_item !== "equivalent") {
+              item_canvassing.value.push({
+                type_item: item.type_item,
+                image: getFile(item.files ?? []),
+                equivalent_id: item.equivalent_id,
+                index: `${index}`,
                 canvassing_id: null,
                 canvaasing_version: null,
                 item_request_trail_version: null,
                 item_request_trail_id: null,
-                unique_id: vendor.unique_id,
-                vendor_id: vendor.vendor_id ?? "",
-                vendor_name: vendor.vendor?.name ?? "",
-                unit_id: vendor.unit_id,
-                unit_name: vendor.unit_name,
-                unit_version: null,
+                unique_id: item.unique_id,
+                vendor_id: null,
+                vendor_name: "",
+                unit_id: item.unit_id,
+                unit_name: item.unit_name,
+                unit_version: 1,
                 offer_item_id: null,
                 offer_item_version: 0,
-                catalogue_id: vendor.catalogue_id ?? "",
-                parent_catalogue_id: vendor.catalogue_id,
-                catalogue_name: item.catalogue?.name ?? "",
-                sn: vendor.catalogue?.sn ?? "",
-                quantity: vendor.quantity,
-                unit_price: vendor.unit_price,
+                catalogue_id: item.catalogue_id ?? "",
+                parent_catalogue_id: "",
+                catalogue_name: item.catalogue_name ?? "",
+                sn: item.catalogue?.sn ?? "N/A",
+                quantity: item.quantity ?? 1,
+                unit_price: 0,
                 total_price: 0,
-                status: vendor.status,
+                status: CanvassingVendorStatus.SUBMITTED,
                 taxes: [],
                 editing: null,
-                type: "child",
-                children: [],
+                type: "parent",
+                children: item.canvassing_vendor.map((vendor, vIndex) => ({
+                  image: getFile(vendor.files ?? []),
+                  index: `${index}-${vIndex}`,
+                  type_item: vendor.type_item,
+                  equivalent_id: null,
+                  canvassing_id: null,
+                  canvaasing_version: null,
+                  item_request_trail_version: null,
+                  item_request_trail_id: null,
+                  unique_id: vendor.unique_id,
+                  vendor_id: vendor.vendor_id ?? "",
+                  vendor_name: vendor.vendor?.name ?? "",
+                  unit_id: vendor.unit_id,
+                  unit_name: vendor.unit_name,
+                  unit_version: null,
+                  offer_item_id: null,
+                  offer_item_version: 0,
+                  catalogue_id: vendor.catalogue_id ?? "",
+                  parent_catalogue_id: vendor.catalogue_id,
+                  catalogue_name: item.catalogue?.name ?? "",
+                  sn: vendor.catalogue?.sn ?? "N/A",
+                  quantity: vendor.quantity,
+                  unit_price: vendor.unit_price,
+                  total_price: 0,
+                  status: vendor.status,
+                  taxes: [],
+                  editing: null,
+                  type: "child",
+                  children: [],
+                  selling_price: 0,
+                  profit: vendor.profit,
+                  profit_unit: vendor.profit_unit,
+                  fee: vendor.fee,
+                  fee_unit: vendor.fee_unit,
+                  ongkir: vendor.ongkir,
+                  ongkir_unit: vendor.ongkir_unit,
+                  pricetag_item_id: vendor.pricetag_item_id ?? "",
+                  pricetag_item_version: vendor.pricetag_item_version ?? 0,
+                  contacts_fee: [],
+                })),
                 selling_price: 0,
-                profit: vendor.profit,
-                profit_unit: vendor.profit_unit,
-                fee: vendor.fee,
-                fee_unit: vendor.fee_unit,
-                ongkir: vendor.ongkir,
-                ongkir_unit: vendor.ongkir_unit,
-                pricetag_item_id: vendor.pricetag_item_id ?? "",
-                pricetag_item_version: vendor.pricetag_item_version ?? 0,
+                profit: 0,
+                profit_unit: "percent",
+                fee: 0,
+                fee_unit: "percent",
+                ongkir: 0,
+                ongkir_unit: "percent",
+                pricetag_item_id: "",
+                pricetag_item_version: 0,
                 contacts_fee: [],
-              })),
-              selling_price: 0,
-              profit: 0,
-              profit_unit: "percent",
-              fee: 0,
-              fee_unit: "percent",
-              ongkir: 0,
-              ongkir_unit: "percent",
-              pricetag_item_id: "",
-              pricetag_item_version: 0,
-              contacts_fee: [],
-            });
+              });
+            }
           });
 
-          const equivalent: CanvassingItemForm[] = item_canvassing.value.filter(
-            (value) => value.type_item === "equivalent"
-          );
+          const equivalent: CanvassingItemForm[] = [];
 
-          item_canvassing.value = item_canvassing.value.filter(
-            (value) => value.type_item !== "equivalent"
-          );
+          canvasing.canvassing_item.forEach((item, index) => {
+            if (item.type_item == "equivalent") {
+              equivalent.push({
+                type_item: item.type_item,
+                equivalent_id: item.equivalent_id,
+                index: `${index}`,
+                canvassing_id: null,
+                canvaasing_version: null,
+                item_request_trail_version: null,
+                item_request_trail_id: null,
+                unique_id: item.unique_id,
+                vendor_id: null,
+                vendor_name: "",
+                unit_id: item.unit_id,
+                unit_name: item.unit_name,
+                unit_version: 1,
+                offer_item_id: null,
+                offer_item_version: 0,
+                catalogue_id: item.catalogue_id ?? "",
+                parent_catalogue_id: "",
+                catalogue_name: item.catalogue_name ?? "",
+                sn: item.catalogue?.sn ?? "N/A",
+                quantity: item.quantity ?? 1,
+                unit_price: 0,
+                total_price: 0,
+                status: CanvassingVendorStatus.SUBMITTED,
+                taxes: [],
+                editing: null,
+                type: "parent",
+                children: item.canvassing_vendor.map((vendor, vIndex) => ({
+                  index: `${index}-${vIndex}`,
+                  type_item: vendor.type_item,
+                  equivalent_id: null,
+                  canvassing_id: null,
+                  canvaasing_version: null,
+                  item_request_trail_version: null,
+                  item_request_trail_id: null,
+                  unique_id: vendor.unique_id,
+                  vendor_id: vendor.vendor_id ?? "",
+                  vendor_name: vendor.vendor?.name ?? "",
+                  unit_id: vendor.unit_id,
+                  unit_name: vendor.unit_name,
+                  unit_version: null,
+                  offer_item_id: null,
+                  offer_item_version: 0,
+                  catalogue_id: vendor.catalogue_id ?? "",
+                  parent_catalogue_id: vendor.catalogue_id,
+                  catalogue_name: item.catalogue?.name ?? "",
+                  sn: vendor.catalogue?.sn ?? "N/A",
+                  quantity: vendor.quantity,
+                  unit_price: vendor.unit_price,
+                  total_price: 0,
+                  status: vendor.status,
+                  taxes: [],
+                  editing: null,
+                  type: "child",
+                  children: [],
+                  selling_price: 0,
+                  profit: vendor.profit,
+                  profit_unit: vendor.profit_unit,
+                  fee: vendor.fee,
+                  fee_unit: vendor.fee_unit,
+                  ongkir: vendor.ongkir,
+                  ongkir_unit: vendor.ongkir_unit,
+                  pricetag_item_id: vendor.pricetag_item_id ?? "",
+                  pricetag_item_version: vendor.pricetag_item_version ?? 0,
+                  contacts_fee: [],
+                })),
+                selling_price: 0,
+                profit: 0,
+                profit_unit: "percent",
+                fee: 0,
+                fee_unit: "percent",
+                ongkir: 0,
+                ongkir_unit: "percent",
+                pricetag_item_id: "",
+                pricetag_item_version: 0,
+                contacts_fee: [],
+              });
+            }
+          });
+
+          console.log("data item canvasing", item_canvassing.value);
 
           equivalent.forEach((element) => {
+            console.log("equivalent_id", element.equivalent_id);
             const indexParent = item_canvassing.value.findIndex(
               (data) => data.unique_id === element.equivalent_id
             );
+
+            // console.log("equivalent exist", indexParent);
             if (indexParent >= 0) {
               item_canvassing.value.splice(indexParent + 1, 0, element);
             }
           });
+
+          // item_canvassing.value = item_canvassing.value.filter(
+          //   (value) => value.type_item !== "equivalent"
+          // );
         }
       }
     }
@@ -2734,6 +2921,13 @@ const submit = async (formEl: FormInstance | undefined) => {
         `${item.equivalent_id}`
       );
 
+      if (item.imageFile) {
+        formData.append(
+          `canvassing_items[${i}][files]`,
+          item.imageFile?.raw as Blob
+        );
+      }
+
       // Append canvassing_vendor
       // Append canvassing_vendor fields satu per satu
       item.children.forEach((vendor: CanvassingItemForm, j: any) => {
@@ -2821,6 +3015,13 @@ const submit = async (formEl: FormInstance | undefined) => {
           `canvassing_items[${i}][canvassing_vendor][${j}][ongkir_unit]`,
           `${vendor.ongkir_unit}`
         );
+
+        if (vendor.imageFile) {
+          formData.append(
+            `canvassing_items[${i}][canvassing_vendor][${j}][files]`,
+            vendor.imageFile?.raw as Blob
+          );
+        }
       });
     });
 
@@ -3293,6 +3494,18 @@ onMounted(() => {
   display: none !important;
 }
 
+:deep(.avatar-uploader) {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 75px;
+  height: 75px;
+}
+
+:deep(.avatar-uploader .avatar-uploader-icon) {
+  width: 50px;
+  height: 50px;
+}
 .card-header {
   display: flex;
   justify-content: space-between;
