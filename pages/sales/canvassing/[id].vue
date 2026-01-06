@@ -157,6 +157,7 @@
             <div class="demo-image__error" flex gap-2>
               <div class="demo-image__preview">
                 <el-image
+                  v-if="(row as CanvassingItemForm).image"
                   style="width: 50px; height: 50px"
                   :src="(row as CanvassingItemForm).image"
                   :zoom-rate="1.2"
@@ -167,10 +168,17 @@
                   fit="cover"
                   @click="() => {
   initialIndexImage = fileList.findIndex((value) => value === (row as CanvassingItemForm).image);
-  console.log(initialIndexImage);
+
   showPreviewImage = true;
                   }"
                 />
+                <el-image v-else>
+                  <template #error>
+                    <div class="image-viewer-slot image-slot">
+                      <el-icon><icon-picture /></el-icon>
+                    </div>
+                  </template>
+                </el-image>
               </div>
             </div>
           </template>
@@ -2022,5 +2030,8 @@ onMounted(() => {
 }
 .viewer-error {
   color: #000;
+}
+:deep(.image-viewer-slot) {
+  height: 0px !important;
 }
 </style>

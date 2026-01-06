@@ -174,13 +174,14 @@
           <template #default="{ row }">
             <el-select
               v-model="row.type_item"
-              :disabled="row.type == 'parent'"
+              v-if="row.type != 'parent'"
               placeholder="Select"
               style="width: 240px"
             >
-              <el-option :label="`Canvassing`" :value="'quotation'" />
+              <el-option :label="`Subtitution`" :value="'quotation'" />
               <el-option :label="`Equivalent`" :value="'equivalent'" />
             </el-select>
+            <div v-else>Permintaan</div>
           </template>
         </el-table-column>
 
@@ -666,7 +667,7 @@ const handleAvatarSuccess = (
   parentIndex: string,
   index: string
 ) => {
-  console.log("is parent", isParent);
+  console.log("is parent", parentIndex);
   if (isParent) {
     const getIndex = item_canvassing.value.findIndex(
       (find) => find.index === index
@@ -679,6 +680,9 @@ const handleAvatarSuccess = (
     const getParentIndex = item_canvassing.value.findIndex(
       (find) => find.index === parentIndex
     );
+
+    console.log("parent index", getParentIndex);
+
     const getChildIndex = item_canvassing.value[
       getParentIndex
     ].children.findIndex((child) => child.index === index);
@@ -2655,6 +2659,7 @@ const fetchDataEdit = async () => {
                   unit_price: vendor.unit_price,
                   total_price: 0,
                   status: vendor.status,
+                  parent_index: `${index}`,
                   taxes: [],
                   editing: null,
                   type: "child",

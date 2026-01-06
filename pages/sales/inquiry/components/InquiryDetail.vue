@@ -92,6 +92,7 @@
             <template #default="{ row }">
               <div class="demo-image__preview">
                 <el-image
+                  v-if="getFile(row as ItemRequest)"
                   style="width: 50px; height: 50px"
                   :src="getFile(row as ItemRequest)"
                   :zoom-rate="1.2"
@@ -99,13 +100,15 @@
                   :min-scale="0.2"
                   @click="() => {
   initialIndexImage = fileList.findIndex((value) => value === getFile(row as ItemRequest));
-  console.log(initialIndexImage);
   previewImage = true;
                   }"
                   show-progress
                   :initial-index="0"
                   fit="cover"
                 />
+                <div v-else class="image-viewer-slot image-slot">
+                  <el-icon><icon-picture /></el-icon>
+                </div>
               </div>
             </template>
           </el-table-column>
@@ -658,3 +661,9 @@ const getSourceRequestNumber = () => {
   }
 };
 </script>
+
+<style scoped>
+:deep(.image-viewer-slot) {
+  height: 0px !important;
+}
+</style>
