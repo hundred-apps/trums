@@ -1466,8 +1466,8 @@ const handleAvatarSuccess = (
 
 const beforeAvatarUpload: UploadProps["beforeUpload"] = (rawFile) => {
   console.log("row file", rawFile);
-  if (rawFile.type !== "image/jpeg") {
-    ElMessage.error("Avatar picture must be JPG format!");
+  if (rawFile.type !== "image/jpeg" && rawFile.type !== "image/png" && rawFile.type !== "image/jpg") {
+    ElMessage.error("Avatar picture must be IMAGE format!");
     return false;
   } else if (rawFile.size / 1024 / 1024 > 2) {
     ElMessage.error("Avatar picture size can not exceed 2MB!");
