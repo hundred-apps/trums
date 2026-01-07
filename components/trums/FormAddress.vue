@@ -126,10 +126,10 @@ const handleSelectGeoLocation = (record: Record<string, any>) => {
     const names = address.name.split(', ');
 
     ruleFormAddress.village_id = address.id;
-    ruleFormAddress.village = names[1];
-    ruleFormAddress.city = names[2];
-    ruleFormAddress.regency = names[3];
-    ruleFormAddress.province = names[4];
+    ruleFormAddress.village = names[0];
+    ruleFormAddress.city = names[1];
+    ruleFormAddress.regency = names[2];
+    ruleFormAddress.province = names[3];
 }
 
 const submitFormAddress = async (formEl: FormInstance | undefined) => {

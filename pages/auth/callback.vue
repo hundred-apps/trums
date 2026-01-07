@@ -81,7 +81,7 @@ const rules = reactive<FormRules<RuleForm>>({
   phone: [
     { required: true, message: `${t("form.validate.phone")}`, trigger: "blur" },
     {
-      min: 11,
+      min: 9,
       max: 13,
       message: `${t("form.validate.phoneLength")}`,
       trigger: ["blur", "change"],
@@ -257,37 +257,37 @@ const checkUserExists = async () => {
     console.log(response.status);
     console.log(response.data.data);
 
-    if (response.status === 201 && response.data.data) {
-      const dataUser: People = response.data.data;
-      appUserData.value = JSON.stringify(dataUser);
+    // if (response.status === 201 && response.data.data) {
+    //   const dataUser: People = response.data.data;
+    //   appUserData.value = JSON.stringify(dataUser);
 
-      userToken.value = response.data.token;
+    //   userToken.value = response.data.token;
 
-      console.log("token", userToken.value);
-      console.log("user", response.data.data);
+    //   console.log("token", userToken.value);
+    //   console.log("user", response.data.data);
 
-      authStore.setUserData(dataUser);
-      authStore.setMenu(dataUser.menu || []);
-      // const peopleData: People = response.data.data;
+    //   authStore.setUserData(dataUser);
+    //   authStore.setMenu(dataUser.menu || []);
+    //   // const peopleData: People = response.data.data;
 
-      // ruleForm.phone = peopleData.phone || "";
-      // ruleForm.gender = peopleData.gender || "pria";
-      // ruleForm.name = peopleData.name || "";
-      // ruleForm.email = peopleData.email || "";
-      // ruleForm.unique_id = peopleData.unique_id || "";
-      // imageUrl.value = `${config.public.baseBE}${peopleData.photo?.image_path}/${peopleData.photo?.filename}`;
+    //   // ruleForm.phone = peopleData.phone || "";
+    //   // ruleForm.gender = peopleData.gender || "pria";
+    //   // ruleForm.name = peopleData.name || "";
+    //   // ruleForm.email = peopleData.email || "";
+    //   // ruleForm.unique_id = peopleData.unique_id || "";
+    //   // imageUrl.value = `${config.public.baseBE}${peopleData.photo?.image_path}/${peopleData.photo?.filename}`;
 
-      const storage = localStorage.getItem("setting");
+    //   const storage = localStorage.getItem("setting");
 
-      if (storage) {
-        window.location.href = "/dashboard";
-      } else {
-        window.location.href = "/initial/setting";
-      }
-    } else {
-      ruleForm.phone = profile.value?.sub ?? "";
-      isCreate.value = true;
-    }
+    //   if (storage) {
+    //     window.location.href = "/dashboard";
+    //   } else {
+    //     window.location.href = "/initial/setting";
+    //   }
+    // } else {
+    //   ruleForm.phone = profile.value?.sub ?? "";
+    //   isCreate.value = true;
+    // }
 
     // console.log(imageUrl.value);
   } catch (error: any) {

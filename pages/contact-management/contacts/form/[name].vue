@@ -96,6 +96,37 @@
         <el-table-column prop="province" label="Provinsi" />
         <el-table-column prop="codepos" label="Kode Pos" />
         <el-table-column prop="country" label="Negara" />
+        <el-table-column prop="" label="Aksi">
+          <template #default="scope">
+          <el-tooltip placement="top">
+            <template #content>Edit</template>
+              <el-button
+                type="warning"
+                :icon="Edit"
+                circle
+                @click="() => handleEditAddress(scope.$index)"
+                plain
+              >
+              </el-button>
+          </el-tooltip>
+          <el-popconfirm
+            confirm-button-text="Yes"
+            cancel-button-text="No"
+            :icon="InfoFilled"
+            icon-color="#626AEF"
+            title="Are you sure to delete this?"
+            @confirm="handleDeleteAddress(scope.$index)"
+            @cancel="() => {}"
+          >
+            <template #reference>
+              <el-tooltip placement="top">
+                <template #content>Delete</template>
+                <el-button type="danger" :icon="Delete" circle plain />
+              </el-tooltip>
+            </template>
+          </el-popconfirm>
+        </template>
+        </el-table-column>
       </el-table>
     </el-card>
 
@@ -162,11 +193,12 @@ import {
 } from "element-plus";
 import { useApi } from "#imports";
 import { type Contact } from "~/types/contact";
-import type { AddressSearch } from "~/types/address";
+import type { AddressSearch, AddressType } from "~/types/address";
 import type { ResponsePagination } from "~/types/response_pagination";
-import { Search, Plus } from "@element-plus/icons-vue";
+import { Search, Plus, Edit, Delete, InfoFilled } from "@element-plus/icons-vue";
 import { useRoute } from "vue-router";
 import type { RequestSearch } from "~/types/request_search";
+import type { BaseResponse } from "~/types/response";
 
 const route = useRoute();
 const router = useRouter();
@@ -253,7 +285,7 @@ const rules = reactive<FormRules<RuleForm>>({
   phone: [
     { required: true, message: `${t("form.validate.phone")}`, trigger: "blur" },
     {
-      min: 11,
+      min: 9,
       max: 13,
       message: `${t("form.validate.phoneLength")}`,
       trigger: ["blur", "change"],
@@ -295,8 +327,6 @@ const rulesAddress = reactive<FormRules<formAddress>>({
     city: [{ required: true, message: "Masukan Kecamatan", trigger: "blur" }],
     regency: [{ required: true, message: "Masukan Kota/Kabupaten", trigger: "blur" }],
     province: [{ required: true, message: "Masukan Provinsi", trigger: "blur" }],
-    lat: [{ required: true, message: "Masukan Latitude", trigger: "blur" }],
-    lng: [{ required: true, message: "Masukan Longitude", trigger: "blur" }],
     
 });
 
@@ -312,6 +342,43 @@ const resetForm = (formEl: FormInstance | undefined) => {
   ruleForm.is_company = false;
   ruleForm.tags = [];
 };
+
+const handleDeleteAddress = async (index: number) => {
+  try {
+    const response = await useApiFetch<BaseResponse<any>>('/address-delete', {
+      body: [ruleForm.address[index].address_id]
+    })
+
+    if(response.success){
+      ruleForm.address = ruleForm.address.filter((value) => value.address_id !== ruleForm.address[index].address_id);
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+  }
+}
+
+const handleEditAddress = (index: number) => {
+  const formAddress: formAddress = ruleForm.address[index];
+
+  ruleFormAddress.address = formAddress.address;
+  ruleFormAddress.address_id = formAddress.address_id;
+  ruleFormAddress.address_name = formAddress.address_name;
+  ruleFormAddress.contact_id = formAddress.contact_id;
+  ruleFormAddress.contact_name = formAddress.contact_name;
+  ruleFormAddress.contact_version = formAddress.contact_version;
+  ruleFormAddress.village = formAddress.village;
+  ruleFormAddress.village_id = formAddress.village_id;
+  ruleFormAddress.city = formAddress.city;
+  ruleFormAddress.province = formAddress.province;
+  ruleFormAddress.regency = formAddress.regency;
+  ruleFormAddress.street = formAddress.street;
+  ruleFormAddress.codepos = formAddress.codepos;
+  ruleFormAddress.country = formAddress.country;
+  ruleFormAddress.lat = formAddress.lat;
+  ruleFormAddress.lng = formAddress.lng;
+
+  dialogNewAddress.value = true;
+}
 
 
 
@@ -344,7 +411,8 @@ const submit = async (formEl: FormInstance | undefined) => {
             "country": "indonesia",
             "codepos": parseInt(value.codepos ?? '0'),
             "lat": value.lat,
-            "lng": value.lng
+            "lng": value.lng,
+            "unique_id": value.address_id,
       }))
     });
     if (response.status == 201) {
@@ -445,10 +513,12 @@ const handleSelectGeoLocation = (record: Record<string, any>) => {
         const names = address.name.split(', ');
 
         ruleFormAddress.village_id = address.id;
-        ruleFormAddress.village = names[1];
-        ruleFormAddress.city = names[2];
-        ruleFormAddress.regency = names[3];
-        ruleFormAddress.province = names[4];
+        ruleFormAddress.village = names[0];
+        ruleFormAddress.city = names[1];
+        ruleFormAddress.regency = names[2];
+        ruleFormAddress.province = names[3];
+
+        // dialogNewAddress.value = false;
     }
 }
 
@@ -457,6 +527,7 @@ const submitFormAddress = async (formEl: FormInstance | undefined) => {
     await formEl.validate((valid, fields) => {
         if (valid) {
 
+            console.log('rule form address', ruleFormAddress);
             const addressToSign: formAddress = {
               address_name: ruleFormAddress.address_name,
               street: ruleFormAddress.street,
@@ -472,11 +543,21 @@ const submitFormAddress = async (formEl: FormInstance | undefined) => {
             }
 
             
-            console.log(addressToSign);
+            // console.log(addressToSign);
+
+            if(ruleFormAddress.address_id){
+              const findIndex = ruleForm.address.findIndex((address) => address.address_id == ruleFormAddress.address_id);
+              if(findIndex >= 0){
+                ruleForm.address[findIndex] = {...addressToSign, address_id: ruleFormAddress.address_id};
+              }
+            }else{
+              ruleForm.address.push(addressToSign)
+            }
             
             
-            ruleForm.address.push(addressToSign)
+            
             ruleFormRefAddress.value?.resetFields();
+            dialogNewAddress.value = false;
         } else {
             console.log('error submit!', fields)
         }

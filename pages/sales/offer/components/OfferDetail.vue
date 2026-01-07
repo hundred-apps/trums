@@ -40,7 +40,7 @@
                     <el-descriptions-item label="Kepada">{{dataInterface?.data?.to?.name ?? 'N/A'}}</el-descriptions-item>
                     <el-descriptions-item label="Subject">{{dataInterface?.data?.subject ?? 'N/A'}}</el-descriptions-item>
                     <el-descriptions-item label="Berlaku Mulai Tanggal">{{formatLocalDate(dataInterface?.data?.start_date ?? 0)}}</el-descriptions-item>
-                    <el-descriptions-item label="Berakhir Tanggal">{{formatLocalDate(dataInterface?.data?.end_date ?? 0)}}</el-descriptions-item>
+                    <el-descriptions-item label="Berakhir Tanggal">{{ dataInterface?.data?.end_date != 0 ? formatLocalDate(dataInterface?.data?.end_date ?? 0) : '-'}}</el-descriptions-item>
                     </el-descriptions>
                 </div>
             </div>

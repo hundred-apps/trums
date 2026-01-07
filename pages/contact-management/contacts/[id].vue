@@ -20,7 +20,7 @@
       <template #header>
         <div class="card-header flex justify-end">
           <el-button type="danger" :icon="Delete" @click="confirmDelete">Hapus</el-button>
-          <NuxtLink :href="`/contacts/edit/${contactData?.unique_id}`" class="el-button el-button--primary">
+          <NuxtLink :href="`/contact-management/contacts/form/${contactData?.name}?mode=update&unique_id=${contactData?.unique_id}`" class="el-button el-button--primary">
             <el-icon class="me-2"><Edit /></el-icon> Edit
           </NuxtLink>
         </div>
