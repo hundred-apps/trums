@@ -1010,7 +1010,7 @@ const onSubmit = async (formEl: FormInstance) => {
     }
 
     const response = await useFetchApi<BaseResponse<Pricetag>>(
-      "/pricetag-creates",
+      "/pricetag-create",
       "pricelist-create",
       "post",
       formData

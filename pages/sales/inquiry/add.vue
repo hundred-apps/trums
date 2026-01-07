@@ -1380,7 +1380,7 @@ const handleSelectAddress = (record: Record<string, any>) => {
   if (record.new) {
     dialogNewAddress.value = true;
   } else {
-    console.log(record);
+    console.log('selected',record);
     // const address: AddressType = record as AddressType;
     ruleForm.address_id = record.address_id;
     ruleForm.address_version = record.address_version;
