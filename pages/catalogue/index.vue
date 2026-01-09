@@ -2,7 +2,7 @@
 definePageMeta({
     middleware: ["auth", "check-access"],
     requiredPermission: "catalogues-read",
-    name: "Detail Of Catalogues"
+    name: "List Of Catalogues"
 })
 
 import { InfoFilled, SetUp, Filter, Refresh } from '@element-plus/icons-vue'
@@ -121,6 +121,7 @@ const availableColumn: Column<Catalogue>[] = [
     key: 'brand_name',
     title: 'Brand',
     width: 150,
+    cellRenderer: ({rowData: row}) => <p>{row.brand?.name ?? ''}</p>
   },
   {
     dataKey: 'type',

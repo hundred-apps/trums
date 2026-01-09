@@ -157,13 +157,14 @@
             <div class="flex justify-end">
               <el-pagination
                 class="my-3"
-                v-model:page-size="limit"
-                :page-sizes="[10, 20, 30, 40]"
                 background
                 layout="total, sizes, prev, pager, next"
                 :total="dataContact?.total_data"
                 @size-change="handleSizeChangeContact"
                 @current-change="handleCurrentChangeContact"
+                :current-page="Number(requestSearchContact.offset)"
+                :page-size="Number(requestSearchContact.limit)"
+                
               />
             </div>
             <el-dialog
@@ -714,6 +715,15 @@ const { data: dataContact } = await useFetch<ResponsePagination<Contact[]>>(
     headers: token.value ? { Authorization: `Bearer ${token.value}` } : {},
   }
 );
+
+watchDebounced(
+  requestSearchContact,
+  () => {
+    refreshNuxtData('fetchData');
+  },
+  { debounce: 500, deep: true }
+)
+
 const fetchDataContact = async () => {
   const { data: newDataContact } = await useFetch<
     ResponsePagination<Contact[]>
@@ -769,10 +779,12 @@ const handleSubmitSelectContact = () => {
 };
 
 const handleSizeChangeContact = (val: number) => {
-  // loading.value = true;
+  console.log('masuk');
+  requestSearchContact.value.limit = `${val}`
 };
 const handleCurrentChangeContact = (val: number) => {
-  currentPage.value = val;
+  console.log('masuk');
+  requestSearchContact.value.offset = `${val}`
 };
 
 //data table contact selection end
@@ -780,7 +792,7 @@ const handleCurrentChangeContact = (val: number) => {
 // watch setiap ada perubahan data start
 
 watch(requestSearch, async (newValue) => {}, { immediate: true });
-watch(requestSearchContact, async (newValue) => {}, { immediate: true });
+
 watch(selectContact, async (newValue) => {}, { immediate: true });
 watch(selectContactApi, async (newValue) => {}, { immediate: true });
 

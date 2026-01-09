@@ -1,3 +1,4 @@
+import type { Brands } from "./brand";
 import type { AppFile } from "./file";
 
 export type Catalogue = {
@@ -25,4 +26,5 @@ export type Catalogue = {
     file_catalogues: any[];
     files?: AppFile[]
     checked?: boolean;
+    brand?: Brands,
 }

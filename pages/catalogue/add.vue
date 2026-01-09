@@ -479,7 +479,7 @@ const fetchDataEdit = async () => {
             unique_id: catalogue.unique_id,
             name: catalogue.name,
             brand_id: catalogue.brand_id,
-            brand_name: catalogue.brand_name || "",
+            brand_name: catalogue.brand?.name || "",
             year: catalogue.year || "",
             sn: catalogue.sn || "",
             description: catalogue.description || "",
