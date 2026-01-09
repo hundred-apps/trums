@@ -81,8 +81,8 @@ const rules = reactive<FormRules<RuleForm>>({
   phone: [
     { required: true, message: `${t("form.validate.phone")}`, trigger: "blur" },
     {
-      min: 9,
-      max: 13,
+      min: 7,
+      max: 16,
       message: `${t("form.validate.phoneLength")}`,
       trigger: ["blur", "change"],
     },
