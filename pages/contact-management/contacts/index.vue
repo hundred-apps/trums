@@ -156,12 +156,13 @@ watch(
 //     console.error("Gagal memuat data:", error);
 //   }
 // };
-const handleSizeChange = (val: number) => {
-  loading.value = true;
-};
-const handleCurrentChange = (val: number) => {
-  currentPage.value = val;
-};
+const handlePageChange = (page: number) => {
+  request_search.value.offset = `${page}`
+}
+
+const handleSizeChange = (size: number) => {
+  request_search.value.limit = `${size}`
+}
 
 // onMounted(async () => {
 //   await fetchData();
@@ -261,8 +262,8 @@ console.log("data:", data);
         background
         layout="total, sizes, prev, pager, next"
         :total="data?.total_data"
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
+        @current-change="handlePageChange"
+      @size-change="handleSizeChange"
       />
     </div>
   </TrumsWrapper>

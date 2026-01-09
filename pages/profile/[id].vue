@@ -158,7 +158,7 @@ const totalPermissions = computed(() => {
 
 
 // Methods
-const goBack = () => router.push('/people')
+const goBack = () => router.back();
 
 const getMyDevices = async () => {
   loading.value = true;

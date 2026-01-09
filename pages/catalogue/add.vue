@@ -27,6 +27,7 @@
               :auto-upload="false"
               :on-change="handleFileChange"
               :on-remove="handleFileRemove"
+              :on-preview="handlePictureCardPreview"
               :limit="5"
               multiple
             >
@@ -141,6 +142,10 @@
         </div>
       </template>
     </el-card>
+
+    <el-dialog v-model="dialogVisible">
+      <img w-full :src="dialogImageUrl" alt="Preview Image" />
+    </el-dialog>
   </TrumsWrapper>
 </template>
 
@@ -191,10 +196,16 @@ import { column } from 'element-plus/es/components/table-v2/src/common.mjs';
 const router = useRouter();
 const goBack = () => router.back();
 
+const route = useRoute();
+const unique_id = computed(() => route.query.unique_id as string);
+
 const loading = ref<boolean>(false);
 const formSize = ref<ComponentSize>("default");
 const ruleFormRef = ref<FormInstance>();
 const api = useApi();
+
+const dialogImageUrl = ref('')
+const dialogVisible = ref(false)
 
 const ruleForm = reactive<RuleForm>({
   id: null,
@@ -240,8 +251,26 @@ const handleFileChange: UploadProps['onChange'] = (uploadFile, uploadFiles) => {
   ruleForm.file_catalogues = uploadFiles;
 };
 
-const handleFileRemove: UploadProps['onRemove'] = (uploadFile, uploadFiles) => {
-  ruleForm.file_catalogues = uploadFiles;
+const handlePictureCardPreview: UploadProps['onPreview'] = (uploadFile) => {
+  dialogImageUrl.value = uploadFile.url!
+  dialogVisible.value = true
+}
+
+
+const handleFileRemove: UploadProps['onRemove'] = async (uploadFile, uploadFiles) => {
+  try {
+    const response = await useApiFetch<BaseResponse<any>>('/file-delete', {
+      method: 'POST',
+      body: [uploadFile.uid]
+    })
+
+    if(response.success){
+      ruleForm.file_catalogues = uploadFiles;
+    }
+  } catch (error: any) {
+    ElMessage.error(`${error?.response?.message ?? error}`);
+  }
+  
 };
 
 
@@ -324,9 +353,9 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       formData.append('description', ruleForm.description);
       formData.append('berat', ruleForm.berat?.toString() || '');
       formData.append('volume', `${ruleForm.panjang}x${ruleForm.lebar}x${ruleForm.tinggi}`);
-      // formData.append('panjang', ruleForm.panjang?.toString() || '');
-      // formData.append('lebar', ruleForm.lebar?.toString() || '');
-      // formData.append('tinggi', ruleForm.tinggi?.toString() || '');
+      formData.append('length', ruleForm.panjang?.toString() || '');
+      formData.append('width', ruleForm.lebar?.toString() || '');
+      formData.append('height', ruleForm.tinggi?.toString() || '');
       formData.append('is_asset', ruleForm.is_asset.toString());
       formData.append('type', ruleForm.type);
 
@@ -355,7 +384,13 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         ruleForm.panjang = null;
         ruleForm.lebar = null;
         ruleForm.tinggi = null;
-        // window.location.href = '/catalogue';
+
+        if(unique_id){
+          fetchDataEdit();
+        }else{
+          window.location.href = '/catalogue';
+        }
+
       }
 
       // const endpoint = ruleForm.id ? "/catalogues-update" : "/catalogues-create";
@@ -402,17 +437,28 @@ const resetForm = (formEl: FormInstance | undefined) => {
   });
 };
 
+const mapApiFilesToUpload = (files: any[]) => {
+  const baseUrl = useRuntimeConfig().public.baseImageURL; 
+  // sesuaikan dengan config kamu
+
+  return files.map((file) => ({
+    uid: file.unique_id,
+    name: file.filename_original || file.filename,
+    url: `${baseUrl}${file.image_path}/${file.filename}`,
+    status: 'success',
+  }));
+};
+
 const fetchDataEdit = async () => {
   loading.value = true;
   try {
-    const unique_id = useCookie('unique_id');
-
+   
       const requestSearch = {
         keyword: '',
         table: "catalogues",
         column: [
           {
-            unique_id: unique_id.value,
+            unique_id: unique_id,
           }
         ],
         limit: "1",
@@ -420,33 +466,33 @@ const fetchDataEdit = async () => {
       };
 
       const response = await useFetchApi<ResponsePagination<Catalogue[]>>('/search', 'get-initial-edit', 'post', requestSearch)
+      console.log('response', response.status);
       if (response.status.value === 'success') {
         const catalogues: Catalogue[] = response.data.value?.data as Catalogue[];
 
         if(catalogues.length > 0){
           const catalogue = catalogues[0];
 
-          // const split = (catalogue.volume).split('x');
-
-          // Object.assign(ruleForm, {
-          //   id: catalogue.id,
-          //   unique_id: catalogue.unique_id,
-          //   name: catalogue.name,
-          //   brand_id: catalogue.brand_id,
-          //   brand_name: catalogue.brand_name || "",
-          //   year: catalogue.year || "",
-          //   sn: catalogue.sn || "",
-          //   description: catalogue.description || "",
-          //   berat: catalogue.berat,
-          //   volume: catalogue.volume,
-          //   panjang: catalogue.panjang,
-          //   lebar: catalogue.lebar,
-          //   tinggi: catalogue.tinggi,
-          //   is_asset: catalogue.is_asset,
-          //   tmp_asset: catalogue.is_asset ? "1" : "0",
-          //   type: catalogue.type,
-          //   file_catalogues: catalogue.file_catalogues || [],
-          // });
+          
+          Object.assign(ruleForm, {
+            id: catalogue.id,
+            unique_id: catalogue.unique_id,
+            name: catalogue.name,
+            brand_id: catalogue.brand_id,
+            brand_name: catalogue.brand_name || "",
+            year: catalogue.year || "",
+            sn: catalogue.sn || "",
+            description: catalogue.description || "",
+            berat: catalogue.berat,
+            volume: catalogue.volume,
+            panjang: catalogue.length,
+            lebar: catalogue.width,
+            tinggi: catalogue.height,
+            is_asset: catalogue.is_asset,
+            tmp_asset: catalogue.is_asset ? "1" : "0",
+            type: catalogue.type,
+            file_catalogues: mapApiFilesToUpload(catalogue.files || []),
+          });
         }else{
           ElMessage.error(`Data Tidak Di Temukan!`);
         }
@@ -461,12 +507,10 @@ const fetchDataEdit = async () => {
     }
 }
 
-// Jika ada ID di URL, load data catalogue
-const route = useRoute();
 onMounted(async () => {
 
-  const unique_id = useCookie('unique_id');
-  if (unique_id.value) {
+  
+  if (unique_id) {
     fetchDataEdit();
   }
 });

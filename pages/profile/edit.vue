@@ -120,7 +120,17 @@
                     v-model="formData.departement_name!"
                     placeholder="Cari Departement"
                     @select="onHandleSelectDepartement"
-                />
+                  >
+                  <template #default="{ item }">
+                      <div v-if="item.isNew" class="flex items-center text-blue-500">
+                          <el-icon><Plus /></el-icon>
+                          <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                      </div>
+                      <div v-else>
+                          <p class="font-bold">{{ item.value }}</p>
+                      </div>
+                  </template>
+                  </el-autocomplete>
                 </el-form-item>
               </el-col>
               
@@ -131,7 +141,17 @@
                     v-model="formData.position_name!"
                     placeholder="Cari Position"
                     @select="onHandleSelectPosition"
-                />
+                  >
+                  <template #default="{ item }">
+                      <div v-if="item.isNew" class="flex items-center text-blue-500">
+                          <el-icon><Plus /></el-icon>
+                          <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                      </div>
+                      <div v-else>
+                          <p class="font-bold">{{ item.value }}</p>
+                      </div>
+                  </template>
+                  </el-autocomplete>
                 </el-form-item>
               </el-col>
             </el-row>
@@ -245,7 +265,7 @@
 import { 
   User, Briefcase, Camera, Check, Delete, Refresh,
   Setting, View, Lock, Unlock, InfoFilled, Key,
-  Calendar, Warning, SuccessFilled, WarningFilled
+  Plus, Warning, SuccessFilled, WarningFilled
 } from '@element-plus/icons-vue'
 import type { FormInstance, FormRules, UploadProps, UploadUserFile } from 'element-plus'
 import type { Contact } from '~/types/contact'
@@ -488,26 +508,28 @@ const querySearchPosition = (queryString: string, cb: (arg: any) => void) => {
     request_search.value.column = [];
     request_search.value.flag = "form";
 
-    useFetchApi<ResponsePagination<Position[]>>('/search', 'address', 'post', request_search).then((response) => {
-        if(response.status.value == 'success'){
-            
-            const resultApi: Position[]  = response.data.value?.data!;
-            
-            if(resultApi.length > 0){
+    if(queryString != 'null'){
+      useFetchApi<ResponsePagination<Position[]>>('/search', 'address', 'post', request_search).then((response) => {
+          if(response.status.value == 'success'){
+              
+              const resultApi: Position[]  = response.data.value?.data!;
+              
+              if(resultApi.length > 0){
 
-                if(resultApi.length > 0){
-                  const results = resultApi.map((data: Position) => {
-                      return {...data, value: `${data.name}`}
-                  });    
-                  cb([...results, { value: `${queryString}`, label: `Tambahkan ${queryString}`, isNew: true}])
-                }else{
-                  cb([{ value: `${queryString}`, label: `Tambahkan ${queryString}`, isNew: true}])
-                }
-            }else{
-                cb([{value: `Tambahkan ${queryString}`, isNew: true, label: `${queryString}`}]);
-            }
-        }
-    })
+                  if(resultApi.length > 0){
+                    const results = resultApi.map((data: Position) => {
+                        return {...data, value: `${data.name}`}
+                    });    
+                    cb([...results, { value: `${queryString}`, label: `Tambahkan ${queryString}`, isNew: true}])
+                  }else{
+                    cb([{ value: `${queryString}`, label: `Tambahkan ${queryString}`, isNew: true}])
+                  }
+              }else{
+                  cb([{value: `Tambahkan ${queryString}`, isNew: true, label: `${queryString}`}]);
+              }
+          }
+      })
+    }
     
 }
 const querySearchDepartement = (queryString: string, cb: (arg: any) => void) => {
@@ -517,7 +539,8 @@ const querySearchDepartement = (queryString: string, cb: (arg: any) => void) => 
     request_search.value.column = [];
     request_search.value.flag = "form";
 
-    useFetchApi<ResponsePagination<Departement[]>>('/search', 'address', 'post', request_search).then((response) => {
+    if(queryString != 'null'){
+      useFetchApi<ResponsePagination<Departement[]>>('/search', 'address', 'post', request_search).then((response) => {
         if(response.status.value == 'success'){
             
             const resultApi: Departement[]  = response.data.value?.data!;
@@ -536,7 +559,10 @@ const querySearchDepartement = (queryString: string, cb: (arg: any) => void) => 
                 cb([{value: `Tambahkan ${queryString}`, isNew: true, label: `${queryString}`}]);
             }
         }
-    })
+      })
+    }
+
+    
     
 }
 
@@ -634,7 +660,7 @@ const handleSubmit = async () => {
       authStore.setUserData(dataUser);
       authStore.setMenu(dataUser.menu || []);
       
-      ElMessage.success('Berhasil Login!');
+      ElMessage.success('Berhasil Memperbarui Profile!');
       fetchPeopleDetail();
     } else {
       ElMessage.error(response?.data?.message);

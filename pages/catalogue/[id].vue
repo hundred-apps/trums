@@ -45,9 +45,9 @@
       <div class="mb-5">
         <h1 class="text-lg font-bold">Dimensi</h1>
         <el-descriptions :column="3" border>
-          <el-descriptions-item label="Panjang">{{ catalogueData?.panjang ? `${catalogueData.panjang} cm` : '-' }}</el-descriptions-item>
-          <el-descriptions-item label="Lebar">{{ catalogueData?.lebar ? `${catalogueData.lebar} cm` : '-' }}</el-descriptions-item>
-          <el-descriptions-item label="Tinggi">{{ catalogueData?.tinggi ? `${catalogueData.tinggi} cm` : '-' }}</el-descriptions-item>
+          <el-descriptions-item label="Panjang">{{ catalogueData?.length ? `${catalogueData.length} cm` : '-' }}</el-descriptions-item>
+          <el-descriptions-item label="Lebar">{{ catalogueData?.width ? `${catalogueData.width} cm` : '-' }}</el-descriptions-item>
+          <el-descriptions-item label="Tinggi">{{ catalogueData?.height ? `${catalogueData.height} cm` : '-' }}</el-descriptions-item>
           <el-descriptions-item label="Berat">{{ catalogueData?.berat ? `${catalogueData.berat} gram` : '-' }}</el-descriptions-item>
           <el-descriptions-item label="Volume">{{ catalogueData?.volume ? `${catalogueData.volume} cm³` : '-' }}</el-descriptions-item>
         </el-descriptions>

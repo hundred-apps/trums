@@ -25,12 +25,37 @@
           :data-interface="inquiryData!"
         />
       </el-tab-pane>
-      <el-tab-pane label="RAB" name="rab">
+      <el-tab-pane label="CANVASSING" name="canvassing">
         <div v-if="canvassing.pending">Loading.....</div>
         <div v-else-if="!canvassing.pending && canvassing.data">
           <CanvassingDetail
             :canvassing-data="canvassing.data"
-            :privilages="privilages"
+            :privilages="canvassing.privilege ?? []"
+          />
+        </div>
+        <div v-else-if="canvassing.code === 403">
+          <ActionNotPermitted
+            button-label="Kembali"
+            redirect-to="/sales/inquiry"
+          />
+        </div>
+        <el-result
+          v-else
+          icon="warning"
+          title="Belum ada Canvassing Terkait!"
+          sub-title="Data Canvassing yang terkait dengan inquiry ini belum ada!"
+        >
+          <template #extra>
+            <el-button type="primary">Buat Canvassing</el-button>
+          </template>
+        </el-result>
+      </el-tab-pane>
+      <el-tab-pane label="RAB" name="rab">
+        <div v-if="rab.pending">Loading.....</div>
+        <div v-else-if="!rab.pending && rab.data">
+          <RABDetail
+            :canvassing-data="rab.data"
+            :privilages="rab.privilege ?? []"
           />
         </div>
         <div v-else-if="canvassing.code === 403">
@@ -103,9 +128,10 @@ import {
 import type { PurchaseOrder } from "~/types/scm/purchase_order";
 import type { AddressType } from "~/types/address";
 import ActionNotPermitted from "~/components/trums/ActionNotPermitted.vue";
-import CanvassingDetail from "../quotation/components/CanvassingDetail.vue";
+import RABDetail from "../quotation/components/CanvassingDetail.vue";
+import CanvassingDetail from "../canvassing/components/CanvassingDetail.vue";
 import InquiryDetail from "./components/InquiryDetail.vue";
-import type { Canvassing } from "~/types/scm/canvasing";
+import { CanvassingStatus, type Canvassing } from "~/types/scm/canvasing";
 import type { Permission } from "~/types/menu";
 import { ReferencePriceTag, type Pricetag } from "~/types/pricetag";
 
@@ -133,6 +159,12 @@ const loading = ref<boolean>(false);
 
 const loadingRAB = ref<boolean>(false);
 const canvassing = ref<DataInterface<Canvassing>>({
+  code: 200,
+  data: null,
+  message: "",
+  pending: true,
+});
+const rab = ref<DataInterface<Canvassing>>({
   code: 200,
   data: null,
   message: "",
@@ -176,6 +208,7 @@ const fetchInquiry = async () => {
       };
 
       fetchCanvassing();
+      fetchRAB();
     }
   } catch (error) {
     console.error("Failed to fetch related data", error);
@@ -191,6 +224,64 @@ const fetchCanvassing = async () => {
       column: [
         {
           source_document: [inquiryData.value?.data?.unique_code ?? ""],
+          status: [CanvassingStatus.DRAFT, CanvassingStatus.PENDING_APPROVAL_RAB, CanvassingStatus.CANVASSING]
+        },
+      ],
+      keyword: "",
+      limit: "1",
+      offset: "1",
+      table: "canvassing",
+      sort: null,
+    };
+    const response = await useFetchApi<BaseResponse<Canvassing[]>>(
+      "/search",
+      "get-canvassing",
+      "post",
+      request_search
+    );
+console.log('canvassing data', response.data.value);
+    if (response.status.value == "success") {
+      canvassing.value = {
+        code: response.code || 201,
+        data:
+          (response.data.value?.data ?? []).length > 0
+            ? response.data.value!.data![0]
+            : null,
+        message: response.status.value,
+        pending: response.pending.value,
+        privilege: response.data.value?.privilege ?? [],
+      };
+
+      
+    }
+
+    if (response.code == 403) {
+      canvassing.value = {
+        code: response.code,
+        data: null,
+        message: response.error.value?.data?.message ?? "Action Not Permited",
+        pending: response.pending.value,
+      };
+
+      
+    }
+
+    console.log(response);
+  } catch (error: any) {
+    ElMessage.error(error.response?.message ?? error);
+  } finally {
+    loadingRAB.value = false;
+  }
+};
+
+const fetchRAB = async () => {
+  loadingRAB.value = true;
+  try {
+    const request_search: RequestSearch = {
+      column: [
+        {
+          source_document: [inquiryData.value?.data?.unique_code ?? ""],
+          status: [CanvassingStatus.DRAFT, CanvassingStatus.PENDING_APPROVAL, CanvassingStatus.RAB]
         },
       ],
       keyword: "",
@@ -207,7 +298,7 @@ const fetchCanvassing = async () => {
     );
 
     if (response.status.value == "success") {
-      canvassing.value = {
+      rab.value = {
         code: response.code || 201,
         data:
           (response.data.value?.data ?? []).length > 0
@@ -215,8 +306,9 @@ const fetchCanvassing = async () => {
             : null,
         message: response.status.value,
         pending: response.pending.value,
+        privilege: response.data.value?.privilege ?? [],
       };
-      privilages.value = response.data.value?.privilege ?? [];
+      fetchOffer();
     }
 
     if (response.code == 403) {

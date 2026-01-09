@@ -20,9 +20,9 @@
             <el-form-item label="Nama/Label Alamat" prop="address_name">
                 <el-input v-model="ruleFormAddress.address_name" autocomplete="off"/>
             </el-form-item>
-            <el-form-item label="Alamat" prop="village">
+            <el-form-item label="Alamat">
                 <el-autocomplete
-                    v-model="ruleFormAddress.address_id"
+                    v-model="ruleFormAddress.address_view"
                     :fetch-suggestions="querySearchGeolocation"
                     :trigger-on-focus="false"
                     clearable
@@ -71,6 +71,7 @@ const props = defineProps<{
 }>();
 
 interface formAddress {
+    unique_id?: string,
     contact_id?: string,
     contact_name?: string,
     contact_version?: number,
@@ -86,6 +87,7 @@ interface formAddress {
     codepos?: string,
     lat?: string,
     lng?: string,
+    address_view?: string,
 }
 
 const ruleFormAddress = reactive<formAddress>({});
@@ -211,13 +213,14 @@ const onSubmitAddress = async () => {
         "country": "indonesia",
         "lat": ruleFormAddress.lat,
         "lng": ruleFormAddress.lng,
+        "unique_id": ruleFormAddress.unique_id,
     }
 
     try {
         const response = await useFetchApi<ResponsePagination<BaseResponse<AddressType>>>('/address-create', 'address-create', 'post', data);
         if(response.status.value == 'success'){
             ElMessage.success('Berhasil!');
-            const address:AddressType = (response.data.value as unknown as BaseResponse<AddressType>).data;
+            const address:AddressType = (response.data.value as unknown as BaseResponse<AddressType>).data!;
             ruleFormRefAddress.value?.resetFields();
             props.onSuccess!(address);
         }

@@ -9,11 +9,12 @@ import { InfoFilled, SetUp, Filter, Refresh } from '@element-plus/icons-vue'
 import CustomTable from '~/components/trums/table/customTable.vue';
 import { OrderColumn, type RequestSearch } from '~/types/request_search';
 import type { ResponsePagination } from '~/types/response_pagination';
-import { ElButton, TableV2FixedDir, ElCheckbox, ElIcon, ElPopover, ElTag, type CheckboxValueType, type Column, type SortBy, ElCheckboxGroup } from 'element-plus';
+import { ElButton, TableV2FixedDir, ElCheckbox, ElIcon, ElPopover, ElTag, type CheckboxValueType, type Column, type SortBy, ElCheckboxGroup, ElImage } from 'element-plus';
 import SelectionCell from '~/components/trums/table/SelectionCell.vue';
 import DeleteButton from '~/components/trums/DeleteButton.vue';
 import { NuxtLink } from '#components';
 import type { Catalogue } from '~/types/catalogue';
+import type { AppFile } from '~/types/file';
 
 interface FormFilter {
   date_range: string[],
@@ -23,8 +24,12 @@ const ruleFormFilter = reactive<FormFilter>({
   date_range: ["", ""],
 });
 
+const previewImage = ref<boolean>(false);
+const initialIndexImage = ref<number>(0);
+const urlFileList = ref<string[]>([]);
+
 const loading = ref<boolean>(false);
-const column_selected = ref<string[]>(['selection', 'unique_code', 'name', 'brand_name', 'type', 'status', 'created_at', 'actions', 'setup']);
+const column_selected = ref<string[]>(['selection', 'image', 'unique_code', 'name', 'brand_name', 'type', 'status', 'created_at', 'actions', 'setup']);
 const search = ref('')
 const router = useRouter();
 const popoverRef = ref();
@@ -55,6 +60,42 @@ const availableColumn: Column<Catalogue>[] = [
           onChange={onChange}
         />
       )
+    },
+  },
+  {
+    key: 'image',
+    title: 'Image',
+    width: 150,
+    cellRenderer: ({ rowData }: { rowData: Catalogue }) => {
+      const image = getFileFirst(rowData.files ?? []);
+
+      return (
+        <div class="flex items-center py-2 px-2">
+          {image ? (
+            <div onClick={() => {
+              initialIndexImage.value = 0;
+              previewImage.value = true;
+              urlFileList.value = getFiles(rowData.files ?? []);
+            }}>
+              <ElImage
+                src={image}
+                style={{ width: '45px', height: '45px', cursor: 'pointer' }}
+                zoomRate={1.2}
+                maxScale={7}
+                minScale={0.2}
+                initialIndex={0}
+              />
+            </div>
+          ) : (
+            <div
+              class="flex items-center justify-center border rounded py-2 px-2"
+              style={{ width: '45px', height: '45px', fontSize: '10px' }}
+            >
+              No Image
+            </div>
+          )}
+        </div>
+      );
     },
   },
   {
@@ -141,9 +182,9 @@ const availableColumn: Column<Catalogue>[] = [
     width: 150,
     cellRenderer: ({rowData: row}) => (
       <>
-        <ElButton size="small" onClick={() => handleEdit(row)}>
+        <NuxtLink class="el-button el-button--small" href={`/catalogue/add?unique_id=${row.unique_id}`}>
           Edit
-        </ElButton>
+        </NuxtLink>
         <DeleteButton size="small" onConfirm={() => handleDelete([row.unique_id])} onCancel={() => {}} />
       </>
     ),
@@ -188,6 +229,24 @@ const availableColumn: Column<Catalogue>[] = [
     )
   }
 ];
+
+const getFileFirst = (files: AppFile[]) => {
+  const config = useRuntimeConfig();
+  const imageUrl = config.public.baseImageURL;
+  if (files!.length > 0) {
+    return `${imageUrl}/${files![0].image_path}/${
+      files![0].filename
+    }`;
+  } else {
+    return "";
+  }
+};
+const getFiles = (files: AppFile[]): string[] => {
+  const config = useRuntimeConfig();
+  const imageUrl = config.public.baseImageURL;
+  return files.map((value) => `${imageUrl}/${value.image_path}/${
+      value.filename}`);
+};
 
 // availableColumn[10].headerCellRenderer = () => {
 //     return (<div class="flex items-center justify-center">
@@ -374,5 +433,23 @@ const shortcutsDate = [
         @current-change="(page) => request_search.offset = page.toString()"
       />
     </div>
+
+    <el-image-viewer
+      v-if="previewImage"
+      show-progress
+      :initial-index="initialIndexImage"
+      :url-list="urlFileList"
+      @close="previewImage = false"
+    >
+    <template #viewer-error="{ activeIndex, src }">
+      <div class="image-slot viewer-error">
+        <el-icon><icon-picture /></el-icon>
+        <span>
+          this is viewer-error slot. current index: {{ activeIndex }}. src:
+          {{ src }}
+        </span>
+      </div>
+    </template>
+  </el-image-viewer>
   </TrumsWrapper>
 </template>

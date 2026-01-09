@@ -493,8 +493,8 @@ definePageMeta({
 });
 
 const router = useRouter();
-const route = useRoute();
 const id = computed(() => route.query.id as string);
+const route = useRoute();
 const inquiry_id = computed(() => route.query.inquiry_id as string);
 
 // Refs

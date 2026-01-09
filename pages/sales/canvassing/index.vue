@@ -389,12 +389,10 @@ const handleSelectionChange = (selection: Canvassing[]) => {
 
 const handlePageChange = (page: number) => {
   request_search.value.offset = `${page}`
-  
 }
 
 const handleSizeChange = (size: number) => {
   request_search.value.limit = `${size}`
-  
 }
 
 const onEdit = (canvassing: Canvassing) => {

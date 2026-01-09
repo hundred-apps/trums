@@ -402,6 +402,14 @@ const handleSelectionChange = (selection: Inquiry[]) => {
 
   }
 
+  const handlePageChange = (page: number) => {
+    request_search.value.offset = `${page}`
+  }
+
+  const handleSizeChange = (size: number) => {
+    request_search.value.limit = `${size}`
+  }
+
   watch(request_search.value, () => refreshNuxtData('fetch-inquiries'), {immediate: true});
 
   
@@ -432,7 +440,13 @@ const handleSelectionChange = (selection: Inquiry[]) => {
       :data="data?.data ?? []"
     />
     <div class="flex justify-end mt-3">
-      <el-pagination background layout="prev, pager, next" :total="data?.total_data" @next-click="paginationClick" @prev-click="paginationClick" @change="paginationClick" />
+      <el-pagination 
+      background 
+      layout="prev, pager, next" 
+      :total="data?.total_data"
+      @current-change="handlePageChange"
+      @size-change="handleSizeChange"
+      />
     </div>
     <el-dialog v-model="dialogConfirmDelete" title="Tips" width="500">
       <span>This is a message</span>

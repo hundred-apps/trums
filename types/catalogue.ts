@@ -1,3 +1,5 @@
+import type { AppFile } from "./file";
+
 export type Catalogue = {
     id: number | null;
     unique_id: string | null;
@@ -10,9 +12,9 @@ export type Catalogue = {
     description: string | null;
     berat: number | null;
     volume: number | null;
-    panjang: number|null;
-    lebar: number|null;
-    tinggi: number|null;
+    length: number|null;
+    width: number|null;
+    height: number|null;
     is_asset: boolean | null;
     tmp_asset: string|null;
     version: number | null;
@@ -21,5 +23,6 @@ export type Catalogue = {
     created_by: string | null;
     updated_at: number | null;
     file_catalogues: any[];
+    files?: AppFile[]
     checked?: boolean;
 }

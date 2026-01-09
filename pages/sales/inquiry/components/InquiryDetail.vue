@@ -87,28 +87,33 @@
       </el-card>
       <el-card shadow="never">
         <h1 class="mb-4">Item Permintaan</h1>
-        <el-table :data="inquiryData?.item_request ?? []" style="width: 100%">
+        <el-table :data="inquiryData?.item_request ?? []" style="width: 100%" border>
           <el-table-column prop="image" label="Image" width="75">
             <template #default="{ row }">
-              <div class="demo-image__preview">
+              <div class="demo-image__preview flex items-center">
                 <el-image
-                  v-if="getFile(row as ItemRequest)"
+                  v-if="getFile(row as ItemRequest) != ''"
                   style="width: 50px; height: 50px"
                   :src="getFile(row as ItemRequest)"
                   :zoom-rate="1.2"
                   :max-scale="7"
                   :min-scale="0.2"
                   @click="() => {
-  initialIndexImage = fileList.findIndex((value) => value === getFile(row as ItemRequest));
-  previewImage = true;
+                    fileList = getFilesUrl(row as ItemRequest);
+                    initialIndexImage = 0;
+                    previewImage = true;
                   }"
                   show-progress
                   :initial-index="0"
                   fit="cover"
                 />
-                <div v-else class="image-viewer-slot image-slot">
-                  <el-icon><icon-picture /></el-icon>
-                </div>
+                <el-image v-else>
+                  <template #error>
+                    <div class="image-viewer-slot image-slot">
+                      <p style="font-size: 10px">No Image</p>
+                    </div>
+                  </template>
+                </el-image>
               </div>
             </template>
           </el-table-column>
@@ -243,15 +248,7 @@ const approveForm = reactive({
 
 const goBack = () => router.back();
 
-onMounted(() => {
-  prepareFileList();
-});
 
-const prepareFileList = () => {
-  (props.dataInterface.data?.item_request ?? []).forEach((element) => {
-    fileList.value.push(getFile(element));
-  });
-};
 
 const request_sugestion_item = ref<RequestSearch>({
   table: "inventories",
@@ -326,6 +323,16 @@ const getFile = (itemRequest: ItemRequest) => {
     }`;
   } else {
     return "";
+  }
+};
+const getFilesUrl = (itemRequest: ItemRequest): string[] => {
+  if (itemRequest.files != null && itemRequest.files!.length > 0) {
+    return itemRequest.files.map((file) => `${imageUrl}/${file.image_path}/${
+      file.filename
+    }`);
+    
+  } else {
+    return [""];
   }
 };
 
@@ -664,6 +671,6 @@ const getSourceRequestNumber = () => {
 
 <style scoped>
 :deep(.image-viewer-slot) {
-  height: 0px !important;
+  height: 30px !important;
 }
 </style>

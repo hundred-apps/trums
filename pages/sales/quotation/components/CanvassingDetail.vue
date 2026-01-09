@@ -74,8 +74,7 @@
           </NuxtLink> -->
           <NuxtLink
             v-if="
-              canvassingData?.status === CanvassingStatus.DONE &&
-              permissionCreateOffer
+              canvassingData?.status === CanvassingStatus.DONE
             "
             :href="`/sales/offer/add?canvassing_id=${canvassingData?.unique_id}`"
             class="el-button el-button--default"
@@ -2622,7 +2621,7 @@ const initialCanvassing = (data: Canvassing) => {
           ongkir_unit: child.ongkir_unit,
           pricetag_item_id: child.pricetag_item_id ?? "",
           pricetag_item_version: child.pricetag_item_version ?? 0,
-          contacts_fee: child.reference_transaction.filter(
+          contacts_fee: (child.reference_transaction ?? []).filter(
             (value) => value.party_type == PartyType.CONTACT
           ),
         })),
