@@ -1,7 +1,7 @@
 <template>
   <div class="photo-wall-upload">
     <el-upload
-      v-model:file-list="internalFileList"
+      :file-list="internalFileList"
       :action="action"
       :multiple="multiple"
       :limit="limit"
@@ -14,6 +14,7 @@
       :on-error="handleError"
       :disabled="disabled"
       :auto-upload="false"
+      :on-change="handleFileChange"
     >
       <el-icon><Plus /></el-icon>
     </el-upload>
@@ -68,13 +69,17 @@ const dialogVisible = ref(false)
 // Sync external modelValue changes
 watch(() => props.modelValue, (newVal) => {
   internalFileList.value = [...newVal]
-}, { deep: true })
+}, { deep: true, immediate: true })
 
 // Emit changes when internal list changes
-watch(internalFileList, (newVal) => {
-  emit('update:modelValue', [...newVal])
-  emit('change', [...newVal])
-}, { deep: true })
+const handleFileChange: UploadProps['onChange'] = (uploadFile, uploadFiles) => {
+  // Update internal list
+  internalFileList.value = uploadFiles
+  
+  // Emit ke parent HANYA sekali
+  emit('update:modelValue', [...uploadFiles])
+  emit('change', [...uploadFiles])
+}
 
 const handleRemove: UploadProps['onRemove'] = (uploadFile, uploadFiles) => {
   emit('remove', uploadFile, uploadFiles)
