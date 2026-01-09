@@ -1599,14 +1599,7 @@ const handleEditAddress = (address: AddressType) => {
       </template>
     </el-page-header>
     <el-card class="my-3">
-      <template #header>
-        <div class="card-header flex justify-end items-center">
-          <el-button type="primary" @click="submitForm(ruleFormRef)"
-              >Simpan</el-button
-            >
-            <el-button @click="resetForm(ruleFormRef)">Batal</el-button>
-        </div>
-      </template>
+      
     <el-form
       ref="ruleFormRef"
       :model="ruleForm"
@@ -1822,6 +1815,15 @@ const handleEditAddress = (address: AddressType) => {
       <el-button class="mt-4" style="width: 100%" @click="addNewLine">
         Tambahkan Baris Baru
       </el-button>
+    </el-card>
+
+    <el-card>
+      <div class="card-header flex justify-end items-center">
+        <el-button @click="resetForm(ruleFormRef)">Batal</el-button>
+          <el-button type="primary" @click="submitForm(ruleFormRef)"
+              >Simpan</el-button
+            >
+        </div>
     </el-card>
 
     <el-dialog v-model="dialogContact" title="Detail Kontak">

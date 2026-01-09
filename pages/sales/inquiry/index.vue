@@ -251,7 +251,7 @@ const availableColumn: Column<Inquiry>[] = [
     width: 250,
     cellRenderer: ({ rowData: row }) => (
       <>
-        <NuxtLink href={"/inventory-management/inqueiries/add?id=" + row.unique_id} class="el-button el-button--small">
+        <NuxtLink href={"/sales/inquiry/add?id=" + row.unique_id} class="el-button el-button--small">
           Edit
         </NuxtLink>
         {/* {
