@@ -75,6 +75,30 @@
           </template>
         </el-result>
       </el-tab-pane>
+      <el-tab-pane label="Penawaran" name="offer">
+        <div v-if="penawaran.pending">Loading.....</div>
+        <div v-else-if="!penawaran.pending && penawaran.data">
+          <OfferDetail
+            :data-interface="penawaran"
+          />
+        </div>
+        <div v-else-if="penawaran.code === 403">
+          <ActionNotPermitted
+            button-label="Kembali"
+            redirect-to="/sales/inquiry"
+          />
+        </div>
+        <el-result
+          v-else
+          icon="warning"
+          title="Belum ada Penawaran Terkait!"
+          sub-title="Data Penawaran yang terkait dengan inquiry ini belum ada!"
+        >
+          <template #extra>
+            <NuxtLink class="el-button el-button--primary" :href="`/sales/offer/add?canvassing_id=${canvassing?.data?.unique_id}`">Buat Penawaran</NuxtLink>
+          </template>
+        </el-result>
+      </el-tab-pane>
       <el-tab-pane label="SO" name="so">
         <div v-if="!salesOrder.pending && salesOrder.data">
           <SalesOrderDetail :purchase-order="salesOrder.data" />
@@ -86,7 +110,7 @@
           sub-title="Data SO yang terkait dengan inquiry ini belum ada!"
         >
           <template #extra>
-            <el-button type="primary">Buat SO</el-button>
+            <NuxtLink class="el-button el-button--primary" href="sales/order/add" type="primary">Buat SO</NuxtLink>
           </template>
         </el-result>
       </el-tab-pane>
@@ -134,6 +158,7 @@ import InquiryDetail from "./components/InquiryDetail.vue";
 import { CanvassingStatus, type Canvassing } from "~/types/scm/canvasing";
 import type { Permission } from "~/types/menu";
 import { ReferencePriceTag, type Pricetag } from "~/types/pricetag";
+import OfferDetail from "../offer/components/OfferDetail.vue";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -281,7 +306,7 @@ const fetchRAB = async () => {
       column: [
         {
           source_document: [inquiryData.value?.data?.unique_code ?? ""],
-          status: [CanvassingStatus.DRAFT, CanvassingStatus.PENDING_APPROVAL, CanvassingStatus.RAB]
+          status: [CanvassingStatus.DRAFT, CanvassingStatus.PENDING_APPROVAL, CanvassingStatus.RAB, CanvassingStatus.DONE]
         },
       ],
       keyword: "",
@@ -330,6 +355,7 @@ const fetchRAB = async () => {
   }
 };
 
+
 const fetchOffer = async () => {
   loadingPenawaran.value = true;
   try {
@@ -338,7 +364,7 @@ const fetchOffer = async () => {
       table: "pricetag",
       column: [
         {
-          reference: [ReferencePriceTag.CANVASING_VENDOR],
+          reference: [ReferencePriceTag.CANVASSING],
           reference_id: [canvassing.value.data?.unique_id ?? ""],
         },
       ],

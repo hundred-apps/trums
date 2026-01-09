@@ -98,6 +98,9 @@
                 {{ canvassingData?.source.location?.name ?? "Tidak Ada" }}
               </el-descriptions-item>
               <el-descriptions-item label="Diminta Oleh">
+                {{ canvassingData?.source?.request_to?.name ?? "-" }}
+              </el-descriptions-item>
+              <el-descriptions-item label="PIC">
                 {{ canvassingData?.source?.request_by?.name ?? "-" }}
               </el-descriptions-item>
             </el-descriptions>
