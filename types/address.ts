@@ -17,6 +17,31 @@ export type AddressType = {
     updated_at: number,
     version: number,
     checked?: boolean,
+    villages?: Village,
+}
+
+export type Village = {
+    id: string,
+    name: string,
+    district_id: string,
+    districts?: District,
+}
+
+export type District = {
+    id: string,
+    name: string,
+    regency_id: string,
+    regencies?: Regency,
+}
+export type Regency = {
+    id: string,
+    name: string,
+    province_id: string,
+    province?: Province,
+}
+export type Province = {
+    id: string,
+    name: string,
 }
 
 export type coordinateAddress = {

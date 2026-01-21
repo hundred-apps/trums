@@ -1,3 +1,4 @@
+import type { UploadUserFile } from "element-plus"
 import type { Catalogue } from "./catalogue"
 import type { Contact } from "./contact"
 import type { AppFile } from "./file"
@@ -48,7 +49,7 @@ export type Pricetag_item = {
     item_name?: string,
     unique_id: string|null,
     tag_id: string|null,
-    catalogue_id: string,
+    catalogue_id: string|null,
     catalogue: Catalogue | null,
     inventory_id: string,
     inventory: Inventory|null,
@@ -63,6 +64,9 @@ export type Pricetag_item = {
     unit_name:string|null,
     unit_version: number|null,
     version?: number,
+    fileUploads: UploadUserFile[],
+    image?: string,
+    files?: AppFile[],
 }
 
 export type Pricetag_condition = {

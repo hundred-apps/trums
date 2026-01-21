@@ -112,6 +112,16 @@
       </el-row>
       
       <el-table :data="ruleForm.pricetag_item">
+          <el-table-column prop="fileUploads" label="image" width="75">
+            <template #default="scope">
+              <ItemImageUpload
+                v-model="scope.row.fileUploads"
+                :image-url="scope.row.image"
+                :show-text="false"
+                @open-modal="() => openImageModal(scope.$index, scope.row)"
+              />
+            </template>
+          </el-table-column>
           <el-table-column prop="item_name" label="item" class="my-0">
               <template #default="scope">
                   <el-autocomplete
@@ -128,10 +138,38 @@
                           <el-icon><Plus /></el-icon>
                           <span class="ml-2">Tambahkan "{{ item.value }}"</span>
                       </div>
-                      <div v-else>
-                          <p style="line-height: 15px;" class="font-bold">{{ item.value }}</p>
-                          <p  v-if="item.type === 'inventory'">PN/SN: {{ item.sn_number ?? 'Tidak Ada' }} | Lokasi: {{item.location_name ?? 'Tidak Ada'}} | Available Stok: {{item.available}}</p>
-                          <p v-if="item.type === 'catalogue'">PN/SN: {{ item.sn_number ?? 'Tidak Ada' }} </p>
+                      <div v-else class="flex items-center gap-2">
+                        <!-- Thumbnail file pertama -->
+                        <div class="flex-shrink-0 mt-1">
+                          <div 
+                            v-if="item.files && item.files.length > 0"
+                            class="w-10 h-10 rounded overflow-hidden border"
+                          >
+                            <img 
+                              :src="getFirstFileUrl(item.files)"
+                              :alt="item.catalogue_name"
+                              class="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div 
+                            v-else
+                            class="w-10 h-10 rounded border flex items-center justify-center text-gray-400"
+                          >
+                            <el-icon><Picture /></el-icon>
+                          </div>
+                        </div>
+                        
+                        <!-- Informasi produk -->
+                        <div class="flex-1 min-w-0">
+                          <p style="line-height: 15px" class="font-bold truncate">
+                            {{ item.catalogue_name || item.value }}
+                          </p>
+                          <p class="text-sm text-gray-500 truncate">
+                            PN/SN: {{ item.sn_number || "Tidak Ada" }} | 
+                            Brand: {{ item.brand_name || "N/A" }}
+                          </p>
+                          
+                        </div>
                       </div>
                   </template>
                 </el-autocomplete>
@@ -198,10 +236,78 @@
     </el-card>
     
     </div>
+
+    <el-dialog
+      v-model="showImageModal"
+      :title="`Upload Gambar untuk Item ${activeItemIndex + 1}`"
+      width="900px"
+      :close-on-click-modal="false"
+      @close="handleImageModalClose"
+    >
+      <div class="image-upload-modal">
+        <!-- Photo Wall Upload -->
+        <PhotoWallUploads
+          ref="photoWallRef"
+          v-model="modalImageFiles"
+          :action="uploadAction"
+          :multiple="true"
+          :limit="10"
+          :max-size="5"
+          accept="image/*"
+          @change="handleModalImagesChange"
+          @remove="handleRemoveImageList"
+        />
+        
+        <!-- Preview Section -->
+        <div v-if="modalImageFiles.length > 0" class="preview-section">
+          
+          
+        </div>
+        
+        <!-- Empty State -->
+        <div v-else class="empty-state-modal">
+          <el-empty description="Belum ada gambar" :image-size="100">
+            <template #description>
+              <p>Upload gambar untuk item ini</p>
+              <p class="hint">Gambar pertama akan ditampilkan di tabel</p>
+            </template>
+          </el-empty>
+        </div>
+      </div>
+      
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="cancelImageUpload">Batal</el-button>
+          <el-button 
+            type="primary" 
+            @click="saveItemImages"
+            :disabled="modalImageFiles.length === 0"
+          >
+            Simpan ({{ modalImageFiles.length }} gambar)
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
+
+    <el-drawer
+      v-model="drawerCatalogue"
+      title="Detail Item"
+      :with-header="true"
+    >
+      <CatalogueAdd :catalogue_form="tmpCatalogue!" :loading="loading" />
+      <template #footer>
+        <div style="flex: auto">
+          <el-button @click="handleCancel">Batal</el-button>
+          <el-button type="primary" @click="() => handleSubmit(tmpCatalogue!)"
+            >Simpan</el-button
+          >
+        </div>
+      </template>
+    </el-drawer>
   </TrumsWrapper>
 </template>
 <script lang="tsx" setup>
-import { Filter, InfoFilled, Delete } from '@element-plus/icons-vue';
+import { Filter, InfoFilled, Delete, Picture } from '@element-plus/icons-vue';
 import { ElCheckbox, ElIcon, ElPopover, type CheckboxValueType, type Column, type ComponentSize, type FormInstance, type FormRules, type SortBy, type UploadUserFile } from 'element-plus';
 import type { Catalogue } from '~/types/catalogue';
 import type { Inventory } from '~/types/inventory';
@@ -226,11 +332,19 @@ import type { Canvassing } from '~/types/scm/canvasing';
 import TrumsUploadFile from '~/components/trums/form/TrumsUploadFile.vue';
 import type { AppFile } from '~/types/file';
 import type { AddressType } from '~/types/address';
+import PhotoWallUploads from '~/components/trums/PhotoWallUploads.vue';
+import ItemImageUpload from '../inquiry/components/ItemImageUpload.vue';
+import CatalogueAdd from '~/components/trums/CatalogueAdd.vue';
+import { getFirstFileUrl } from '#imports';
+
+
   definePageMeta({
     middleware: ["auth", "check-access"],
     requiredPermission: "pricetag-create",
   });
   const loading = ref<boolean>(false);
+  const drawerCatalogue = ref<boolean>(false);
+  const itemActive = ref<number>(-1);
   const router = useRouter();
   const api = useApi();
 
@@ -274,9 +388,9 @@ import type { AddressType } from '~/types/address';
         description: null,
         berat: null,
         volume: null,
-        panjang: null,
-        lebar: null,
-        tinggi: null,
+        length: null,
+        width: null,
+        height: null,
         is_asset: null,
         tmp_asset: null,
         version: null,
@@ -298,6 +412,7 @@ import type { AddressType } from '~/types/address';
       unit_version: 0,
       checked: false,
       quantity: 1,
+      fileUploads: [],
     }],
 
     location: {
@@ -312,9 +427,9 @@ import type { AddressType } from '~/types/address';
       description: null,
       berat: null,
       volume: null,
-      panjang: null,
-      lebar: null,
-      tinggi: null,
+      length: null,
+      width: null,
+      height: null,
       is_asset: null,
       tmp_asset: null,
       version: null,
@@ -333,6 +448,8 @@ import type { AddressType } from '~/types/address';
     to_name: '',
     files: [],
   });
+
+  const tmpCatalogue = ref<Catalogue | null>(null);
 
   const config = useRuntimeConfig();
   const baseImageURL = config.public.baseImageURL;
@@ -359,6 +476,13 @@ import type { AddressType } from '~/types/address';
       slug: ''
     },
   });
+
+  const showImageModal = ref(false)
+  const activeItemIndex = ref(-1)
+  const activeItemData = ref<Pricetag_item | null>(null)
+  const modalImageFiles = ref<UploadUserFile[]>([])
+  const photoWallRef = ref<InstanceType<typeof PhotoWallUploads>>()
+  const uploadAction = computed(() => `${config.public.apiBaseURL}/upload-item-image`)
   
   const collapse_special_price = ref<{title: string, name: string, element: any}[]>();
   
@@ -467,6 +591,50 @@ import type { AddressType } from '~/types/address';
 
     
   };
+
+  // Handle cancel
+  const handleCancel = () => {
+    // Reset form atau navigasi kembali
+    console.log("Form cancelled");
+    resetFormCatalogue();
+    drawerCatalogue.value = false;
+    // atau navigate back
+  };
+
+  // Fungsi untuk reset form
+  const resetFormCatalogue = () => {
+    tmpCatalogue.value = null;
+  };
+
+
+  const handleSubmit = async (catalogue: Catalogue) => {
+    loading.value = true;
+
+    try {
+      const catalogueInsert = (await create_catalogue(catalogue)) ?? undefined;
+      
+      if (catalogueInsert != undefined) {
+        // dataTable.value[itemActive.value].item = catalogueInsert?.name ?? '';
+        // dataTable.value[itemActive.value].item_id = catalogueInsert?.unique_id ?? '';
+        ruleForm.pricetag_item[itemActive.value].sn = catalogueInsert?.sn ?? "";
+        ruleForm.pricetag_item[itemActive.value].catalogue = catalogueInsert;
+        ruleForm.pricetag_item[itemActive.value].catalogue_id = catalogueInsert.unique_id;
+        ruleForm.pricetag_item[itemActive.value].fileUploads = mapApiFilesView(catalogueInsert.files ?? []);
+        ruleForm.pricetag_item[itemActive.value].image = getFirstFileUrl(catalogueInsert.files ?? []);
+      } else {
+        ElMessage.error("Kesalahan saat menyimpan data catalogue!");
+      }
+    } catch (error: any) {
+      console.log(error);
+      ElMessage.error(`Gagal menyimpan catalogue`);
+    } finally {
+      loading.value = false;
+      drawerCatalogue.value = false;
+    }
+  };
+
+
+
   const querySearchQuotation = (queryString: string, cb: (arg: any) => void) => {
     requestSearchLocation.value.keyword = queryString;
     requestSearchLocation.value.table = "offers";
@@ -486,6 +654,97 @@ import type { AddressType } from '~/types/address';
 
     
   };
+
+  const openImageModal = (index: number, itemData: Pricetag_item) => {
+    activeItemIndex.value = index
+    activeItemData.value = itemData
+    
+    // Reset photoWallRef jika perlu (clear selection)
+    if (photoWallRef.value) {
+      photoWallRef.value.clearFiles?.()
+    }
+    
+    // Load files dengan memastikan URL valid
+    modalImageFiles.value = (itemData.fileUploads || []).map(file => {
+      // Clone file object
+      const fileCopy = { ...file }
+      
+      // Jika file punya raw tapi URL invalid/expired, buat URL baru
+      if (fileCopy.raw && (!fileCopy.url || !isValidUrl(fileCopy.url))) {
+        fileCopy.url = URL.createObjectURL(fileCopy.raw)
+      }
+      
+      return fileCopy
+    })
+
+    console.log('modal file ', modalImageFiles.value);
+    
+    showImageModal.value = true
+  }
+
+  const handleImageModalClose = () => {
+    // Optional: Clear temporary blob URLs
+    modalImageFiles.value.forEach(file => {
+      if (file.url?.startsWith('blob:')) {
+        URL.revokeObjectURL(file.url)
+      }
+    })
+    modalImageFiles.value = []
+    activeItemIndex.value = -1
+    activeItemData.value = null
+  }
+
+  const handleModalImagesChange = (files: UploadUserFile[]) => {
+    console.log('images', files);
+    modalImageFiles.value = files
+  }
+
+  const handleRemoveImageList = async (file: UploadUserFile, files: UploadUserFile[]) => {
+    if(file.raw){
+      console.log('file baru upload');
+    }else{
+      console.log('file lama', file.uid);
+      try {
+        const response = await useApiFetch<BaseResponse<any>>('/file-delete', {
+          method: 'POST',
+          body: [file.uid]
+        })
+
+        if(response.success){
+          ElMessage.success(`Image Berhasil Di Hapus!`);
+        }
+      } catch (error: any) {
+        ElMessage.error(`${error?.response?.message ?? error}`);
+      }
+    }
+  }
+
+  const cancelImageUpload = () => {
+    showImageModal.value = false
+  }
+
+  const saveItemImages = () => {
+    if (activeItemIndex.value >= 0) {
+      // Update dataTable dengan files baru
+      ruleForm.pricetag_item[activeItemIndex.value].fileUploads = [...modalImageFiles.value]
+      
+      // Set image URL untuk preview di tabel (mengambil gambar pertama)
+      if (modalImageFiles.value.length > 0) {
+        const firstFile = modalImageFiles.value[0]
+        if (firstFile.url) {
+          ruleForm.pricetag_item[activeItemIndex.value].image = firstFile.url
+        } else if (firstFile.raw) {
+          ruleForm.pricetag_item[activeItemIndex.value].image = URL.createObjectURL(firstFile.raw)
+        }
+      } else {
+        ruleForm.pricetag_item[activeItemIndex.value].image = ''
+      }
+      
+      ElMessage.success(`Gambar untuk item ${activeItemIndex.value + 1} disimpan`)
+    }
+    
+    showImageModal.value = false
+  }
 
   const querySearchVendors =  (query: string, cb: (arg: any) => void) => {
     try {
@@ -603,7 +862,7 @@ import type { AddressType } from '~/types/address';
       const newItem: {
         unique_id: string|null,
         tag_id: string|null,
-        catalogue_id: string,
+        catalogue_id: string|null,
         catalogue: Catalogue | null,
         inventory_id: string,
         inventory: Inventory|null,
@@ -613,6 +872,7 @@ import type { AddressType } from '~/types/address';
         unit_name: string|null,
         unit_version: number|null,
         quantity: number,
+        fileUploads: UploadUserFile[]
       }[] = [...ruleForm.pricetag_item, {
           catalogue: {
             id: null,
@@ -626,9 +886,9 @@ import type { AddressType } from '~/types/address';
             description: null,
             berat: null,
             volume: null,
-            panjang: null,
-            lebar: null,
-            tinggi: null,
+            length: null,
+            width: null,
+            height: null,
             is_asset: null,
             tmp_asset: null,
             version: null,
@@ -649,6 +909,7 @@ import type { AddressType } from '~/types/address';
           unit_name: '',
           unit_version: 0,
           quantity: 1,
+          fileUploads: [],
       }];
 
       ruleForm.pricetag_item = newItem;
@@ -686,13 +947,13 @@ import type { AddressType } from '~/types/address';
         limit: 50,
         flag: "form",
     }
-    useFetchApi<Pagination<ItemSearch[]>>('/catalogues-inventory', 'catalogues-inventory', 'post', data).then((response) => {
+    useFetchApi<ResponsePagination<ItemSearch[]>>('/catalogues-inventory', 'catalogues-inventory', 'post', data).then((response) => {
         if(response.status.value == 'success'){
-            const inventories: ItemSearch[] = response.data?.value?.query ?? [];
+            const inventories: ItemSearch[] = response.data?.value?.data ?? [];
 
             if(inventories.length > 0){
               const results = inventories.map((data: ItemSearch) => {
-                  return {isNew: false, value: `${data.catalogue_name}-${data.sn_number}`, ...data};
+                  return {isNew: false, value: `${data.catalogue_name}`, ...data};
               });    
               cb(results)
             }else{
@@ -721,9 +982,16 @@ import type { AddressType } from '~/types/address';
           formData.append('sn', (catalogue.sn ?? ''));
           formData.append('description', (catalogue.description ?? ''));
           formData.append('berat', (catalogue.berat ?? 0).toString());
-          formData.append('volume', `${catalogue.panjang}x${catalogue.lebar}x${catalogue.tinggi}`);
+          formData.append('volume', `${catalogue.length}x${catalogue.width}x${catalogue.height}`);
           formData.append('is_asset', (catalogue.tmp_asset == '1' ? true : false).toString());
           formData.append('type', catalogue.type);
+
+          // Tambahkan file foto
+          catalogue.file_catalogues.forEach((file) => {
+            if (file.raw) {
+              formData.append('files[]', file.raw);
+            }
+          });
 
           const response = await useFetchApi<BaseResponse<Catalogue>>('/catalogues-create', 'catalogue-create', 'post', formData);
           if(response.status.value == 'success'){
@@ -751,9 +1019,9 @@ import type { AddressType } from '~/types/address';
           description: null,
           berat: null,
           volume: null,
-          panjang: null,
-          lebar: null,
-          tinggi: null,
+          length: null,
+          width: null,
+          height: null,
           is_asset: null,
           tmp_asset: null,
           version: null,
@@ -763,16 +1031,21 @@ import type { AddressType } from '~/types/address';
           updated_at: null,
           file_catalogues: []
         }
-        const selected: Catalogue|null = await create_catalogue(catalogueInsert) ?? null;
 
-        if(selected != null){
-          ruleForm.pricetag_item[scope.$index].item_name = selected.name!;
-          ruleForm.pricetag_item[scope.$index].catalogue_id = selected.unique_id!;
-          ruleForm.pricetag_item[scope.$index].sn = selected.sn ?? 'Tidak Ada SN/PN';
-          ruleForm.pricetag_item[scope.$index].quantity = 1;
-        }else{
-          ElMessage.error(`Ops, Something wrong!!`);
-        }
+        tmpCatalogue.value = catalogueInsert;
+        itemActive.value = scope.$index;
+        drawerCatalogue.value = true;
+
+        // const selected: Catalogue|null = await create_catalogue(catalogueInsert) ?? null;
+
+        // if(selected != null){
+        //   ruleForm.pricetag_item[scope.$index].item_name = selected.name!;
+        //   ruleForm.pricetag_item[scope.$index].catalogue_id = selected.unique_id!;
+        //   ruleForm.pricetag_item[scope.$index].sn = selected.sn ?? 'Tidak Ada SN/PN';
+        //   ruleForm.pricetag_item[scope.$index].quantity = 1;
+        // }else{
+        //   ElMessage.error(`Ops, Something wrong!!`);
+        // }
       }else{
         const selected: ItemSearch = record as ItemSearch;
         ruleForm.pricetag_item[scope.$index].item_name = selected.catalogue_name!;
@@ -782,6 +1055,9 @@ import type { AddressType } from '~/types/address';
         ruleForm.pricetag_item[scope.$index].unit_id = selected.unit_id ?? '';
         ruleForm.pricetag_item[scope.$index].unit_name = selected.unit_name ?? '';
         ruleForm.pricetag_item[scope.$index].quantity = 1;
+        ruleForm.pricetag_item[scope.$index].catalogue_id = selected.catalogue_id;
+        ruleForm.pricetag_item[scope.$index].fileUploads = mapApiFilesView(selected.files ?? []);
+        ruleForm.pricetag_item[scope.$index].image = getFirstFileUrl(selected.files ?? []);
         // ruleForm.pricetag_item[scope.$index].catalogue = catalogue;
         ruleForm.pricetag_item[scope.$index].price = 0;
       }
@@ -878,6 +1154,13 @@ import type { AddressType } from '~/types/address';
         formData.append(`pricetag_item[${index}][unit_name]`, `${value.unit_name}`)
         formData.append(`pricetag_item[${index}][unit_version]`, `${value.unit_version}`)
         formData.append(`pricetag_item[${index}][quantity]`, `${value.quantity}`)
+
+        value.fileUploads.forEach(file => {
+          if(file.raw){
+            formData.append(`pricetag_item[${index}][files]`, file.raw as Blob)
+          }
+        });
+
       })
 
       
@@ -901,15 +1184,15 @@ import type { AddressType } from '~/types/address';
         ElMessage.success("Berhasil");
 
         
-        if(id.value){
-          fetchInitialData();
-        }else{
-          if(canvassing_id.value && pricetag){
-            window.location.href = `/sales/offer/${pricetag.unique_id}`;
-          }else{
-            window.location.href = `/sales/offer/${pricetag!.unique_id}`;
-          }
-        }
+        // if(id.value){
+        //   fetchInitialData();
+        // }else{
+        //   if(canvassing_id.value && pricetag){
+        //     window.location.href = `/sales/offer/${pricetag.unique_id}`;
+        //   }else{
+        //     window.location.href = `/sales/offer/${pricetag!.unique_id}`;
+        //   }
+        // }
       }
     } catch (error: any) {
       ElMessage.error(error.response?.data?.message ?? error);
@@ -1087,6 +1370,7 @@ import type { AddressType } from '~/types/address';
             checked: false,
             item_name: item.catalogue?.name ?? '',
             quantity: item.quantity,
+            fileUploads: [],
           }))
 
           contact_condition.value.push({

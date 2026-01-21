@@ -33,6 +33,29 @@
       @selection-change="handleSelectionChange"
     >
       <el-table-column type="selection" width="55" /> 
+      <el-table-column prop="image" label="Image" width="75">
+        <template #default="scope">
+          <div class="demo-image__preview flex items-center">
+            <ItemImageUpload
+                  v-if="((scope.row as Pricelist_item).files ?? []).length > 0 && getFirstFileUrl(((scope.row as Pricelist_item).files ?? [])) !== ''"
+                    v-model="scope.row.files"
+                    :image-url="getFirstFileUrl((scope.row as Pricelist_item).files ?? [])"
+                    :show-text="false"
+                    @open-modal="() => {
+                      fileList = mapAllAppFileToFileUri((scope.row as Pricelist_item).files || []);
+                      initialIndexImage = 0;
+                      previewImage = true;
+                    }"
+                  />
+                <div 
+                    v-else
+                    class="w-10 h-10 rounded border flex items-center justify-center text-gray-400 image-viewer-slot image-slot"
+                  >
+                    <el-icon><Picture /></el-icon>
+              </div>
+          </div>
+        </template>
+      </el-table-column>
       <el-table-column label="Vendor" width="180">
         <template #default="scope">
           <p>{{ scope.row.pricetag?.owner?.name ?? '-' }}</p>
@@ -50,22 +73,59 @@
           <p>{{ currency(scope.row.price) }}</p>
         </template>
       </el-table-column>
+      <el-table-column label="UOM" width="100" align="right">
+        <template #default="scope">
+          <p>{{ scope.row.unit?.name ?? '' }}</p>
+        </template>
+      </el-table-column>
     </el-table>
     
     <div class="flex justify-end mt-3">
       <el-pagination 
+        v-model:current-page="searchParams.offset"
+        v-model:page-size="searchParams.limit"
         background 
-        layout="prev, pager, next" 
+        layout="sizes, prev, pager, next" 
         :total="totalData" 
+        :size="size"
         @current-change="handlePagination"
+        @size-change="handleSizeChange"
+        :page-sizes="[10, 50, 100, 500]"
       />
     </div>
   </el-dialog>
+
+  <el-image-viewer
+    v-if="previewImage"
+    show-progress
+    :url-list="fileList"
+    @close="previewImage = false"
+  >
+    <template #viewer-error="{ activeIndex, src }">
+      <div class="image-slot viewer-error">
+        <el-icon><icon-picture /></el-icon>
+        <span>
+          this is viewer-error slot. current index: {{ activeIndex }}. src:
+          {{ src }}
+        </span>
+      </div>
+    </template>
+  </el-image-viewer>
 </template>
 
 <script setup lang="ts">
-import { Plus } from '@element-plus/icons-vue'
+import { getFirstFileUrl, mapAllAppFileToFileUri } from '#imports'
+import { Plus, Picture } from '@element-plus/icons-vue'
+import type { Pricelist_item } from '~/types/pricelist'
 import type { Pricetag_item } from '~/types/pricetag'
+import ItemImageUpload from '~/pages/sales/inquiry/components/ItemImageUpload.vue'
+import type { ComponentSize } from 'element-plus'
+
+
+const size = ref<ComponentSize>('default')
+const fileList = ref<string[]>([]);
+const initialIndexImage = ref<number>(0);
+const previewImage = ref<boolean>(false);
 
 interface Props {
   visible: boolean
@@ -74,6 +134,7 @@ interface Props {
   totalData: number
   selectedItems: any[]
   currentItemName: string
+  
 }
 
 interface Emits {
@@ -81,6 +142,7 @@ interface Emits {
   (e: 'select-items', items: any[]): void
   (e: 'create-new'): void
   (e: 'pagination-change', page: number): void
+  (e: 'pagination-size-change', page: number): void
 }
 
 const props = defineProps<Props>()
@@ -130,6 +192,10 @@ const handlePagination = (page: number) => {
   emit('pagination-change', page)
 }
 
+const handleSizeChange = (val: number) => {
+  emit('pagination-size-change', val);
+}
+
 // Currency formatter (salin dari komponen utama)
 const currency = (value: number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -137,4 +203,8 @@ const currency = (value: number) => {
     currency: 'IDR'
   }).format(value)
 }
+
+onMounted(() => {
+  console.log('prop', props);
+})
 </script>

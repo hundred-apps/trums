@@ -19,6 +19,8 @@ import type { BaseResponse } from "~/types/response";
 
 import CanvassingDetail from "./components/CanvassingDetail.vue";
 import type { Permission } from "~/types/menu";
+import type { ItemRequest } from "~/types/item_request";
+import type { AppFile } from "~/types/file";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -51,6 +53,19 @@ const fetchCanvassing = async () => {
     if (response.status.value == "success") {
       if (response.data.value?.data) {
         canvassingData.value = response.data.value!.data;
+
+        const item_request: ItemRequest[] = canvassingData.value.source?.item_request ?? [];
+
+        (canvassingData.value.canvassing_item ?? []).forEach(element => {
+          const appFile: AppFile[] = item_request.findLast((ireq) => ireq.catalogue_id === element.catalogue_id)?.files ?? [];
+          element.files = appFile;
+          element.image = getFirstFileUrl(appFile);
+        });
+
+
+        console.log('canvassing data', canvassingData.value);
+
+
         currentPrivilage.value = response.data.value!.privilege;
       }
     }

@@ -101,6 +101,7 @@ export type CanvassingItem = {
   type_item: "request" | "quotation" | "equivalent";
   equivalent_id: string | null;
   files?: AppFile[];
+  image?: string;
 };
 
 export type CanvassingVendor = {
@@ -232,6 +233,8 @@ export type CanvassingItemForm = {
   pricetag_item_version: number;
   contacts_fee: ReferenceTransactionAdjustment[];
   checked?: boolean;
+  has_different_unit?: boolean;
+  files?: UploadUserFile[]
 };
 
 export type CanvassingItemVendorSummery = {

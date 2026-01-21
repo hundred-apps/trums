@@ -43,6 +43,12 @@
           >
             Ajukan Approval
           </el-button>
+          <NuxtLink
+            class="el-button el-button--primary"
+            :href="`/sales/canvassing/add?id=${canvassingData?.unique_id}&type=copy`"
+          >
+            Salin Canvassing
+          </NuxtLink>
         </div>
       </template>
 
@@ -129,43 +135,26 @@
         :expand-row-keys="getExpandRowKeys ?? []"
         border
       >
-        <el-table-column prop="image" label="Image" width="75">
-          <template #default="{ row }">
-            <div class="demo-image__error items-center" flex gap-2>
-              <div class="demo-image__preview flex">
-                <el-image
-                  v-if="(row as CanvassingItemForm).image"
-                  style="width: 50px; height: 50px"
-                  :src="(row as CanvassingItemForm).image"
-                  :zoom-rate="1.2"
-                  :max-scale="7"
-                  :min-scale="0.2"
-                  show-progress
-                  :initial-index="0"
-                  fit="cover"
-                  @click="() => {
-  initialIndexImage = fileList.findIndex((value) => value === (row as CanvassingItemForm).image);
-
-  showPreviewImage = true;
-                  }"
-                />
-                <el-image v-else>
-                  <template #error>
-                    <div class="image-viewer-slot image-slot">
-                      <p style="font-size: 10px">No Image</p>
-                    </div>
-                  </template>
-                </el-image>
-              </div>
-            </div>
-          </template>
-        </el-table-column>
+        
         <el-table-column prop="item_name" label="Item" width="400" fixed="left">
           <template #default="{ row }">
             {{ row.catalogue_name }}
           </template>
         </el-table-column>
-
+        <el-table-column label="Image" width="75">
+          <template #default="scope">
+            <ItemImageUpload
+              v-model="scope.row.files"
+              :image-url="scope.row.image"
+              :show-text="false"
+              @open-modal="() => {
+                fileList = ((scope.row as CanvassingItemForm).files ?? []).map((data) => data.url ?? '');
+                initialIndexImage = 0;
+                showPreviewImage = true;
+              }"
+            />
+          </template>
+        </el-table-column>
         <el-table-column prop="type_item" label="Item Type" width="100">
           <template #default="{ row }">
             <div v-if="row.type === 'parent'">
@@ -231,24 +220,7 @@
       </el-table>
     </el-card>
 
-    <el-image-viewer
-      v-if="showPreviewImage"
-      show-progress
-      :url-list="fileList"
-      @close="showPreviewImage = false"
-      :initial-index="initialIndexImage"
-    >
-      <template #viewer-error="{ activeIndex, src }">
-        <div class="image-slot viewer-error">
-          <el-icon><icon-picture /></el-icon>
-          <span>
-            this is viewer-error slot. current index: {{ activeIndex }}. src:
-            {{ src }}
-          </span>
-        </div>
-      </template>
-    </el-image-viewer>
-
+    
     <el-dialog
       v-model="visibleApproveDialog"
       title="Approve Canvasing!"
@@ -266,25 +238,22 @@
         </div>
       </template>
     </el-dialog>
-    <el-dialog
-      v-model="showPreview"
-      title="Preview PDF"
-      width="80%"
-      destroy-on-close
+    <el-image-viewer
+      v-if="showPreviewImage"
+      show-progress
+      :url-list="fileList"
+      @close="showPreviewImage = false"
     >
-      <iframe
-        v-if="pdfUrl"
-        :src="pdfUrl"
-        width="100%"
-        height="600px"
-        style="border: none"
-      ></iframe>
-
-      <template #footer>
-        <el-button @click="showPreview = false">Tutup</el-button>
-        <el-button type="success" @click="() => {}">Download PDF</el-button>
+      <template #viewer-error="{ activeIndex, src }">
+        <div class="image-slot viewer-error">
+          <el-icon><icon-picture /></el-icon>
+          <span>
+            this is viewer-error slot. current index: {{ activeIndex }}. src:
+            {{ src }}
+          </span>
+        </div>
       </template>
-    </el-dialog>
+    </el-image-viewer>
     <FeeDrawer
       v-model="drawerFeeVisible"
       :item="selectedItemDrawer"
@@ -317,7 +286,7 @@ import type {
 } from "~/types/scm/canvasing";
 import type { BaseResponse } from "~/types/response";
 import type { ItemRequest, ItemRequestTrail } from "~/types/item_request";
-import type { ElTable, FormProps } from "element-plus";
+import type { ElTable, FormProps, UploadUserFile } from "element-plus";
 import {
   FeeType,
   PartyType,
@@ -337,8 +306,9 @@ import {
 } from "~/types/pricetag";
 import FeeDrawer from "~/components/trums/FeeDrawer.vue";
 import type { AppFile } from "~/types/file";
-import { currency, formatLocalDate } from "#imports";
+import { currency, formatLocalDate, getFirstFileUrl } from "#imports";
 import type { Permission } from "~/types/menu";
+import ItemImageUpload from "../../inquiry/components/ItemImageUpload.vue";
 
 
 const config = useRuntimeConfig();
@@ -1511,7 +1481,6 @@ const updateStatus = async (status: CanvassingStatus) => {
     loading.value = false;
   }
 };
-
 const createQuotationPrice = async (data: any) => {
   loading.value = true;
   try {
@@ -1728,8 +1697,10 @@ const initialCanvassing = (data: Canvassing) => {
             fileList.value.push(element);
             });
 
+        console.log('item canvassing', element);    
+
         item_canvassing.value.push({
-            image: getFile(element.files ?? []),
+            
             index: `${element.unique_id}`,
             canvassing_id: element.canvassing_id,
             canvaasing_version: element.canvaasing_version,
@@ -1758,50 +1729,50 @@ const initialCanvassing = (data: Canvassing) => {
             type_item: element.type_item,
             equivalent_id: element.equivalent_id,
             children: element.canvassing_vendor.map((child) => ({
-            type_item: child.type_item,
-            image: getFile(child.files ?? []),
-            equivalent_id: child.equivalent_id,
-            index: `${child.unique_id}`,
-            canvassing_id: null,
-            canvaasing_version: null,
-            item_request_trail_version: null,
-            item_request_trail_id: null,
-            unique_id: child.unique_id,
-            vendor_id: child.vendor_id ?? "",
-            vendor_name: child.vendor?.name ?? "",
-            unit_id: child.unit_id,
-            unit_name: child.unit_name,
-            unit_version: null,
-            offer_item_id: null,
-            offer_item_version: 0,
-            catalogue_id: child.catalogue_id ?? "",
-            parent_catalogue_id: child.catalogue_id,
-            catalogue_name: child.catalogue?.name ?? "",
-            sn: child.catalogue?.sn ?? "",
-            quantity: child.quantity,
-            unit_price: child.unit_price,
-            total_price: child.total_price,
-            status: child.status,
-            checked:
-                child.status == CanvassingVendorStatus.SELECTED
-                ? true
-                : false,
-            taxes: [],
-            editing: null,
-            type: "child",
-            children: [],
-            selling_price: child.selling_price ?? 0,
-            profit: child.profit,
-            profit_unit: child.profit_unit,
-            fee: child.fee,
-            fee_unit: child.fee_unit,
-            ongkir: child.ongkir,
-            ongkir_unit: child.ongkir_unit,
-            pricetag_item_id: child.pricetag_item_id ?? "",
-            pricetag_item_version: child.pricetag_item_version ?? 0,
-            contacts_fee: (child.reference_transaction ?? []).filter(
-                (value) => value.party_type == PartyType.CONTACT
-            ),
+              type_item: child.type_item,
+              image: getFirstFileUrl(child.files ?? []),
+              equivalent_id: child.equivalent_id,
+              index: `${child.unique_id}`,
+              canvassing_id: null,
+              canvaasing_version: null,
+              item_request_trail_version: null,
+              item_request_trail_id: null,
+              unique_id: child.unique_id,
+              vendor_id: child.vendor_id ?? "",
+              vendor_name: child.vendor?.name ?? "",
+              unit_id: child.unit_id,
+              unit_name: child.unit_name,
+              unit_version: null,
+              offer_item_id: null,
+              offer_item_version: 0,
+              catalogue_id: child.catalogue_id ?? "",
+              parent_catalogue_id: child.catalogue_id,
+              catalogue_name: child.catalogue?.name ?? "",
+              sn: child.catalogue?.sn ?? "",
+              quantity: child.quantity,
+              unit_price: child.unit_price,
+              total_price: child.total_price,
+              status: child.status,
+              checked:
+                  child.status == CanvassingVendorStatus.SELECTED
+                  ? true
+                  : false,
+              taxes: [],
+              editing: null,
+              type: "child",
+              children: [],
+              selling_price: child.selling_price ?? 0,
+              profit: child.profit,
+              profit_unit: child.profit_unit,
+              fee: child.fee,
+              fee_unit: child.fee_unit,
+              ongkir: child.ongkir,
+              ongkir_unit: child.ongkir_unit,
+              pricetag_item_id: child.pricetag_item_id ?? "",
+              pricetag_item_version: child.pricetag_item_version ?? 0,
+              contacts_fee: (child.reference_transaction ?? []).filter(
+                  (value) => value.party_type == PartyType.CONTACT
+              ),
             })),
             selling_price: element.unit_selling_price,
             profit: 0,
@@ -1813,6 +1784,8 @@ const initialCanvassing = (data: Canvassing) => {
             pricetag_item_id: "",
             pricetag_item_version: 0,
             contacts_fee: [],
+            files: mapApiFilesView(element.files ?? []),
+            image: mapApiFilesView(element.files ?? []).length > 0 ? mapApiFilesView(element.files ?? [])[0].url : '',
         });
         }
     });

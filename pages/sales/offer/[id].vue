@@ -62,8 +62,11 @@ const request_search_pricelist_item = ref<RequestSearch>({
   },
 });
 
+
 const id = ref<string>((router.currentRoute.value.params.id as string) ?? '')
 const {data, pending} = await useFetchApi<BaseResponse<Pricetag>>(`/pricetag-read/${id.value}`, 'pricetag-detail', 'get', null);
+
+  
 
 const pricelist_item_new = ref<Pricelist_item[]>([]);  
 
@@ -72,42 +75,7 @@ const size = ref<ComponentSize>('default')
 const pdfBlob = ref<Blob | null>(null);
 
 
-const addNewLine = () => {
-    
-    // data.value!.data.pricetag_item = [...data.value!.data.pricetag_item, {
-    //     catalogue: {
-    //         id: null,
-    //         unique_id: null,
-    //         unique_code: null,
-    //         name: '',
-    //         brand_id: null,
-    //         brand_name: null,
-    //         year: null,
-    //         sn: null,
-    //         description: null,
-    //         berat: null,
-    //         volume: null,
-    //         panjang: null,
-    //         lebar: null,
-    //         tinggi: null,
-    //         is_asset: null,
-    //         tmp_asset: null,
-    //         version: null,
-    //         type: 'item',
-    //         created_at: null,
-    //         created_by: null,
-    //         updated_at: null,
-    //         file_catalogues: []
-    //     },
-    //     catalogue_id: '',
-    //     inventory: null,
-    //     inventory_id: '',
-    //     price: 0,
-    //     tag_id: data.value!.data.unique_id,
-    //     unique_id: '',
-    // }]
-}
-
+  
 const getContactPricetag = computed(() => {
     return (data.value?.data?.pricetag_condition ?? []).filter((value) => value.variable_pricetag!.name == VariablePriceTag.KONTAK);
 })

@@ -54,7 +54,30 @@
             
           </el-row>
           
-          <el-table :data="dataInterface?.data?.pricetag_item" size="small" border>
+          <el-table :data="items.data ?? []" size="small" border>
+              <el-table-column prop="image" label="Image" width="75">
+                <template #default="scope">
+                  <div class="demo-image__preview flex items-center">
+                    <ItemImageUpload
+                          v-if="((scope.row as Pricetag_item).files ?? []).length > 0 && getFirstFileUrl(((scope.row as Pricetag_item).files ?? [])) !== ''"
+                            v-model="scope.row.files"
+                            :image-url="getFirstFileUrl((scope.row as Pricetag_item).files ?? [])"
+                            :show-text="false"
+                            @open-modal="() => {
+                              fileList = mapAllAppFileToFileUri((scope.row as Pricetag_item).files || []);
+                              initialIndexImage = 0;
+                              previewImage = true;
+                            }"
+                          />
+                        <div 
+                            v-else
+                            class="w-10 h-10 rounded border flex items-center justify-center text-gray-400 image-viewer-slot image-slot"
+                          >
+                            <el-icon><Picture /></el-icon>
+                      </div>
+                  </div>
+                </template>
+              </el-table-column>
               <el-table-column prop="name" label="item" width="300">
                   <template #default="scope">
                       {{ scope.row.catalogue.name }}
@@ -69,6 +92,18 @@
                   </template>
               </el-table-column>
           </el-table>
+          <div class="flex justify-end">
+            <el-pagination
+              class="my-3"
+              v-model:page-size="limit"
+              :page-sizes="[10, 20, 30, 40]"
+              background
+              layout="total, sizes, prev, pager, next"
+              :total="items.total_data"
+              @current-change="handlePageChange"
+              @size-change="handleSizeChange"
+            />
+          </div>
           <!-- <el-button class="mt-4" style="width: 100%" @click="addNewLine">
               Tambahkan Item
           </el-button> -->
@@ -95,11 +130,28 @@
             <el-button type="success" @click="downloadPdf">Download PDF</el-button>
           </template>
         </el-dialog>
+
+        <el-image-viewer
+          v-if="previewImage"
+          show-progress
+          :url-list="fileList"
+          @close="previewImage = false"
+        >
+          <template #viewer-error="{ activeIndex, src }">
+            <div class="image-slot viewer-error">
+              <el-icon><icon-picture /></el-icon>
+              <span>
+                this is viewer-error slot. current index: {{ activeIndex }}. src:
+                {{ src }}
+              </span>
+            </div>
+          </template>
+        </el-image-viewer>
 </template>
 
 <script lang="tsx" setup>
 import { TrumsWrapper } from '#components';
-import { Edit } from '@element-plus/icons-vue';
+import { Edit, Picture } from '@element-plus/icons-vue';
 import type { ComponentSize } from 'element-plus';
 import jsPDF from 'jspdf';
 import autoTable, { type CellDef, type CellInput, type RowInput } from 'jspdf-autotable';
@@ -111,8 +163,8 @@ import { OrderColumn, type RequestSearch } from '~/types/request_search';
 import type { BaseResponse, DataInterface } from '~/types/response';
 import type { ResponsePagination } from '~/types/response_pagination';
 import { PaymentTerm, paymentTermView, type Canvassing } from '~/types/scm/canvasing';
-import { formatLocalDate, currency, canAccess } from '#imports';
-
+import { formatLocalDate, currency, canAccess, getFirstFileUrl, mapAllAppFileToFileUri } from '#imports';
+import ItemImageUpload from '../../inquiry/components/ItemImageUpload.vue';
 
 const router = useRouter();
 const loading = ref<boolean>(false);    
@@ -126,17 +178,33 @@ const pdfUrl = ref<string | null>(null);
 const typeSummery = ref<"satuan"|"total">("satuan");
 const modalSelectContact = ref<boolean>(false);
 
+const fileList = ref<string[]>([]);
+const initialIndexImage = ref<number>(0);
+const previewImage = ref<boolean>(false);
+const items = ref<ResponsePagination<Pricetag_item[]>>({
+  currentPage: 0,
+  data: [],
+  success: false,
+  total_data: 0,
+  total_page: 0,
+  message: "failed",
+  privilege: [],
+});
+const itemLoad = ref<boolean>(true);
+
 const request_search_pricelist_item = ref<RequestSearch>({
   keyword: "",
   column: [],
   limit: "10",
   offset: "1",
-  table: "pricelist",
+  table: "pricetag_item",
   sort: {
     column: "created_at",
     order: OrderColumn.ASC,
   },
 });
+
+const limit = ref<number>(10);
 
 const props = defineProps<{
     dataInterface: DataInterface<Pricetag>
@@ -148,42 +216,16 @@ const size = ref<ComponentSize>('default')
 
 const pdfBlob = ref<Blob | null>(null);
 
-
-const addNewLine = () => {
-    
-    // data.value!.data.pricetag_item = [...data.value!.data.pricetag_item, {
-    //     catalogue: {
-    //         id: null,
-    //         unique_id: null,
-    //         unique_code: null,
-    //         name: '',
-    //         brand_id: null,
-    //         brand_name: null,
-    //         year: null,
-    //         sn: null,
-    //         description: null,
-    //         berat: null,
-    //         volume: null,
-    //         panjang: null,
-    //         lebar: null,
-    //         tinggi: null,
-    //         is_asset: null,
-    //         tmp_asset: null,
-    //         version: null,
-    //         type: 'item',
-    //         created_at: null,
-    //         created_by: null,
-    //         updated_at: null,
-    //         file_catalogues: []
-    //     },
-    //     catalogue_id: '',
-    //     inventory: null,
-    //     inventory_id: '',
-    //     price: 0,
-    //     tag_id: data.value!.data.unique_id,
-    //     unique_id: '',
-    // }]
+const handlePageChange = (page: number) => {
+  request_search_pricelist_item.value.offset = `${page}`
 }
+
+const handleSizeChange = (size: number) => {
+  request_search_pricelist_item.value.limit = `${size}`
+  limit.value = size;
+}
+
+
 
 
 function handleSelectContact(row: Pricetag_condition) {
@@ -415,5 +457,42 @@ const querySearchAsyncInventories = (queryString: string, cb: (arg: any) => void
 }
 
 
+const fetchItem = async () => {
+  try {
+    
+    const response = await useApiFetch<ResponsePagination<Pricetag_item[]>>('/search', {
+      method: "POST",
+      body: request_search_pricelist_item.value,
+    })
+
+    if(response.success){
+      items.value = response;
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error)
+  } finally {
+    itemLoad.value = false;
+  }
+}
+
+onMounted(() => {
+  if(props.dataInterface.data?.unique_id){
+    
+    request_search_pricelist_item.value.column = [
+      {
+        tag_id: [props.dataInterface.data?.unique_id]
+      }
+    ];
+    fetchItem();
+  }
+})
+
+watch(request_search_pricelist_item.value, fetchItem, { immediate: true });
 
 </script>
+
+<style scoped>
+:deep(.image-viewer-slot) {
+  height: 30px !important;
+}
+</style>

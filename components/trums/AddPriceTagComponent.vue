@@ -113,6 +113,16 @@
         </el-row>
 
         <el-table :data="ruleForm.pricetag_item">
+          <el-table-column prop="fileUploads" label="image" width="75">
+            <template #default="scope">
+              <ItemImageUpload
+                v-model="scope.row.fileUploads"
+                :image-url="scope.row.image"
+                :show-text="false"
+                @open-modal="() => openImageModal(scope.$index, scope.row)"
+              />
+            </template>
+          </el-table-column>
           <el-table-column prop="item_name" label="item" class="my-0">
             <template #default="scope">
               <el-autocomplete
@@ -216,6 +226,58 @@
         </el-button>
       </el-card>
     </div>
+
+    <el-dialog
+      v-model="showImageModal"
+      :title="`Upload Gambar untuk Item ${activeItemIndex + 1}`"
+      width="900px"
+      :close-on-click-modal="false"
+      @close="handleImageModalClose"
+    >
+      <div class="image-upload-modal">
+        <!-- Photo Wall Upload -->
+        <PhotoWallUploads
+          ref="photoWallRef"
+          v-model="modalImageFiles"
+          :action="uploadAction"
+          :multiple="true"
+          :limit="10"
+          :max-size="5"
+          accept="image/*"
+          @change="handleModalImagesChange"
+          @remove="handleRemoveImageList"
+        />
+        
+        <!-- Preview Section -->
+        <div v-if="modalImageFiles.length > 0" class="preview-section">
+          
+          
+        </div>
+        
+        <!-- Empty State -->
+        <div v-else class="empty-state-modal">
+          <el-empty description="Belum ada gambar" :image-size="100">
+            <template #description>
+              <p>Upload gambar untuk item ini</p>
+              <p class="hint">Gambar pertama akan ditampilkan di tabel</p>
+            </template>
+          </el-empty>
+        </div>
+      </div>
+      
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="cancelImageUpload">Batal</el-button>
+          <el-button 
+            type="primary" 
+            @click="saveItemImages"
+            :disabled="modalImageFiles.length === 0"
+          >
+            Simpan ({{ modalImageFiles.length }} gambar)
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </TrumsWrapper>
 </template>
 <script lang="tsx" setup>
@@ -259,9 +321,14 @@ import type { Pagination } from "~/types/pagination";
 import type { Canvassing } from "~/types/scm/canvasing";
 import TrumsUploadFile from "~/components/trums/form/TrumsUploadFile.vue";
 import type { AddressType } from "~/types/address";
+import PhotoWallUploads from "./PhotoWallUploads.vue";
 definePageMeta({
   middleware: ["auth", "app"],
 });
+
+
+const config = useRuntimeConfig();
+const baseImageURL = config.public.baseImageURL;
 
 const props = defineProps<{
   onSubmit: () => void;
@@ -270,6 +337,13 @@ const props = defineProps<{
 const loading = ref<boolean>(false);
 const router = useRouter();
 const api = useApi();
+
+const showImageModal = ref(false)
+const activeItemIndex = ref(-1)
+const activeItemData = ref<Pricetag_item | null>(null)
+const modalImageFiles = ref<UploadUserFile[]>([])
+const photoWallRef = ref<InstanceType<typeof PhotoWallUploads>>()
+const uploadAction = computed(() => `${config.public.apiBaseURL}/upload-item-image`)
 
 const goBack = () => router.back();
 const popoverRef = ref();
@@ -309,9 +383,9 @@ const ruleForm = reactive<Pricetag>({
         description: null,
         berat: null,
         volume: null,
-        panjang: null,
-        lebar: null,
-        tinggi: null,
+        length: null,
+        width: null,
+        height: null,
         is_asset: null,
         tmp_asset: null,
         version: null,
@@ -333,6 +407,7 @@ const ruleForm = reactive<Pricetag>({
       unit_version: 0,
       checked: false,
       quantity: 1,
+      fileUploads: []
     },
   ],
 
@@ -348,9 +423,9 @@ const ruleForm = reactive<Pricetag>({
     description: null,
     berat: null,
     volume: null,
-    panjang: null,
-    lebar: null,
-    tinggi: null,
+    length: null,
+    width: null,
+    height: null,
     is_asset: null,
     tmp_asset: null,
     version: null,
@@ -479,6 +554,96 @@ const rules = reactive<FormRules>({
     trigger: "change",
   },
 });
+
+const openImageModal = (index: number, itemData: Pricetag_item) => {
+  activeItemIndex.value = index
+  activeItemData.value = itemData
+  
+  // Reset photoWallRef jika perlu (clear selection)
+  if (photoWallRef.value) {
+    photoWallRef.value.clearFiles?.()
+  }
+  
+  // Load files dengan memastikan URL valid
+  modalImageFiles.value = (itemData.fileUploads || []).map(file => {
+    // Clone file object
+    const fileCopy = { ...file }
+    
+    // Jika file punya raw tapi URL invalid/expired, buat URL baru
+    if (fileCopy.raw && (!fileCopy.url || !isValidUrl(fileCopy.url))) {
+      fileCopy.url = URL.createObjectURL(fileCopy.raw)
+    }
+    
+    return fileCopy
+  })
+
+  console.log('modal file ', modalImageFiles.value);
+  
+  showImageModal.value = true
+}
+
+const saveItemImages = () => {
+  if (activeItemIndex.value >= 0) {
+    // Update dataTable dengan files baru
+    ruleForm.pricetag_item[activeItemIndex.value].fileUploads = [...modalImageFiles.value]
+    
+    // Set image URL untuk preview di tabel (mengambil gambar pertama)
+    if (modalImageFiles.value.length > 0) {
+      const firstFile = modalImageFiles.value[0]
+      if (firstFile.url) {
+        ruleForm.pricetag_item[activeItemIndex.value].image = firstFile.url
+      } else if (firstFile.raw) {
+        ruleForm.pricetag_item[activeItemIndex.value].image = URL.createObjectURL(firstFile.raw)
+      }
+    } else {
+      ruleForm.pricetag_item[activeItemIndex.value].image = ''
+    }
+    
+    ElMessage.success(`Gambar untuk item ${activeItemIndex.value + 1} disimpan`)
+  }
+  
+  showImageModal.value = false
+}
+
+const cancelImageUpload = () => {
+  showImageModal.value = false
+}
+
+const handleRemoveImageList = async (file: UploadUserFile, files: UploadUserFile[]) => {
+  if(file.raw){
+    console.log('file baru upload');
+  }else{
+    console.log('file lama', file.uid);
+    try {
+      const response = await useApiFetch<BaseResponse<any>>('/file-delete', {
+        method: 'POST',
+        body: [file.uid]
+      })
+
+      if(response.success){
+        ElMessage.success(`Image Berhasil Di Hapus!`);
+      }
+    } catch (error: any) {
+      ElMessage.error(`${error?.response?.message ?? error}`);
+    }
+  }
+}
+
+const handleModalImagesChange = (files: UploadUserFile[]) => {
+  modalImageFiles.value = files
+}
+
+const handleImageModalClose = () => {
+  // Optional: Clear temporary blob URLs
+  modalImageFiles.value.forEach(file => {
+    if (file.url?.startsWith('blob:')) {
+      URL.revokeObjectURL(file.url)
+    }
+  })
+  modalImageFiles.value = []
+  activeItemIndex.value = -1
+  activeItemData.value = null
+}
 
 const querySearchLocation = (queryString: string, cb: (arg: any) => void) => {
   requestSearchLocation.value.keyword = queryString;
@@ -666,62 +831,62 @@ const handleSelectLocation = (item: Record<string, any>) => {
 };
 
 const addNewLine = () => {
-  const newItem: {
-    unique_id: string | null;
-    tag_id: string | null;
-    catalogue_id: string;
-    catalogue: Catalogue | null;
-    inventory_id: string;
-    inventory: Inventory | null;
-    price: number;
-    is_new?: boolean;
-    unit_id: string | null;
-    unit_name: string | null;
-    unit_version: number | null;
-    quantity: number;
-  }[] = [
-    ...ruleForm.pricetag_item,
-    {
-      catalogue: {
-        id: null,
+    const newItem: {
+      unique_id: string|null,
+      tag_id: string|null,
+      catalogue_id: string|null,
+      catalogue: Catalogue | null,
+      inventory_id: string,
+      inventory: Inventory|null,
+      price: number,
+      is_new?: boolean,
+      unit_id: string|null,
+      unit_name: string|null,
+      unit_version: number|null,
+      quantity: number,
+      fileUploads: UploadUserFile[]
+    }[] = [...ruleForm.pricetag_item, {
+        catalogue: {
+          id: null,
+          unique_id: null,
+          unique_code: null,
+          name: '',
+          brand_id: null,
+          brand_name: null,
+          year: null,
+          sn: null,
+          description: null,
+          berat: null,
+          volume: null,
+          length: null,
+          width: null,
+          height: null,
+          is_asset: null,
+          tmp_asset: null,
+          version: null,
+          type: '',
+          created_at: null,
+          created_by: null,
+          updated_at: null,
+          file_catalogues: []
+        },
         unique_id: null,
-        unique_code: null,
-        name: "",
-        brand_id: null,
-        brand_name: null,
-        year: null,
-        sn: null,
-        description: null,
-        berat: null,
-        volume: null,
-        panjang: null,
-        lebar: null,
-        tinggi: null,
-        is_asset: null,
-        tmp_asset: null,
-        version: null,
-        type: "",
-        created_at: null,
-        created_by: null,
-        updated_at: null,
-        file_catalogues: [],
-      },
-      unique_id: null,
-      tag_id: null,
-      catalogue_id: "",
-      inventory_id: "",
-      inventory: null,
-      price: 0,
-      is_new: true,
-      unit_id: "",
-      unit_name: "",
-      unit_version: 0,
-      quantity: 1,
-    },
-  ];
+        tag_id: null,
+        catalogue_id: '',
+        inventory_id: '',
+        inventory: null,
+        price: 0,
+        is_new: true,
+        unit_id: '',
+        unit_name: '',
+        unit_version: 0,
+        quantity: 1,
+        fileUploads: [],
+    }];
 
-  ruleForm.pricetag_item = newItem;
-};
+    ruleForm.pricetag_item = newItem;
+
+}
 
 type SelectionCellProps = {
   value: boolean;
@@ -803,7 +968,7 @@ const create_catalogue = async (catalogue: Catalogue) => {
     formData.append("berat", (catalogue.berat ?? 0).toString());
     formData.append(
       "volume",
-      `${catalogue.panjang}x${catalogue.lebar}x${catalogue.tinggi}`
+      `${catalogue.length}x${catalogue.width}x${catalogue.height}`
     );
     formData.append(
       "is_asset",
@@ -845,9 +1010,9 @@ const onHandleSelectItemAutocomplete = async (
       description: null,
       berat: null,
       volume: null,
-      panjang: null,
-      lebar: null,
-      tinggi: null,
+      length: null,
+      width: null,
+      height: null,
       is_asset: null,
       tmp_asset: null,
       version: null,
@@ -995,6 +1160,11 @@ const onSubmit = async (formEl: FormInstance) => {
         `${value.unit_version}`
       );
       formData.append(`pricetag_item[${index}][quantity]`, `${value.quantity}`);
+      value.fileUploads.forEach(file => {
+        if(file.raw){
+          formData.append(`pricetag_item[${index}][files]`, file.raw as Blob)
+        }
+      });
     });
 
     fileList.value.forEach((file, index) => {
@@ -1159,6 +1329,7 @@ const fetchCanvassing = async () => {
           checked: false,
           item_name: item.catalogue?.name ?? "",
           quantity: item.quantity,
+          fileUploads: [],
         }));
 
         contact_condition.value.push({

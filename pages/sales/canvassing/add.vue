@@ -118,6 +118,7 @@
         :tree-props="{ children: 'children' }"
         :loading="loading"
         :expand-row-keys="getExpandRowKeys ?? []"
+        :row-class-name="tableRowClassName"
         border
       >
         <el-table-column
@@ -146,27 +147,13 @@
         </el-table-column>
 
         <el-table-column label="Image" fixed="left" width="100">
-          <template #default="{ row }">
-            <el-upload
-              class="avatar-uploader"
-              action="#"
-              :show-file-list="false"
-              :limit="1"
-              :on-success="
-                (res, upl) =>
-                  handleAvatarSuccess(
-                    res,
-                    upl,
-                    row.type == 'parent',
-                    row.parent_index,
-                    row.index
-                  )
-              "
-              :before-upload="beforeAvatarUpload"
-            >
-              <img v-if="row.image" :src="row.image" class="avatar" />
-              <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
-            </el-upload>
+          <template #default="scope">
+            <ItemImageUpload
+              v-model="scope.row.files"
+              :image-url="scope.row.image"
+              :show-text="false"
+              @open-modal="() => openImageModal(scope.$index, scope.row)"
+            />
           </template>
         </el-table-column>
 
@@ -216,18 +203,38 @@
                       <el-icon><Plus /></el-icon>
                       <span class="ml-2">Tambahkan "{{ item.value }}"</span>
                     </div>
-                    <div v-else>
-                      <div class="flex justify-between items-center">
-                        <p style="line-height: 15px" class="font-bold">
-                          {{ item.catalogue?.name }}
+                    <div v-else class="flex items-center gap-2">
+                      <div class="flex-shrink-0 mt-1">
+                          <div 
+                            v-if="item.files && item.files.length > 0"
+                            class="w-10 h-10 rounded overflow-hidden border"
+                          >
+                            <img 
+                              :src="getFirstFileUrl(item.files)"
+                              :alt="item.catalogue_name"
+                              class="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div 
+                            v-else
+                            class="w-10 h-10 rounded border flex items-center justify-center text-gray-400"
+                          >
+                            <el-icon><Picture /></el-icon>
+                          </div>
+                        </div>
+                      <div class="flex flex-col ">
+                        <div class="flex justify-between items-center">
+                          <p style="line-height: 15px" class="font-bold">
+                            {{ item.catalogue?.name }}
+                          </p>
+                          <p class="font-bold">Harga: {{ item.price }}</p>
+                        </div>
+                        <p>
+                          PN/SN: {{ item.catalogue?.sn ?? "Tidak Ada" }} | Vendor:
+                          {{ item.pricetag?.owner?.name ?? "Tidak Ada" }} | Tgl:
+                          {{ formatLocalDate(item.pricetag.end_date) }}
                         </p>
-                        <p class="font-bold">Harga: {{ item.price }}</p>
                       </div>
-                      <p>
-                        PN/SN: {{ item.catalogue?.sn ?? "Tidak Ada" }} | Vendor:
-                        {{ item.pricetag?.owner?.name ?? "Tidak Ada" }} | Tgl:
-                        {{ formatLocalDate(item.pricetag.end_date) }}
-                      </p>
                     </div>
                   </template>
                   <template #prepend>
@@ -372,6 +379,7 @@
       :data="priceTagItem.data?.value?.data ?? []"
       :total-data="priceTagItem.data.value?.total_data ?? 0"
       :selected-items="itemChecked"
+      
       @select-items="addToOfferVendor"
       @create-new="
         () => {
@@ -380,6 +388,7 @@
         }
       "
       @pagination-change="paginationClickPriceTag"
+      @pagination-size-change="paginationSizeChange"
       :current-item-name="
         item_canvassing.find((value) => value.index == itemIndex)
           ?.catalogue_name ?? ''
@@ -418,6 +427,58 @@
       :adjustment="adjustmentContact!"
       @save="handleSaveFee"
     />
+
+    <el-dialog
+      v-model="showImageModal"
+      :title="`Upload Gambar untuk Item ${activeItemIndex + 1}`"
+      width="900px"
+      :close-on-click-modal="false"
+      @close="handleImageModalClose"
+    >
+      <div class="image-upload-modal">
+        <!-- Photo Wall Upload -->
+        <PhotoWallUploads
+          ref="photoWallRef"
+          v-model="modalImageFiles"
+          :action="uploadAction"
+          :multiple="true"
+          :limit="10"
+          :max-size="5"
+          accept="image/*"
+          @change="handleModalImagesChange"
+          @remove="handleRemoveImageList"
+        />
+        
+        <!-- Preview Section -->
+        <div v-if="modalImageFiles.length > 0" class="preview-section">
+          
+          
+        </div>
+        
+        <!-- Empty State -->
+        <div v-else class="empty-state-modal">
+          <el-empty description="Belum ada gambar" :image-size="100">
+            <template #description>
+              <p>Upload gambar untuk item ini</p>
+              <p class="hint">Gambar pertama akan ditampilkan di tabel</p>
+            </template>
+          </el-empty>
+        </div>
+      </div>
+      
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="cancelImageUpload">Batal</el-button>
+          <el-button 
+            type="primary" 
+            @click="saveItemImages"
+            :disabled="modalImageFiles.length === 0"
+          >
+            Simpan ({{ modalImageFiles.length }} gambar)
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </TrumsWrapper>
 </template>
 
@@ -429,6 +490,7 @@ import {
   ArrowRight,
   Operation,
   Search,
+  Picture
 } from "@element-plus/icons-vue";
 import {
   ElButton,
@@ -441,6 +503,7 @@ import {
   type UploadUserFile,
   type UploadProps,
   type UploadFile,
+  type UploadStatus,
 } from "element-plus";
 import {
   CanvassingStatus,
@@ -482,10 +545,12 @@ import type { Pagination } from "~/types/pagination";
 import type { Catalogue } from "~/types/catalogue";
 import type { Unit } from "~/types/unit";
 import type { AddressType } from "~/types/address";
-import { currency, formatLocalDate } from "#imports";
+import { currency, formatLocalDate, getFirstFileUrl } from "#imports";
 import type { ItemRequest } from "~/types/item_request";
 import { urlToFile } from "#imports";
 import type { AppFile } from "~/types/file";
+import ItemImageUpload from "../inquiry/components/ItemImageUpload.vue";
+import PhotoWallUploads from "~/components/trums/PhotoWallUploads.vue";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -510,6 +575,15 @@ const visibleModalPricetagNewItem = ref(false);
 const visibleModalNewAdjustment = ref(false);
 const visibleModalContact = ref(false);
 const drawerFeeVisible = ref(false);
+
+// image
+const showImageModal = ref(false)
+const activeItemIndex = ref(-1)
+const activeItemParentIndex = ref(-1);
+const activeItemData = ref<CanvassingItemForm | null>(null)
+const modalImageFiles = ref<UploadUserFile[]>([])
+const photoWallRef = ref<InstanceType<typeof PhotoWallUploads>>()
+const uploadAction = computed(() => `${config.public.apiBaseURL}/upload-item-image`)
 
 // Index References
 const itemStartIndex = ref<string>("");
@@ -554,6 +628,8 @@ const ongkirState = ref<string>("minus");
 const unitFee = ref<FeeType>(FeeType.PERCENT);
 
 const item_canvassing = ref<CanvassingItemForm[]>([]);
+
+const hasInquirySelected = computed(() => !!ruleForm.inquiry);
 
 // Search Parameters
 const request_search_inquiry = ref<RequestSearch>({
@@ -660,51 +736,145 @@ const adjustmentTransactionFeeTotal = computed(() => {
   };
 });
 
-const handleAvatarSuccess = (
-  response: any,
-  uploadFile: UploadFile,
-  isParent: boolean,
-  parentIndex: string,
-  index: string
-) => {
-  console.log("is parent", parentIndex);
-  if (isParent) {
-    const getIndex = item_canvassing.value.findIndex(
-      (find) => find.index === index
-    );
-    item_canvassing.value[getIndex].image = URL.createObjectURL(
-      uploadFile.raw!
-    );
-    item_canvassing.value[getIndex].imageFile = uploadFile;
-  } else {
-    const getParentIndex = item_canvassing.value.findIndex(
-      (find) => find.index === parentIndex
-    );
+const openImageModal = (index: number, itemData: CanvassingItemForm) => {
+  console.log('item data', itemData);
+  activeItemData.value = itemData;
 
-    console.log("parent index", getParentIndex);
 
-    const getChildIndex = item_canvassing.value[
-      getParentIndex
-    ].children.findIndex((child) => child.index === index);
-    item_canvassing.value[getParentIndex].children[getChildIndex].image =
-      URL.createObjectURL(uploadFile.raw!);
-    item_canvassing.value[getParentIndex].children[getChildIndex].imageFile =
-      uploadFile;
+  if(itemData.type == "child"){
+    activeItemParentIndex.value = parseInt(itemData.parent_index ?? '-1');
+    console.log()
+    const childIndex = item_canvassing.value[activeItemParentIndex.value].children.findIndex((child) => child.index === itemData.index);
+    activeItemIndex.value = childIndex
+  }else{
+    activeItemIndex.value = index
+    
   }
-  // imageUrl.value = URL.createObjectURL(uploadFile.raw!)
-};
+  
+  // Reset photoWallRef jika perlu (clear selection)
+  if (photoWallRef.value) {
+    photoWallRef.value.clearFiles?.()
+  }
+  
+  // Load files dengan memastikan URL valid
+  modalImageFiles.value = (itemData.files || []).map(file => {
+    // Clone file object
+    const fileCopy = { ...file }
+    
+    // Jika file punya raw tapi URL invalid/expired, buat URL baru
+    if (fileCopy.raw && (!fileCopy.url || !isValidUrl(fileCopy.url))) {
+      fileCopy.url = URL.createObjectURL(fileCopy.raw)
+    }
+    
+    return fileCopy
+  })
 
-const beforeAvatarUpload: UploadProps["beforeUpload"] = (rawFile) => {
-  console.log("row file", rawFile);
-  if (rawFile.type !== "image/jpeg") {
-    ElMessage.error("Avatar picture must be JPG format!");
-    return false;
-  } else if (rawFile.size / 1024 / 1024 > 2) {
-    ElMessage.error("Avatar picture size can not exceed 2MB!");
+  console.log('modal file ', modalImageFiles.value);
+  
+  showImageModal.value = true
+}
+
+const cancelImageUpload = () => {
+  showImageModal.value = false
+}
+
+const handleImageModalClose = () => {
+  // Optional: Clear temporary blob URLs
+  modalImageFiles.value.forEach(file => {
+    if (file.url?.startsWith('blob:')) {
+      URL.revokeObjectURL(file.url)
+    }
+  })
+  modalImageFiles.value = []
+  activeItemIndex.value = -1
+  activeItemData.value = null
+}
+
+const handleModalImagesChange = (files: UploadUserFile[]) => {
+  console.log('images', files);
+  modalImageFiles.value = files
+}
+
+// Fungsi untuk menyimpan gambar
+const saveItemImages = () => {
+  if (activeItemIndex.value >= 0) {
+
+    if(activeItemParentIndex.value >= 0){
+      console.log('activeItemParentIndex', activeItemParentIndex.value);
+      console.log('activeItemIndex', activeItemIndex.value);
+      item_canvassing.value[activeItemParentIndex.value].children[activeItemIndex.value].files = [...modalImageFiles.value];
+
+      // Set image URL untuk preview di tabel (mengambil gambar pertama)
+      if (modalImageFiles.value.length > 0) {
+        const firstFile = modalImageFiles.value[0]
+        if (firstFile.url) {
+          item_canvassing.value[activeItemParentIndex.value].children[activeItemIndex.value].image = firstFile.url
+        } else if (firstFile.raw) {
+          item_canvassing.value[activeItemParentIndex.value].children[activeItemIndex.value].image = URL.createObjectURL(firstFile.raw)
+        }
+      } else {
+        item_canvassing.value[activeItemParentIndex.value].children[activeItemIndex.value].image = ''
+      }
+    }else{
+      // Update dataTable dengan files baru
+      item_canvassing.value[activeItemIndex.value].files = [...modalImageFiles.value]
+      
+      // Set image URL untuk preview di tabel (mengambil gambar pertama)
+      if (modalImageFiles.value.length > 0) {
+        const firstFile = modalImageFiles.value[0]
+        if (firstFile.url) {
+          item_canvassing.value[activeItemIndex.value].image = firstFile.url
+        } else if (firstFile.raw) {
+          item_canvassing.value[activeItemIndex.value].image = URL.createObjectURL(firstFile.raw)
+        }
+      } else {
+        item_canvassing.value[activeItemIndex.value].image = ''
+      }
+    }
+
+
+    
+    
+    ElMessage.success(`Gambar untuk item ${activeItemIndex.value + 1} disimpan`)
+  }
+  
+  showImageModal.value = false
+}
+
+const handleRemoveImageList = async (file: UploadUserFile, files: UploadUserFile[]) => {
+  if(file.raw){
+    console.log('file baru upload');
+  }else{
+    console.log('file lama', file.uid);
+    try {
+      const response = await useApiFetch<BaseResponse<any>>('/file-delete', {
+        method: 'POST',
+        body: [file.uid]
+      })
+
+      if(response.success){
+        ElMessage.success(`Image Berhasil Di Hapus!`);
+      }
+    } catch (error: any) {
+      ElMessage.error(`${error?.response?.message ?? error}`);
+    }
+  }
+}
+
+const isValidUrl = (urlString: string): boolean => {
+  console.log('url string', urlString);
+  if (!urlString.startsWith('blob:')) return true // Non-blob URLs valid
+  
+  try {
+    // Coba fetch URL untuk test validity
+    fetch(urlString, { method: 'HEAD', mode: 'no-cors' })
+    return true
+  } catch {
+    return false
+  } finally {
     return false;
   }
-  return true;
-};
+}
 
 const adjustmentTransactionOngkirTotal = ref<ReferenceTransactionAdjustment>({
   unique_id: "",
@@ -1295,6 +1465,7 @@ const addItemVendor = (row: CanvassingItemForm) => {
         pricetag_item_id: "",
         pricetag_item_version: 0,
         contacts_fee: contactsFee.value,
+        
       });
     }
   });
@@ -1838,25 +2009,51 @@ const addToForm = async (val: Inquiry) => {
       contacts_fee: contactsFee.value,
     };
 
-    if (getFile(item.files ?? []) != "") {
-      const file = await urlToFile(
-        getFile(item.files ?? []),
-        getFileName(item)
-      );
-      tmp.image = getFile(item.files ?? []);
-      tmp.imageFile = {
-        name: file.name,
-        url: getFile(item.files ?? []),
-        raw: file,
-        uid: Date.now(),
-      };
+
+    if((item.catalogue?.files ?? []).length > 0){
+      if(getFirstFileUrl((item.catalogue?.files ?? [])) != ""){
+        tmp.image = getFirstFileUrl(item.catalogue?.files ?? []);
+        tmp.files = mapApiFilesToUpload((item.catalogue?.files ?? []));
+      }
     }
+
+    if (getFile(item.files ?? []) != "") {
+      // const file = await urlToFile(
+      //   getFile(item.files ?? []),
+      //   getFileName(item)
+      // );
+      
+      // tmp.imageFile = {
+      //   name: file.name,
+      //   url: getFile(item.files ?? []),
+      //   raw: file,
+      //   uid: Date.now(),
+      // };
+      tmp.files = [...(tmp.files ?? []), ...mapApiFilesToUpload(item.files ?? [])];
+
+      
+    }
+    
+
+
     item_canvassing.value.push(tmp);
   });
 
   console.log("items", item_canvassing.value);
 
   visibleModalRequest.value = false;
+};
+
+const mapApiFilesToUpload = (files: any[]) => {
+  const baseUrl = useRuntimeConfig().public.baseImageURL; 
+  // sesuaikan dengan config kamu
+
+  return files.map((file) => ({
+    uid: file.unique_id,
+    name: file.filename_original || file.filename,
+    url: `${baseUrl}${file.image_path}/${file.filename}`,
+    status: 'success' as UploadStatus,
+  }));
 };
 
 const addNewItem = () => {
@@ -1902,6 +2099,8 @@ const addNewItem = () => {
 };
 
 const addToOfferVendor = (val: Pricetag_item[]) => {
+
+
   const getIndex = item_canvassing.value.findIndex(
     (value) => value.index == itemIndex.value
   );
@@ -1915,72 +2114,210 @@ const addToOfferVendor = (val: Pricetag_item[]) => {
     );
   }
 
-  val.forEach((item: Pricetag_item, index: number) => {
-    console.log("startIndex", startIndex);
+  const parentUnit = item_canvassing.value[getIndex]?.unit_name;
 
-    // const childLength = item_canvassing.value[getIndex].children.length;
-
-    const child: CanvassingItemForm = {
-      index: `${itemIndex.value}-${startIndex}`,
-      type_item: "quotation",
-      equivalent_id: null,
-      canvassing_id: null,
-      canvaasing_version: null,
-      item_request_trail_version: null,
-      item_request_trail_id: null,
-      unique_id: null,
-      vendor_id: item.pricetag?.owner?.unique_id ?? "",
-      vendor_name: item.pricetag?.owner?.name ?? "",
-      unit_id: item.unit_id,
-      unit_name: item.unit_name,
-      unit_version: null,
-      offer_item_id: null,
-      offer_item_version: 0,
-      catalogue_id: item.catalogue_id ?? "",
-      parent_catalogue_id: item_canvassing.value[getIndex].catalogue_id,
-      catalogue_name: item.catalogue?.name ?? "",
-      sn: item.catalogue?.sn ?? "",
-      quantity: item_canvassing.value[getIndex].quantity,
-      unit_price: item.price,
-      total_price: 0,
-      status: CanvassingVendorStatus.SUBMITTED,
-      taxes: [],
-      editing: null,
-      type: "child",
-      children: [],
-      selling_price: 0,
-      profit: 0,
-      profit_unit: "percent",
-      fee: 0,
-      fee_unit: "percent",
-      ongkir: 0,
-      ongkir_unit: "amount",
-      pricetag_item_id: item.unique_id ?? "",
-      pricetag_item_version: item.version ?? 0,
-      contacts_fee: contactsFee.value,
-    };
-
-    const clones = contactsFee.value;
-
-    child.contacts_fee = clones.map((value) => {
-      return {
-        ...value,
-        reference: ReferenceAdjustment.CANVASSINGVENDOR,
-        amount: 0,
-        type: FeeType.PERCENT,
-      };
+  const itemsWithDifferentUnit = val.filter(item => item.unit_name !== parentUnit);
+  const hasDifferentUnit = itemsWithDifferentUnit.length > 0;
+  
+  if (hasDifferentUnit) {
+    // Tampilkan konfirmasi dialog dengan informasi detail
+    const differentUnitNames = [...new Set(itemsWithDifferentUnit.map(item => item.unit_name))];
+    
+    ElMessageBox.confirm(
+      `Ada ${itemsWithDifferentUnit.length} item dengan unit berbeda dari parent:<br>
+      <strong>Unit Parent:</strong> ${parentUnit}<br>
+      <strong>Unit Berbeda:</strong> ${differentUnitNames.join(', ')}<br><br>
+      Tetap tambahkan semua item?`,
+      'Konfirmasi Unit Berbeda',
+      {
+        dangerouslyUseHTMLString: true,
+        confirmButtonText: 'Ya, Tambahkan Semua',
+        cancelButtonText: 'Pilih Lagi',
+        type: 'warning',
+        center: true,
+        customClass: 'unit-difference-dialog'
+      }
+    ).then(() => {
+      // User memilih "Ya, Tambahkan Semua"
+      val.forEach((item: Pricetag_item, index: number) => {
+        const isUnitDifferent = item.unit_name !== parentUnit;
+        addChildItem(item, getIndex, startIndex, isUnitDifferent);
+        startIndex++;
+      });
+      
+      // Tampilkan notifikasi berhasil
+      if (itemsWithDifferentUnit.length > 0) {
+        ElMessage({
+          message: `${val.length} item ditambahkan (${itemsWithDifferentUnit.length} dengan unit berbeda)`,
+          type: 'warning',
+          duration: 3000
+        });
+      }
+    }).catch(() => {
+      // User memilih "Pilih Lagi" atau menutup dialog
+      ElMessage.info('Proses ditambahkan dibatalkan, silakan pilih item lagi.');
+      return; // Tidak menambahkan apa-apa
     });
-
-    if (item_canvassing.value[getIndex].children[startIndex]) {
-      item_canvassing.value[getIndex].children[startIndex] = child;
-    } else {
-      item_canvassing.value[getIndex].children.splice(startIndex, 0, child);
-    }
-
-    startIndex++;
-  });
+  } else {
+    // Semua unit sama, langsung tambahkan semua
+    val.forEach((item: Pricetag_item, index: number) => {
+      addChildItem(item, getIndex, startIndex, false);
+      startIndex++;
+    });
+    
+    // Tampilkan notifikasi sukses
+    ElMessage.success(`${val.length} item berhasil ditambahkan`);
+  }
 
   visibleModalSearchItemExample.value = false;
+
+  // val.forEach((item: Pricetag_item, index: number) => {
+    
+  //   const child: CanvassingItemForm = {
+  //     parent_index: `${getIndex}`,
+  //     index: `${itemIndex.value}-${startIndex}`,
+  //     type_item: "quotation",
+  //     equivalent_id: null,
+  //     canvassing_id: null,
+  //     canvaasing_version: null,
+  //     item_request_trail_version: null,
+  //     item_request_trail_id: null,
+  //     unique_id: null,
+  //     vendor_id: item.pricetag?.owner?.unique_id ?? "",
+  //     vendor_name: item.pricetag?.owner?.name ?? "",
+  //     unit_id: item.unit_id,
+  //     unit_name: item.unit_name,
+  //     unit_version: null,
+  //     offer_item_id: null,
+  //     offer_item_version: 0,
+  //     catalogue_id: item.catalogue_id ?? "",
+  //     parent_catalogue_id: item_canvassing.value[getIndex].catalogue_id,
+  //     catalogue_name: item.catalogue?.name ?? "",
+  //     sn: item.catalogue?.sn ?? "",
+  //     quantity: item_canvassing.value[getIndex].quantity,
+  //     unit_price: item.price,
+  //     total_price: 0,
+  //     status: CanvassingVendorStatus.SUBMITTED,
+  //     taxes: [],
+  //     editing: null,
+  //     type: "child",
+  //     children: [],
+  //     selling_price: 0,
+  //     profit: 0,
+  //     profit_unit: "percent",
+  //     fee: 0,
+  //     fee_unit: "percent",
+  //     ongkir: 0,
+  //     ongkir_unit: "amount",
+  //     pricetag_item_id: item.unique_id ?? "",
+  //     pricetag_item_version: item.version ?? 0,
+  //     contacts_fee: contactsFee.value,
+  //   };
+
+  //   if((item.files ?? []).length > 0){
+  //     child.image = getFirstFileUrl(item.files ?? []);
+  //     child.files = mapApiFilesToUpload(item.files ?? []);
+  //   }
+
+  //   const clones = contactsFee.value;
+
+  //   child.contacts_fee = clones.map((value) => {
+  //     return {
+  //       ...value,
+  //       reference: ReferenceAdjustment.CANVASSINGVENDOR,
+  //       amount: 0,
+  //       type: FeeType.PERCENT,
+  //     };
+  //   });
+
+  //   if (item_canvassing.value[getIndex].children[startIndex]) {
+  //     item_canvassing.value[getIndex].children[startIndex] = child;
+  //   } else {
+  //     item_canvassing.value[getIndex].children.splice(startIndex, 0, child);
+  //   }
+
+    
+
+  //   startIndex++;
+  // });
+
+
+  // visibleModalSearchItemExample.value = false;
+};
+
+
+const tableRowClassName = ({ row }: { row: CanvassingItemForm }) => {
+  if (row.type === 'child' && row.has_different_unit) {
+    return 'different-unit-row';
+  }
+  return '';
+};
+
+
+const addChildItem = (item: Pricetag_item, parentIndex: number, childIndex: number, hasDifferentUnit: boolean) => {
+  const child: CanvassingItemForm = {
+    parent_index: `${parentIndex}`,
+    index: `${itemIndex.value}-${childIndex}`,
+    type_item: "quotation",
+    equivalent_id: null,
+    canvassing_id: null,
+    canvaasing_version: null,
+    item_request_trail_version: null,
+    item_request_trail_id: null,
+    unique_id: null,
+    vendor_id: item.pricetag?.owner?.unique_id ?? "",
+    vendor_name: item.pricetag?.owner?.name ?? "",
+    unit_id: item.unit_id,
+    unit_name: item.unit_name,
+    unit_version: null,
+    offer_item_id: null,
+    offer_item_version: 0,
+    catalogue_id: item.catalogue_id ?? "",
+    parent_catalogue_id: item_canvassing.value[parentIndex].catalogue_id,
+    catalogue_name: item.catalogue?.name ?? "",
+    sn: item.catalogue?.sn ?? "",
+    quantity: item_canvassing.value[parentIndex].quantity,
+    unit_price: item.price,
+    total_price: 0,
+    status: CanvassingVendorStatus.SUBMITTED,
+    taxes: [],
+    editing: null,
+    type: "child",
+    children: [],
+    selling_price: 0,
+    profit: 0,
+    profit_unit: "percent",
+    fee: 0,
+    fee_unit: "percent",
+    ongkir: 0,
+    ongkir_unit: "amount",
+    pricetag_item_id: item.unique_id ?? "",
+    pricetag_item_version: item.version ?? 0,
+    contacts_fee: contactsFee.value,
+    // Tambahkan flag untuk unit berbeda
+    has_different_unit: hasDifferentUnit
+  };
+
+  if((item.files ?? []).length > 0){
+    child.image = getFirstFileUrl(item.files ?? []);
+    child.files = mapApiFilesToUpload(item.files ?? []);
+  }
+
+  const clones = contactsFee.value;
+  child.contacts_fee = clones.map((value) => {
+    return {
+      ...value,
+      reference: ReferenceAdjustment.CANVASSINGVENDOR,
+      amount: 0,
+      type: FeeType.PERCENT,
+    };
+  });
+
+  if (item_canvassing.value[parentIndex].children[childIndex]) {
+    item_canvassing.value[parentIndex].children[childIndex] = child;
+  } else {
+    item_canvassing.value[parentIndex].children.splice(childIndex, 0, child);
+  }
 };
 
 const addVendor = (val: Contact[]) => {
@@ -2133,7 +2470,7 @@ const create_catalogue = async (
     formData.append("berat", (catalogue.berat ?? 0).toString());
     formData.append(
       "volume",
-      `${catalogue.panjang}x${catalogue.lebar}x${catalogue.tinggi}`
+      `${catalogue.length}x${catalogue.width}x${catalogue.height}`
     );
     formData.append(
       "is_asset",
@@ -2415,7 +2752,7 @@ const onHandleSelectItemAutocompleteItem = async (
     if (row.type === "parent") {
       item_canvassing.value.forEach((item) => {
         if (item.index == itemIndex) {
-          item.catalogue_id = selected.catalogue_id;
+          item.catalogue_id = selected.catalogue_id ?? "";
           item.catalogue_name = selected.catalogue?.name ?? "";
           item.sn = selected.catalogue?.sn ?? "";
           item.unit_id = selected.unit_id ?? "";
@@ -2427,7 +2764,7 @@ const onHandleSelectItemAutocompleteItem = async (
       item_canvassing.value.forEach((item) => {
         item.children.forEach((child) => {
           if (child.index == itemIndex) {
-            child.catalogue_id = selected.catalogue_id;
+            child.catalogue_id = selected.catalogue_id ?? "";
             child.catalogue_name = selected.catalogue?.name ?? "";
             child.sn = selected.catalogue?.sn ?? "";
             child.unit_id = selected.unit_id ?? "";
@@ -2462,9 +2799,9 @@ const onHandleSelectItemAutocompleteItemEquivalent = async (
       description: null,
       berat: null,
       volume: null,
-      panjang: null,
-      lebar: null,
-      tinggi: null,
+      length: null,
+      width: null,
+      height: null,
       is_asset: null,
       tmp_asset: null,
       version: null,
@@ -2592,18 +2929,21 @@ const fetchDataEdit = async () => {
 
     if (response.status.value === "success") {
       const canvasing = response.data.value?.data ?? null;
+
+      const type = route.query.type as string;
+
       if (canvasing) {
         // Populate form data
         Object.assign(ruleForm, {
-          unique_id: canvasing.unique_id,
+          unique_id: type && type === "copy" ? null : canvasing.unique_id,
           description: canvasing.description,
           status: canvasing.status,
           source_document: canvasing.source_document,
         });
 
         if (canvasing.source) {
-          ruleForm.source_document = canvasing.source.unique_code;
-          ruleForm.inquiry = canvasing.source;
+          ruleForm.source_document = type && type === "copy" ? null : canvasing.source.unique_code;
+          ruleForm.inquiry = type && type === "copy" ? null : canvasing.source;
           canvasing.canvassing_item.forEach((item, index) => {
             if (item.type_item !== "equivalent") {
               item_canvassing.value.push({
@@ -2927,10 +3267,12 @@ const submit = async (formEl: FormInstance | undefined) => {
       );
 
       if (item.imageFile) {
-        formData.append(
-          `canvassing_items[${i}][files]`,
-          item.imageFile?.raw as Blob
-        );
+        if(item.imageFile.raw){
+          formData.append(
+            `canvassing_items[${i}][files]`,
+            item.imageFile?.raw as Blob
+          );
+        }
       }
 
       // Append canvassing_vendor
@@ -3022,10 +3364,12 @@ const submit = async (formEl: FormInstance | undefined) => {
         );
 
         if (vendor.imageFile) {
-          formData.append(
-            `canvassing_items[${i}][canvassing_vendor][${j}][files]`,
-            vendor.imageFile?.raw as Blob
-          );
+          if(vendor.imageFile?.raw){
+            formData.append(
+              `canvassing_items[${i}][canvassing_vendor][${j}][files]`,
+              vendor.imageFile?.raw as Blob
+            );
+          }
         }
       });
     });
@@ -3089,8 +3433,12 @@ const paginationClick = (val: number) => {
   request_search_inquiry.value.offset = val.toString();
 };
 
+
 const paginationClickPriceTag = (val: number) => {
   request_search_pricetag_item.value.offset = val;
+};
+const paginationSizeChange = (val: number) => {
+  request_search_pricetag_item.value.limit = val;
 };
 
 const paginationClickContact = (val: number) => {
@@ -3520,5 +3868,36 @@ onMounted(() => {
 .el-table__cell .cell {
   display: flex;
   align-items: center;
+}
+
+/* :deep(.different-unit-row) {
+  background-color: rgba(255, 0, 0, 0.05) !important;
+} */
+
+/* :deep(.different-unit-row td) {
+  border-left: 3px solid #f56c6c !important;
+  border-right: 3px solid #f56c6c !important;
+} */
+
+/* :deep(.different-unit-row:first-child td) {
+  border-top: 3px solid #f56c6c !important;
+} */
+
+:deep(.different-unit-row:last-child td) {
+  /* border-top: 2px solid #f56c6c !important; */
+  border-bottom: 3px solid #f56c6c !important;
+}
+
+/* Optional: tambahkan tooltip atau indikator visual di kolom unit */
+.different-unit-indicator {
+  color: #f56c6c;
+  font-weight: bold;
+  position: relative;
+}
+
+.different-unit-indicator::after {
+  content: "⚠";
+  margin-left: 5px;
+  color: #f56c6c;
 }
 </style>

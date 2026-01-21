@@ -1,69 +1,67 @@
 <template>
-  <div class="item-image-cell" @click="emitOpenModal">
+  <div class="item-image-cell" @click="() => previewImage = true">
     <el-tooltip content="Klik untuk upload/tambah gambar" placement="top">
       <div class="image-preview-container">
         <img
-          v-if="previewImageUrl"
-          :src="previewImageUrl"
+          v-if="imgUrls.length > 0"
+          :src="imgUrls[0]"
           class="item-image"
           alt="Item Image"
         />
-        <div v-else class="empty-state">
-          <el-icon class="upload-icon"><Plus /></el-icon>
-          <span class="empty-text" v-if="showText">Add Image</span>
-        </div>
         
         <!-- Badge untuk menunjukkan jumlah gambar -->
         <div v-if="imageCount > 0" class="image-count-badge">
           {{ imageCount }}
         </div>
+
+        <div 
+            v-else
+            class="flex items-center h-full justify-center w-full text-gray-400"
+        >
+            <el-icon><Picture /></el-icon>
+        </div>
       </div>
     </el-tooltip>
   </div>
+
+  <el-image-viewer
+    v-if="previewImage"
+    show-progress
+    :url-list="imgUrls"
+    @close="previewImage = false"
+  >
+    <template #viewer-error="{ activeIndex, src }">
+      <div class="image-slot viewer-error">
+        <el-icon><icon-picture /></el-icon>
+        <span>
+          this is viewer-error slot. current index: {{ activeIndex }}. src:
+          {{ src }}
+        </span>
+      </div>
+    </template>
+  </el-image-viewer>
 </template>
 
 <script lang="ts" setup>
 import { computed } from 'vue'
-import { Plus } from '@element-plus/icons-vue'
-import type { UploadUserFile } from 'element-plus'
+import { Picture } from '@element-plus/icons-vue'
 
-interface Props {
-  modelValue?: UploadUserFile[]
-  imageUrl?: string
-  showText?: boolean
-}
 
-const props = withDefaults(defineProps<Props>(), {
-  modelValue: () => [],
-  imageUrl: '',
-  showText: false
-})
 
-const emit = defineEmits<{
-  'open-modal': [index: number]
-}>()
 
-const previewImageUrl = computed(() => {
-  // Prioritaskan imageUrl dari props
-  if (props.imageUrl) return props.imageUrl
-  
-  // Ambil gambar pertama dari modelValue untuk preview
-  if (props.modelValue && props.modelValue.length > 0) {
-    const firstFile = props.modelValue[0]
-    if (firstFile.url) return firstFile.url
-    if (firstFile.raw) return URL.createObjectURL(firstFile.raw)
-  }
-  
-  return ''
-})
+const props = defineProps<{
+    imgUrls: string[],
+}>();
+
+
+const previewImage = ref<boolean>(false);
+const initialIndexImage = ref<number>(0);
 
 const imageCount = computed(() => {
-  return props.modelValue?.length || 0
+  return props.imgUrls.length || 0
 })
 
-const emitOpenModal = () => {
-  emit('open-modal', 0)
-}
+
 </script>
 
 <style scoped>
@@ -80,6 +78,7 @@ const emitOpenModal = () => {
   position: relative;
   overflow: hidden;
   transition: all 0.3s;
+  
 }
 
 :deep(.image-preview-container:hover) {

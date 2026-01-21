@@ -46,7 +46,7 @@
           sub-title="Data Canvassing yang terkait dengan inquiry ini belum ada!"
         >
           <template #extra>
-            <el-button type="primary">Buat Canvassing</el-button>
+            <NuxtLink class="el-button el-button--primary" :href="`/sales/canvassing/add?inquiry_id=${inquiryData?.data?.unique_id}`" >Buat Canvassing</NuxtLink>
           </template>
         </el-result>
       </el-tab-pane>
@@ -70,7 +70,7 @@
           title="Belum ada RAB Terkait!"
           sub-title="Data RAB yang terkait dengan inquiry ini belum ada!"
         >
-          <template #extra>
+          <template #extra v-if="canvassing.data">
             <el-button type="primary">Buat RAB</el-button>
           </template>
         </el-result>
@@ -94,7 +94,7 @@
           title="Belum ada Penawaran Terkait!"
           sub-title="Data Penawaran yang terkait dengan inquiry ini belum ada!"
         >
-          <template #extra>
+          <template #extra v-if="rab.data">
             <NuxtLink class="el-button el-button--primary" :href="`/sales/offer/add?canvassing_id=${canvassing?.data?.unique_id}`">Buat Penawaran</NuxtLink>
           </template>
         </el-result>
@@ -109,7 +109,7 @@
           title="Belum ada SO Terkait!"
           sub-title="Data SO yang terkait dengan inquiry ini belum ada!"
         >
-          <template #extra>
+          <template #extra v-if="penawaran.data">
             <NuxtLink class="el-button el-button--primary" href="sales/order/add" type="primary">Buat SO</NuxtLink>
           </template>
         </el-result>
@@ -225,15 +225,33 @@ const fetchInquiry = async () => {
     );
 
     if (inquiry.status.value === "success") {
-      inquiryData.value = {
-        code: 200,
-        data: inquiry.data.value?.data ?? null,
-        message: "",
-        pending: false,
-      };
 
-      fetchCanvassing();
-      fetchRAB();
+      if(inquiry.data.value?.data){
+        const inquiryDataValue: Inquiry = inquiry.data.value!.data!;
+
+        inquiryDataValue.item_request.forEach(element => {
+          element.files = [...(element.catalogue?.files ?? []), ...(element.files ?? [])]
+        });
+
+        inquiryData.value = {
+          code: 200,
+          data: inquiryDataValue,
+          message: "",
+          pending: false,
+        };
+
+        fetchCanvassing();
+        fetchRAB();
+      }else{
+        inquiryData.value = {
+          code: 200,
+          data: null,
+          message: "",
+          pending: false,
+        };
+      }
+
+      
     }
   } catch (error) {
     console.error("Failed to fetch related data", error);
@@ -333,7 +351,11 @@ const fetchRAB = async () => {
         pending: response.pending.value,
         privilege: response.data.value?.privilege ?? [],
       };
-      fetchOffer();
+      if(rab.value.data?.unique_id){
+        fetchOffer();
+      }else{
+        penawaran.value.pending = false;
+      }
     }
 
     if (response.code == 403) {

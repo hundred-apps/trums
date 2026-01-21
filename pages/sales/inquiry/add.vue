@@ -58,6 +58,7 @@ import {
   Warning,
   Delete,
   Edit,
+  Picture
 } from "@element-plus/icons-vue";
 import type { Maintenance } from "~/types/maintenance";
 import type { Contact } from "~/types/contact";
@@ -79,6 +80,7 @@ import FormAddress from "~/components/trums/FormAddress.vue";
 import CatalogueAdd from "~/components/trums/CatalogueAdd.vue";
 import ItemImageUpload from "./components/ItemImageUpload.vue";
 import PhotoWallUploads from "~/components/trums/PhotoWallUploads.vue";
+import { generateAddressView, getFirstFileUrl } from "#imports";
 
 const fileList = ref<UploadUserFile[]>([]);
 
@@ -539,6 +541,7 @@ const onSelectReference_id = async (data: any) => {
 const create_catalogue = async (catalogue: Catalogue) => {
   loading.value = true;
   try {
+    console.log('catalogue', catalogue);
     const formData = new FormData();
 
     formData.append("unique_id", catalogue.unique_id ?? "");
@@ -557,6 +560,12 @@ const create_catalogue = async (catalogue: Catalogue) => {
       (catalogue.tmp_asset == "1" ? true : false).toString()
     );
     formData.append("type", catalogue.type);
+
+    catalogue.file_catalogues.forEach((file) => {
+      if (file.raw) {
+        formData.append('files[]', file.raw);
+      }
+    });
 
     const response = await useFetchApi<BaseResponse<Catalogue>>(
       "/catalogues-create",
@@ -611,7 +620,11 @@ const querySearchAsync = (queryString: string, cb: (arg: any) => void) => {
               }`,
             };
           });
-          cb(results);
+          cb([...results, {
+              value: `${queryString}`,
+              label: `Tambahkan ${queryString}`,
+              isNew: true,
+            }]);
         } else {
           cb([
             {
@@ -676,10 +689,10 @@ const querySearchAsyncLocation = (
     });
 };
 
-const querySearchContact = (queryString: string, cb: (arg: any) => void) => {
+const querySearchContact = (queryString: string, cb: (arg: any) => void, type: "to"|"pic") => {
   (request_search.value.keyword = queryString),
-    (request_search.value.table = "contacts");
-  request_search.value.column = [
+  (request_search.value.table = "contacts");
+  request_search.value.column = type == "to" ? [] : [
     {
       parent_id: ruleForm.to_unique_id,
     },
@@ -689,13 +702,22 @@ const querySearchContact = (queryString: string, cb: (arg: any) => void) => {
   axios
     .post("/search", request_search.value)
     .then((response) => {
+      
       if (response.status == 200) {
         const resultApi: ResponsePagination<Contact[]> = response.data;
         if (resultApi.data.length > 0) {
-          const results = response.data.data.map((data: Contact) => {
+          const results = resultApi.data.map((data: Contact) => {
             return { ...data, value: `${data.name}` };
           });
-          cb(results);
+
+          const options = [...results, {
+              value: `Tambahkan ${queryString}`,
+              isNew: true,
+              query: queryString,
+              label: `Tambahkan ${queryString}`,
+            }];
+            
+          cb(options);
         } else {
           cb([
             {
@@ -821,21 +843,25 @@ const onHandleSelectItemAutocomplete = async (
       file_catalogues: [],
     };
 
-    const selected: Catalogue | null =
-      (await create_catalogue(catalogueInsert)) ?? null;
 
-    if (selected != null) {
-      dataTable.value[scope.$index].item = selected.name ?? item.value;
-      dataTable.value[scope.$index].item_id = selected.unique_id ?? "";
-      dataTable.value[scope.$index].sn = selected.sn ?? "";
-      dataTable.value[scope.$index].catalogue = selected;
+    itemActive.value = scope.$index;
+    tmpCatalogue.value = catalogueInsert;
+    drawerCatalogue.value = true;
+    // const selected: Catalogue | null =
+    //   (await create_catalogue(catalogueInsert)) ?? null;
 
-      itemActive.value = scope.$index;
-      tmpCatalogue.value = selected;
-      drawerCatalogue.value = true;
-    } else {
-      ElMessage.error(`Ops, Something wrong!!`);
-    }
+    // if (selected != null) {
+    //   dataTable.value[scope.$index].item = selected.name ?? item.value;
+    //   dataTable.value[scope.$index].item_id = selected.unique_id ?? "";
+    //   dataTable.value[scope.$index].sn = selected.sn ?? "";
+    //   dataTable.value[scope.$index].catalogue = selected;
+    //   dataTable.value[scope.$index].files = mapApiFilesToUpload(selected.files ?? []);
+    //   dataTable.value[scope.$index].image = getFirstFileUrl(selected.files ?? []);
+      
+      
+    // } else {
+    //   ElMessage.error(`Ops, Something wrong!!`);
+    // }
   } else {
     const selected: ItemSearch = item as ItemSearch;
     dataTable.value[scope.$index].item = selected.catalogue_name;
@@ -844,6 +870,8 @@ const onHandleSelectItemAutocomplete = async (
     dataTable.value[scope.$index].unit_id = selected.unit_id ?? "";
     dataTable.value[scope.$index].unit_name = selected.unit_name ?? "";
     dataTable.value[scope.$index].inventory_id = selected.inventory_id ?? "";
+    dataTable.value[scope.$index].files = mapApiFilesToUpload(selected.files ?? []);
+    dataTable.value[scope.$index].image = getFirstFileUrl(selected.files ?? []);
 
     const catalogue: Catalogue | undefined = await fetchCatalogueDetail(
       selected.catalogue_id ?? ""
@@ -1301,13 +1329,13 @@ const handleSubmit = async (catalogue: Catalogue) => {
 
   try {
     const catalogueInsert = (await create_catalogue(catalogue)) ?? undefined;
-    console.log("catalogue insert", catalogueInsert?.sn);
-    console.log("item active", itemActive.value);
     if (catalogueInsert != undefined) {
-      // dataTable.value[itemActive.value].item = catalogueInsert?.name ?? '';
-      // dataTable.value[itemActive.value].item_id = catalogueInsert?.unique_id ?? '';
-      dataTable.value[itemActive.value].sn = catalogueInsert?.sn ?? "";
+      dataTable.value[itemActive.value].item = catalogueInsert.name ?? "";
+      dataTable.value[itemActive.value].item_id = catalogueInsert.unique_id ?? "";
+      dataTable.value[itemActive.value].sn = catalogueInsert.sn ?? "";
       dataTable.value[itemActive.value].catalogue = catalogueInsert;
+      dataTable.value[itemActive.value].files = mapApiFilesToUpload(catalogueInsert.files ?? []);
+      dataTable.value[itemActive.value].image = getFirstFileUrl(catalogueInsert.files ?? []);
     } else {
       ElMessage.error("Kesalahan saat menyimpan data catalogue!");
     }
@@ -1587,8 +1615,11 @@ const handleRemoveImageList = async (file: UploadUserFile, files: UploadUserFile
 }
 
 const handleEditAddress = (address: AddressType) => {
+  
   dialogNewAddress.value = true;
 }
+
+
 
 </script>
 <template>
@@ -1616,11 +1647,18 @@ const handleEditAddress = (address: AddressType) => {
         <el-form-item label="Diminta oleh?" prop="to_name">
           <div class="flex items-center gap-3">
             <el-autocomplete
-              :fetch-suggestions="querySearchContact"
+              :fetch-suggestions="(queryString: string, cb: (arg: any) => void) => querySearchContact(queryString, cb, 'to')"
               v-model="ruleForm.to_name"
               placeholder="Cari Kontak"
               @select="(item: Record<string, any>) => onHandleSelectContact(item, 'to')"
-            />
+            >
+            
+              <template #default="{ item }">
+                <div v-if="!item.isNew">{{ item.name }}</div>
+                <div v-else class="text-blue-600">{{ item.value }}</div>
+              </template>
+            
+            </el-autocomplete>
             <el-button
               type="primary"
               v-if="toContact"
@@ -1636,11 +1674,16 @@ const handleEditAddress = (address: AddressType) => {
         >
           <div class="flex items-center gap-3">
             <el-autocomplete
-              :fetch-suggestions="querySearchContact"
+              :fetch-suggestions="(queryString: string, cb: (arg: any) => void) => querySearchContact(queryString, cb, 'pic')"
               v-model="ruleForm.request_by_name"
               placeholder="Cari Kontak"
               @select="(item: Record<string, any>) => onHandleSelectContact(item, 'pic')"
-            />
+            >
+            <template #default="{ item }">
+                <div v-if="!item.isNew">{{ item.name }}</div>
+                <div v-else class="text-blue-600">{{ item.value }}</div>
+              </template>
+            </el-autocomplete>
             <el-button
               type="primary"
               v-if="picContact"
@@ -1717,7 +1760,7 @@ const handleEditAddress = (address: AddressType) => {
     </el-card>
     <el-card class="mb-3">
       <el-table :data="dataTable" border>
-        <el-table-column label="Image" width="100">
+        <el-table-column label="Image" width="75">
           <template #default="scope">
             <ItemImageUpload
               v-model="scope.row.files"
@@ -1749,18 +1792,38 @@ const handleEditAddress = (address: AddressType) => {
                   <el-icon><Plus /></el-icon>
                   <span class="ml-2">Tambahkan "{{ item.value }}"</span>
                 </div>
-                <div v-else>
-                  <p style="line-height: 15px" class="font-bold">
-                    {{ item.value }}
-                  </p>
-                  <p v-if="item.type === 'inventory'">
-                    PN/SN: {{ item.sn_number ?? "Tidak Ada" }} | Lokasi:
-                    {{ item.location_name ?? "Tidak Ada" }} | Available Stok:
-                    {{ item.available }}
-                  </p>
-                  <p v-if="item.type === 'catalogue'">
-                    PN/SN: {{ item.sn_number ?? "Tidak Ada" }}
-                  </p>
+                <div v-else class="flex items-center gap-2">
+                  <!-- Thumbnail file pertama -->
+                  <div class="flex-shrink-0 mt-1">
+                    <div 
+                      v-if="item.files && item.files.length > 0"
+                      class="w-10 h-10 rounded overflow-hidden border"
+                    >
+                      <img 
+                        :src="getFirstFileUrl(item.files)"
+                        :alt="item.catalogue_name"
+                        class="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div 
+                      v-else
+                      class="w-10 h-10 rounded border flex items-center justify-center text-gray-400"
+                    >
+                      <el-icon><Picture /></el-icon>
+                    </div>
+                  </div>
+                  
+                  <!-- Informasi produk -->
+                  <div class="flex-1 min-w-0">
+                    <p style="line-height: 15px" class="font-bold truncate">
+                      {{ item.catalogue_name || item.value }}
+                    </p>
+                    <p class="text-sm text-gray-500 truncate">
+                      PN/SN: {{ item.sn_number || "Tidak Ada" }} | 
+                      Brand: {{ item.brand_name || "N/A" }}
+                    </p>
+                    
+                  </div>
                 </div>
               </template>
             </el-autocomplete>
@@ -1853,6 +1916,7 @@ const handleEditAddress = (address: AddressType) => {
           city: address?.city,
           regency: address?.regency,
           province: address?.province,
+          address_view: generateAddressView(address!)
         }"
         :onSuccess="onAddNewAddress"
       />

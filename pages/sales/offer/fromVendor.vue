@@ -12,6 +12,7 @@ import { InfoFilled, SetUp } from '@element-plus/icons-vue'
 import type { Pricetag } from '~/types/pricetag';
 import type { Contact } from '~/types/contact';
 import type { AddressType } from '~/types/address';
+import { canAccess, useCookie } from '#imports';
   definePageMeta({
     middleware: ["auth", "app"],
     name: "Penawaran ke vendor",
@@ -33,7 +34,7 @@ import type { AddressType } from '~/types/address';
     table: 'pricetag',
     sort: {
       column: 'created_at',
-      order: OrderColumn.ASC,
+      order: OrderColumn.DESC,
     }
   });
 

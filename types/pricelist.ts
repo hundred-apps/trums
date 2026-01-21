@@ -1,5 +1,6 @@
 import type { Catalogue } from "./catalogue"
 import type { Contact } from "./contact"
+import type { AppFile } from "./file"
 import type { Inventory } from "./inventory"
 
 export type Pricelist = {
@@ -39,4 +40,5 @@ export type Pricelist_item = {
     updated_at: number,
     created_by: number,
     readonly?: boolean,
+    files?: AppFile[]
 }

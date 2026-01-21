@@ -1,10 +1,11 @@
 <script lang="ts" setup>
-import type { FormInstance, FormProps, FormRules } from 'element-plus';
+import type { FormInstance, FormProps, FormRules, UploadProps } from 'element-plus';
 import type { Brands } from '~/types/brand';
 import type { Catalogue } from '~/types/catalogue';
 import type { RequestSearch } from '~/types/request_search';
 import type { BaseResponse } from '~/types/response';
 import type { ResponsePagination } from '~/types/response_pagination';
+import { Plus } from '@element-plus/icons-vue';
 
 const labelPosition = ref<FormProps['labelPosition']>('top')
 
@@ -15,7 +16,8 @@ const props = defineProps<{
     loading: boolean,
 }>();
 
-
+const dialogImageUrl = ref('')
+const dialogVisible = ref(false)
 
 const catalogue_form_ref = ref<FormInstance>();
 
@@ -64,11 +66,58 @@ const handleSelectBrand = async (item: Record<string, any>) => {
     }
 }
 
+const handleFileChange: UploadProps['onChange'] = (uploadFile, uploadFiles) => {
+  props.catalogue_form.file_catalogues = uploadFiles;
+};
+
+const handlePictureCardPreview: UploadProps['onPreview'] = (uploadFile) => {
+  dialogImageUrl.value = uploadFile.url!
+  dialogVisible.value = true
+}
+
+
+const handleFileRemove: UploadProps['onRemove'] = async (uploadFile, uploadFiles) => {
+  try {
+    const response = await useApiFetch<BaseResponse<any>>('/file-delete', {
+      method: 'POST',
+      body: [uploadFile.uid]
+    })
+
+    if(response.success){
+      props.catalogue_form.file_catalogues = uploadFiles;
+    }
+  } catch (error: any) {
+    ElMessage.error(`${error?.response?.message ?? error}`);
+  }
+  
+};
+
 
 </script>
 
 <template>
     <el-form :disabled="loading" :label-position="labelPosition" :model="catalogue_form" ref="catalogue_form_ref" label-width="auto" :rules="rule_form_catalogue">
+        <el-form-item label="Foto Item" prop="photos">
+          <div class="flex flex-col">
+            <el-upload
+              v-model:file-list="catalogue_form.file_catalogues"
+              action="#"
+              list-type="picture-card"
+              :auto-upload="false"
+              :on-change="handleFileChange"
+              :on-remove="handleFileRemove"
+              :on-preview="handlePictureCardPreview"
+              :limit="5"
+              multiple
+            >
+              <el-icon><Plus /></el-icon>
+            </el-upload>
+            <div class="el-upload__tip">
+              Upload foto item (max 5 file, format: jpg/png)
+            </div>
+          </div>
+        </el-form-item>
+        
         <el-form-item label="Nama Item" prop="name">
             <el-input v-model="catalogue_form.name" />
         </el-form-item>
@@ -105,15 +154,15 @@ const handleSelectBrand = async (item: Record<string, any>) => {
         </el-form-item>
         <el-form-item label="Volume" prop="volume">
             <el-col :span="4">
-                <el-input v-model="catalogue_form.panjang" placeholder="Panjang" />
+                <el-input v-model="catalogue_form.length" placeholder="Panjang" />
             </el-col>
             <el-col class="text-center" :span="1" style="margin: 0 0.5rem">x</el-col>
             <el-col :span="4">
-                <el-input v-model="catalogue_form.lebar" placeholder="Lebar" />
+                <el-input v-model="catalogue_form.width" placeholder="Lebar" />
             </el-col>
             <el-col class="text-center" :span="1" style="margin: 0 0.5rem" >x</el-col>
             <el-col :span="4">
-                <el-input v-model="catalogue_form.tinggi"placeholder="Tinggi" />
+                <el-input v-model="catalogue_form.height"placeholder="Tinggi" />
             </el-col>
         </el-form-item>
        

@@ -89,23 +89,18 @@
         <h1 class="mb-4">Item Permintaan</h1>
         <el-table :data="inquiryData?.item_request ?? []" style="width: 100%" border>
           <el-table-column prop="image" label="Image" width="75">
-            <template #default="{ row }">
+            <template #default="scope">
               <div class="demo-image__preview flex items-center">
-                <el-image
-                  v-if="getFile(row as ItemRequest) != ''"
-                  style="width: 50px; height: 50px"
-                  :src="getFile(row as ItemRequest)"
-                  :zoom-rate="1.2"
-                  :max-scale="7"
-                  :min-scale="0.2"
-                  @click="() => {
-                    fileList = getFilesUrl(row as ItemRequest);
+                <ItemImageUpload
+                v-if="getFile(scope.row as ItemRequest) != ''"
+                  v-model="scope.row.files"
+                  :image-url="getFirstFileUrl((scope.row as ItemRequest).files ?? [])"
+                  :show-text="false"
+                  @open-modal="() => {
+                    fileList = getFilesUrl(scope.row as ItemRequest);
                     initialIndexImage = 0;
                     previewImage = true;
                   }"
-                  show-progress
-                  :initial-index="0"
-                  fit="cover"
                 />
                 <el-image v-else>
                   <template #error>
@@ -220,6 +215,8 @@ import {
 import type { PurchaseOrder } from "~/types/scm/purchase_order";
 import type { AddressType } from "~/types/address";
 import { formatLocalDate } from "#imports";
+import ItemImageUpload from "./ItemImageUpload.vue";
+import { getFirstFileUrl } from "#imports";
 
 const config = useRuntimeConfig();
 const imageUrl = config.public.baseImageURL;

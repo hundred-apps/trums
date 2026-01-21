@@ -1,3 +1,5 @@
+import type { AppFile } from "./file"
+
 export type ItemSearch = {
     type: "inventory"|"catalogue",
     unique_id: string,
@@ -14,4 +16,8 @@ export type ItemSearch = {
     request?: number,
     booking?: number,
     available?: number,
+    brand_id: string,
+    brand_name: string,
+    files: AppFile[]
+    
 }
