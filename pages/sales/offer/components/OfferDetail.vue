@@ -80,7 +80,7 @@
               </el-table-column>
               <el-table-column prop="name" label="item" width="300">
                   <template #default="scope">
-                      {{ scope.row.catalogue.name }}
+                      {{ scope.row.catalogue?.name ?? '-' }}
                   </template>
               </el-table-column>
               <el-table-column prop="catalogue.sn" label="SN/PN"/>
@@ -460,13 +460,15 @@ const querySearchAsyncInventories = (queryString: string, cb: (arg: any) => void
 const fetchItem = async () => {
   try {
     
-    const response = await useApiFetch<ResponsePagination<Pricetag_item[]>>('/search', {
-      method: "POST",
-      body: request_search_pricelist_item.value,
-    })
+    if(request_search_pricelist_item.value.column.length > 0){
+      const response = await useApiFetch<ResponsePagination<Pricetag_item[]>>('/search', {
+        method: "POST",
+        body: request_search_pricelist_item.value,
+      })
 
-    if(response.success){
-      items.value = response;
+      if(response.success){
+        items.value = response;
+      }
     }
   } catch (error: any) {
     ElMessage.error(error?.response?.message ?? error)

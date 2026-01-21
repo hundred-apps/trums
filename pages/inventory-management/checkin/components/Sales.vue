@@ -245,6 +245,7 @@ import type { RequestSearch } from '~/types/request_search';
 import type { PurchaseOrder } from '~/types/scm/purchase_order';
 import type { AddressType } from '~/types/address';
 import FormAddress from '~/components/trums/FormAddress.vue';
+import { currency, currencyWithoutSymbol, formatLocalDate } from '#imports';
 interface formCheckInOut {
     type: string,
     location: string,
@@ -447,6 +448,10 @@ const handleSelectAddress = (record: Record<string, any>) => {
 }
 
 const onSelectReference_id = async (data: PurchaseOrder) => {
+
+    console.log('reference', formInline.reference);
+    console.log('data', data);
+
     tableItem.value = [];
     if(formInline.reference === 'po'){
         formInline.reference_view = data.unique_code ?? '';
@@ -458,6 +463,17 @@ const onSelectReference_id = async (data: PurchaseOrder) => {
         dialogSalesOrder.value = false;
 
         
+    }else if(formInline.reference === 'so'){
+        formInline.reference_view = data.unique_code ?? '';
+        formInline.reference_id = data.unique_id ?? '';
+        formInline.reference_to = 'contact';
+        // formInline.location = data.vendor?.name ?? '';
+        // formInline.location_id = data.vendor?.unique_id ?? '';
+        // formInline.version = data.vendor?.version ?? 0;
+        formInline.to = data.vendor?.unique_id ?? '';
+        formInline.to_name = data.vendor?.name ?? '';
+        formInline.to_version = data.vendor?.version ?? 0;
+        dialogSalesOrder.value = false;
     }
 
     data.purchase_order_item.forEach(element => {
@@ -487,6 +503,8 @@ const onSelectReference_id = async (data: PurchaseOrder) => {
             quantity_to_in: null
         });
     });
+
+
 }
 
 const setFrom = (reference_from: string,value: any) => {

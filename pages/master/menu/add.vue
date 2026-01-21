@@ -497,6 +497,7 @@ const onHandleSelectPIC = async (item: Record<string, any>, index: number, scope
       position: null,
       departement: null,
       version: 0,
+      devices: []
     }
 
     
@@ -532,14 +533,15 @@ const onHandleSelectPosition = async (item: Record<string, any>, index: number, 
 
 const initialApprovalSetting = () => {
   ruleForm.permissions.forEach(element => {
+  console.log('type permission', element.type);
     if(element.type === PermissionType.APPROVAL){
       element.approval_permission_pic = Array.from({ length: element.approval_length }, (_, i) => {
         const approvals: ApprovalPermissionPIC | undefined = element.approval_permission_pic![i];
         return {
           unique_id: approvals?.unique_id ?? '',
-          permission_id: approvals.permission_id ?? '',
-          permission: approvals.permission,
-          pic_id: approvals.pic_id ?? '',
+          permission_id: approvals?.permission_id ?? '',
+          permission: approvals?.permission,
+          pic_id: approvals?.pic_id ?? '',
           pic: approvals?.pic ?? {
             id: 0,
             unique_id: '',
@@ -563,8 +565,8 @@ const initialApprovalSetting = () => {
             version: 0,
             devices: [],
           },
-          departement_id: approvals.departement_id ?? '',
-          departement: approvals.departement ?? {
+          departement_id: approvals?.departement_id ?? '',
+          departement: approvals?.departement ?? {
             id: 0,
             unique_id: '',
             unique_code: '',
@@ -573,8 +575,8 @@ const initialApprovalSetting = () => {
             created_by: '',
             updated_at: 0,
           },
-          position_id: approvals.position_id ?? '',
-          position: approvals.position ?? {
+          position_id: approvals?.position_id ?? '',
+          position: approvals?.position ?? {
             id: 0,
             unique_id: '',
             unique_code: '',

@@ -1916,7 +1916,7 @@ const handleEditAddress = (address: AddressType) => {
           city: address?.city,
           regency: address?.regency,
           province: address?.province,
-          address_view: generateAddressView(address!)
+          address_view: address != null ? generateAddressView(address!) : ''
         }"
         :onSuccess="onAddNewAddress"
       />

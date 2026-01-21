@@ -113,6 +113,7 @@ import type { BaseResponse } from '~/types/response'
 import SelectionCell from '~/components/trums/table/SelectionCell.vue';
 import type { Menu } from '~/types/menu';
 import { NuxtLink } from '#components'
+import { canAccess, refreshNuxtData } from '#imports'
 
 definePageMeta({
   middleware: ["auth", "check-access"],
