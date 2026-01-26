@@ -43,6 +43,7 @@ export type ItemRequest = {
   checked: boolean;
   version?: number;
   item_request_trail: ItemRequestTrail[];
+  stok?: number;
 };
 
 export type ItemRequestTrail = {

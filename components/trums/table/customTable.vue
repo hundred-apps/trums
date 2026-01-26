@@ -1,27 +1,34 @@
 <template>
-  <el-table-v2
-    :columns="columns"
-    :data="data"
-    :height="height ?? 400"
-    :width="1100"
-    :max-width="2000"
-    :sort-state="sortState"
-    class="px-3"
-    @column-sort="columnSort"
-    fixed
-  >
-    <template v-if="loading"  #overlay>
-      <div
-      
-        class="el-loading-mask"
-        style="display: flex; align-items: center; justify-content: center"
+  <el-auto-resizer style="height: 400px">
+    <template #default="{ height, width }">
+      <el-table-v2
+        :columns="columns"
+        :data="data"
+        :height="height"
+        :width="width"
+        :max-width="2000"
+        :sort-state="sortState"
+        class="px-3"
+        @column-sort="columnSort"
+        fixed
       >
-        <el-icon class="is-loading" color="var(--el-color-primary)" :size="26">
-          <loading-icon />
-        </el-icon>
-      </div>
+        <template v-if="loading" #overlay>
+          <div
+            class="el-loading-mask"
+            style="display: flex; align-items: center; justify-content: center"
+          >
+            <el-icon
+              class="is-loading"
+              color="var(--el-color-primary)"
+              :size="26"
+            >
+              <loading-icon />
+            </el-icon>
+          </div>
+        </template>
+      </el-table-v2>
     </template>
-  </el-table-v2>
+  </el-auto-resizer>
 </template>
 
 <script lang="tsx" setup>
@@ -59,13 +66,11 @@ const props = defineProps({
   },
 });
 
-const { loading } = toRefs(props)
+const { loading } = toRefs(props);
 
 // const handleSelectionChange = (selection: any[]) => {
 //   console.log("Selected Rows:", selection);
 // };
-
-const hallo = () => {};
 
 type SelectionCellProps = {
   value: boolean;
@@ -90,11 +95,6 @@ const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
 const checkIfExistCheckbox = () => {
   const newColumn = [...props.columns];
 };
-
-// const scollbar_thumb = document.getElementsByClassName('el-scrollbar__thumb');
-// for(var i = 0; i < scollbar_thumb.length; i++){
-//   scollbar_thumb[i].remove();
-// }
 
 onMounted(() => {
   console.log(props.data);
