@@ -3827,6 +3827,7 @@ onMounted(() => {
     fetchDataEdit();
   }
 
+  
   if (inquiry_id.value) {
     fetchInquiryDetail();
   }

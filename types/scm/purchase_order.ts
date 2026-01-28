@@ -51,7 +51,8 @@ export type PurchaseOrder = {
   additional_information?: string;
   status: PurchaseOrderStatus;
   is_tempo: boolean,
-  term_payment: number|null;
+  term_payment: string | null;
+  term_payment_value: number | null;
   term_payment_unit: string | "day" | "month" | "year";
   method_payment: PaymentMethod,
   version: number;

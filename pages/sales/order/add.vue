@@ -278,18 +278,24 @@
 
     <el-dialog v-model="visiblePricetagModal" title="Pilih Item dari Pricetag" width="1000">
       <el-row :gutter="20" class="mb-3">
-        <el-col :span="12">
+        <el-col :span="4">
           <el-input
             v-model="pricetagSearch.keyword"
             placeholder="Cari item..."
             clearable
           />
         </el-col>
-        <el-col :span="12">
+        <el-col :span="4">
           <el-button type="default" :icon="Plus" @click="() => {
             visibleModalPricetagNewItem = true;
           }">Buat Harga Baru</el-button>
         </el-col>
+        <el-col :span="4">
+          <el-button type="primary" :disabled="selectedPricetagItems.length == 0" @click="addSelectedPricetagItems">
+              Tambahkan Selected ({{ selectedPricetagItems.length }})
+            </el-button>
+        </el-col>
+        
       </el-row>
       
       <el-table 
@@ -298,9 +304,21 @@
         @selection-change="handlePricetagSelectionChange"
       >
         <el-table-column type="selection" width="55" />
-        <el-table-column prop="catalogue.name" label="Item">
+        <el-table-column prop="catalogue.name" label="Item" width="350">
           <template #default="scope">
             {{ scope.row.catalogue?.name || '-' }}
+          </template>
+        </el-table-column>
+        
+        <el-table-column prop="unit_name" label="Satuan" width="100" />
+        <el-table-column prop="pricetag.name" label="Nomor Penawaran">
+          <template #default="scope">
+            {{ scope.row.pricetag?.name || 'N/A' }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="" label="Tgl Berlaku" width="200">
+          <template #default="scope">
+            {{ (scope.row.pricetag as Pricetag).end_date != undefined && (scope.row.pricetag as Pricetag).end_date != null ? formatLocalDate((scope.row.pricetag as Pricetag).end_date) : '-' }}
           </template>
         </el-table-column>
         <el-table-column prop="price" label="Harga" width="120" align="right">
@@ -308,20 +326,21 @@
             {{ formatCurrency(scope.row.price) }}
           </template>
         </el-table-column>
-        <el-table-column prop="unit_name" label="Satuan" width="100" />
-        <el-table-column prop="pricetag.owner.name" label="Vendor">
-          <template #default="scope">
-            {{ scope.row.pricetag?.owner?.name || '-' }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="min_order_quantity" label="Min. Order" width="100" />
       </el-table>
 
       <template #footer>
-        <el-button @click="visiblePricetagModal = false">Batal</el-button>
-        <el-button type="primary" @click="addSelectedPricetagItems">
-          Tambahkan Selected ({{ selectedPricetagItems.length }})
-        </el-button>
+        <div class="flex justify-end mt-3">
+          <el-pagination
+            background
+            layout="prev, pager, next, sizes, total"
+            :total="filteredPricetagItems?.data?.value?.total_data ?? 0"
+            :current-page="Number(request_search_pricetag_item.offset)"
+            :page-size="Number(request_search_pricetag_item.limit)"
+            @current-change="handlePageChange"
+            @size-change="handleSizeChange"
+          />
+        </div>
+        
       </template>
     </el-dialog>
   </TrumsWrapper>
@@ -343,8 +362,8 @@ import { Delete, Plus, RemoveFilled } from '@element-plus/icons-vue'
 import { ElMessage, type FormInstance, type FormRules, type UploadUserFile } from 'element-plus'
 import { PurchaseOrderItemStatus, PurchaseOrderStatus, type PurchaseOrder, type PurchaseOrderItem } from '~/types/scm/purchase_order'
 import type { Contact } from '~/types/contact'
-import { CanvassingVendorStatus, PaymentTerm, type CanvassingItem, type CanvassingVendor } from '~/types/scm/canvasing'
-import type { Pricetag_item } from '~/types/pricetag'
+import { CanvassingVendorStatus, PaymentTerm, type Canvassing, type CanvassingItem, type CanvassingVendor } from '~/types/scm/canvasing'
+import { ReferencePriceTag, type Pricetag, type Pricetag_item } from '~/types/pricetag'
 import type { RequestSearch } from '~/types/request_search'
 import type { ResponsePagination } from '~/types/response_pagination'
 import type { BaseResponse } from '~/types/response'
@@ -357,6 +376,8 @@ import AddPriceTagComponent from '~/components/trums/AddPriceTagComponent.vue'
 import { ReferenceAdjustment, type AdjustmentTransaction, type ReferenceTransactionAdjustment } from '~/types/attribute_adjustment'
 import ModalAdjustmentTransaction from '~/components/trums/ModalAdjustmentTransaction.vue'
 import AddAdjustment from '~/components/trums/AddAdjustment.vue'
+import { refreshNuxtData } from '#app'
+import { formatLocalDate } from '#imports'
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -377,6 +398,7 @@ const visibleModalNewAdjustment = ref(false)
 
 const route = useRoute()
 const id = computed(() => route.query.id as string);
+const quotation_id = computed(() => route.query.quotation_id as string);
 
 const setInitialAddress = () => {
   if(ruleForm.vendor_id == ''){
@@ -468,7 +490,7 @@ const request_search_pricetag_item = ref<RequestSearch>({
   table: 'pricetag_item',
   sort: null,
   offset: '1',
-  limit: '50'
+  limit: '10'
 });
 
 const querySearchAdjustmentTransaction = ref<RequestSearch>({
@@ -516,6 +538,14 @@ const calculatedDiscount = computed(() => {
   }
   return ruleForm.discount
 })
+
+const handlePageChange = (page: number) => {
+  request_search_pricetag_item.value.offset = `${page}`;
+}
+
+const handleSizeChange = (size: number) => {
+  request_search_pricetag_item.value.limit = `${size}`;
+}
 
 function displayAmount(ref: any, multiplier: number){
   if (ref.type === "percent") {
@@ -1100,10 +1130,83 @@ const fetchDataEdit = async () => {
     }
 }
 
+const fetchCanvassing = async () => {
+  loading.value = true
+  try {
+    const response = await useFetchApi<BaseResponse<Canvassing>>(
+      `/canvassing-read/${quotation_id.value}`, 
+      'detail-canvassing', 
+      'get', 
+      null
+    )
+
+    if(response.status.value == 'success' && response.data.value?.data != undefined){
+      // currentPrivilage.value = response.data.value.privilege ?? [];
+      // initialCanvassing(response.data.value.data)
+      console.log('data quotation', response.data?.value.data);
+
+      const canvassingData: Canvassing = response.data.value!.data!;
+
+      ruleForm.vendor_id = canvassingData.source?.request_to?.unique_id ?? '',
+      ruleForm.vendor_parent_id = '',
+      ruleForm.vendor_name = canvassingData.source?.request_to?.name ?? '',
+      ruleForm.vendor_version = canvassingData.source?.request_to?.version ?? 0,
+      ruleForm.sourcing_document = '',
+      ruleForm.delivery_address_id = canvassingData.address_id ?? '',
+      ruleForm.delivery_address_version = canvassingData.address_version ?? 0,
+      ruleForm.delivery_address_view = canvassingData?.address?.address_name ?? '',
+      ruleForm.expected_arrival = null as number | null,
+      ruleForm.date = Date.now(),
+      ruleForm.is_discount = false,
+      ruleForm.is_tempo = false,
+      ruleForm.payment_term = canvassingData.payment_term != undefined ? canvassingData.payment_term as PaymentTerm : PaymentTerm.CASH,
+      ruleForm.payment_term_value = canvassingData.tempo_value ?? 0,
+      ruleForm.payment_term_unit = canvassingData.tempo_unit ?? 'day',
+      ruleForm.payment_method = PaymentMethod.Giro,
+      ruleForm.discount = 0,
+      ruleForm.discount_unit = 'percent' as DiscountUnit,
+      ruleForm.delivery_cost = 0,
+      ruleForm.total_price = 0,
+      ruleForm.additinal_information = '',
+      ruleForm.status = PurchaseOrderStatus.DRAFT,
+      ruleForm.items = [] as PurchaseOrderItem[]
+
+      // request_search_pricetag_item.value.column = [
+      //   {
+      //     pricetag: {
+      //       catagory: ['penawaran'],
+      //       reference_id: quotation_id.value,
+      //     }
+      //   }
+      // ]
+    }
+  } catch (error) {
+    ElMessage.error('Failed to fetch canvassing data')
+    console.error(error)
+    goBack()
+  } finally {
+    loading.value = false
+  }
+}
+
 // Initial load
 onMounted(() => {
     if(id.value){
         fetchDataEdit();
+    }
+
+    if(quotation_id.value){
+      fetchCanvassing();
+      request_search_pricetag_item.value.column = [
+        {
+          pricetag: {
+            category: ['penawaran'],
+            reference_id: [`${quotation_id.value}`],
+          }
+        }
+      ]
+
+      refreshNuxtData('search-pricetag-item');
     }
     
     

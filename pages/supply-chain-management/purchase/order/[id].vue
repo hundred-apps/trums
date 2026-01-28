@@ -52,6 +52,12 @@
           >
             <el-icon class="me-2"><CircleCheck /></el-icon> Mark as Completed
           </el-button>
+          <el-button 
+            type="primary" 
+            @click="generatePDF"
+          >
+            <el-icon class="me-2"><Printer /></el-icon> Cetak PO
+          </el-button>
         </div>
       </template>
 
@@ -69,7 +75,7 @@
               {{ purchaseOrderData?.vendor?.name || '-' }}
             </el-descriptions-item>
             <el-descriptions-item label="Total Harga">
-              {{ formatCurrency(purchaseOrderData?.total_price || 0) }}
+              {{ formatCurrency(grandTotal || 0) }}
             </el-descriptions-item>
             
           </el-descriptions>
@@ -167,7 +173,7 @@
             {{ scope.row.is_discount ? `${scope.row.discount}${scope.row.discount_unit === 'percent' ? '%' : ''}` : 'Tidak ada' }}
           </template>
         </el-table-column>
-        <el-table-column label="Status" align="center" width="150" v-if="purchaseOrderData?.status !== PurchaseOrderStatus.PENDING_APPROVAL">
+        <el-table-column label="Status" align="center" width="150" v-if="purchaseOrderData?.status !== PurchaseOrderStatus.PENDING_APPROVAL && purchaseOrderData?.status !== PurchaseOrderStatus.DONE">
           <template #default="scope">
             <el-tag :type="getItemStatusTagType(scope.row.status)">
               {{ formatItemStatus(scope.row.status) }}
@@ -193,14 +199,7 @@
             
           </template>
         </el-table-column>
-         <el-table-column label="Aksi" align="center" width="300" v-if="purchaseOrderData?.status !== PurchaseOrderStatus.PENDING_APPROVAL">
-            
-          <template #default="scope">
-            <el-tag :type="getItemStatusTagType(scope.row.status)">
-              {{ formatStatusItem(scope.row.status) }}
-            </el-tag>
-          </template>
-         </el-table-column>
+         
       </el-table>
     </el-card>
 
@@ -230,6 +229,17 @@
             </NuxtLink>
           </template>
         </el-table-column>
+      </el-table>
+    </el-card>
+
+    <el-card class="mb-3" shadow="hover">
+      <el-table :data="summeryData ?? []" style="width: 100%">
+        <el-table-column label="" prop="label" width="300">
+          <template #default="{ row }">
+            <div class="font-bold">{{ row.label }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="" prop="value" align="right"/>
       </el-table>
     </el-card>
 
@@ -263,14 +273,38 @@
         </div>
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="showPreviewPDF"
+      title="Preview PDF"
+      width="80%"
+      destroy-on-close
+    >
+      <iframe
+        v-if="pdfUrl"
+        :src="pdfUrl"
+        width="100%"
+        height="600px"
+        style="border:none;"
+      ></iframe>
+
+      <template #footer>
+        <el-button @click="showPreviewPDF = false">Tutup</el-button>
+        <el-button type="success" @click="downloadPdf">Download PDF</el-button>
+      </template>
+    </el-dialog>
   </TrumsWrapper>
 </template>
 
 <script lang="ts" setup>
-import { Delete, Edit, CircleCheck, Upload, Close, CircleClose } from '@element-plus/icons-vue'
+import { Delete, Edit, CircleCheck, Upload, Close, CircleClose, Printer } from '@element-plus/icons-vue'
 import type { FormProps } from 'element-plus';
 import { PurchaseOrderStatus, PurchaseOrderItemStatus, type PurchaseOrder, type PurchaseOrderItem } from '~/types/scm/purchase_order'
 import type { BaseResponse } from '~/types/response'
+import jsPDF from 'jspdf';
+import type { AddressType } from '~/types/address';
+import autoTable from 'jspdf-autotable';
+import type { ReferenceTransactionAdjustment } from '~/types/attribute_adjustment';
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -296,6 +330,9 @@ const svg = `
 `
 
 const loading = ref(false)
+const showPreviewPDF = ref(false);
+const pdfUrl = ref<string | null>(null);
+const pdfBlob = ref<Blob | null>(null);
 const purchaseOrderData = ref<PurchaseOrder | null>(null)
 const purchaseOrderItems = ref<PurchaseOrderItem[]>([])
 const relatedDocuments = ref<any[]>([])
@@ -304,6 +341,8 @@ const approveForm = reactive({
 })
 
 const goBack = () => router.back();
+
+
 
 // Fetch purchase order data
 const fetchPurchaseOrder = async () => {
@@ -515,8 +554,215 @@ const rejectApproval = async () => {
 }
 
 const markAsCompleted = async () => {
-  await updateStatus(PurchaseOrderStatus.COMPLETED)
+  await updateStatus(PurchaseOrderStatus.DONE)
 }
+
+const displayPDFAddress = (address: AddressType) => `${address.street}, ${address.village}, ${address.city}, ${address.regency}, ${address.codepos}`;
+
+async function getBase64ImageFromUrl(imageUrl: string): Promise<string> {
+  const res = await fetch(imageUrl)
+  const blob = await res.blob()
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onloadend = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
+
+const printDocument = async () => {
+
+  const doc = new jsPDF()
+
+  // ================= LOGO =================
+  const imgLogo = await getBase64ImageFromUrl("/images/trumecs-logo.png")
+  const tmsLogo = await getBase64ImageFromUrl("/images/tms-logo.png")
+
+  doc.addImage(imgLogo, "PNG", 160, 15, 40, 20)
+  doc.addImage(tmsLogo, "PNG", 10, 10, 40, 30)
+
+  // ================= TITLE =================
+  doc.setFontSize(18)
+  doc.text("Purchase Order", 105, 50, { align: "center" })
+
+  // ================= INFO HEADER =================
+  doc.setFontSize(11)
+
+  doc.text(`PO Number : ${purchaseOrderData.value?.unique_code}`,10,60)
+  doc.text(`Vendor : ${purchaseOrderData.value?.vendor_name}`,10,66)
+
+  doc.text(
+    `Ship To : ${purchaseOrderData.value?.address 
+      ? displayPDFAddress(purchaseOrderData.value.address) 
+      : '-'}`,
+    10,
+    72,
+    { maxWidth: 90 }
+  )
+
+  doc.text(`PO Date : ${purchaseOrderData.value?.date}`,130,60)
+  doc.text(`Expected : ${purchaseOrderData.value?.expected_arrival}`,130,66)
+
+  doc.text(
+    `Terms : ${purchaseOrderData.value?.term_payment} ${
+      purchaseOrderData.value?.term_payment == 'tempo'
+        ? purchaseOrderData.value?.term_payment_value + ' Hari'
+        : ''
+    }`,
+    130,
+    72
+  )
+
+  // ================= ITEMS TABLE =================
+
+  const rows = (purchaseOrderData.value?.purchase_order_item ?? [])
+    .map((item:any, i:number)=>[
+      i+1,
+      item.catalogue?.name,
+      item.quantity,
+      item.unit_name,
+      currency(item.unit_price),
+      currency(item.total_price)
+    ])
+
+  autoTable(doc,{
+    startY: 90,
+    head:[["No","Item","Qty","Unit","Unit Price","Amount"]],
+    body: rows,
+    styles:{ fontSize:10 },
+    headStyles:{ fillColor:[220,220,220] },
+    columnStyles:{
+      2:{ halign:"right" },
+      4:{ halign:"right" },
+      5:{ halign:"right" }
+    }
+  })
+
+  // ================= SUMMARY =================
+
+  let grandTotal = subtotal.value
+
+  const summaryRows:any[] = []
+
+  summaryRows.push([
+    { content:"Sub Total", colSpan:5, styles:{ halign:"right" } },
+    currency(subtotal.value)
+  ])
+
+  ;(purchaseOrderData.value?.reference_transaction ?? []).forEach((el:ReferenceTransactionAdjustment)=>{
+    summaryRows.push([
+      { content: el.adjustments_transaction?.name ?? '', colSpan:5, styles:{ halign:"right" } },
+      currency(el.amount ?? 0)
+    ])
+    grandTotal += Number(el.amount ?? 0)
+  })
+
+  summaryRows.push([
+    { content:"Total Order", colSpan:5, styles:{ halign:"right", fontStyle:"bold" } },
+    currency(grandTotal)
+  ])
+
+  autoTable(doc,{
+    startY:(doc as any).lastAutoTable.finalY + 2,
+    body: summaryRows,
+    theme:"plain",
+    styles:{ fontSize:10 },
+    columnStyles:{
+      5:{ halign:"right" }
+    }
+  })
+
+  // ================= SIGNATURE =================
+
+  const finalY = (doc as any).lastAutoTable.finalY + 30
+
+  doc.text("Prepared By,",10,finalY)
+  doc.text("Approved By,",130,finalY)
+
+  doc.line(10, finalY+20, 70, finalY+20)
+  doc.line(130, finalY+20, 190, finalY+20)
+
+  // ================= OUTPUT =================
+
+  const blob = doc.output("blob")
+  pdfBlob.value = blob
+  pdfUrl.value = URL.createObjectURL(blob)
+
+  return { doc, blob }
+}
+
+
+const generatePDF = async () => {
+    const {doc} = await printDocument()
+    const blob = doc.output("blob")
+    pdfUrl.value = URL.createObjectURL(blob)
+    showPreviewPDF.value = true
+}
+
+const downloadPdf = () => {
+  if (!pdfBlob.value) {
+    ElMessage.warning('Tidak ada PDF untuk di-download')
+    return
+  }
+  
+  const filename = `PO-${purchaseOrderData.value?.unique_code || 'document'}.pdf`
+  
+  // Buat URL object untuk blob
+  const url = URL.createObjectURL(pdfBlob.value)
+  
+  // Buat anchor element untuk download
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  document.body.appendChild(a)
+  a.click()
+  
+  // Cleanup
+  document.body.removeChild(a)
+  URL.revokeObjectURL(url)
+  
+  // ElMessage.success('PDF berhasil di-download')
+}
+
+const subtotal = computed(() => purchaseOrderData.value?.total_price ?? 0);
+const grandTotal = computed(() => {
+  var grandTotalSum = subtotal.value;
+  (purchaseOrderData.value?.reference_transaction ?? []).forEach(element => {
+      grandTotalSum += Number(element.amount ?? 0);
+  });
+
+  return grandTotalSum ?? 0;
+});
+
+
+const summeryData = computed(() => {
+  const tableData: any[] = [
+      {
+        label: "Subtotal",
+        value: currency(subtotal.value),
+      },
+    ];
+
+    (purchaseOrderData.value?.reference_transaction ?? []).forEach((element) => {
+      tableData.push({
+        label: element.adjustments_transaction?.name ? `${element.adjustments_transaction?.name} (${Number((displayPercentage(element, subtotal.value) || 0)).toFixed(2)}%)` : "-",
+        value: currency(displayAmount(element, subtotal.value)),
+      });
+    });
+
+    
+    tableData.push(
+      {
+        label: "Grand Total",
+        value: currency(grandTotal.value),
+      }
+  );
+
+
+  return tableData;
+
+
+})
 
 const approveItem = async (itemIndex: number) => {
   purchaseOrderData.value!.purchase_order_item[itemIndex].status = PurchaseOrderItemStatus.DONE;

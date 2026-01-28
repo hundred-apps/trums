@@ -165,7 +165,7 @@
                 row.type_item == "request"
                   ? "Permintaan"
                   : row.type_item == "quotation"
-                  ? "Penawaran"
+                  ? "Subtitution"
                   : "Equivalent"
               }}
             </div>

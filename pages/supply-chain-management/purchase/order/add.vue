@@ -1060,7 +1060,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         formData.append("additional_information", `${ruleForm.additinal_information}`)
         formData.append("is_tempo", `${ruleForm.is_tempo}`)
         formData.append("term_payment", `${ruleForm.payment_term}`)
-        formData.append("term_payment", `${ruleForm.payment_term_value}`)
+        formData.append("term_payment_value", `${ruleForm.payment_term_value}`)
         formData.append("term_payment_unit", `${ruleForm.payment_term_unit}`)
         formData.append("method_payment", `${ruleForm.payment_method}`)
         formData.append("status", `${ruleForm.status}`)
@@ -1095,6 +1095,24 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           formData.append(`item[${index}][order_version]`, `${value.order_version}`)
           formData.append(`item[${index}][status]`, `${value.status}`)
         });
+
+        references.value.forEach((ref, i) => {
+          const refFields = {
+            unique_id: ref.unique_id,
+            adjustment_id: ref.adjustment_id,
+            value: ref.value,
+            amount: ref.amount,
+            type: ref.type,
+            party_type: ref.party_type,
+            party_id: ref.party_id,
+            reference: ref.reference,
+            reference_id: ref.reference_id,
+          }
+
+          Object.entries(refFields).forEach(([key, value]) => {
+            formData.append(`reference_transaction[${i}][${key}]`, `${value}`)
+          })
+        })
 
             // Append files
         fileList.value.forEach((file, index) => {

@@ -95,7 +95,7 @@
           sub-title="Data Penawaran yang terkait dengan inquiry ini belum ada!"
         >
           <template #extra v-if="rab.data">
-            <NuxtLink class="el-button el-button--primary" :href="`/sales/offer/add?canvassing_id=${canvassing?.data?.unique_id}`">Buat Penawaran</NuxtLink>
+            <NuxtLink class="el-button el-button--primary" :href="`/sales/offer/add?canvassing_id=${canvassing?.data?.unique_id}&type=out`">Buat Penawaran</NuxtLink>
           </template>
         </el-result>
       </el-tab-pane>
@@ -110,7 +110,7 @@
           sub-title="Data SO yang terkait dengan inquiry ini belum ada!"
         >
           <template #extra v-if="penawaran.data">
-            <NuxtLink class="el-button el-button--primary" href="sales/order/add" type="primary">Buat SO</NuxtLink>
+            <NuxtLink class="el-button el-button--primary" :href="`/sales/order/add?quotation_id=${rab.data?.unique_id}`" type="primary">Buat SO</NuxtLink>
           </template>
         </el-result>
       </el-tab-pane>
@@ -267,7 +267,7 @@ const fetchCanvassing = async () => {
       column: [
         {
           source_document: [inquiryData.value?.data?.unique_code ?? ""],
-          status: [CanvassingStatus.DRAFT, CanvassingStatus.PENDING_APPROVAL_RAB, CanvassingStatus.CANVASSING]
+          status: [CanvassingStatus.DRAFT, CanvassingStatus.PENDING_APPROVAL_RAB, CanvassingStatus.CANVASSING, CanvassingStatus.RAB, CanvassingStatus.DONE,CanvassingStatus.CANCEL]
         },
       ],
       keyword: "",
@@ -282,7 +282,6 @@ const fetchCanvassing = async () => {
       "post",
       request_search
     );
-console.log('canvassing data', response.data.value);
     if (response.status.value == "success") {
       canvassing.value = {
         code: response.code || 201,
@@ -387,7 +386,7 @@ const fetchOffer = async () => {
       column: [
         {
           reference: [ReferencePriceTag.CANVASSING],
-          reference_id: [canvassing.value.data?.unique_id ?? ""],
+          reference_id: [rab.value.data?.unique_id ?? ""],
         },
       ],
       sort: null,

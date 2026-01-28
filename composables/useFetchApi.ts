@@ -8,6 +8,9 @@ export async function useFetchApi<T>(endpoint: string,key: string, request_metho
     const config = useRuntimeConfig();
     const token = useCookie('token');
 
+    console.log('url', config.public.baseURL);
+    console.log('endpoint', endpoint);
+
 
     const response = await useFetch<T>(`${config.public.baseURL}${endpoint}`, {
         key: key,

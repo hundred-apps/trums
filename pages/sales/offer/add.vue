@@ -1349,9 +1349,9 @@ import { getFirstFileUrl } from '#imports';
           ruleForm.reference_version = canvassing.version;
           ruleForm.start_date_view = (Date.now() / 1000).toString();
           ruleForm.type = 'out';
-          ruleForm.to_id = canvassing.source?.request_by?.unique_id;
-          ruleForm.to_name = canvassing.source?.request_by?.name;
-          ruleForm.to_version = canvassing.source?.request_by?.version;
+          ruleForm.to_id = canvassing.source?.request_to?.unique_id;
+          ruleForm.to_name = canvassing.source?.request_to?.name;
+          ruleForm.to_version = canvassing.source?.request_to?.version;
           
 
           ruleForm.pricetag_item = canvassing.canvassing_item.map((item) => ({

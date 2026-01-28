@@ -7,6 +7,7 @@ const base_url = route.origin;
 const { t } = useI18n();
 const authStore = useAuthStore();
 const user = useCookie("userdata");
+const visibleDialogLogOut = ref<boolean>(false);
 
 const logOut = async () => {
 
@@ -69,7 +70,7 @@ const logOut = async () => {
           <TrumsSwitcherTheme type="element" />
           <TrumsSwitcherLang type="element" />
           <TrumsButtons
-            @click="$oidc.logout()"
+            @click="visibleDialogLogOut = true"
             type="button"
             size="sm"
             padding="sm"
@@ -81,4 +82,18 @@ const logOut = async () => {
     </nav>
     <slot />
   </div>
+
+  <el-dialog v-model="visibleDialogLogOut" title="Warning" width="500" center>
+    <span class="text-center">
+      Anda Yakin Ingin Keluar Dari Aplikasi?
+    </span>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="visibleDialogLogOut = false">Cancel</el-button>
+        <el-button type="danger" @click="logOut">
+          Log Out
+        </el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>

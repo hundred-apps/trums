@@ -76,7 +76,7 @@
             v-if="
               canvassingData?.status === CanvassingStatus.DONE
             "
-            :href="`/sales/offer/add?canvassing_id=${canvassingData?.unique_id}`"
+            :href="`/sales/offer/add?canvassing_id=${canvassingData?.unique_id}&type=out`"
             class="el-button el-button--default"
           >
             Buat Penawaran
@@ -565,9 +565,8 @@
                 {{
                   row.fee_unit == "percent"
                     ? currency(Math.round(row.fee_nominal || 0))
-                    : row.fee
+                    : `${row.fee} %`
                 }}
-                {{ row.fee_unit }}
               </div>
             </div>
           </template>
@@ -2000,6 +1999,10 @@ const adjustmentTransactionFeeTotal = ref<ReferenceTransactionAdjustment>({
   created_at: 0,
 });
 
+watch(() => unitFee.value, (newValue) => {
+  adjustmentTransactionFeeTotal.value.type = newValue;
+}, {deep: true})
+
 const netProfitForBuying = computed(() => {
   let fee = 0;
 
@@ -2294,6 +2297,8 @@ const summeryData = computed(() => {
       )}  %`,
     });
   });
+
+  console.log('fee total', adjustmentTransactionFeeTotal.value);
 
   tableData.push(
     {
