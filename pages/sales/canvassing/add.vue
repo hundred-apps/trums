@@ -3514,11 +3514,9 @@ watchDebounced(request_search_contact.value, () => fetchContact(), {
 //   { debounce: 500 }
 // )
 
-watchDebounced(
-  request_search_pricetag_item.value,
-  () => refreshNuxtData("pricetag-search-items"),
-  { debounce: 500 }
-);
+watchDebounced(request_search_pricetag_item.value, () => fetchPricetagItem(), {
+  debounce: 500,
+});
 
 const initItemCanvassing = () => {
   // contactsFee.value.push({
@@ -3853,6 +3851,8 @@ const fetchPricetagItem = async () => {
 
     if (response.status.value == "success" && response.data.value != null) {
       priceTagItem.value = response.data.value;
+
+      console.log("pricetag item", priceTagItem);
     }
   } catch (error: any) {
     ElMessage.error(error?.respnse?.message ?? error);
