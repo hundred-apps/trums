@@ -30,6 +30,7 @@ export type ItemRequest = {
   catalogue_version: number;
   unit_id: string | null;
   unit_name: string | null;
+  unit_version?: number;
   description: string | null;
   inquiry_id: string | null;
   inquiry: Inquiry | null;

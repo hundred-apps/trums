@@ -15,7 +15,9 @@
             <el-button
               type="primary"
               @click="() => submitForm(ruleFormRef)"
-              :disabled="stockStatus.hasZeroStockOnly"
+              :disabled="
+                formInline.type == 'out' && stockStatus.hasZeroStockOnly
+              "
               >Simpan</el-button
             >
           </el-form-item>
@@ -31,6 +33,7 @@
               <el-radio-button value="waiting">Waiting</el-radio-button>
               <el-radio-button value="ready">Book</el-radio-button>
               <el-radio-button value="delivery">Delivery</el-radio-button>
+              <el-radio-button value="done">Done</el-radio-button>
             </el-radio-group>
           </el-form-item>
         </div>
@@ -152,7 +155,8 @@
                 v-if="
                   scope.row.stok !== undefined &&
                   scope.row.stok > 0 &&
-                  scope.row.stok < scope.row.quantity
+                  scope.row.stok < scope.row.quantity &&
+                  formInline.type == 'out'
                 "
                 content="Stok tidak mencukupi"
                 placement="top"
@@ -162,7 +166,7 @@
                 </el-icon>
               </el-tooltip>
               <el-tooltip
-                v-if="scope.row.stok === 0"
+                v-if="scope.row.stok === 0 && formInline.type == 'out'"
                 content="Stok kosong"
                 placement="top"
               >
@@ -173,9 +177,18 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column prop="stok" label="QTY Tersedia" width="100" />
+        <el-table-column
+          prop="stok"
+          :label="formInline.type == 'out' ? 'QTY Tersedia' : 'Stok Saat ini'"
+          width="100"
+        />
         <el-table-column prop="unit_name" label="Unit" width="180" />
-        <el-table-column label="Status" width="150" align="center">
+        <el-table-column
+          v-if="formInline.type == 'out'"
+          label="Status"
+          width="150"
+          align="center"
+        >
           <template #default="scope">
             <el-tag
               :type="getStockStatus(scope.row).type"
@@ -184,6 +197,16 @@
             >
               {{ getStockStatus(scope.row).text }}
             </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="Aksi" width="150" align="center">
+          <template #default="scope">
+            <el-button
+              type="danger"
+              @click="() => handleDeleteItem(scope.$index)"
+              :icon="Delete"
+              circle
+            />
           </template>
         </el-table-column>
       </el-table>
@@ -320,7 +343,12 @@ import {
   type UploadProps,
   type UploadUserFile,
 } from "element-plus";
-import { Search, CircleCloseFilled, Warning } from "@element-plus/icons-vue";
+import {
+  Search,
+  CircleCloseFilled,
+  Warning,
+  Delete,
+} from "@element-plus/icons-vue";
 import type { Catalogue } from "~/types/catalogue";
 import type { Contact } from "~/types/contact";
 import type { ResponsePagination } from "~/types/response_pagination";
@@ -330,6 +358,9 @@ import type { AddressType } from "~/types/address";
 import FormAddress from "~/components/trums/FormAddress.vue";
 import { currency, currencyWithoutSymbol, formatLocalDate } from "#imports";
 import type { Inquiry } from "~/types/inquiry";
+import { ElLoading } from "element-plus";
+import type { Inventory } from "~/types/inventory";
+import { InventoryMovementReferenceItem } from "~/types/inventory_movement";
 interface formCheckInOut {
   type: string;
   location: string;
@@ -350,6 +381,7 @@ interface formCheckInOut {
   source_document: string | null;
   status: string;
 }
+
 const loading = ref<boolean>(false);
 const dialog = ref<boolean>(false);
 const dialogSalesOrder = ref<boolean>(false);
@@ -724,6 +756,32 @@ const generateResultSearchAddress = (address: AddressType) => {
   };
 };
 
+const handleDeleteItem = async (index: number) => {
+  try {
+    await ElMessageBox.confirm("Yakin ingin menghapus item ini?", "Warning", {
+      confirmButtonText: "Hapus",
+      cancelButtonText: "Batal",
+      type: "warning",
+    });
+
+    if (tableItem.value[index].unique_id) {
+    } else {
+      tableItem.value = tableItem.value.filter((value, i) => i !== index);
+    }
+
+    // const ids =
+    //   (data.value?.data ?? [])
+    //     .filter((item) => item.checked)
+    //     .map((item) => item.unique_id!) || [];
+
+    // // Jika sampai sini, user klik Delete
+    // await submitToDelete(ids);
+  } catch (error) {
+    // User klik Cancel atau close dialog
+    console.log("Delete cancelled");
+  }
+};
+
 const handleSelectAddress = (record: Record<string, any>) => {
   if (record.new) {
     dialogNewAddress.value = true;
@@ -750,16 +808,33 @@ const onSelectReference_id = async (data: Inquiry) => {
     formInline.to_name =
       (data.reference_data as PurchaseOrder | null)?.vendor_name ?? "";
     formInline.version = data.version ?? 0;
+
+    formInline.address_id = data.address_id ?? "";
+    formInline.address_version = data.address_version ?? 0;
+    formInline.address_name = data.address?.address_name ?? "";
+  } else if (formInline.type == "in") {
+    const inquiry: Inquiry = data as Inquiry;
+    formInline.reference_view = data.unique_code ?? "";
+    formInline.reference_id = data.unique_id ?? "";
+    formInline.reference_from = "contact";
+    formInline.location = (data.reference_data as PurchaseOrder).vendor_name;
+    formInline.location_id = (data.reference_data as PurchaseOrder).vendor_id;
+
+    formInline.address_id = data.address_id ?? "";
+    formInline.address_version = data.address_version ?? 0;
+    formInline.address_name = data.address?.address_name ?? "";
   }
 
   data.item_request.forEach((element) => {
-    console.log("po item", element);
     tableItem.value.push({
       unique_id: "",
       id: 0,
       item_request: "",
-      reference: null,
-      reference_id: null,
+      reference:
+        formInline.reference === "inquiry"
+          ? InventoryMovementReferenceItem.ITEM_REQUEST
+          : InventoryMovementReferenceItem.INQUIRY,
+      reference_id: element.unique_id,
       reference_view: null,
       reference_item: null,
       item_name: element.catalogue_name ?? "",
@@ -771,6 +846,7 @@ const onSelectReference_id = async (data: Inquiry) => {
       sn: element.catalogue?.sn ?? "",
       unit_id: element.unit_id ?? "",
       unit_name: element.unit_name ?? "",
+      unit_version: element.unit_version ?? 1,
       contact_id: "",
       contact_name: "",
       contact_version: 0,
@@ -781,6 +857,8 @@ const onSelectReference_id = async (data: Inquiry) => {
     });
   });
 
+  console.log("table item", tableItem);
+
   dialogInquiry.value = false;
 };
 
@@ -790,7 +868,65 @@ const setFrom = (reference_from: string, value: any) => {
   formInline.location_id = value.unique_id;
   formInline.version = value.version;
 
+  // console.log(tableItem.value);
+  if (formInline.type == "out" && reference_from == "catalogue") {
+    fetchInventory();
+  }
+
   // requestSearchPricelist.value.column![0].location_id = [value.unique_id];
+};
+
+const fetchInventory = async () => {
+  const loadingPage = ElLoading.service({
+    lock: true,
+    text: "Loading",
+    background: "rgba(0, 0, 0, 0.7)",
+  });
+  try {
+    const request_inventory: RequestSearch = {
+      column: [
+        {
+          location_id: [formInline.location_id],
+          catalogue_id: tableItem.value.map((it) => it.catalogue_id),
+        },
+      ],
+      keyword: "",
+      limit: "100",
+      offset: "1",
+      table: "inventories",
+      sort: null,
+    };
+
+    const response = await useApiFetch<ResponsePagination<Inventory[]>>(
+      "/search",
+      {
+        method: "post",
+        body: request_inventory,
+      }
+    );
+
+    if (response.success == true) {
+      const inv: Inventory[] = response.data;
+
+      tableItem.value.forEach((element) => {
+        const findIndex = inv.findLast(
+          (value) =>
+            value.location_id == formInline.location_id &&
+            element.catalogue_id == value.catalogue_id
+        );
+        if (findIndex) {
+          element.inventory_id = findIndex?.unique_id ?? "";
+          element.stok = findIndex?.quantity;
+        } else {
+          ElMessage.error("Item Tidak Ditemukan!");
+        }
+      });
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+  } finally {
+    loadingPage.close();
+  }
 };
 
 const setTo = (reference_to: string, value: any) => {
@@ -848,6 +984,7 @@ interface inititalTable {
   sn: string;
   unit_id: string;
   unit_name: string;
+  unit_version?: number;
   contact_id: string;
   contact_name: string;
   contact_version: number;
@@ -918,6 +1055,9 @@ const onSubmit = async () => {
           cost: value.cost,
           selling_price: value.selling_price ?? 0,
           sn: value.sn,
+          unit_name: value.unit_name,
+          unit_id: value.unit_id,
+          unit_version: value.unit_version,
         };
       }),
     };

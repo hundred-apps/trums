@@ -1,37 +1,43 @@
+type RequestMethod = "post" | "put" | "get" | "delete";
 
+export async function useFetchApi<T>(
+  endpoint: string,
+  key: string,
+  request_method: RequestMethod,
+  body: any | null
+): Promise<{
+  status: any;
+  data: Ref<T | null>;
+  pending: Ref<boolean>;
+  error: Ref<any>;
+  code: number | undefined;
+}> {
+  const config = useRuntimeConfig();
+  const token = useCookie("token");
 
-type RequestMethod = 'post' | 'put' | 'get' | 'delete';
+  console.log("url", config.public.baseURL);
+  console.log("endpoint", endpoint);
 
-export async function useFetchApi<T>(endpoint: string,key: string, request_method: RequestMethod, body: any | null): Promise<{
-  status: any; data: Ref<T | null>; pending: Ref<boolean>; error: Ref<any> ; code: number|undefined
-}>{
-    const config = useRuntimeConfig();
-    const token = useCookie('token');
+  const response = await useFetch<T>(`${config.public.baseURL}${endpoint}`, {
+    key: key,
+    body: body,
+    method: request_method,
+    headers: {
+      Authorization: `Bearer ${token.value}`,
+    },
+  });
 
-    console.log('url', config.public.baseURL);
-    console.log('endpoint', endpoint);
+  if (response.error.value?.statusCode == 403) {
+    ElMessage.error(
+      response.error.value?.data?.message ?? "Action Not Permited"
+    );
+  }
 
-
-    const response = await useFetch<T>(`${config.public.baseURL}${endpoint}`, {
-        key: key,
-        body: body,
-        method: request_method,
-        headers: {
-            Authorization: `Bearer ${token.value}`, 
-        },
-    });
-
-  console.log('response', response.error.value?.data);
-  if(response.error.value?.statusCode == 403){
-    ElMessage.error(response.error.value?.data?.message ?? 'Action Not Permited')
-  }  
-  
   return {
     data: response.data as Ref<T>,
     error: response.error,
     code: response.error.value?.statusCode,
     pending: response.pending,
     status: response.status,
-  };  
-    
+  };
 }

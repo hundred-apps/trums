@@ -21,6 +21,7 @@ export enum TypeInquiry {
 export enum InquiryReference {
   MAINTENANCE = "maintenance",
   NON_MAINTENANCE = "non_maintenance",
+  PURCHASE_ORDER = "po",
   SALES_ORDER = "so",
 }
 
@@ -30,6 +31,8 @@ export function referenceView(ref: InquiryReference) {
       return "Maintenance";
     case InquiryReference.NON_MAINTENANCE:
       return "Non-Maintenance";
+    case InquiryReference.PURCHASE_ORDER:
+      return "Purchase Order";
     case InquiryReference.SALES_ORDER:
       return "Sales Order";
 
