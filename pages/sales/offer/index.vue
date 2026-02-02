@@ -1,6 +1,13 @@
 <template>
   <TrumsWrapper>
-    <toCustomer />
+    <el-tabs type="border-card" v-model="activeName">
+      <el-tab-pane label="Dari Vendor" name="vendor"
+        ><from-vendor
+      /></el-tab-pane>
+      <el-tab-pane label="Ke Customer" name="customer"
+        ><toCustomer
+      /></el-tab-pane>
+    </el-tabs>
   </TrumsWrapper>
 </template>
 
