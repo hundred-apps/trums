@@ -1968,6 +1968,8 @@ const totalBuyingPriceSelected = computed(() => {
     }
   });
 
+  console.log("total harga beli selected", total);
+
   return total;
 });
 
@@ -2012,6 +2014,7 @@ const netProfitForBuying = computed(() => {
   let fee = 0;
 
   if (adjustmentTransactionFeeTotal.value) {
+    console.log("fee satuan", adjustmentTransactionFeeTotal.value.type);
     if (adjustmentTransactionFeeTotal.value.type == FeeType.AMOUNT) {
       fee = adjustmentTransactionFeeTotal.value.amount;
     } else if (adjustmentTransactionFeeTotal.value.type == FeeType.PERCENT) {
@@ -2019,6 +2022,10 @@ const netProfitForBuying = computed(() => {
         (grandTotal.value * adjustmentTransactionFeeTotal.value.amount) / 100;
     }
   }
+
+  console.log("net profit for buying", totalForGrossProfitForBuying.value);
+  console.log("gran total", grandTotal.value);
+  console.log("fee", fee);
 
   return Number(totalForGrossProfitForBuying.value || 0) - Number(fee || 0);
 });
@@ -2250,7 +2257,7 @@ const summeryData = computed(() => {
         adjustmentTransactionOngkirTotal.value?.amount ?? 0,
         totalBuyingPriceMin.value
       )} %`,
-      jualMax: `${safePercent(
+      jualMin: `${safePercent(
         adjustmentTransactionOngkirTotal.value?.amount ?? 0,
         grandTotal.value
       )} %`,
@@ -2267,6 +2274,9 @@ const summeryData = computed(() => {
   }
 
   references.value.forEach((element) => {
+    console.log("reference", element.adjustments_transaction?.name);
+    console.log("reference value", displayAmount(element, grandTotal.value));
+
     tableData.push({
       label: element.adjustments_transaction?.name
         ? element.adjustments_transaction?.name
@@ -2303,57 +2313,46 @@ const summeryData = computed(() => {
     });
   });
 
-  console.log("fee total", adjustmentTransactionFeeTotal.value);
+  console.log("gross profit", grossProfit.value);
+  console.log(
+    "fee total",
+    displayAmount(adjustmentTransactionFeeTotal.value, grossProfit.value)
+  );
 
   tableData.push(
     {
       label: adjustmentTransactionFeeTotal.value?.adjustments_transaction?.name,
       max: currency(
-        displayAmount(adjustmentTransactionFeeTotal.value, grossProfit.value)
+        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value)
       ),
       beli: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grossProfit.value),
+        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
         totalBuyingPrice.value
       )} %`,
       jual: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grossProfit.value),
+        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
         grandTotal.value
       )} %`,
       min: currency(
-        displayAmount(adjustmentTransactionFeeTotal.value, grossProfitMin.value)
+        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value)
       ),
       beliMin: `${safePercent(
-        displayAmount(
-          adjustmentTransactionFeeTotal.value,
-          grossProfitMin.value
-        ),
+        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
         totalBuyingPriceMin.value
       )} %`,
       jualMin: `${safePercent(
-        displayAmount(
-          adjustmentTransactionFeeTotal.value,
-          grossProfitMin.value
-        ),
+        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
         grandTotal.value
       )} %`,
       selected: currency(
-        displayAmount(
-          adjustmentTransactionFeeTotal.value,
-          grossProfitSelected.value
-        )
+        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value)
       ),
       selectedBeli: `${safePercent(
-        displayAmount(
-          adjustmentTransactionFeeTotal.value,
-          grossProfitSelected.value
-        ),
+        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
         totalBuyingPriceSelected.value
       )} %`,
       selectedJual: `${safePercent(
-        displayAmount(
-          adjustmentTransactionFeeTotal.value,
-          grossProfitSelected.value
-        ),
+        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
         grandTotal.value
       )} %`,
     },
