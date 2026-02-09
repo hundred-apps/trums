@@ -70,7 +70,7 @@
               <NuxtLink
                 :href="`/inventory-management/inqueiries/${checkData?.reference_id}`"
                 class="text-blue-600"
-                >{{(checkData?.data_reference as Inquiry).unique_code ?? '-'}}</NuxtLink
+                >{{ checkData?.data_reference != null ? (checkData?.data_reference as Inquiry).unique_code ?? '-' : 'N/A'}}</NuxtLink
               >
             </el-descriptions-item>
 
@@ -119,7 +119,7 @@
         <el-table-column prop="sn" label="Serial/Part Number" width="180" />
         <el-table-column prop="quantity" label="QTY" width="100" />
 
-        <el-table-column prop="inventory.unit_name" label="UOM" width="100" />
+        <el-table-column prop="unit_name" label="UOM" width="100" />
       </el-table>
     </el-card>
 

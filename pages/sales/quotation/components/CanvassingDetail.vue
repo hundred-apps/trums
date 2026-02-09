@@ -73,9 +73,7 @@
             <el-icon class="me-2"><CircleCheck /></el-icon> Approve dan Buat RAP
           </NuxtLink> -->
           <NuxtLink
-            v-if="
-              canvassingData?.status === CanvassingStatus.DONE
-            "
+            v-if="canvassingData?.status === CanvassingStatus.DONE"
             :href="`/sales/offer/add?canvassing_id=${canvassingData?.unique_id}&type=out`"
             class="el-button el-button--default"
           >
@@ -159,7 +157,6 @@
           >
             <el-option
               v-for="item in [
-                { value: PaymentTerm.CASH, label: 'CASH' },
                 { value: PaymentTerm.COD, label: 'COD' },
                 { value: PaymentTerm.CBD, label: 'CBD' },
                 { value: PaymentTerm.TEMPO, label: 'TEMPO' },
@@ -456,7 +453,10 @@
 
         <el-table-column
           prop="status"
-          v-if="canvassingData?.status == CanvassingStatus.PENDING_APPROVAL"
+          v-if="
+            canvassingData?.status == CanvassingStatus.PENDING_APPROVAL ||
+            canvassingData?.status == CanvassingStatus.DONE
+          "
           label="Status"
           width="130"
           fixed="left"
@@ -1093,6 +1093,7 @@ import ModalAdjustmentTransaction from "~/components/trums/ModalAdjustmentTransa
 import AddAdjustment from "~/components/trums/AddAdjustment.vue";
 import type { Permission } from "~/types/menu";
 import { canAccess, currency, formatLocalDate } from "#imports";
+import FormAddress from "~/components/trums/FormAddress.vue";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -1999,9 +2000,13 @@ const adjustmentTransactionFeeTotal = ref<ReferenceTransactionAdjustment>({
   created_at: 0,
 });
 
-watch(() => unitFee.value, (newValue) => {
-  adjustmentTransactionFeeTotal.value.type = newValue;
-}, {deep: true})
+watch(
+  () => unitFee.value,
+  (newValue) => {
+    adjustmentTransactionFeeTotal.value.type = newValue;
+  },
+  { deep: true }
+);
 
 const netProfitForBuying = computed(() => {
   let fee = 0;
@@ -2298,7 +2303,7 @@ const summeryData = computed(() => {
     });
   });
 
-  console.log('fee total', adjustmentTransactionFeeTotal.value);
+  console.log("fee total", adjustmentTransactionFeeTotal.value);
 
   tableData.push(
     {
@@ -3845,11 +3850,10 @@ const decline = async () => {
 const submitApprove = async () => {
   canvassingData.value?.canvassing_item.forEach((element) => {
     element.canvassing_vendor.forEach((element) => {
-      if (
-        element.status === CanvassingVendorStatus.SUBMITTED ||
-        element.status === CanvassingVendorStatus.SELECTED
-      ) {
+      if (element.status === CanvassingVendorStatus.SELECTED) {
         element.status = CanvassingVendorStatus.SELECTED;
+      } else if ((element.status = CanvassingVendorStatus.SUBMITTED)) {
+        element.status = CanvassingVendorStatus.SUBMITTED;
       } else {
         element.status = CanvassingVendorStatus.REJECTED;
       }

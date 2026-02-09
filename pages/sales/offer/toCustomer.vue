@@ -20,6 +20,7 @@ import { NuxtLink } from "#components";
 import { InfoFilled, SetUp } from "@element-plus/icons-vue";
 import type { Pricetag } from "~/types/pricetag";
 import { canAccess, useCookie } from "#imports";
+import OfferTable from "./components/OfferTable.vue";
 definePageMeta({
   middleware: ["auth", "app"],
   name: "Penawaran ke customer",
@@ -45,35 +46,12 @@ const request_search = ref<RequestSearch>({
   },
 });
 
-const fetchData = async () => {
-  loading.value = true;
-  try {
-    const response = await useFetchApi<ResponsePagination<Pricetag[]>>(
-      `/search`,
-      "Pricetag-to-customer",
-      "post",
-      request_search.value
-    );
-
-    if (response.status.value == "success") {
-      data.value = response.data.value as ResponsePagination<Pricetag[]>;
-    }
-  } catch (error: any) {
-    ElMessage.error(error.response?.data?.message ?? error);
-    return [];
-  } finally {
-    loading.value = false;
-  }
-};
+const hasCreate = await checkPermission("pricetag-create");
+const hasUpdate = await checkPermission("pricetag-update");
+const hasDelete = await checkPermission("pricetag-delete");
 
 const locations = ref<Catalogue[]>([]);
-
-const { data } = await useFetchApi<ResponsePagination<Pricetag[]>>(
-  `/search`,
-  "Pricetag-to-customer",
-  "post",
-  request_search.value
-);
+const idsSelected = ref<string[]>([]);
 
 const fetchLocation = async () => {
   loading.value = true;
@@ -112,123 +90,6 @@ const fetchLocation = async () => {
   }
 };
 
-watch(request_search, fetchData, { immediate: true });
-
-const availableColumn: Column<Pricetag>[] = [
-  {
-    title: "No",
-    key: "no",
-    dataKey: "no",
-    width: 80,
-    cellRenderer: ({ rowIndex }) => <span>{rowIndex + 1}</span>,
-  },
-  {
-    title: "Nama",
-    key: "name",
-    dataKey: "name",
-    width: 200,
-    cellRenderer: ({ rowData }: { rowData: Pricetag }) => (
-      <NuxtLink
-        class={"text-blue-600"}
-        href={`/sales/offer/${rowData.unique_id}`}
-      >
-        {rowData.name || "-"}
-      </NuxtLink>
-    ),
-  },
-  {
-    title: "Owner",
-    key: "owner",
-    dataKey: "owner",
-    width: 200,
-    cellRenderer: ({ rowData }: { rowData: Pricetag }) => (
-      <span>{rowData.owner?.name || "-"}</span>
-    ),
-  },
-  {
-    title: "Gudang",
-    key: "location.name",
-    dataKey: "location.name",
-    width: 200,
-    headerCellRenderer: () => (
-      <div class="flex items-center justify-center">
-        <span class="mr-2 text-xs">Location</span>
-        <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
-          {{
-            default: () => (
-              <div class="filter-wrapper">
-                <div class="filter-group flex flex-col">
-                  <el-checkbox-group
-                    v-model={request_search.value.column![0].location_id}
-                  >
-                    {locations.value.map((location: Catalogue) => (
-                      <ElCheckbox
-                        key={location.unique_id!}
-                        value={location.unique_id!}
-                      >
-                        {location.name}
-                      </ElCheckbox>
-                    ))}
-                  </el-checkbox-group>
-                </div>
-              </div>
-            ),
-            reference: () => (
-              <ElIcon class="cursor-pointer">
-                <Filter />
-              </ElIcon>
-            ),
-          }}
-        </ElPopover>
-      </div>
-    ),
-  },
-  {
-    title: "Tanggal Berlaku",
-    key: "reference",
-    dataKey: "reference",
-    width: 200,
-    cellRenderer: ({ rowData: row }) => <>{formatLocalDate(row.start_date)}</>,
-  },
-  {
-    title: "Operasi",
-    key: "operasi",
-    width: 250,
-    cellRenderer: ({ rowData: row }) => (
-      <>
-        <NuxtLink
-          href={`/sales/offer/${row.unique_id}`}
-          class="el-button el-button--small"
-        >
-          Detail
-        </NuxtLink>
-        <NuxtLink
-          href={`/sales/offer/add?id=${row.unique_id}`}
-          class="el-button el-button--small"
-        >
-          Edit
-        </NuxtLink>
-
-        <ElPopconfirm
-          title="Yakin ingin menghapus?"
-          confirmButtonText="Ya"
-          cancelButtonText="Tidak"
-          onConfirm={() => handleDelete([row.unique_id])}
-        >
-          {{
-            reference: () => (
-              <ElButton size="small" type="danger">
-                Delete
-              </ElButton>
-            ),
-          }}
-        </ElPopconfirm>
-        {/* <ElButton size="small" type="danger" onClick={() => handleDelete(row)}>Delete</ElButton> */}
-      </>
-    ),
-  },
-];
-
 type SelectionCellProps = {
   value: boolean;
   intermediate?: boolean;
@@ -248,40 +109,6 @@ const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
     />
   );
 };
-
-availableColumn.unshift({
-  key: "selection",
-  width: 50,
-  cellRenderer: ({ rowData }) => {
-    const onChange = (value: CheckboxValueType) => (rowData.checked = value);
-    return <SelectionCell value={rowData.checked} onChange={onChange} />;
-  },
-
-  headerCellRenderer: () => {
-    const _data = unref(data);
-    const onChange = (value: CheckboxValueType) =>
-      (data.value = {
-        success: true,
-        currentPage: _data?.currentPage ?? 0,
-        total_data: _data?.total_data ?? 0,
-        total_page: _data?.total_data ?? 0,
-        data: _data?.data?.map((row: any) => {
-          row.checked = value;
-          return row;
-        })!,
-      });
-    const allSelected = _data!.data.every((row) => row.checked);
-    const containsChecked = _data?.data.some((row) => row.checked);
-
-    return (
-      <SelectionCell
-        value={allSelected}
-        intermediate={containsChecked && !allSelected}
-        onChange={onChange}
-      />
-    );
-  },
-});
 
 const handleDelete = async (ids: string[]) => {
   loading.value = true;
@@ -330,11 +157,8 @@ const paginationClick = (val: number) => {
   request_search.value = data;
 };
 
-const checkSelect = () => data?.value?.data.some((row) => row.checked);
-
 const deleteBulk = () => {
-  const checkeds = data.value?.data.filter((value) => value.checked);
-  handleDelete(checkeds?.map((value) => value.unique_id) ?? []);
+  handleDelete(idsSelected.value);
 };
 
 onMounted(() => {
@@ -352,7 +176,7 @@ onMounted(() => {
             placeholder="Type to search"
         /></el-col>
         <NuxtLink
-          v-if="canAccess('pricetag-create', data?.privilege ?? [])"
+          v-if="hasCreate"
           href="/sales/offer/add?type=out"
           @click="
             () => {
@@ -364,7 +188,7 @@ onMounted(() => {
           >Buat Penawaran Baru</NuxtLink
         >
         <el-popconfirm
-          v-if="checkSelect()"
+          v-if="idsSelected.length > 0 && hasDelete"
           width="220"
           :icon="InfoFilled"
           icon-color="#626AEF"
@@ -384,21 +208,11 @@ onMounted(() => {
           </template>
         </el-popconfirm>
       </el-row>
-      <CustomTable
-        :column-sort="onSort"
-        :columns="availableColumn"
-        :data="data?.data ?? []"
+      <OfferTable
+        :request_search="request_search"
+        :key="'get-offer-to-customer'"
+        v-on:has-bulk="(value) => (idsSelected = value)"
       />
-      <div class="flex justify-end mt-3">
-        <el-pagination
-          background
-          layout="prev, pager, next"
-          :total="data?.total_data"
-          @next-click="paginationClick"
-          @prev-click="paginationClick"
-          @change="paginationClick"
-        />
-      </div>
     </div>
   </TrumsWrapper>
 </template>

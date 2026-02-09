@@ -167,6 +167,7 @@
             >
               <el-option :label="`Subtitution`" :value="'quotation'" />
               <el-option :label="`Equivalent`" :value="'equivalent'" />
+              <el-option :label="`Original`" :value="'original'" />
             </el-select>
             <div v-else>Permintaan</div>
           </template>
@@ -1442,7 +1443,7 @@ const addItemVendor = (row: CanvassingItemForm) => {
     if (item.index == itemIndex.value) {
       const startIndex = item.children.length;
       item.children.push({
-        type_item: "quotation",
+        type_item: "original",
         parent_index: item.index,
         equivalent_id: null,
         index: `${item.index}-${startIndex}`,
@@ -1462,7 +1463,7 @@ const addItemVendor = (row: CanvassingItemForm) => {
         parent_catalogue_id: "",
         catalogue_name: "",
         sn: "N/A",
-        quantity: 22,
+        quantity: item.quantity,
         unit_price: 0,
         total_price: 0,
         status: CanvassingVendorStatus.SUBMITTED,
@@ -2278,7 +2279,7 @@ const addChildItem = (
   const child: CanvassingItemForm = {
     parent_index: `${parentIndex}`,
     index: `${itemIndex.value}-${childIndex}`,
-    type_item: "quotation",
+    type_item: "original",
     equivalent_id: null,
     canvassing_id: null,
     canvaasing_version: null,
@@ -3514,9 +3515,13 @@ watchDebounced(request_search_contact.value, () => fetchContact(), {
 //   { debounce: 500 }
 // )
 
-watchDebounced(request_search_pricetag_item.value, () => fetchPricetagItem(), {
-  debounce: 500,
-});
+watchDebounced(
+  () => request_search_pricetag_item.value.keyword,
+  () => fetchPricetagItem(),
+  {
+    debounce: 500,
+  }
+);
 
 const initItemCanvassing = () => {
   // contactsFee.value.push({

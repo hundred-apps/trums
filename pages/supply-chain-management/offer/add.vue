@@ -28,7 +28,14 @@
           status-icon
           :disabled="loading"
         >
-          <el-form-item prop="owner_name" v-if="type == 'in'" label="Vendor">
+          <el-form-item label="Nomor Referensi" prop="code">
+            <el-input
+              v-model="ruleForm.code"
+              placeholder="Masukan Nomor Referensi"
+            />
+          </el-form-item>
+
+          <el-form-item prop="owner_name" label="Vendor">
             <el-autocomplete
               v-model="ruleForm.owner_name"
               :fetch-suggestions="querySearchVendors"
@@ -47,14 +54,10 @@
               </template>
             </el-autocomplete>
           </el-form-item>
-          <el-form-item label="Subject" prop="subject">
-            <el-input
-              v-model="ruleForm.subject"
-              placeholder="Masukan Subject"
-            />
-          </el-form-item>
-          <el-form-item prop="to_name" label="Kepada">
+
+          <el-form-item prop="to_name" label="Kepada" disabled>
             <el-autocomplete
+              :disabled="true"
               v-model="ruleForm.to_name"
               :fetch-suggestions="querySearchVendors"
               placeholder="Cari Kontak"
@@ -337,6 +340,7 @@ import Collapse from "~/components/trums/Collapse.vue";
 import type { Contact } from "~/types/contact";
 import type { FunctionalComponent } from "vue";
 import type { Quotation } from "~/types/quotation";
+import ItemImageUpload from "~/pages/sales/inquiry/components/ItemImageUpload.vue";
 import {
   OperationPriceTag,
   ReferencePriceTag,
@@ -346,8 +350,6 @@ import {
   type Pricetag_item,
 } from "~/types/pricetag";
 import type { User } from "~/types/user";
-import Special_price_kontak_componen from "../pricelist/special_price_kontak_componen.vue";
-import Special_price_quantity_componen from "../pricelist/special_price_quantity_componen.vue";
 import type { BaseResponse } from "~/types/response";
 import type { Pricelist_item } from "~/types/pricelist";
 import type { ItemSearch } from "~/types/item_search";
@@ -357,7 +359,6 @@ import TrumsUploadFile from "~/components/trums/form/TrumsUploadFile.vue";
 import type { AppFile } from "~/types/file";
 import type { AddressType } from "~/types/address";
 import PhotoWallUploads from "~/components/trums/PhotoWallUploads.vue";
-import ItemImageUpload from "../inquiry/components/ItemImageUpload.vue";
 import CatalogueAdd from "~/components/trums/CatalogueAdd.vue";
 import { getFirstFileUrl } from "#imports";
 
@@ -571,7 +572,7 @@ const units = ref<Unit[]>([]);
 const rules = reactive<FormRules>({
   code: [
     {
-      required: true,
+      required: false,
       message: "Nomor Penawaran Tidak Boleh Kosong!",
       trigger: "blur",
     },
@@ -649,8 +650,6 @@ const handleSubmit = async (catalogue: Catalogue) => {
     const catalogueInsert = (await create_catalogue(catalogue)) ?? undefined;
 
     if (catalogueInsert != undefined) {
-      // dataTable.value[itemActive.value].item = catalogueInsert?.name ?? '';
-      // dataTable.value[itemActive.value].item_id = catalogueInsert?.unique_id ?? '';
       ruleForm.pricetag_item[itemActive.value].sn = catalogueInsert?.sn ?? "";
       ruleForm.pricetag_item[itemActive.value].catalogue = catalogueInsert;
       ruleForm.pricetag_item[itemActive.value].catalogue_id =
@@ -661,11 +660,12 @@ const handleSubmit = async (catalogue: Catalogue) => {
       ruleForm.pricetag_item[itemActive.value].image = getFirstFileUrl(
         catalogueInsert.files ?? []
       );
+
+      ruleFormRef.value?.resetFields();
     } else {
       ElMessage.error("Kesalahan saat menyimpan data catalogue!");
     }
   } catch (error: any) {
-    console.log(error);
     ElMessage.error(`Gagal menyimpan catalogue`);
   } finally {
     loading.value = false;
@@ -1344,41 +1344,6 @@ const resetForm = (formEl: FormInstance | undefined) => {
 
 // watch(requestSearchInventory, fetchData, {immediate: true});
 
-const initialSpecialPrice = () => {
-  collapse_special_price.value = [
-    {
-      element: (
-        <Special_price_kontak_componen
-          type="kontak"
-          conditions={contact_condition.value}
-        />
-      ),
-      name: "Contacts",
-      title: "Contacts",
-    },
-    {
-      element: (
-        <Special_price_kontak_componen
-          type="location"
-          conditions={location_condition.value}
-        />
-      ),
-      name: "Location",
-      title: "Location",
-    },
-    {
-      element: (
-        <Special_price_quantity_componen
-          initaial_value={parseInt(quantity.value.value)}
-          onChange={(value) => (quantity.value!.value = value.toString())}
-        />
-      ),
-      name: "Minimum Quantity",
-      title: "Minimum Quantity",
-    },
-  ];
-};
-
 const fetchInitialData = async () => {
   loading.value = true;
 
@@ -1461,8 +1426,6 @@ const fetchInitialData = async () => {
         // status: 'success', // status penting untuk menunjukkan file sudah terupload
         // response: file, // simpan response original jika diperlukan
       }));
-
-      initialSpecialPrice();
     }
   } catch (error: any) {
     ElMessage.error(`${error.response?.message ?? error}`);
@@ -1509,7 +1472,7 @@ const fetchCanvassing = async () => {
           sn: item.catalogue?.sn ?? "N/A",
           checked: false,
           item_name: item.catalogue?.name ?? "",
-          quantity: 1,
+          quantity: item.quantity,
           fileUploads: [],
         }));
 
@@ -1551,19 +1514,10 @@ const initialSetting = () => {
       company: Contact;
       address: AddressType;
     } = JSON.parse(store);
-    console.log("type", ruleForm.type);
-    if (ruleForm.type == "in") {
-      ruleForm.to = setting.company;
-      ruleForm.to_id = setting.company.unique_id;
-      ruleForm.to_version = setting.company.version;
-      ruleForm.to_name = setting.company.name;
-    } else {
-      ruleForm.owner = setting.company;
-      ruleForm.owner_id = setting.company.unique_id;
-      ruleForm.owner_name = setting.company.name;
-    }
-
-    console.log("rule form", ruleForm);
+    ruleForm.to = setting.company;
+    ruleForm.to_id = setting.company.unique_id;
+    ruleForm.to_version = setting.company.version;
+    ruleForm.to_name = setting.company.name;
   }
 };
 
@@ -1575,7 +1529,6 @@ onMounted(() => {
   if (id.value) {
     fetchInitialData();
   } else {
-    initialSpecialPrice();
     initialSetting();
   }
 });

@@ -1,170 +1,56 @@
 <template>
-  <TrumsWrapper>
-    <!-- Statistic Cards -->
-    <el-row :gutter="16">
-      <el-col :span="6">
-        <div class="statistic-card">
-          <el-statistic
-            :value="(data?.data ?? []).filter((item: PurchaseOrder) => item.status === PurchaseOrderStatus.DRAFT).length"
-          >
-            <template #title>
-              <div style="display: inline-flex; align-items: center">
-                Draft Purchase Order
-              </div>
-            </template>
-          </el-statistic>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="statistic-card">
-          <el-statistic
-            :value="(data?.data ?? []).filter((item: PurchaseOrder) => item.status === PurchaseOrderStatus.PENDING_APPROVAL).length"
-          >
-            <template #title>
-              <div style="display: inline-flex; align-items: center">
-                Pending Approval
-              </div>
-            </template>
-          </el-statistic>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="statistic-card">
-          <el-statistic
-            :value="(data?.data ?? []).filter((item: PurchaseOrder) => item.status === PurchaseOrderStatus.CANCELLED).length"
-          >
-            <template #title>
-              <div style="display: inline-flex; align-items: center">
-                Cancelled
-              </div>
-            </template>
-          </el-statistic>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="statistic-card">
-          <el-statistic :value="data?.total_data ?? 0">
-            <template #title>
-              <div style="display: inline-flex; align-items: center">
-                Total Purchase Order
-              </div>
-            </template>
-          </el-statistic>
-        </div>
-      </el-col>
-    </el-row>
+  <!-- Table -->
+  <CustomTable
+    :columns="filteredColumns"
+    :data="data?.data ?? []"
+    :loading="loading"
+    :column-sort="onSort"
+  />
 
-    <!-- Action Bar -->
-    <el-row :gutter="20" class="mb-3 mt-4">
-      <el-col :span="6">
-        <el-input
-          v-model="request_search.keyword"
-          size="default"
-          placeholder="Cari purchase order..."
-          clearable
-        />
-      </el-col>
-      <el-col :span="18" class="text-right space-x-2">
-        <NuxtLink
-          class="el-button el-button--primary el-button--default"
-          href="/supply-chain-management/purchase/order/add"
-        >
-          Buat Purchase Order Baru
-        </NuxtLink>
-        <el-button
-          size="default"
-          :loading-icon="Eleme"
-          :loading="loading"
-          @click="fetchData"
-        >
-          Muat Ulang
-        </el-button>
-        <el-button type="danger" :disabled="!hasSelected" @click="batchDelete">
-          Hapus yang Dipilih
-        </el-button>
-      </el-col>
-    </el-row>
-
-    <!-- Table -->
-    <CustomTable
-      :columns="filteredColumns"
-      :data="data?.data ?? []"
-      :loading="loading"
-      :column-sort="onSort"
-      @selection-change="handleSelectionChange"
+  <!-- Pagination -->
+  <div class="flex justify-end mt-3">
+    <el-pagination
+      background
+      layout="prev, pager, next, sizes, total"
+      :total="data?.total_data ?? 0"
+      :current-page="Number(request_search.offset)"
+      :page-size="Number(request_search.limit)"
+      @current-change="handlePageChange"
+      @size-change="handleSizeChange"
     />
-
-    <!-- Pagination -->
-    <div class="flex justify-end mt-3">
-      <el-pagination
-        background
-        layout="prev, pager, next, sizes, total"
-        :total="data?.total_data ?? 0"
-        :current-page="Number(request_search.offset)"
-        :page-size="Number(request_search.limit)"
-        @current-change="handlePageChange"
-        @size-change="handleSizeChange"
-      />
-    </div>
-  </TrumsWrapper>
+  </div>
 </template>
-
 <script lang="tsx" setup>
-import { Eleme, SetUp, Filter } from "@element-plus/icons-vue";
+import { NuxtLink } from "#components";
+import { Filter, SetUp } from "@element-plus/icons-vue";
 import {
-  type Column,
-  type CheckboxValueType,
-  TableV2FixedDir,
-  ElPopover,
   ElCheckbox,
-  ElIcon,
-  type SortBy,
   ElCheckboxGroup,
-  ElMessage,
+  ElIcon,
+  ElPopover,
+  TableV2FixedDir,
+  type CheckboxValueType,
+  type Column,
+  type SortBy,
 } from "element-plus";
+import { OrderColumn, type RequestSearch } from "~/types/request_search";
+import type { ResponsePagination } from "~/types/response_pagination";
 import {
   PurchaseOrderStatus,
   type PurchaseOrder,
 } from "~/types/scm/purchase_order";
-import type { Pagination } from "~/types/pagination";
-import { NuxtLink } from "#components";
-import CustomTable from "~/components/trums/table/customTable.vue";
-import type { ResponsePagination } from "~/types/response_pagination";
-import { OrderColumn, type RequestSearch } from "~/types/request_search";
-import type { BaseResponse } from "~/types/response";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
+import type { BaseResponse } from "~/types/response";
+import CustomTable from "~/components/trums/table/customTable.vue";
 
-definePageMeta({
-  middleware: ["auth", "app"],
-});
+const props = defineProps<{
+  request_search: RequestSearch;
+  key: string;
+}>();
 
-// Search request
-const request_search = ref<RequestSearch>({
-  keyword: "",
-  column: [
-    {
-      status: [],
-      type: ["po"],
-    },
-  ],
-  limit: "10",
-  offset: "1",
-  table: "purchase_order",
-  sort: {
-    column: "created_at",
-    order: OrderColumn.DESC,
-  },
-});
-
-// Data state
-const { data } = await useFetchApi<ResponsePagination<PurchaseOrder[]>>(
-  "/search",
-  "search-purchase-order",
-  "post",
-  request_search
-);
-const selectedPurchaseOrders = ref<PurchaseOrder[]>([]);
+const selectedIds = ref<string[]>([]);
 const loading = ref<boolean>(false);
+const request_search = ref<RequestSearch>(props.request_search);
 const columnsSelected = ref<string[]>([
   "selection",
   "unique_code",
@@ -177,7 +63,30 @@ const columnsSelected = ref<string[]>([
   "setup",
 ]);
 
-// Columns
+const emit = defineEmits<{
+  (e: "has-bulk", value: string[]): void;
+  (e: "on-pending", value: boolean): void;
+  (e: "on-success", value: ResponsePagination<PurchaseOrder[]> | null): void;
+}>();
+
+// var data;
+
+// Data state
+const { data, pending } = await useFetchApi<
+  ResponsePagination<PurchaseOrder[]>
+>("/search", props.key, "post", request_search.value);
+
+const onSort = (sortBy: SortBy) => {
+  request_search.value.sort = {
+    column: sortBy.key.toString(),
+    order:
+      request_search.value.sort?.order === OrderColumn.ASC
+        ? OrderColumn.DESC
+        : OrderColumn.ASC,
+  };
+  refreshNuxtData(props.key);
+};
+
 const columns: Column<PurchaseOrder>[] = [
   {
     key: "unique_code",
@@ -185,10 +94,7 @@ const columns: Column<PurchaseOrder>[] = [
     dataKey: "unique_code",
     width: 150,
     cellRenderer: ({ rowData: row }) => (
-      <NuxtLink
-        href={`/supply-chain-management/purchase/order/${row.unique_id}`}
-        class="text-blue-500"
-      >
+      <NuxtLink href={`/sales/order/${row.unique_id}`} class="text-blue-500">
         {row.unique_code}
       </NuxtLink>
     ),
@@ -205,7 +111,7 @@ const columns: Column<PurchaseOrder>[] = [
     dataKey: "total_price",
     width: 150,
     cellRenderer: ({ rowData }: { rowData: PurchaseOrder }) => (
-      <span>{formatCurrency(rowData.total_price)}</span>
+      <span>{currency(rowData.total_price)}</span>
     ),
   },
   {
@@ -215,7 +121,9 @@ const columns: Column<PurchaseOrder>[] = [
     width: 150,
     cellRenderer: ({ rowData }: { rowData: PurchaseOrder }) => (
       <span>
-        {rowData.expected_arrival ? formatDate(rowData.expected_arrival) : "-"}
+        {rowData.expected_arrival
+          ? formatLocalDate(rowData.expected_arrival)
+          : "-"}
       </span>
     ),
   },
@@ -282,7 +190,7 @@ const columns: Column<PurchaseOrder>[] = [
     width: 150,
     sortable: true,
     cellRenderer: ({ rowData }: { rowData: PurchaseOrder }) => (
-      <span>{formatDate(rowData.created_at)}</span>
+      <span>{formatLocalDate(rowData.created_at)}</span>
     ),
   },
   {
@@ -292,7 +200,7 @@ const columns: Column<PurchaseOrder>[] = [
       <>
         <NuxtLink
           class="el-button el-button--small"
-          href={`/supply-chain-management/purchase/order/add?id=${rowData.unique_id}`}
+          href={`/sales/order/add?id=${rowData.unique_id}`}
         >
           Edit
         </NuxtLink>
@@ -332,6 +240,9 @@ columns.unshift({
         item.checked = value as boolean;
       });
     };
+    selectedIds.value = (data.value?.data ?? [])
+      .filter((filter) => filter.checked)
+      .map((value) => value.unique_id);
     return (
       <SelectionCell
         value={data.value?.data?.every((item) => item.checked) || false}
@@ -385,23 +296,6 @@ const filteredColumns = computed(() => {
   );
 });
 
-const hasSelected = computed(() => {
-  return data.value?.data?.some((item) => item.checked) || false;
-});
-
-// Methods
-const formatDate = (timestamp: number) => {
-  return new Date(timestamp * 1000).toLocaleDateString("id-ID");
-};
-
-const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(amount);
-};
-
 const renderStatusTag = (status: PurchaseOrderStatus) => {
   if (!status) return <></>;
 
@@ -421,20 +315,6 @@ const renderStatusTag = (status: PurchaseOrderStatus) => {
   }
 };
 
-const handleSelectionChange = (selection: PurchaseOrder[]) => {
-  selectedPurchaseOrders.value = selection;
-};
-
-const handlePageChange = (page: number) => {
-  request_search.value.offset = `${page}`;
-  fetchData();
-};
-
-const handleSizeChange = (size: number) => {
-  request_search.value.limit = `${size}`;
-  fetchData();
-};
-
 const onDelete = async (uniques: string[]) => {
   try {
     // Implement delete functionality here
@@ -445,83 +325,36 @@ const onDelete = async (uniques: string[]) => {
       uniques
     );
     if (response.status.value === "success") {
-      await fetchData();
+      await refreshNuxtData(props.key);
     }
   } catch (error) {
     ElMessage.error("Gagal menghapus purchase order");
   }
 };
 
-const batchDelete = async () => {
-  const ids =
-    data.value?.data
-      ?.filter((item) => item.checked)
-      .map((item) => item.unique_id!) || [];
-
-  if (ids.length > 0) {
-    await onDelete(ids);
-  }
+const handlePageChange = (page: number) => {
+  request_search.value.offset = `${page}`;
+  refreshNuxtData(props.key);
 };
 
-const onSort = (sortBy: SortBy) => {
-  request_search.value.sort = {
-    column: sortBy.key.toString(),
-    order:
-      request_search.value.sort?.order === OrderColumn.ASC
-        ? OrderColumn.DESC
-        : OrderColumn.ASC,
-  };
-  fetchData();
+const handleSizeChange = (size: number) => {
+  request_search.value.limit = `${size}`;
+  refreshNuxtData(props.key);
 };
 
-// Fetch data
-const fetchData = async () => {
-  refreshNuxtData("search-purchase-order");
-};
-
-// Watch search query
-watchDebounced(
-  request_search,
-  () => {
-    fetchData();
+watch(
+  selectedIds,
+  (val) => {
+    emit("has-bulk", val);
   },
-  { debounce: 500, deep: true }
+  { deep: true }
 );
-
-onMounted(() => {});
+watch(
+  () => pending.value,
+  (val) => {
+    emit("on-success", data.value);
+    emit("on-pending", val);
+  },
+  { immediate: true }
+);
 </script>
-
-<style scoped>
-.el-row {
-  margin-bottom: 20px;
-}
-
-.statistic-card {
-  height: 100%;
-  padding: 20px;
-  border-radius: 4px;
-  background-color: var(--el-bg-color-overlay);
-}
-
-.statistic-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-  margin-top: 16px;
-}
-
-.statistic-footer .footer-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.statistic-footer .footer-item span:last-child {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 4px;
-}
-</style>

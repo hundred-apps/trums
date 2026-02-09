@@ -59,7 +59,12 @@
           >
             <el-icon class="me-2"><CircleCheck /></el-icon> Mark as Completed
           </el-button>
-          <el-button type="primary" @click="generatePDF">
+          <el-button
+            type="primary"
+            :loading="loadingDocument"
+            :loading-icon="Eleme"
+            @click="generatePDF"
+          >
             <el-icon class="me-2"><Printer /></el-icon> Cetak PO
           </el-button>
         </div>
@@ -128,17 +133,19 @@
         <div class="flex-1">
           <el-descriptions title="" :column="1" size="large" border>
             <el-descriptions-item label="Metode Pemabayaran">
-              {{ purchaseOrderData?.method_payment || "-" }}
+              {{ (purchaseOrderData?.method_payment || "-").toUpperCase() }}
             </el-descriptions-item>
-            <el-descriptions-item
-              v-if="purchaseOrderData?.is_tempo"
-              label="Tempo"
-            >
-              Tempo :
+            <el-descriptions-item label="Pembayaran">
               {{
-                purchaseOrderData?.term_payment +
-                " " +
-                purchaseOrderData?.term_payment_unit
+                (purchaseOrderData?.term_payment == "tempo"
+                  ? "Tempo " +
+                    purchaseOrderData?.term_payment_value +
+                    " " +
+                    (purchaseOrderData?.term_payment_unit == "day"
+                      ? "Hari"
+                      : purchaseOrderData?.term_payment_unit)
+                  : purchaseOrderData?.term_payment
+                )?.toUpperCase()
               }}
             </el-descriptions-item>
           </el-descriptions>
@@ -418,6 +425,7 @@ import {
   Close,
   CircleClose,
   Printer,
+  Eleme,
 } from "@element-plus/icons-vue";
 import type { FormProps } from "element-plus";
 import {
@@ -432,6 +440,7 @@ import type { AddressType } from "~/types/address";
 import autoTable from "jspdf-autotable";
 import type { ReferenceTransactionAdjustment } from "~/types/attribute_adjustment";
 import { currency, formatLocalDate } from "#imports";
+import type { TrumDoc } from "~/types/document";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -457,6 +466,7 @@ const svg = `
 `;
 
 const loading = ref(false);
+const loadingDocument = ref<boolean>(false);
 const showPreviewPDF = ref(false);
 const pdfUrl = ref<string | null>(null);
 const pdfBlob = ref<Blob | null>(null);
@@ -714,7 +724,7 @@ async function getBase64ImageFromUrl(imageUrl: string): Promise<string> {
   });
 }
 
-const printDocument = async () => {
+const printDocument = async (code: string) => {
   const doc = new jsPDF();
 
   // ================= PAGE SETUP =================
@@ -861,13 +871,18 @@ const printDocument = async () => {
   (purchaseOrderData.value?.reference_transaction ?? []).forEach((el) => {
     summaryRows.push([
       {
-        content: el.adjustments_transaction?.name ?? "",
+        content:
+          (el.adjustments_transaction?.name ?? "").toLocaleLowerCase() == "ppn"
+            ? `PPN (${Number(
+                displayPercentage(el, subtotal.value) || 0
+              ).toFixed(2)}%)`
+            : el.adjustments_transaction?.name ?? "",
         colSpan: 5,
         styles: { halign: "right" },
       },
-      currency(el.amount ?? 0),
+      currency(displayAmount(el, subtotal.value)),
     ]);
-    grandTotal += Number(el.amount ?? 0);
+    grandTotal += Number(displayAmount(el, subtotal.value) ?? 0);
   });
 
   summaryRows.push([
@@ -925,10 +940,34 @@ const printDocument = async () => {
 };
 
 const generatePDF = async () => {
-  const { doc } = await printDocument();
-  const blob = doc.output("blob");
-  pdfUrl.value = URL.createObjectURL(blob);
-  showPreviewPDF.value = true;
+  loadingDocument.value = true;
+  try {
+    const data = {
+      reference: "po",
+      reference_id: purchaseOrderData.value?.unique_id,
+    };
+
+    const response = await useFetchApi<BaseResponse<TrumDoc>>(
+      "/documents-create",
+      "document-create",
+      "post",
+      data
+    );
+
+    if (response.status.value == "success") {
+      loadingDocument.value = false;
+      const { doc } = await printDocument(
+        response.data?.value?.data?.unique_code ?? ""
+      );
+      const blob = doc.output("blob");
+      pdfUrl.value = URL.createObjectURL(blob);
+      showPreviewPDF.value = true;
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+  } finally {
+    loadingDocument.value = false;
+  }
 };
 
 const downloadPdf = () => {
@@ -962,7 +1001,7 @@ const subtotal = computed(() => purchaseOrderData.value?.total_price ?? 0);
 const grandTotal = computed(() => {
   var grandTotalSum = subtotal.value;
   (purchaseOrderData.value?.reference_transaction ?? []).forEach((element) => {
-    grandTotalSum += Number(element.amount ?? 0);
+    grandTotalSum += Number(displayAmount(element, subtotal.value) ?? 0);
   });
 
   return grandTotalSum ?? 0;
@@ -1027,10 +1066,10 @@ const deletePurchaseOrder = async () => {
   loading.value = true;
   try {
     const response = await useFetchApi<BaseResponse<any>>(
-      `/purchase-order-delete/${purchaseOrderData.value?.unique_id}`,
+      `/purchase-order-delete`,
       "delete-purchase-order",
-      "delete",
-      null
+      "post",
+      [purchaseOrderData.value?.unique_id]
     );
 
     if (response.status.value === "success") {

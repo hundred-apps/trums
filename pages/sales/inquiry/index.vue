@@ -1,25 +1,46 @@
 <script lang="tsx" setup>
-  definePageMeta({
-    middleware: ["auth", "check-access"],
-    requiredPermission: "inquiries-read",
-  });
-  import { ref, onMounted } from 'vue';
-  import { Filter, SetUp } from '@element-plus/icons-vue'
-  import { TypeInquiry, type Inquiry } from '~/types/inquiry';
-  import customTable from '~/components/trums/table/customTable.vue';
-  import { OrderColumn, type RequestSearch } from '~/types/request_search';
-  import type { ResponsePagination } from '~/types/response_pagination';
-  import { ElButton, ElCheckbox, ElCheckboxGroup, ElIcon, ElMessage, ElPopover, ElTag, TableV2FixedDir, type CheckboxValueType, type Column, type MainInstance, type SortBy } from 'element-plus';
-  import type { Contact } from '~/types/contact';
-  import type { Maintenance } from '~/types/maintenance';
-  import type { CellRendererParams } from 'element-plus/es/components/table-v2/src/types.mjs';
-  import SelectionCell from '~/components/trums/table/SelectionCell.vue';
-  import DeleteButton from '~/components/trums/DeleteButton.vue';
-  import { NuxtLink } from '#components';
-import type { BaseResponse } from '~/types/response';
-const column_selected = ref<string[]>(['selection', 'unique_code', 'date', 'request_by', 'request_to','operation', 'setup']);
-  const popoverRef = ref();
-  const config = useRuntimeConfig();
+definePageMeta({
+  middleware: ["auth", "check-access"],
+  requiredPermission: "inquiries-read",
+});
+import { ref, onMounted } from "vue";
+import { Filter, SetUp } from "@element-plus/icons-vue";
+import { TypeInquiry, type Inquiry } from "~/types/inquiry";
+import customTable from "~/components/trums/table/customTable.vue";
+import { OrderColumn, type RequestSearch } from "~/types/request_search";
+import type { ResponsePagination } from "~/types/response_pagination";
+import {
+  ElButton,
+  ElCheckbox,
+  ElCheckboxGroup,
+  ElIcon,
+  ElMessage,
+  ElPopover,
+  ElTag,
+  TableV2FixedDir,
+  type CheckboxValueType,
+  type Column,
+  type MainInstance,
+  type SortBy,
+} from "element-plus";
+import type { Contact } from "~/types/contact";
+import type { Maintenance } from "~/types/maintenance";
+import type { CellRendererParams } from "element-plus/es/components/table-v2/src/types.mjs";
+import SelectionCell from "~/components/trums/table/SelectionCell.vue";
+import DeleteButton from "~/components/trums/DeleteButton.vue";
+import { NuxtLink } from "#components";
+import type { BaseResponse } from "~/types/response";
+const column_selected = ref<string[]>([
+  "selection",
+  "unique_code",
+  "date",
+  "request_by",
+  "request_to",
+  "operation",
+  "setup",
+]);
+const popoverRef = ref();
+const config = useRuntimeConfig();
 
 const axios = useApi();
 
@@ -120,7 +141,7 @@ const availableColumn: Column<Inquiry>[] = [
     key: "request_by",
     width: 200,
     cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
-      <p>{rowData.request_by?.name ?? ''}</p>
+      <p>{rowData.request_by?.name ?? ""}</p>
     ),
   },
   {
@@ -128,7 +149,9 @@ const availableColumn: Column<Inquiry>[] = [
     dataKey: "request_to",
     key: "request_to",
     width: 200,
-    cellRenderer: ({ rowData }: { rowData: Inquiry }) => <p>{rowData.request_to?.name ?? 'Tidak Ada'}</p>,
+    cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
+      <p>{rowData.request_to?.name ?? "Tidak Ada"}</p>
+    ),
   },
   {
     title: "Priority",
@@ -151,25 +174,12 @@ const availableColumn: Column<Inquiry>[] = [
             default: () => (
               <div class="filter-wrapper">
                 <div class="filter-group flex flex-col">
-                  <ElCheckboxGroup v-model={request_search.value.column[0].priority}>
-                    <ElCheckbox
-                      value={"low"}
-                      
-                    >
-                      Low
-                    </ElCheckbox>
-                    <ElCheckbox
-                      value={"medium"}
-                      
-                    >
-                      Medium
-                    </ElCheckbox>
-                    <ElCheckbox
-                      value={"height"}
-                      
-                    >
-                      Height
-                    </ElCheckbox>
+                  <ElCheckboxGroup
+                    v-model={request_search.value.column[0].priority}
+                  >
+                    <ElCheckbox value={"low"}>Low</ElCheckbox>
+                    <ElCheckbox value={"medium"}>Medium</ElCheckbox>
+                    <ElCheckbox value={"height"}>Height</ElCheckbox>
                   </ElCheckboxGroup>
                 </div>
               </div>
@@ -200,37 +210,14 @@ const availableColumn: Column<Inquiry>[] = [
             default: () => (
               <div class="filter-wrapper">
                 <div class="filter-group flex flex-col">
-                  <ElCheckboxGroup v-model={request_search.value.column[0].status}>
-                    <ElCheckbox
-                      value={"draft"}
-                      
-                    >
-                      Draft
-                    </ElCheckbox>
-                    <ElCheckbox
-                      value={"waiting"}
-                      
-                    >
-                      Waiting
-                    </ElCheckbox>
-                    <ElCheckbox
-                      value={"approve"}
-                      
-                    >
-                      Approve
-                    </ElCheckbox>
-                    <ElCheckbox
-                      value={"done"}
-                      
-                    >
-                      Done
-                    </ElCheckbox>
-                    <ElCheckbox
-                      value={"cancelled"}
-                      
-                    >
-                      Cancelled
-                    </ElCheckbox>
+                  <ElCheckboxGroup
+                    v-model={request_search.value.column[0].status}
+                  >
+                    <ElCheckbox value={"draft"}>Draft</ElCheckbox>
+                    <ElCheckbox value={"waiting"}>Waiting</ElCheckbox>
+                    <ElCheckbox value={"approve"}>Approve</ElCheckbox>
+                    <ElCheckbox value={"done"}>Done</ElCheckbox>
+                    <ElCheckbox value={"cancelled"}>Cancelled</ElCheckbox>
                   </ElCheckboxGroup>
                 </div>
               </div>
@@ -251,13 +238,20 @@ const availableColumn: Column<Inquiry>[] = [
     width: 250,
     cellRenderer: ({ rowData: row }) => (
       <>
-        <NuxtLink href={"/sales/inquiry/add?id=" + row.unique_id} class="el-button el-button--small">
+        <NuxtLink
+          href={"/sales/inquiry/add?id=" + row.unique_id}
+          class="el-button el-button--small"
+        >
           Edit
         </NuxtLink>
         {/* {
           can('inquiries-delete', data.value?.privilege ?? []) && ()
         } */}
-        <DeleteButton onConfirm={() => handleDelete(row)} size="small" onCancel={() => {}} />
+        <DeleteButton
+          onConfirm={() => handleDelete(row)}
+          size="small"
+          onCancel={() => {}}
+        />
       </>
     ),
   },
@@ -270,7 +264,8 @@ const availableColumn: Column<Inquiry>[] = [
 ];
 
 availableColumn[8].headerCellRenderer = () => {
-    return (<div class="flex items-center justify-center">
+  return (
+    <div class="flex items-center justify-center">
       <span class="mr-2 text-xs"></span>
       <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
         {{
@@ -278,18 +273,15 @@ availableColumn[8].headerCellRenderer = () => {
             <div class="filter-wrapper">
               <div class="filter-group flex flex-col">
                 <ElCheckboxGroup v-model={column_selected.value}>
-                  {
-                    availableColumn
-                    .filter(c => c.key !== 'selection' && c.key !== 'setup')
-                    .map(c => (
-                      <ElCheckbox 
-                        key={c.key} 
+                  {availableColumn
+                    .filter((c) => c.key !== "selection" && c.key !== "setup")
+                    .map((c) => (
+                      <ElCheckbox
+                        key={c.key}
                         value={c.key!.toString()}
-                        label={c.title} 
+                        label={c.title}
                       />
-                    ))
-                  }
-                  
+                    ))}
                 </ElCheckboxGroup>
               </div>
             </div>
@@ -334,7 +326,7 @@ const getStatus = (data: Inquiry) => {
   } else if (data.status == "cancelled") {
     return <ElTag type="danger">{(data?.status ?? "").toUpperCase()}</ElTag>;
   } else {
-    return <ElTag type="info">{(data?.status ?? "")}</ElTag>;
+    return <ElTag type="info">{data?.status ?? ""}</ElTag>;
   }
 };
 
@@ -363,8 +355,8 @@ const handleSubmitDelete = async (values: string[]) => {
     }
 
     console.log(response);
-    
-    if(response.code != 200){
+
+    if (response.code != 200) {
       ElMessage.error(`${response.data.value?.message}`);
     }
   } catch (error: any) {
@@ -376,43 +368,85 @@ const handleSelectionChange = (selection: Inquiry[]) => {
   tmpInquiries.value = selection;
 };
 
+const bulkDelete = async () => {
+  try {
+    await ElMessageBox.confirm(
+      "Yakin ingin menghapus data Inquiry?",
+      "Warning",
+      {
+        confirmButtonText: "Hapus",
+        cancelButtonText: "Batal",
+        type: "warning",
+      }
+    );
 
+    const ids =
+      (data.value?.data ?? [])
+        .filter((item) => item.checked)
+        .map((item) => item.unique_id!) || [];
 
-  const deleteBulk = async () => {
-    console.log('data deleted : ', tmpInquiries.value);
-    tmpInquiries.value = [];
-    dialogConfirmDelete.value = false;
+    // Jika sampai sini, user klik Delete
+    await submitToDelete(ids);
+  } catch (error) {
+    // User klik Cancel atau close dialog
+    console.log("Delete cancelled");
   }
+};
 
-  const paginationClick = (val: number) => {
-    const data:RequestSearch = {...request_search.value};
-    data.offset = val.toString();
-    request_search.value = data;
+const submitToDelete = async (ids: string[]) => {
+  loading.value = false;
+  try {
+    const response = await useFetchApi<ResponsePagination<string[]>>(
+      `/inquiries-delete`,
+      "inventories-delete",
+      "post",
+      ids
+    );
+    if (response.status.value == "success") {
+      await refreshNuxtData("get-inquiries");
+    }
+  } catch (error: any) {
+    ElMessage.error(`${error.response?.data?.message}`);
+  } finally {
+    loading.value = false;
   }
+};
 
-  const onSort = (sortBy: SortBy) => {
-    console.log('sort', sortBy.key);
-    console.log(request_search.value);
-    const data:RequestSearch = {...request_search.value};
-    data.sort = {
-      column: sortBy.key.toString(),
-      order: request_search.value.sort?.order == OrderColumn.ASC ? OrderColumn.DESC : OrderColumn.ASC
-    };
-    request_search.value = data;
+const paginationClick = (val: number) => {
+  const data: RequestSearch = { ...request_search.value };
+  data.offset = val.toString();
+  request_search.value = data;
+};
 
-  }
+const onSort = (sortBy: SortBy) => {
+  console.log("sort", sortBy.key);
+  console.log(request_search.value);
+  const data: RequestSearch = { ...request_search.value };
+  data.sort = {
+    column: sortBy.key.toString(),
+    order:
+      request_search.value.sort?.order == OrderColumn.ASC
+        ? OrderColumn.DESC
+        : OrderColumn.ASC,
+  };
+  request_search.value = data;
+};
 
-  const handlePageChange = (page: number) => {
-    request_search.value.offset = `${page}`
-  }
+const handlePageChange = (page: number) => {
+  request_search.value.offset = `${page}`;
+};
 
-  const handleSizeChange = (size: number) => {
-    request_search.value.limit = `${size}`
-  }
+const handleSizeChange = (size: number) => {
+  request_search.value.limit = `${size}`;
+};
 
-  watch(request_search.value, () => refreshNuxtData('fetch-inquiries'), {immediate: true});
+const hasSelected = computed(() => {
+  return data.value?.data?.some((item) => item.checked) || false;
+});
 
-  
+watch(request_search.value, () => refreshNuxtData("fetch-inquiries"), {
+  immediate: true,
+});
 </script>
 <template>
   <TrumsWrapper>
@@ -423,12 +457,15 @@ const handleSelectionChange = (selection: Inquiry[]) => {
           size="default"
           placeholder="Type to search"
       /></el-col>
-      <NuxtLink v-if="canAccess('inquiries-create', data?.privilege ?? [])" class="el-button el-button--default" href="/sales/inquiry/add"
+      <NuxtLink
+        v-if="canAccess('inquiries-create', data?.privilege ?? [])"
+        class="el-button el-button--default"
+        href="/sales/inquiry/add"
         >Buat Inquiri</NuxtLink
       >
       <el-button
-        v-if="tmpInquiries.length > 0"
-        @click="dialogConfirmDelete = true"
+        :disabled="!hasSelected"
+        @click="bulkDelete"
         size="default"
         type="danger"
         >Hapus</el-button
@@ -440,22 +477,13 @@ const handleSelectionChange = (selection: Inquiry[]) => {
       :data="data?.data ?? []"
     />
     <div class="flex justify-end mt-3">
-      <el-pagination 
-      background 
-      layout="prev, pager, next" 
-      :total="data?.total_data"
-      @current-change="handlePageChange"
-      @size-change="handleSizeChange"
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :total="data?.total_data"
+        @current-change="handlePageChange"
+        @size-change="handleSizeChange"
       />
     </div>
-    <el-dialog v-model="dialogConfirmDelete" title="Tips" width="500">
-      <span>This is a message</span>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="dialogConfirmDelete = false">Batal</el-button>
-          <el-button type="primary" @click="deleteBulk"> Hapus </el-button>
-        </div>
-      </template>
-    </el-dialog>
   </TrumsWrapper>
 </template>

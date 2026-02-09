@@ -26,19 +26,14 @@
         />
       </el-tab-pane>
       <el-tab-pane label="CANVASSING" name="canvassing">
-        <div v-if="canvassing.pending">Loading.....</div>
-        <div v-else-if="!canvassing.pending && canvassing.data">
-          <CanvassingDetail
-            :canvassing-data="canvassing.data"
-            :privilages="canvassing.privilege ?? []"
+        <div v-if="loading">Loading.....</div>
+        <div v-else-if="!loading && !inquiryData.pending && inquiryData.data">
+          <CanvassingTable
+            :request_search="canvassing_search"
+            :key="'get-canvassing-inquiry'"
           />
         </div>
-        <div v-else-if="canvassing.code === 403">
-          <ActionNotPermitted
-            button-label="Kembali"
-            redirect-to="/sales/inquiry"
-          />
-        </div>
+
         <el-result
           v-else
           icon="warning"
@@ -46,22 +41,20 @@
           sub-title="Data Canvassing yang terkait dengan inquiry ini belum ada!"
         >
           <template #extra>
-            <NuxtLink class="el-button el-button--primary" :href="`/sales/canvassing/add?inquiry_id=${inquiryData?.data?.unique_id}`" >Buat Canvassing</NuxtLink>
+            <NuxtLink
+              class="el-button el-button--primary"
+              :href="`/sales/canvassing/add?inquiry_id=${inquiryData?.data?.unique_id}`"
+              >Buat Canvassing</NuxtLink
+            >
           </template>
         </el-result>
       </el-tab-pane>
       <el-tab-pane label="RAB" name="rab">
-        <div v-if="rab.pending">Loading.....</div>
-        <div v-else-if="!rab.pending && rab.data">
-          <RABDetail
-            :canvassing-data="rab.data"
-            :privilages="rab.privilege ?? []"
-          />
-        </div>
-        <div v-else-if="canvassing.code === 403">
-          <ActionNotPermitted
-            button-label="Kembali"
-            redirect-to="/sales/inquiry"
+        <div v-if="loading">Loading.....</div>
+        <div v-else-if="!loading && !inquiryData.pending && inquiryData.data">
+          <CanvassingTable
+            :request_search="rab_search"
+            :key="'get-rab-inquiry'"
           />
         </div>
         <el-result
@@ -76,16 +69,12 @@
         </el-result>
       </el-tab-pane>
       <el-tab-pane label="Penawaran" name="offer">
-        <div v-if="penawaran.pending">Loading.....</div>
-        <div v-else-if="!penawaran.pending && penawaran.data">
-          <OfferDetail
-            :data-interface="penawaran"
-          />
-        </div>
-        <div v-else-if="penawaran.code === 403">
-          <ActionNotPermitted
-            button-label="Kembali"
-            redirect-to="/sales/inquiry"
+        <div v-if="loading">Loading.....</div>
+        <div v-else-if="!loading && !inquiryData.pending && inquiryData.data">
+          <OfferTable
+            :request_search="offer_search"
+            :key="'get-offer-to-customer'"
+            v-on:has-bulk="(value) => {}"
           />
         </div>
         <el-result
@@ -95,24 +84,28 @@
           sub-title="Data Penawaran yang terkait dengan inquiry ini belum ada!"
         >
           <template #extra v-if="rab.data">
-            <NuxtLink class="el-button el-button--primary" :href="`/sales/offer/add?canvassing_id=${canvassing?.data?.unique_id}&type=out`">Buat Penawaran</NuxtLink>
+            <NuxtLink
+              class="el-button el-button--primary"
+              :href="`/sales/offer/add?canvassing_id=${canvassing?.data?.unique_id}&type=out`"
+              >Buat Penawaran</NuxtLink
+            >
           </template>
         </el-result>
       </el-tab-pane>
       <el-tab-pane label="SO" name="so">
-        <div v-if="!salesOrder.pending && salesOrder.data">
-          <SalesOrderDetail :purchase-order="salesOrder.data" />
+        <div v-if="!loading && !inquiryData.pending && inquiryData.data">
+          <OrderTable
+            :request_search="so_search"
+            :key="'get-sales-order'"
+            @has-bulk="(value) => {}"
+            v-on:on-pending="(value) => (loading = value)"
+            @on-success="
+              (value) => {
+                console.log('purchase order data ', value);
+              }
+            "
+          />
         </div>
-        <el-result
-          v-else
-          icon="warning"
-          title="Belum ada SO Terkait!"
-          sub-title="Data SO yang terkait dengan inquiry ini belum ada!"
-        >
-          <template #extra v-if="penawaran.data">
-            <NuxtLink class="el-button el-button--primary" :href="`/sales/order/add?quotation_id=${rab.data?.unique_id}`" type="primary">Buat SO</NuxtLink>
-          </template>
-        </el-result>
       </el-tab-pane>
     </el-tabs>
   </TrumsWrapper>
@@ -120,12 +113,7 @@
 
 <script lang="tsx" setup>
 import { NuxtLink } from "#components";
-import type {
-  CheckboxValueType,
-  Column,
-  FormProps,
-  SortBy,
-} from "element-plus";
+import { ElLoading } from "element-plus";
 import { ref, onMounted } from "vue";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import type { Contact } from "~/types/contact";
@@ -139,16 +127,6 @@ import type { Maintenance } from "~/types/maintenance";
 import type { BaseResponse, DataInterface } from "~/types/response";
 import ErrorPage from "~/components/trums/ErrorPage.vue";
 import type { RequestSearch } from "~/types/request_search";
-import type { ResponsePagination } from "~/types/response_pagination";
-import type { Inventory } from "~/types/inventory";
-import {
-  Delete,
-  Upload,
-  CircleClose,
-  CircleCheck,
-  Edit,
-  Refresh,
-} from "@element-plus/icons-vue";
 import type { PurchaseOrder } from "~/types/scm/purchase_order";
 import type { AddressType } from "~/types/address";
 import ActionNotPermitted from "~/components/trums/ActionNotPermitted.vue";
@@ -159,6 +137,9 @@ import { CanvassingStatus, type Canvassing } from "~/types/scm/canvasing";
 import type { Permission } from "~/types/menu";
 import { ReferencePriceTag, type Pricetag } from "~/types/pricetag";
 import OfferDetail from "../offer/components/OfferDetail.vue";
+import CanvassingTable from "../canvassing/components/CanvassingTable.vue";
+import OfferTable from "../offer/components/OfferTable.vue";
+import OrderTable from "../order/components/OrderTable.vue";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -181,7 +162,11 @@ const inquiryData = ref<DataInterface<Inquiry>>({
   message: "",
 });
 const loading = ref<boolean>(false);
-
+const loadingService = ElLoading.service({
+  lock: true,
+  text: "Loading",
+  background: "rgba(0, 0, 0, 0.7)",
+});
 const loadingRAB = ref<boolean>(false);
 const canvassing = ref<DataInterface<Canvassing>>({
   code: 200,
@@ -189,6 +174,54 @@ const canvassing = ref<DataInterface<Canvassing>>({
   message: "",
   pending: true,
 });
+
+const canvassing_search = ref<RequestSearch>({
+  column: [],
+  keyword: "",
+  limit: "1",
+  offset: "1",
+  table: "canvassing",
+  sort: null,
+});
+
+const rab_search = ref<RequestSearch>({
+  column: [],
+  keyword: "",
+  limit: "1",
+  offset: "1",
+  table: "canvassing",
+  sort: null,
+});
+const offer_search = ref<RequestSearch>({
+  keyword: "",
+  table: "pricetag",
+  column: [
+    {
+      pricetag_item: {
+        catalogue_id: [],
+      },
+    },
+  ],
+  sort: null,
+  offset: "1",
+  limit: "1",
+});
+
+const so_search = ref<RequestSearch>({
+  keyword: "",
+  table: "purchase_order",
+  column: [
+    {
+      purchase_order_item: {
+        catalogue_id: [],
+      },
+    },
+  ],
+  sort: null,
+  offset: "1",
+  limit: "1",
+});
+
 const rab = ref<DataInterface<Canvassing>>({
   code: 200,
   data: null,
@@ -225,12 +258,14 @@ const fetchInquiry = async () => {
     );
 
     if (inquiry.status.value === "success") {
-
-      if(inquiry.data.value?.data){
+      if (inquiry.data.value?.data) {
         const inquiryDataValue: Inquiry = inquiry.data.value!.data!;
 
-        inquiryDataValue.item_request.forEach(element => {
-          element.files = [...(element.catalogue?.files ?? []), ...(element.files ?? [])]
+        inquiryDataValue.item_request.forEach((element) => {
+          element.files = [
+            ...(element.catalogue?.files ?? []),
+            ...(element.files ?? []),
+          ];
         });
 
         inquiryData.value = {
@@ -240,9 +275,60 @@ const fetchInquiry = async () => {
           pending: false,
         };
 
-        fetchCanvassing();
-        fetchRAB();
-      }else{
+        canvassing_search.value.column = [
+          {
+            canvassing_item: {
+              catalogue_id: (inquiryData.value.data?.item_request ?? []).map(
+                (value) => value.catalogue_id
+              ),
+            },
+            status: [
+              CanvassingStatus.DRAFT,
+              CanvassingStatus.PENDING_APPROVAL_RAB,
+              CanvassingStatus.CANVASSING,
+              CanvassingStatus.DONE,
+            ],
+          },
+        ];
+
+        rab_search.value.column = [
+          {
+            canvassing_item: {
+              catalogue_id: (inquiryData.value.data?.item_request ?? []).map(
+                (value) => value.catalogue_id
+              ),
+            },
+            status: [
+              CanvassingStatus.PENDING_APPROVAL,
+              CanvassingStatus.RAB,
+              CanvassingStatus.DONE,
+            ],
+          },
+        ];
+        offer_search.value.column = [
+          {
+            pricetag_item: {
+              catalogue_id: (inquiryData.value.data?.item_request ?? []).map(
+                (value) => value.catalogue_id
+              ),
+            },
+            category: ["penawaran"],
+            type: "out",
+          },
+        ];
+
+        so_search.value.column = [
+          {
+            purchase_order_item: {
+              catalogue_id: (inquiryData.value.data?.item_request ?? []).map(
+                (value) => value.catalogue_id
+              ),
+            },
+            type: "so",
+          },
+        ];
+        // fetchRAB();
+      } else {
         inquiryData.value = {
           code: 200,
           data: null,
@@ -250,182 +336,12 @@ const fetchInquiry = async () => {
           pending: false,
         };
       }
-
-      
     }
   } catch (error) {
     console.error("Failed to fetch related data", error);
   } finally {
     inquiryData.value.pending = false;
-  }
-};
-
-const fetchCanvassing = async () => {
-  loadingRAB.value = true;
-  try {
-    const request_search: RequestSearch = {
-      column: [
-        {
-          source_document: [inquiryData.value?.data?.unique_code ?? ""],
-          status: [CanvassingStatus.DRAFT, CanvassingStatus.PENDING_APPROVAL_RAB, CanvassingStatus.CANVASSING, CanvassingStatus.RAB, CanvassingStatus.DONE,CanvassingStatus.CANCEL]
-        },
-      ],
-      keyword: "",
-      limit: "1",
-      offset: "1",
-      table: "canvassing",
-      sort: null,
-    };
-    const response = await useFetchApi<BaseResponse<Canvassing[]>>(
-      "/search",
-      "get-canvassing",
-      "post",
-      request_search
-    );
-    if (response.status.value == "success") {
-      canvassing.value = {
-        code: response.code || 201,
-        data:
-          (response.data.value?.data ?? []).length > 0
-            ? response.data.value!.data![0]
-            : null,
-        message: response.status.value,
-        pending: response.pending.value,
-        privilege: response.data.value?.privilege ?? [],
-      };
-
-      
-    }
-
-    if (response.code == 403) {
-      canvassing.value = {
-        code: response.code,
-        data: null,
-        message: response.error.value?.data?.message ?? "Action Not Permited",
-        pending: response.pending.value,
-      };
-
-      
-    }
-
-    console.log(response);
-  } catch (error: any) {
-    ElMessage.error(error.response?.message ?? error);
-  } finally {
-    loadingRAB.value = false;
-  }
-};
-
-const fetchRAB = async () => {
-  loadingRAB.value = true;
-  try {
-    const request_search: RequestSearch = {
-      column: [
-        {
-          source_document: [inquiryData.value?.data?.unique_code ?? ""],
-          status: [CanvassingStatus.DRAFT, CanvassingStatus.PENDING_APPROVAL, CanvassingStatus.RAB, CanvassingStatus.DONE]
-        },
-      ],
-      keyword: "",
-      limit: "1",
-      offset: "1",
-      table: "canvassing",
-      sort: null,
-    };
-    const response = await useFetchApi<BaseResponse<Canvassing[]>>(
-      "/search",
-      "get-rab",
-      "post",
-      request_search
-    );
-
-    if (response.status.value == "success") {
-      rab.value = {
-        code: response.code || 201,
-        data:
-          (response.data.value?.data ?? []).length > 0
-            ? response.data.value!.data![0]
-            : null,
-        message: response.status.value,
-        pending: response.pending.value,
-        privilege: response.data.value?.privilege ?? [],
-      };
-      if(rab.value.data?.unique_id){
-        fetchOffer();
-      }else{
-        penawaran.value.pending = false;
-      }
-    }
-
-    if (response.code == 403) {
-      canvassing.value = {
-        code: response.code,
-        data: null,
-        message: response.error.value?.data?.message ?? "Action Not Permited",
-        pending: response.pending.value,
-      };
-
-      fetchOffer();
-    }
-
-    console.log(response);
-  } catch (error: any) {
-    ElMessage.error(error.response?.message ?? error);
-  } finally {
-    loadingRAB.value = false;
-  }
-};
-
-
-const fetchOffer = async () => {
-  loadingPenawaran.value = true;
-  try {
-    const request_search: RequestSearch = {
-      keyword: "",
-      table: "pricetag",
-      column: [
-        {
-          reference: [ReferencePriceTag.CANVASSING],
-          reference_id: [rab.value.data?.unique_id ?? ""],
-        },
-      ],
-      sort: null,
-      offset: "1",
-      limit: "1",
-    };
-
-    const response = await useFetchApi<ResponsePagination<Pricetag[]>>(
-      "/search",
-      "fetch-penawaran",
-      "post",
-      request_search
-    );
-
-    if (response.status.value == "success") {
-      penawaran.value = {
-        code: response.code || 201,
-        data:
-          (response.data.value?.data ?? []).length > 0
-            ? response.data.value!.data![0]
-            : null,
-        message: response.status.value,
-        pending: response.pending.value,
-      };
-      privilages.value = response.data.value?.privilege ?? [];
-    }
-
-    if (response.code == 403) {
-      canvassing.value = {
-        code: response.code,
-        data: null,
-        message: response.error.value?.data?.message ?? "Action Not Permited",
-        pending: response.pending.value,
-      };
-    }
-  } catch (error: any) {
-    ElMessage.error(`${error.response?.message ?? error}`);
-  } finally {
-    loadingPenawaran.value = false;
+    loadingService.close();
   }
 };
 

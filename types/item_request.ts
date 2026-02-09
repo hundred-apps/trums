@@ -9,11 +9,13 @@ export enum ItemRequestTrailReference {
   BOOK = "inventory",
   PO = "PO",
   PR = "PR",
+  MOVEMENT_ITEM = "movement_item",
 }
 export enum ItemRequestTrailStatus {
   WAITING = "waiting",
   DONE = "done",
   REJECT = "rejected",
+  DRAFT = "draft",
 }
 
 export type ItemRequest = {

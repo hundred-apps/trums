@@ -271,35 +271,6 @@ const request_search = ref<RequestSearch>({
   },
 });
 
-// const getColumnSetup = () => {
-//   return  ()
-// }
-
-const fetchData = async () => {
-  loading.value = true;
-  try {
-    const response = await useFetchApi<ResponsePagination<InventoryMovement[]>>(
-      `/search`,
-      "inventory_movement",
-      "post",
-      request_search.value
-    );
-
-    if (response.status.value == "success") {
-      data.value = response.data.value as ResponsePagination<
-        InventoryMovement[]
-      >;
-    }
-  } catch (error: any) {
-    ElMessage.error(
-      `${error.response?.data?.message ?? "Gagal Mengambil Data!"}`
-    );
-    return [];
-  } finally {
-    loading.value = false;
-  }
-};
-
 const { data } = await useFetchApi<ResponsePagination<InventoryMovement[]>>(
   `/search`,
   "inventory_movement",
@@ -307,7 +278,8 @@ const { data } = await useFetchApi<ResponsePagination<InventoryMovement[]>>(
   request_search.value
 );
 
-const checkSelect = () => data?.value?.data.some((row) => row.checked);
+const checkSelect = () =>
+  (data?.value?.data ?? []).some((row) => row.checked) ?? [];
 
 const getStatus = (data: InventoryMovement) => {
   // 'draft','waiting','approve','done','cancelled','repair'
@@ -350,6 +322,43 @@ const handleDelete = async (row: string[]) => {
   }
 };
 
+const testNew = () => {
+  const payload = {
+    catalogue_id: 1,
+    new: [
+      {
+        catalogue_id: 3,
+        name: "new name",
+      },
+      {
+        catalogue_id: 6,
+        name: "new name 1",
+      },
+    ],
+  };
+
+  const catalogue_id = payload.catalogue_id;
+
+  payload.new.forEach((element) => {
+    const subtitution_id = Math.random();
+    fungsiInsert({
+      catalogue_id: element.catalogue_id,
+      subtitution_id: subtitution_id,
+    });
+    fungsiInsert({
+      catalogue_id: catalogue_id,
+      subtitution_id: subtitution_id,
+    });
+
+    // insert subtitution_name
+  });
+};
+
+const fungsiInsert = (data: {
+  catalogue_id: number;
+  subtitution_id: number;
+}) => {};
+
 const deleteBulk = async () => {
   const checkeds = data.value?.data.filter((value) => value.checked);
   const ids = (checkeds ?? []).map((value) => value.unique_id);
@@ -378,7 +387,9 @@ const add = (typecheck: string) => {
   router.push("checkin/add");
 };
 
-watch(request_search, fetchData, { immediate: true });
+watch(request_search, () => refreshNuxtData("inventory_movement"), {
+  immediate: true,
+});
 
 const onSearch = (value: string) => {
   const request = { ...request_search.value };

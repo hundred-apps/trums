@@ -58,7 +58,7 @@ import {
   Warning,
   Delete,
   Edit,
-  Picture
+  Picture,
 } from "@element-plus/icons-vue";
 import type { Maintenance } from "~/types/maintenance";
 import type { Contact } from "~/types/contact";
@@ -100,11 +100,10 @@ const dialogRepair = ref<boolean>(false);
 const dialogSalesOrder = ref<boolean>(false);
 const dialogContact = ref<boolean>(false);
 const dialogNewAddress = ref<boolean>(false);
-type ItemImageUploadInstance = InstanceType<typeof ItemImageUpload>
-
+type ItemImageUploadInstance = InstanceType<typeof ItemImageUpload>;
 
 // Gunakan array dengan tipe yang tepat
-const itemImageUploadRefs = ref<(ItemImageUploadInstance | null)[]>([])
+const itemImageUploadRefs = ref<(ItemImageUploadInstance | null)[]>([]);
 
 const drawerCatalogue = ref<boolean>(false);
 const itemActive = ref<number>(-1);
@@ -113,12 +112,14 @@ const formFieldsRefContact = ref();
 const picContact = ref<Contact>();
 const toContact = ref<Contact>();
 
-const showImageModal = ref(false)
-const activeItemIndex = ref(-1)
-const activeItemData = ref<ItemInterface | null>(null)
-const modalImageFiles = ref<UploadUserFile[]>([])
-const photoWallRef = ref<InstanceType<typeof PhotoWallUploads>>()
-const uploadAction = computed(() => `${config.public.apiBaseURL}/upload-item-image`)
+const showImageModal = ref(false);
+const activeItemIndex = ref(-1);
+const activeItemData = ref<ItemInterface | null>(null);
+const modalImageFiles = ref<UploadUserFile[]>([]);
+const photoWallRef = ref<InstanceType<typeof PhotoWallUploads>>();
+const uploadAction = computed(
+  () => `${config.public.apiBaseURL}/upload-item-image`
+);
 
 const typeContactActive = ref<"to" | "pic">("to");
 
@@ -172,7 +173,7 @@ interface ItemInterface {
   inventory_version: number;
   catalogue_version: number;
   catalogue: Catalogue | null;
-  files?: UploadUserFile[]
+  files?: UploadUserFile[];
 }
 const dataTable = ref<ItemInterface[]>([]);
 
@@ -247,7 +248,6 @@ const rules = reactive<FormRules<RuleForm>>({
     },
   ],
 });
-
 
 const showDialog = () => {
   if (ruleForm.reference == "maintenance") {
@@ -360,24 +360,15 @@ const onSubmit = async () => {
         `item_request[${index}][catalogue_id]`,
         `${item.item_id}`
       );
-      formData.append(
-        `item_request[${index}][catalogue_name]`,
-        `${item.item}`
-      );
+      formData.append(`item_request[${index}][catalogue_name]`, `${item.item}`);
       formData.append(`item_request[${index}][unit_id]`, `${item.unit_id}`);
       formData.append(`item_request[${index}][unit_name]`, `${item.unit_name}`);
       formData.append(
         `item_request[${index}][request_qty]`,
         `${parseInt(item.quantity.toString())}`
       );
-      formData.append(
-        `item_request[${index}][approved_qty]`,
-        `${0}`
-      );
-      formData.append(
-        `item_request[${index}][rejected_qty]`,
-        `${0}`
-      );
+      formData.append(`item_request[${index}][approved_qty]`, `${0}`);
+      formData.append(`item_request[${index}][rejected_qty]`, `${0}`);
       formData.append(
         `item_request[${index}][remaining_qty]`,
         `${parseInt(item.quantity.toString())}`
@@ -394,14 +385,10 @@ const onSubmit = async () => {
 
       if (item.files) {
         (item.files ?? []).forEach((file, indexFile) => {
-          if(file.raw){
-            formData.append(
-              `item_request[${index}][files]`,
-              file.raw as Blob
-            );
+          if (file.raw) {
+            formData.append(`item_request[${index}][files]`, file.raw as Blob);
           }
         });
-      
       }
     });
 
@@ -541,7 +528,7 @@ const onSelectReference_id = async (data: any) => {
 const create_catalogue = async (catalogue: Catalogue) => {
   loading.value = true;
   try {
-    console.log('catalogue', catalogue);
+    console.log("catalogue", catalogue);
     const formData = new FormData();
 
     formData.append("unique_id", catalogue.unique_id ?? "");
@@ -563,7 +550,7 @@ const create_catalogue = async (catalogue: Catalogue) => {
 
     catalogue.file_catalogues.forEach((file) => {
       if (file.raw) {
-        formData.append('files[]', file.raw);
+        formData.append("files[]", file.raw);
       }
     });
 
@@ -620,11 +607,14 @@ const querySearchAsync = (queryString: string, cb: (arg: any) => void) => {
               }`,
             };
           });
-          cb([...results, {
+          cb([
+            ...results,
+            {
               value: `${queryString}`,
               label: `Tambahkan ${queryString}`,
               isNew: true,
-            }]);
+            },
+          ]);
         } else {
           cb([
             {
@@ -689,20 +679,26 @@ const querySearchAsyncLocation = (
     });
 };
 
-const querySearchContact = (queryString: string, cb: (arg: any) => void, type: "to"|"pic") => {
+const querySearchContact = (
+  queryString: string,
+  cb: (arg: any) => void,
+  type: "to" | "pic"
+) => {
   (request_search.value.keyword = queryString),
-  (request_search.value.table = "contacts");
-  request_search.value.column = type == "to" ? [] : [
-    {
-      parent_id: ruleForm.to_unique_id,
-    },
-  ];
+    (request_search.value.table = "contacts");
+  request_search.value.column =
+    type == "to"
+      ? []
+      : [
+          {
+            parent_id: ruleForm.to_unique_id,
+          },
+        ];
   request_search.value.flag = "form";
 
   axios
     .post("/search", request_search.value)
     .then((response) => {
-      
       if (response.status == 200) {
         const resultApi: ResponsePagination<Contact[]> = response.data;
         if (resultApi.data.length > 0) {
@@ -710,13 +706,16 @@ const querySearchContact = (queryString: string, cb: (arg: any) => void, type: "
             return { ...data, value: `${data.name}` };
           });
 
-          const options = [...results, {
+          const options = [
+            ...results,
+            {
               value: `Tambahkan ${queryString}`,
               isNew: true,
               query: queryString,
               label: `Tambahkan ${queryString}`,
-            }];
-            
+            },
+          ];
+
           cb(options);
         } else {
           cb([
@@ -843,7 +842,6 @@ const onHandleSelectItemAutocomplete = async (
       file_catalogues: [],
     };
 
-
     itemActive.value = scope.$index;
     tmpCatalogue.value = catalogueInsert;
     drawerCatalogue.value = true;
@@ -857,8 +855,7 @@ const onHandleSelectItemAutocomplete = async (
     //   dataTable.value[scope.$index].catalogue = selected;
     //   dataTable.value[scope.$index].files = mapApiFilesToUpload(selected.files ?? []);
     //   dataTable.value[scope.$index].image = getFirstFileUrl(selected.files ?? []);
-      
-      
+
     // } else {
     //   ElMessage.error(`Ops, Something wrong!!`);
     // }
@@ -870,7 +867,9 @@ const onHandleSelectItemAutocomplete = async (
     dataTable.value[scope.$index].unit_id = selected.unit_id ?? "";
     dataTable.value[scope.$index].unit_name = selected.unit_name ?? "";
     dataTable.value[scope.$index].inventory_id = selected.inventory_id ?? "";
-    dataTable.value[scope.$index].files = mapApiFilesToUpload(selected.files ?? []);
+    dataTable.value[scope.$index].files = mapApiFilesToUpload(
+      selected.files ?? []
+    );
     dataTable.value[scope.$index].image = getFirstFileUrl(selected.files ?? []);
 
     const catalogue: Catalogue | undefined = await fetchCatalogueDetail(
@@ -1167,14 +1166,14 @@ const fetchInquiry = async () => {
   }
 };
 const mapApiFilesToUpload = (files: any[]) => {
-  const baseUrl = useRuntimeConfig().public.baseImageURL; 
+  const baseUrl = useRuntimeConfig().public.baseImageURL;
   // sesuaikan dengan config kamu
 
   return files.map((file) => ({
     uid: file.unique_id,
     name: file.filename_original || file.filename,
     url: `${baseUrl}${file.image_path}/${file.filename}`,
-    status: 'success' as UploadStatus,
+    status: "success" as UploadStatus,
   }));
 };
 
@@ -1307,7 +1306,7 @@ const handleSelectAddress = (record: Record<string, any>) => {
   if (record.new) {
     dialogNewAddress.value = true;
   } else {
-    console.log('selected',record);
+    console.log("selected", record);
     // const address: AddressType = record as AddressType;
     ruleForm.address_id = record.address_id;
     ruleForm.address_version = record.address_version;
@@ -1321,6 +1320,9 @@ const onAddNewAddress = (addressType: AddressType) => {
   ruleForm.address_view = addressType.address_name;
   ruleForm.address_version = addressType.version || 1;
   address.value = addressType;
+
+  console.log("address value", addressType);
+
   dialogNewAddress.value = false;
 };
 
@@ -1331,11 +1333,16 @@ const handleSubmit = async (catalogue: Catalogue) => {
     const catalogueInsert = (await create_catalogue(catalogue)) ?? undefined;
     if (catalogueInsert != undefined) {
       dataTable.value[itemActive.value].item = catalogueInsert.name ?? "";
-      dataTable.value[itemActive.value].item_id = catalogueInsert.unique_id ?? "";
+      dataTable.value[itemActive.value].item_id =
+        catalogueInsert.unique_id ?? "";
       dataTable.value[itemActive.value].sn = catalogueInsert.sn ?? "";
       dataTable.value[itemActive.value].catalogue = catalogueInsert;
-      dataTable.value[itemActive.value].files = mapApiFilesToUpload(catalogueInsert.files ?? []);
-      dataTable.value[itemActive.value].image = getFirstFileUrl(catalogueInsert.files ?? []);
+      dataTable.value[itemActive.value].files = mapApiFilesToUpload(
+        catalogueInsert.files ?? []
+      );
+      dataTable.value[itemActive.value].image = getFirstFileUrl(
+        catalogueInsert.files ?? []
+      );
     } else {
       ElMessage.error("Kesalahan saat menyimpan data catalogue!");
     }
@@ -1396,7 +1403,11 @@ const handleAvatarSuccess = (
 
 const beforeAvatarUpload: UploadProps["beforeUpload"] = (rawFile) => {
   console.log("row file", rawFile);
-  if (rawFile.type !== "image/jpeg" && rawFile.type !== "image/png" && rawFile.type !== "image/jpg") {
+  if (
+    rawFile.type !== "image/jpeg" &&
+    rawFile.type !== "image/png" &&
+    rawFile.type !== "image/jpg"
+  ) {
     ElMessage.error("Avatar picture must be IMAGE format!");
     return false;
   } else if (rawFile.size / 1024 / 1024 > 2) {
@@ -1418,10 +1429,10 @@ onMounted(() => {
 // Fungsi untuk handle perubahan gambar di item table
 const onItemImageChange = (files: UploadUserFile[], index: number) => {
   console.log(`Item ${index} image changed:`, files);
-  
+
   // Update dataTable dengan files baru
   dataTable.value[index].files = files;
-  
+
   // Set image URL untuk preview di tabel (mengambil gambar pertama)
   if (files.length > 0) {
     const firstFile = files[0];
@@ -1432,195 +1443,196 @@ const onItemImageChange = (files: UploadUserFile[], index: number) => {
       dataTable.value[index].image = URL.createObjectURL(firstFile.raw);
     }
   } else {
-    dataTable.value[index].image = '';
+    dataTable.value[index].image = "";
   }
-  
+
   // Optional: Tambahkan loading state atau feedback
   ElMessage.success(`Gambar untuk item ${index + 1} diperbarui`);
 };
 
 const setItemImageUploadRef = (
-  el: Element | ComponentPublicInstance | null, 
+  el: Element | ComponentPublicInstance | null,
   index: number
 ) => {
   // Type assertion ke komponen yang benar
-  itemImageUploadRefs.value[index] = el as ItemImageUploadInstance
-}
+  itemImageUploadRefs.value[index] = el as ItemImageUploadInstance;
+};
 
 const openImageModal = (index: number, itemData: ItemInterface) => {
-  activeItemIndex.value = index
-  activeItemData.value = itemData
-  
+  activeItemIndex.value = index;
+  activeItemData.value = itemData;
+
   // Reset photoWallRef jika perlu (clear selection)
   if (photoWallRef.value) {
-    photoWallRef.value.clearFiles?.()
+    photoWallRef.value.clearFiles?.();
   }
-  
+
   // Load files dengan memastikan URL valid
-  modalImageFiles.value = (itemData.files || []).map(file => {
+  modalImageFiles.value = (itemData.files || []).map((file) => {
     // Clone file object
-    const fileCopy = { ...file }
-    
+    const fileCopy = { ...file };
+
     // Jika file punya raw tapi URL invalid/expired, buat URL baru
     if (fileCopy.raw && (!fileCopy.url || !isValidUrl(fileCopy.url))) {
-      fileCopy.url = URL.createObjectURL(fileCopy.raw)
+      fileCopy.url = URL.createObjectURL(fileCopy.raw);
     }
-    
-    return fileCopy
-  })
 
-  console.log('modal file ', modalImageFiles.value);
-  
-  showImageModal.value = true
-}
+    return fileCopy;
+  });
+
+  console.log("modal file ", modalImageFiles.value);
+
+  showImageModal.value = true;
+};
 
 const isValidUrl = (urlString: string): boolean => {
-  console.log('url string', urlString);
-  if (!urlString.startsWith('blob:')) return true // Non-blob URLs valid
-  
+  console.log("url string", urlString);
+  if (!urlString.startsWith("blob:")) return true; // Non-blob URLs valid
+
   try {
     // Coba fetch URL untuk test validity
-    fetch(urlString, { method: 'HEAD', mode: 'no-cors' })
-    return true
+    fetch(urlString, { method: "HEAD", mode: "no-cors" });
+    return true;
   } catch {
-    return false
+    return false;
   } finally {
     return false;
   }
-}
-
-
+};
 
 const handleImageModalClose = () => {
   // Optional: Clear temporary blob URLs
-  modalImageFiles.value.forEach(file => {
-    if (file.url?.startsWith('blob:')) {
-      URL.revokeObjectURL(file.url)
+  modalImageFiles.value.forEach((file) => {
+    if (file.url?.startsWith("blob:")) {
+      URL.revokeObjectURL(file.url);
     }
-  })
-  modalImageFiles.value = []
-  activeItemIndex.value = -1
-  activeItemData.value = null
-}
-
+  });
+  modalImageFiles.value = [];
+  activeItemIndex.value = -1;
+  activeItemData.value = null;
+};
 
 const handleModalImagesChange = (files: UploadUserFile[]) => {
-  console.log('images', files);
-  modalImageFiles.value = files
-}
+  console.log("images", files);
+  modalImageFiles.value = files;
+};
 
 // Fungsi untuk mendapatkan URL gambar
 const getImageUrl = (file: UploadUserFile): string => {
-  if (file.url) return file.url
-  if (file.raw) return URL.createObjectURL(file.raw)
-  return ''
-}
+  if (file.url) return file.url;
+  if (file.raw) return URL.createObjectURL(file.raw);
+  return "";
+};
 
 // Fungsi untuk mendapatkan gambar pertama
 const getFirstImageUrl = (): string => {
-  if (modalImageFiles.value.length === 0) return ''
-  return getImageUrl(modalImageFiles.value[0])
-}
+  if (modalImageFiles.value.length === 0) return "";
+  return getImageUrl(modalImageFiles.value[0]);
+};
 
 const getFirstFileName = (): string => {
-  if (modalImageFiles.value.length === 0) return ''
-  return modalImageFiles.value[0].name || 'Unnamed file'
-}
+  if (modalImageFiles.value.length === 0) return "";
+  return modalImageFiles.value[0].name || "Unnamed file";
+};
 
 const getFirstFileSize = (): string => {
-  if (modalImageFiles.value.length === 0) return ''
-  
-  const firstFile = modalImageFiles.value[0]
+  if (modalImageFiles.value.length === 0) return "";
+
+  const firstFile = modalImageFiles.value[0];
   if (firstFile.size) {
-    const sizeInMB = firstFile.size / (1024 * 1024)
-    return sizeInMB < 1 
-      ? `${(firstFile.size / 1024).toFixed(2)} KB` 
-      : `${sizeInMB.toFixed(2)} MB`
+    const sizeInMB = firstFile.size / (1024 * 1024);
+    return sizeInMB < 1
+      ? `${(firstFile.size / 1024).toFixed(2)} KB`
+      : `${sizeInMB.toFixed(2)} MB`;
   }
-  return 'Unknown size'
-}
+  return "Unknown size";
+};
 
 const getFirstFileType = (): string => {
-  if (modalImageFiles.value.length === 0) return ''
-  
-  const firstFile = modalImageFiles.value[0]
+  if (modalImageFiles.value.length === 0) return "";
+
+  const firstFile = modalImageFiles.value[0];
   if (firstFile.raw?.type) {
-    return firstFile.raw.type.split('/')[1]?.toUpperCase() || 'Unknown'
+    return firstFile.raw.type.split("/")[1]?.toUpperCase() || "Unknown";
   }
-  return 'Unknown'
-}
+  return "Unknown";
+};
 
 // Fungsi untuk set gambar sebagai utama
 const setAsFirstImage = (index: number) => {
-  if (index === 0) return // Already first
-  
+  if (index === 0) return; // Already first
+
   // Pindahkan gambar ke posisi pertama
-  const [selectedImage] = modalImageFiles.value.splice(index, 1)
-  modalImageFiles.value.unshift(selectedImage)
-}
+  const [selectedImage] = modalImageFiles.value.splice(index, 1);
+  modalImageFiles.value.unshift(selectedImage);
+};
 
 // Fungsi untuk menghapus gambar
 const removeImage = (index: number) => {
-  modalImageFiles.value.splice(index, 1)
-}
+  modalImageFiles.value.splice(index, 1);
+};
 
 // Fungsi untuk menyimpan gambar
 const saveItemImages = () => {
   if (activeItemIndex.value >= 0) {
     // Update dataTable dengan files baru
-    dataTable.value[activeItemIndex.value].files = [...modalImageFiles.value]
-    
+    dataTable.value[activeItemIndex.value].files = [...modalImageFiles.value];
+
     // Set image URL untuk preview di tabel (mengambil gambar pertama)
     if (modalImageFiles.value.length > 0) {
-      const firstFile = modalImageFiles.value[0]
+      const firstFile = modalImageFiles.value[0];
       if (firstFile.url) {
-        dataTable.value[activeItemIndex.value].image = firstFile.url
+        dataTable.value[activeItemIndex.value].image = firstFile.url;
       } else if (firstFile.raw) {
-        dataTable.value[activeItemIndex.value].image = URL.createObjectURL(firstFile.raw)
+        dataTable.value[activeItemIndex.value].image = URL.createObjectURL(
+          firstFile.raw
+        );
       }
     } else {
-      dataTable.value[activeItemIndex.value].image = ''
+      dataTable.value[activeItemIndex.value].image = "";
     }
-    
-    ElMessage.success(`Gambar untuk item ${activeItemIndex.value + 1} disimpan`)
+
+    ElMessage.success(
+      `Gambar untuk item ${activeItemIndex.value + 1} disimpan`
+    );
   }
-  
-  showImageModal.value = false
-}
+
+  showImageModal.value = false;
+};
 
 // Fungsi untuk cancel upload
 const cancelImageUpload = () => {
-  showImageModal.value = false
-}
+  showImageModal.value = false;
+};
 
-
-const handleRemoveImageList = async (file: UploadUserFile, files: UploadUserFile[]) => {
-  if(file.raw){
-    console.log('file baru upload');
-  }else{
-    console.log('file lama', file.uid);
+const handleRemoveImageList = async (
+  file: UploadUserFile,
+  files: UploadUserFile[]
+) => {
+  if (file.raw) {
+    console.log("file baru upload");
+  } else {
+    console.log("file lama", file.uid);
     try {
-      const response = await useApiFetch<BaseResponse<any>>('/file-delete', {
-        method: 'POST',
-        body: [file.uid]
-      })
+      const response = await useApiFetch<BaseResponse<any>>("/file-delete", {
+        method: "POST",
+        body: [file.uid],
+      });
 
-      if(response.success){
+      if (response.success) {
         ElMessage.success(`Image Berhasil Di Hapus!`);
       }
     } catch (error: any) {
       ElMessage.error(`${error?.response?.message ?? error}`);
     }
   }
-}
+};
 
-const handleEditAddress = (address: AddressType) => {
-  
+const handleEditAddress = (addressEdit: AddressType) => {
+  address.value = addressEdit;
+  console.log("handle edit click", address.value);
   dialogNewAddress.value = true;
-}
-
-
-
+};
 </script>
 <template>
   <TrumsWrapper>
@@ -1630,20 +1642,16 @@ const handleEditAddress = (address: AddressType) => {
       </template>
     </el-page-header>
     <el-card class="my-3">
-      
-    <el-form
-      ref="ruleFormRef"
-      :model="ruleForm"
-      style="max-width: 600px"
-      :rules="rules"
-      label-width="auto"
-      class="demo-ruleForm"
-      :size="formSize"
-      status-icon
-    >
-      
-        
-
+      <el-form
+        ref="ruleFormRef"
+        :model="ruleForm"
+        style="max-width: 600px"
+        :rules="rules"
+        label-width="auto"
+        class="demo-ruleForm"
+        :size="formSize"
+        status-icon
+      >
         <el-form-item label="Diminta oleh?" prop="to_name">
           <div class="flex items-center gap-3">
             <el-autocomplete
@@ -1652,12 +1660,10 @@ const handleEditAddress = (address: AddressType) => {
               placeholder="Cari Kontak"
               @select="(item: Record<string, any>) => onHandleSelectContact(item, 'to')"
             >
-            
               <template #default="{ item }">
                 <div v-if="!item.isNew">{{ item.name }}</div>
                 <div v-else class="text-blue-600">{{ item.value }}</div>
               </template>
-            
             </el-autocomplete>
             <el-button
               type="primary"
@@ -1679,7 +1685,7 @@ const handleEditAddress = (address: AddressType) => {
               placeholder="Cari Kontak"
               @select="(item: Record<string, any>) => onHandleSelectContact(item, 'pic')"
             >
-            <template #default="{ item }">
+              <template #default="{ item }">
                 <div v-if="!item.isNew">{{ item.name }}</div>
                 <div v-else class="text-blue-600">{{ item.value }}</div>
               </template>
@@ -1718,12 +1724,16 @@ const handleEditAddress = (address: AddressType) => {
           <div>
             <div class="flex items-center gap-2">
               <p>{{ address.address_name }}</p>
-              <el-icon 
+              <el-icon
                 class="cursor-pointer text-blue-500 hover:text-blue-600"
                 @click="handleEditAddress(address)"
-              ><Edit /></el-icon> 
+                ><Edit
+              /></el-icon>
             </div>
-            <div>{{ address.street }}, {{ generateResultSearchAddress(address).name }}</div>
+            <div>
+              {{ address.street }},
+              {{ generateResultSearchAddress(address).name }}
+            </div>
           </div>
         </el-form-item>
 
@@ -1754,9 +1764,7 @@ const handleEditAddress = (address: AddressType) => {
         <el-form-item label="Note">
           <el-input v-model="ruleForm.description" type="textarea" />
         </el-form-item>
-      
-
-    </el-form>
+      </el-form>
     </el-card>
     <el-card class="mb-3">
       <el-table :data="dataTable" border>
@@ -1770,63 +1778,62 @@ const handleEditAddress = (address: AddressType) => {
             />
           </template>
         </el-table-column>
-        <el-table-column prop="item" label="item" >
+        <el-table-column prop="item" label="item">
           <template #default="scope">
             <div class="flex justify-center">
               <el-button
-              @click="() => openCatalogueDetail(scope.row, scope.$index)"
-              text
-              ><el-icon><Warning /></el-icon
-            ></el-button>
-            <el-autocomplete
-              :fetch-suggestions="querySearchAsync"
-              v-model="scope.row.item"
-              placeholder="Please input"
-              @select="(item: Record<string, any>) => onHandleSelectItemAutocomplete(item, scope)"
-            >
-              <template #default="{ item }">
-                <div
-                  v-if="item.isNew"
-                  class="flex items-center text-blue-500"
-                >
-                  <el-icon><Plus /></el-icon>
-                  <span class="ml-2">Tambahkan "{{ item.value }}"</span>
-                </div>
-                <div v-else class="flex items-center gap-2">
-                  <!-- Thumbnail file pertama -->
-                  <div class="flex-shrink-0 mt-1">
-                    <div 
-                      v-if="item.files && item.files.length > 0"
-                      class="w-10 h-10 rounded overflow-hidden border"
-                    >
-                      <img 
-                        :src="getFirstFileUrl(item.files)"
-                        :alt="item.catalogue_name"
-                        class="w-full h-full object-cover"
-                      />
+                @click="() => openCatalogueDetail(scope.row, scope.$index)"
+                text
+                ><el-icon><Warning /></el-icon
+              ></el-button>
+              <el-autocomplete
+                :fetch-suggestions="querySearchAsync"
+                v-model="scope.row.item"
+                placeholder="Please input"
+                @select="(item: Record<string, any>) => onHandleSelectItemAutocomplete(item, scope)"
+              >
+                <template #default="{ item }">
+                  <div
+                    v-if="item.isNew"
+                    class="flex items-center text-blue-500"
+                  >
+                    <el-icon><Plus /></el-icon>
+                    <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                  </div>
+                  <div v-else class="flex items-center gap-2">
+                    <!-- Thumbnail file pertama -->
+                    <div class="flex-shrink-0 mt-1">
+                      <div
+                        v-if="item.files && item.files.length > 0"
+                        class="w-10 h-10 rounded overflow-hidden border"
+                      >
+                        <img
+                          :src="getFirstFileUrl(item.files)"
+                          :alt="item.catalogue_name"
+                          class="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div
+                        v-else
+                        class="w-10 h-10 rounded border flex items-center justify-center text-gray-400"
+                      >
+                        <el-icon><Picture /></el-icon>
+                      </div>
                     </div>
-                    <div 
-                      v-else
-                      class="w-10 h-10 rounded border flex items-center justify-center text-gray-400"
-                    >
-                      <el-icon><Picture /></el-icon>
+
+                    <!-- Informasi produk -->
+                    <div class="flex-1 min-w-0">
+                      <p style="line-height: 15px" class="font-bold truncate">
+                        {{ item.catalogue_name || item.value }}
+                      </p>
+                      <p class="text-sm text-gray-500 truncate">
+                        PN/SN: {{ item.sn_number || "Tidak Ada" }} | Brand:
+                        {{ item.brand_name || "N/A" }}
+                      </p>
                     </div>
                   </div>
-                  
-                  <!-- Informasi produk -->
-                  <div class="flex-1 min-w-0">
-                    <p style="line-height: 15px" class="font-bold truncate">
-                      {{ item.catalogue_name || item.value }}
-                    </p>
-                    <p class="text-sm text-gray-500 truncate">
-                      PN/SN: {{ item.sn_number || "Tidak Ada" }} | 
-                      Brand: {{ item.brand_name || "N/A" }}
-                    </p>
-                    
-                  </div>
-                </div>
-              </template>
-            </el-autocomplete>
+                </template>
+              </el-autocomplete>
             </div>
           </template>
         </el-table-column>
@@ -1851,10 +1858,7 @@ const handleEditAddress = (address: AddressType) => {
               @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteUnit(item, scope)"
             >
               <template #default="{ item }">
-                <div
-                  v-if="item.isNew"
-                  class="flex items-center text-blue-500"
-                >
+                <div v-if="item.isNew" class="flex items-center text-blue-500">
                   <el-icon><Plus /></el-icon>
                   <span class="ml-2">Tambahkan "{{ item.label }}"</span>
                 </div>
@@ -1883,10 +1887,10 @@ const handleEditAddress = (address: AddressType) => {
     <el-card>
       <div class="card-header flex justify-end items-center">
         <el-button @click="resetForm(ruleFormRef)">Batal</el-button>
-          <el-button type="primary" @click="submitForm(ruleFormRef)"
-              >Simpan</el-button
-            >
-        </div>
+        <el-button type="primary" @click="submitForm(ruleFormRef)"
+          >Simpan</el-button
+        >
+      </div>
     </el-card>
 
     <el-dialog v-model="dialogContact" title="Detail Kontak">
@@ -1937,7 +1941,6 @@ const handleEditAddress = (address: AddressType) => {
       </template>
     </el-drawer>
 
-
     <el-dialog
       v-model="showImageModal"
       :title="`Upload Gambar untuk Item ${activeItemIndex + 1}`"
@@ -1958,13 +1961,10 @@ const handleEditAddress = (address: AddressType) => {
           @change="handleModalImagesChange"
           @remove="handleRemoveImageList"
         />
-        
+
         <!-- Preview Section -->
-        <div v-if="modalImageFiles.length > 0" class="preview-section">
-          
-          
-        </div>
-        
+        <div v-if="modalImageFiles.length > 0" class="preview-section"></div>
+
         <!-- Empty State -->
         <div v-else class="empty-state-modal">
           <el-empty description="Belum ada gambar" :image-size="100">
@@ -1975,12 +1975,12 @@ const handleEditAddress = (address: AddressType) => {
           </el-empty>
         </div>
       </div>
-      
+
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="cancelImageUpload">Batal</el-button>
-          <el-button 
-            type="primary" 
+          <el-button
+            type="primary"
             @click="saveItemImages"
             :disabled="modalImageFiles.length === 0"
           >

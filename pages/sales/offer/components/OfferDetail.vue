@@ -27,7 +27,7 @@
       <div class="flex-1">
         <el-descriptions title="" :column="1" size="small" border>
           <el-descriptions-item label="Nomor Penawaran">{{
-            dataInterface?.data?.name
+            dataInterface?.data?.unique_code
           }}</el-descriptions-item>
           <el-descriptions-item label="Dari">{{
             dataInterface?.data?.owner?.name ?? "N/A"
@@ -446,7 +446,7 @@ const generateQuotationPdf = async () => {
   // Table
   autoTable(doc, {
     startY: 96,
-    head: [["No", "Item", "Qty", "Unit", "Price", "Total"]],
+    head: [["No", "Item", "Qty", "UoM", "Price", "Total"]],
     body: rowData,
     styles: { fontSize: 10 },
     margin: { left: marginX, right: marginX },
@@ -468,24 +468,31 @@ const generateQuotationPdf = async () => {
   doc.text("Notes:", 10, finalY + 5);
 
   if (canvassing) {
-    doc.text(
-      `\u2022 Dikirim ke ${
-        generateResultSearchAddress(canvassing?.address ?? null).name
-      }`,
-      20,
-      finalY + 15
-    );
-    doc.text(
-      `\u2022 ${
-        canvassing.payment_term == PaymentTerm.TEMPO
-          ? `${paymentTermView(canvassing.payment_term)} ${
-              canvassing.tempo_value
-            } Hari`
-          : paymentTermView(canvassing.payment_term)
-      }`,
-      20,
-      finalY + 20
-    );
+    let currentY = finalY + 15;
+
+    const writeWrappedText = (text: string) => {
+      const lines = doc.splitTextToSize(text, pageWidth - 30);
+      doc.text(lines, 20, currentY);
+      currentY += lines.length * 5;
+    };
+
+    if (canvassing) {
+      writeWrappedText(
+        `\u2022 Dikirim ke ${
+          generateResultSearchAddress(canvassing?.address ?? null).name
+        }`
+      );
+
+      writeWrappedText(
+        `\u2022 ${
+          canvassing.payment_term == PaymentTerm.TEMPO
+            ? `${paymentTermView(canvassing.payment_term)} ${
+                canvassing.tempo_value
+              } Hari`
+            : paymentTermView(canvassing.payment_term)
+        }`
+      );
+    }
   }
 
   if (props.dataInterface?.data?.note) {

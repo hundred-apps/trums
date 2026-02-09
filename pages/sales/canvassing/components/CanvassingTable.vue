@@ -1,159 +1,55 @@
 <template>
-  <TrumsWrapper>
-    <!-- Statistic Cards -->
-    <el-row :gutter="16">
-      <el-col :span="6">
-        <div class="statistic-card">
-          <el-statistic
-            :value="(data?.data.value?.data ?? []).filter((item: Canvassing) => item.status === CanvassingStatus.DRAFT).length"
-          >
-            <template #title>
-              <div style="display: inline-flex; align-items: center">
-                Draft Canvassing
-              </div>
-            </template>
-          </el-statistic>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="statistic-card">
-          <el-statistic
-            :value="(data?.data.value?.data ?? []).filter((item: Canvassing) => item.status === CanvassingStatus.PENDING_APPROVAL).length"
-          >
-            <template #title>
-              <div style="display: inline-flex; align-items: center">
-                Pending Approval
-              </div>
-            </template>
-          </el-statistic>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="statistic-card">
-          <el-statistic
-            :value="(data?.data.value?.data ?? []).filter((item: Canvassing) => item.status === CanvassingStatus.CANCEL).length"
-          >
-            <template #title>
-              <div style="display: inline-flex; align-items: center">
-                Cancelled
-              </div>
-            </template>
-          </el-statistic>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="statistic-card">
-          <el-statistic :value="data?.data.value?.total_data ?? 0">
-            <template #title>
-              <div style="display: inline-flex; align-items: center">
-                Total Canvassing
-              </div>
-            </template>
-          </el-statistic>
-        </div>
-      </el-col>
-    </el-row>
+  <CustomTable
+    :columns="filteredColumns"
+    :data="data?.data ?? []"
+    :loading="loading"
+    :column-sort="onSort"
+    @selection-change="handleSelectionChange"
+  />
 
-    <!-- Action Bar -->
-    <el-row :gutter="20" class="mb-3">
-      <el-col :span="6">
-        <el-input
-          v-model="request_search.keyword"
-          size="default"
-          placeholder="Cari canvassing..."
-          clearable
-        />
-      </el-col>
-      <NuxtLink
-        class="el-button el-button--primary el-button--default"
-        href="/sales/canvassing/add"
-      >
-        Buat Canvassing Baru
-      </NuxtLink>
-      <el-button
-        size="default"
-        :loading-icon="Eleme"
-        :loading="loading"
-        @click="() => refreshNuxtData('get-canvasing')"
-      >
-        Muat Ulang
-      </el-button>
-      <el-button type="danger" :disabled="!hasSelected" @click="bulkDelete">
-        Hapus yang Dipilih
-      </el-button>
-    </el-row>
-
-    <!-- Table -->
-    <CanvassingTable
-      :request_search="request_search"
-      :fetchKey="'get-canvassing'"
+  <!-- Pagination -->
+  <div class="flex justify-end mt-3">
+    <el-pagination
+      background
+      layout="prev, pager, next, sizes, total"
+      :total="data?.total_data ?? 0"
+      :current-page="Number(request_search.offset)"
+      :page-size="Number(request_search.limit)"
+      @current-change="handlePageChange"
+      @size-change="handleSizeChange"
     />
-  </TrumsWrapper>
+  </div>
 </template>
 
 <script lang="tsx" setup>
-import { Eleme, SetUp, Filter } from "@element-plus/icons-vue";
-import {
-  type Column,
-  type CheckboxValueType,
-  TableV2FixedDir,
-  ElPopover,
-  ElCheckbox,
-  ElIcon,
-  type SortBy,
-  ElCheckboxGroup,
-} from "element-plus";
-import { CanvassingStatus, type Canvassing } from "~/types/scm/canvasing";
-import type { Pagination } from "~/types/pagination";
 import { NuxtLink } from "#components";
-import CustomTable from "~/components/trums/table/customTable.vue";
-import type { ResponsePagination } from "~/types/response_pagination";
+import { Filter, SetUp } from "@element-plus/icons-vue";
+import {
+  ElCheckbox,
+  ElCheckboxGroup,
+  ElIcon,
+  ElPopover,
+  TableV2FixedDir,
+  type CheckboxValueType,
+  type Column,
+  type SortBy,
+} from "element-plus";
+import type { Canvassing } from "~/types/scm/canvasing";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
-import type { BaseResponse } from "~/types/response";
+import type { ResponsePagination } from "~/types/response_pagination";
+import { CanvassingStatus } from "~/types/scm/canvasing";
+import CustomTable from "~/components/trums/table/customTable.vue";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
-import { TypeInquiry } from "~/types/inquiry";
-import CanvassingTable from "./components/CanvassingTable.vue";
-import { refreshNuxtData } from "#app";
 
-definePageMeta({
-  middleware: ["auth", "app", "check-access"],
-  requiredPermission: "canvassing-read",
-});
+const props = defineProps<{
+  // onSubmit: (catalogue: Catalogue) => void,
+  // onCancel: () => void,
+  request_search: RequestSearch;
+  fetchKey: string;
+}>();
 
-// Search request
-const request_search = ref<RequestSearch>({
-  keyword: "",
-  column: [
-    {
-      inquiries: {
-        type: [TypeInquiry.SALES_INQUIRY],
-      },
-      status: [
-        CanvassingStatus.DRAFT,
-        CanvassingStatus.CANVASSING,
-        CanvassingStatus.PENDING_APPROVAL_RAB,
-        CanvassingStatus.DONE,
-      ],
-    },
-  ],
-  limit: "10",
-  offset: "1",
-  table: "canvassing",
-  sort: {
-    column: "created_at",
-    order: OrderColumn.DESC,
-  },
-});
-
-// Data state
-const data = await useFetchApi<ResponsePagination<Canvassing[]>>(
-  "/search",
-  "get-canvasing",
-  "post",
-  request_search
-);
 const selectedCanvassing = ref<Canvassing[]>([]);
-const loading = ref<boolean>(false);
+const loading = computed(() => pending.value);
 const columnsSelected = ref<string[]>([
   "selection",
   "unique_code",
@@ -164,6 +60,15 @@ const columnsSelected = ref<string[]>([
   "operations",
   "setup",
 ]);
+
+const request_search = ref<RequestSearch>(props.request_search);
+
+const { data, pending } = await useFetchApi<ResponsePagination<Canvassing[]>>(
+  "/search",
+  props.fetchKey,
+  "post",
+  request_search.value
+);
 
 // Columns
 const columns: Column<Canvassing>[] = [
@@ -249,7 +154,7 @@ const columns: Column<Canvassing>[] = [
     width: 150,
     sortable: true,
     cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
-      <span>{formatDate(rowData.created_at)}</span>
+      <span>{formatLocalDate(rowData.created_at!)}</span>
     ),
   },
   {
@@ -282,31 +187,6 @@ const columns: Column<Canvassing>[] = [
     fixed: TableV2FixedDir.RIGHT,
   },
 ];
-
-// Add selection column
-columns.unshift({
-  key: "selection",
-  width: 50,
-  maxWidth: 50,
-  align: "center",
-  cellRenderer: ({ rowData }) => {
-    const onChange = (value: CheckboxValueType) => (rowData.checked = value);
-    return <SelectionCell value={rowData.checked} onChange={onChange} />;
-  },
-  headerCellRenderer: () => {
-    const onChange = (value: CheckboxValueType) => {
-      data.data.value?.data?.forEach((item) => {
-        item.checked = value as boolean;
-      });
-    };
-    return (
-      <SelectionCell
-        value={data.data.value?.data?.every((item) => item.checked) || false}
-        onChange={onChange}
-      />
-    );
-  },
-});
 
 // Setup column configuration
 columns[columns.length - 1].headerCellRenderer = () => {
@@ -345,21 +225,35 @@ columns[columns.length - 1].headerCellRenderer = () => {
   );
 };
 
+columns.unshift({
+  key: "selection",
+  width: 50,
+  maxWidth: 50,
+  align: "center",
+  cellRenderer: ({ rowData }) => {
+    const onChange = (value: CheckboxValueType) => (rowData.checked = value);
+    return <SelectionCell value={rowData.checked} onChange={onChange} />;
+  },
+  headerCellRenderer: () => {
+    const onChange = (value: CheckboxValueType) => {
+      data.value?.data?.forEach((item) => {
+        item.checked = value as boolean;
+      });
+    };
+    return (
+      <SelectionCell
+        value={data.value?.data?.every((item) => item.checked) || false}
+        onChange={onChange}
+      />
+    );
+  },
+});
 // Computed
 const filteredColumns = computed(() => {
   return columns.filter((col) =>
     columnsSelected.value.includes(col.key!.toString())
   );
 });
-
-const hasSelected = computed(() => {
-  return data.data.value?.data?.some((item) => item.checked) || false;
-});
-
-// Methods
-const formatDate = (timestamp: number) => {
-  return new Date(timestamp * 1000).toLocaleDateString("id-ID");
-};
 
 const renderStatusTag = (status: CanvassingStatus) => {
   if (!status) return <></>;
@@ -391,7 +285,7 @@ const bulkDelete = async () => {
     );
 
     const ids =
-      data.data.value?.data
+      data.value?.data
         ?.filter((item) => item.checked)
         .map((item) => item.unique_id!) || [];
 
@@ -412,7 +306,7 @@ const handleSubmitDelete = async (values: string[]) => {
       values
     );
     if (response.status.value == "success") {
-      await refreshNuxtData("get-canvasing");
+      await refreshNuxtData(props.fetchKey);
     }
   } catch (error: any) {
     ElMessage.error(`${error?.response?.data?.message ?? error}`);
@@ -438,58 +332,36 @@ const onEdit = (canvassing: Canvassing) => {
 };
 
 const onSort = (sortBy: SortBy) => {
-  request_search.value.sort = {
+  props.request_search.sort = {
     column: sortBy.key.toString(),
     order:
-      request_search.value.sort?.order === OrderColumn.ASC
+      props.request_search.sort?.order === OrderColumn.ASC
         ? OrderColumn.DESC
         : OrderColumn.ASC,
   };
 };
 
-// // Watch search query
-// watchDebounced(
-//   request_search,
-//   () => {
-//     refreshNuxtData('get-canvassing');
-//   },
-//   { debounce: 500, deep: true }
-// )
+watch(
+  request_search.value,
+  () => {
+    console.log("watch");
+    refreshNuxtData(props.fetchKey);
+  },
+  { immediate: true }
+);
+watch(
+  () => data,
+  (newValue) => {
+    console.log("watch canv value", newValue.value);
+  },
+  { immediate: true }
+);
 
-onMounted(() => {});
+const reloadData = async () => {
+  await refreshNuxtData(props.fetchKey);
+};
+
+defineExpose({
+  reloadData,
+});
 </script>
-
-<style scoped>
-.el-row {
-  margin-bottom: 20px;
-}
-
-.statistic-card {
-  height: 100%;
-  padding: 20px;
-  border-radius: 4px;
-  background-color: var(--el-bg-color-overlay);
-}
-
-.statistic-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: wrap;
-  font-size: 12px;
-  color: var(--el-text-color-regular);
-  margin-top: 16px;
-}
-
-.statistic-footer .footer-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.statistic-footer .footer-item span:last-child {
-  display: inline-flex;
-  align-items: center;
-  margin-left: 4px;
-}
-</style>

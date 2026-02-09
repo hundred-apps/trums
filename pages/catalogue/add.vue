@@ -17,7 +17,6 @@
         status-icon
         :disabled="loading"
       >
-
         <el-form-item label="Foto Item" prop="photos">
           <div class="flex flex-col">
             <el-upload
@@ -86,7 +85,10 @@
         </el-form-item>
 
         <el-form-item label="Jenis Asset" prop="tmp_asset">
-          <el-select v-model="ruleForm.tmp_asset" placeholder="Pilih Jenis Asset">
+          <el-select
+            v-model="ruleForm.tmp_asset"
+            placeholder="Pilih Jenis Asset"
+          >
             <el-option label="Asset" value="1" />
             <el-option label="Non-Asset" value="0" />
           </el-select>
@@ -128,8 +130,6 @@
             disabled
           />
         </el-form-item>
-
-        
       </el-form>
       <template #footer>
         <div class="flex justify-end align-center">
@@ -151,10 +151,10 @@
 
 <script lang="ts" setup>
 definePageMeta({
-    middleware: ["auth", "check-access"],
-    requiredPermission: "catalogues-create",
-    name: "Create New Catalogues"
-})
+  middleware: ["auth", "check-access"],
+  requiredPermission: "catalogues-create",
+  name: "Create New Catalogues",
+});
 
 interface RuleForm {
   id: number | null;
@@ -176,7 +176,7 @@ interface RuleForm {
   file_catalogues: any[];
 }
 
-import { Plus } from '@element-plus/icons-vue';
+import { Plus } from "@element-plus/icons-vue";
 import { reactive, ref, computed, watch } from "vue";
 import {
   type ComponentSize,
@@ -191,7 +191,7 @@ import type { RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { Brands } from "~/types/brand";
 import type { BaseResponse } from "~/types/response";
-import { column } from 'element-plus/es/components/table-v2/src/common.mjs';
+import { column } from "element-plus/es/components/table-v2/src/common.mjs";
 
 const router = useRouter();
 const goBack = () => router.back();
@@ -204,8 +204,8 @@ const formSize = ref<ComponentSize>("default");
 const ruleFormRef = ref<FormInstance>();
 const api = useApi();
 
-const dialogImageUrl = ref('')
-const dialogVisible = ref(false)
+const dialogImageUrl = ref("");
+const dialogVisible = ref(false);
 
 const ruleForm = reactive<RuleForm>({
   id: null,
@@ -232,7 +232,9 @@ const rules = reactive<FormRules<RuleForm>>({
   tmp_asset: [
     { required: true, message: "Brand wajib dipilih", trigger: "blur" },
   ],
-  type: [{ required: true, message: "Jenis item wajib dipilih", trigger: "change" }],
+  type: [
+    { required: true, message: "Jenis item wajib dipilih", trigger: "change" },
+  ],
 });
 
 // Hitung volume otomatis ketika dimensi berubah
@@ -247,33 +249,32 @@ watch(
   }
 );
 
-const handleFileChange: UploadProps['onChange'] = (uploadFile, uploadFiles) => {
+const handleFileChange: UploadProps["onChange"] = (uploadFile, uploadFiles) => {
   ruleForm.file_catalogues = uploadFiles;
 };
 
-const handlePictureCardPreview: UploadProps['onPreview'] = (uploadFile) => {
-  dialogImageUrl.value = uploadFile.url!
-  dialogVisible.value = true
-}
+const handlePictureCardPreview: UploadProps["onPreview"] = (uploadFile) => {
+  dialogImageUrl.value = uploadFile.url!;
+  dialogVisible.value = true;
+};
 
-
-const handleFileRemove: UploadProps['onRemove'] = async (uploadFile, uploadFiles) => {
+const handleFileRemove: UploadProps["onRemove"] = async (
+  uploadFile,
+  uploadFiles
+) => {
   try {
-    const response = await useApiFetch<BaseResponse<any>>('/file-delete', {
-      method: 'POST',
-      body: [uploadFile.uid]
-    })
+    const response = await useApiFetch<BaseResponse<any>>("/file-delete", {
+      method: "POST",
+      body: [uploadFile.uid],
+    });
 
-    if(response.success){
+    if (response.success) {
       ruleForm.file_catalogues = uploadFiles;
     }
   } catch (error: any) {
     ElMessage.error(`${error?.response?.message ?? error}`);
   }
-  
 };
-
-
 
 // Cari brand
 const querySearchBrand = (queryString: string, cb: (arg: any) => void) => {
@@ -285,29 +286,32 @@ const querySearchBrand = (queryString: string, cb: (arg: any) => void) => {
   };
 
   try {
-
-    useFetchApi<ResponsePagination<Brands[]>>('/search', 'search-brand', 'post', requestSearch).then((response) => {
-      if(response.status.value == 'success'){
+    useFetchApi<ResponsePagination<Brands[]>>(
+      "/search",
+      "search-brand",
+      "post",
+      requestSearch
+    ).then((response) => {
+      if (response.status.value == "success") {
         const brands = response.data.value?.data as Brands[];
 
-        if(brands.length > 0){
+        if (brands.length > 0) {
           cb(
-          brands.map((brand: any) => ({
-            ...brand,
-            value: brand.name,
-            isNew: false,
-          }))
-        );
-        }else{
+            brands.map((brand: any) => ({
+              ...brand,
+              value: brand.name,
+              isNew: false,
+            }))
+          );
+        } else {
           cb([
             {
               value: `Tambahkan ${queryString}`,
               name: queryString,
               isNew: true,
-            }
-          ])
+            },
+          ]);
         }
-
       }
     });
   } catch (error: any) {
@@ -317,15 +321,20 @@ const querySearchBrand = (queryString: string, cb: (arg: any) => void) => {
 };
 
 const handleSelectBrand = (item: any) => {
-  if(item.isNew){
-    useFetchApi<BaseResponse<Brands>>('/brands-create', 'create-barand', 'post', {name: item.name}).then((response) => {
-      if(response.status.value == 'success'){
+  if (item.isNew) {
+    useFetchApi<BaseResponse<Brands>>(
+      "/brands-create",
+      "create-barand",
+      "post",
+      { name: item.name }
+    ).then((response) => {
+      if (response.status.value == "success") {
         const brand = response.data.value!.data as Brands;
         ruleForm.brand_id = brand.unique_id;
         ruleForm.brand_name = brand.name;
       }
-    })
-  }else{
+    });
+  } else {
     ruleForm.brand_id = item.unique_id;
     ruleForm.brand_name = item.name;
   }
@@ -333,50 +342,60 @@ const handleSelectBrand = (item: any) => {
 
 const submitForm = async (formEl: FormInstance | undefined) => {
   if (!formEl) return;
-  
+
   await formEl.validate(async (valid) => {
     if (!valid) return;
 
     loading.value = true;
     try {
       // Set is_asset berdasarkan type
-      ruleForm.is_asset = ruleForm.tmp_asset === '1' ? true : false;
+      ruleForm.is_asset = ruleForm.tmp_asset === "1" ? true : false;
 
       const formData = new FormData();
 
-      formData.append('name', ruleForm.name);
-      
-      formData.append('brand_id', ruleForm.brand_id || '');
-      formData.append('brand_name', ruleForm.brand_name);
-      formData.append('year', ruleForm.year);
-      formData.append('sn', ruleForm.sn);
-      formData.append('description', ruleForm.description);
-      formData.append('berat', ruleForm.berat?.toString() || '');
-      formData.append('volume', `${ruleForm.panjang}x${ruleForm.lebar}x${ruleForm.tinggi}`);
-      formData.append('length', ruleForm.panjang?.toString() || '');
-      formData.append('width', ruleForm.lebar?.toString() || '');
-      formData.append('height', ruleForm.tinggi?.toString() || '');
-      formData.append('is_asset', ruleForm.is_asset.toString());
-      formData.append('type', ruleForm.type);
+      formData.append("name", ruleForm.name);
+
+      formData.append("brand_id", ruleForm.brand_id || "");
+      formData.append("brand_name", ruleForm.brand_name);
+      formData.append("year", ruleForm.year);
+      formData.append("sn", ruleForm.sn);
+      formData.append("description", ruleForm.description);
+      formData.append("berat", ruleForm.berat?.toString() || "");
+      formData.append(
+        "volume",
+        `${ruleForm.panjang}x${ruleForm.lebar}x${ruleForm.tinggi}`
+      );
+      formData.append("length", ruleForm.panjang?.toString() || "");
+      formData.append("width", ruleForm.lebar?.toString() || "");
+      formData.append("height", ruleForm.tinggi?.toString() || "");
+      formData.append("is_asset", ruleForm.is_asset.toString());
+      formData.append("type", ruleForm.type);
 
       if (ruleForm.unique_id) {
-        formData.append('unique_id', ruleForm.unique_id);
+        formData.append("unique_id", ruleForm.unique_id);
       }
 
-     // Tambahkan file foto
+      // Tambahkan file foto
       ruleForm.file_catalogues.forEach((file) => {
         if (file.raw) {
-          formData.append('files[]', file.raw);
+          formData.append("files[]", file.raw);
         }
       });
 
       // console.log(payload);
 
-      const response = await useFetchApi<BaseResponse<Catalogue>>('/catalogues-create', 'create-catalogue', 'post', formData);
+      const response = await useFetchApi<BaseResponse<Catalogue>>(
+        "/catalogues-create",
+        "create-catalogue",
+        "post",
+        formData
+      );
 
-      if(response.status.value == 'success'){
+      if (response.status.value == "success") {
         ElMessage.success(
-          `Berhasil ${ruleForm.unique_id ? "memperbarui" : "menambahkan"} katalog`
+          `Berhasil ${
+            ruleForm.unique_id ? "memperbarui" : "menambahkan"
+          } katalog`
         );
 
         formEl.resetFields();
@@ -385,12 +404,11 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         ruleForm.lebar = null;
         ruleForm.tinggi = null;
 
-        if(unique_id){
+        if (unique_id) {
           fetchDataEdit();
-        }else{
-          window.location.href = '/catalogue';
+        } else {
+          window.location.href = "/catalogue";
         }
-
       }
 
       // const endpoint = ruleForm.id ? "/catalogues-update" : "/catalogues-create";
@@ -438,79 +456,77 @@ const resetForm = (formEl: FormInstance | undefined) => {
 };
 
 const mapApiFilesToUpload = (files: any[]) => {
-  const baseUrl = useRuntimeConfig().public.baseImageURL; 
+  const baseUrl = useRuntimeConfig().public.baseImageURL;
   // sesuaikan dengan config kamu
 
   return files.map((file) => ({
     uid: file.unique_id,
     name: file.filename_original || file.filename,
     url: `${baseUrl}${file.image_path}/${file.filename}`,
-    status: 'success',
+    status: "success",
   }));
 };
 
 const fetchDataEdit = async () => {
   loading.value = true;
   try {
-   
-      const requestSearch = {
-        keyword: '',
-        table: "catalogues",
-        column: [
-          {
-            unique_id: unique_id,
-          }
-        ],
-        limit: "1",
-        offset: "1",
-      };
+    const requestSearch = {
+      keyword: "",
+      table: "catalogues",
+      column: [
+        {
+          unique_id: [unique_id.value],
+        },
+      ],
+      limit: "1",
+      offset: "1",
+    };
 
-      const response = await useFetchApi<ResponsePagination<Catalogue[]>>('/search', 'get-initial-edit', 'post', requestSearch)
-      console.log('response', response.status);
-      if (response.status.value === 'success') {
-        const catalogues: Catalogue[] = response.data.value?.data as Catalogue[];
+    const response = await useFetchApi<ResponsePagination<Catalogue[]>>(
+      "/search",
+      "get-initial-edit",
+      "post",
+      requestSearch
+    );
+    console.log("response", response.status);
+    if (response.status.value === "success") {
+      const catalogues: Catalogue[] = response.data.value?.data as Catalogue[];
 
-        if(catalogues.length > 0){
-          const catalogue = catalogues[0];
+      if (catalogues.length > 0) {
+        const catalogue = catalogues[0];
 
-          
-          Object.assign(ruleForm, {
-            id: catalogue.id,
-            unique_id: catalogue.unique_id,
-            name: catalogue.name,
-            brand_id: catalogue.brand_id,
-            brand_name: catalogue.brand?.name || "",
-            year: catalogue.year || "",
-            sn: catalogue.sn || "",
-            description: catalogue.description || "",
-            berat: catalogue.berat,
-            volume: catalogue.volume,
-            panjang: catalogue.length,
-            lebar: catalogue.width,
-            tinggi: catalogue.height,
-            is_asset: catalogue.is_asset,
-            tmp_asset: catalogue.is_asset ? "1" : "0",
-            type: catalogue.type,
-            file_catalogues: mapApiFilesToUpload(catalogue.files || []),
-          });
-        }else{
-          ElMessage.error(`Data Tidak Di Temukan!`);
-        }
-
-        
+        Object.assign(ruleForm, {
+          id: catalogue.id,
+          unique_id: catalogue.unique_id,
+          name: catalogue.name,
+          brand_id: catalogue.brand_id,
+          brand_name: catalogue.brand?.name || "",
+          year: catalogue.year || "",
+          sn: catalogue.sn || "",
+          description: catalogue.description || "",
+          berat: catalogue.berat,
+          volume: catalogue.volume,
+          panjang: catalogue.length,
+          lebar: catalogue.width,
+          tinggi: catalogue.height,
+          is_asset: catalogue.is_asset,
+          tmp_asset: catalogue.is_asset ? "1" : "0",
+          type: catalogue.type,
+          file_catalogues: mapApiFilesToUpload(catalogue.files || []),
+        });
+      } else {
+        ElMessage.error(`Data Tidak Di Temukan!`);
       }
-
-  } catch (error: any) {
-      ElMessage.error(error.response?.data?.message);
-    } finally {
-      loading.value = false;
     }
-}
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.message);
+  } finally {
+    loading.value = false;
+  }
+};
 
 onMounted(async () => {
-
-  
-  if (unique_id) {
+  if (unique_id.value) {
     fetchDataEdit();
   }
 });

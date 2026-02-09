@@ -201,6 +201,20 @@ const units = ref<Unit[]>([]);
 
 const availableColumn: Column<Inventory>[] = [
   {
+    title: "Unique Code",
+    key: "",
+    dataKey: "",
+    width: 200,
+    cellRenderer: ({ rowData }: { rowData: Inventory }) => (
+      <NuxtLink
+        class={`text-blue-600`}
+        href={`/catalogue/${rowData.unique_id}`}
+      >
+        {rowData.unique_code ?? "N/A"}
+      </NuxtLink>
+    ),
+  },
+  {
     title: "Serial Number",
     key: "sn",
     dataKey: "sn",
@@ -211,6 +225,14 @@ const availableColumn: Column<Inventory>[] = [
     key: "catalogue.name",
     dataKey: "catalogue.name",
     width: 200,
+    cellRenderer: ({ rowData }: { rowData: Inventory }) => (
+      <NuxtLink
+        class={`text-blue-600`}
+        href={`/catalogue/${rowData.catalogue_id}`}
+      >
+        {rowData.catalogue?.name ?? "N/A"}
+      </NuxtLink>
+    ),
   },
   {
     title: "Location",

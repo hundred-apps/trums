@@ -11,6 +11,7 @@
         class="px-3"
         @column-sort="columnSort"
         fixed
+        border
       >
         <template v-if="loading" #overlay>
           <div

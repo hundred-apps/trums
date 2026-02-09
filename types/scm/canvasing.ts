@@ -216,7 +216,7 @@ export type CanvassingItemForm = {
   taxes: CanvassingVendorTaxForm[];
   editing: boolean | null;
   type: "parent" | "child";
-  type_item: "request" | "equivalent" | "quotation";
+  type_item: "request" | "equivalent" | "quotation" | "original";
   equivalent_id: string | null;
   children: CanvassingItemForm[];
   parent_catalogue_id?: string;
@@ -234,7 +234,7 @@ export type CanvassingItemForm = {
   contacts_fee: ReferenceTransactionAdjustment[];
   checked?: boolean;
   has_different_unit?: boolean;
-  files?: UploadUserFile[]
+  files?: UploadUserFile[];
 };
 
 export type CanvassingItemVendorSummery = {

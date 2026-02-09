@@ -147,15 +147,15 @@
         </el-table-column>
         <el-table-column prop="item_name" label="item" />
         <el-table-column prop="sn" label="Serial Number" width="180" />
-        <el-table-column prop="quantity" label="QTY" width="100">
+        <el-table-column prop="quantity" label="REQ QTY" width="100">
           <template #default="scope">
             <div class="flex items-center gap-1">
-              <span>{{ scope.row.quantity }}</span>
+              <span>{{ scope.row.request_qty }}</span>
               <el-tooltip
                 v-if="
                   scope.row.stok !== undefined &&
                   scope.row.stok > 0 &&
-                  scope.row.stok < scope.row.quantity &&
+                  scope.row.stok < scope.row.request_qty &&
                   formInline.type == 'out'
                 "
                 content="Stok tidak mencukupi"
@@ -178,11 +178,19 @@
           </template>
         </el-table-column>
         <el-table-column
-          prop="stok"
-          :label="formInline.type == 'out' ? 'QTY Tersedia' : 'Stok Saat ini'"
-          width="100"
-        />
-        <el-table-column prop="unit_name" label="Unit" width="180" />
+          :label="`${formInline.type == 'in' ? 'REC QTY' : 'QTY'}`"
+          width="250"
+        >
+          <template #default="scope">
+            <el-input-number
+              v-model="scope.row.quantity"
+              :min="1"
+              :max="scope.row.pending_qty"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column prop="stok" label="Stok" width="100" />
+        <el-table-column prop="unit_name" label="Unit" width="100" />
         <el-table-column
           v-if="formInline.type == 'out'"
           label="Status"
@@ -285,7 +293,7 @@
           >
         </template>
       </el-table-column>
-      <el-table-column label="Customer">
+      <el-table-column label="Kontak">
         <template #default="scope">
           {{ ((scope.row as Inquiry).reference_data as PurchaseOrder | null)?.vendor_name ?? '-' }}
         </template>
@@ -360,8 +368,18 @@ import { currency, currencyWithoutSymbol, formatLocalDate } from "#imports";
 import type { Inquiry } from "~/types/inquiry";
 import { ElLoading } from "element-plus";
 import type { Inventory } from "~/types/inventory";
-import { InventoryMovementReferenceItem } from "~/types/inventory_movement";
+import {
+  InventoryMovementReferenceItem,
+  type InventoryMovement,
+} from "~/types/inventory_movement";
+import type { BaseResponse } from "~/types/response";
+import {
+  ItemRequestTrailReference,
+  ItemRequestTrailStatus,
+  type ItemRequestTrail,
+} from "~/types/item_request";
 interface formCheckInOut {
+  unique_id: string | null;
   type: string;
   location: string;
   location_id: string;
@@ -392,7 +410,12 @@ const ruleFormRef = ref<FormInstance>();
 const tableItem = ref<inititalTable[]>([]);
 const fileList = ref<UploadUserFile[]>([]);
 
+const route = useRoute();
+const inquiry_id = computed(() => route.query.inquiry_id as string);
+const id = computed(() => route.query.id as string);
+
 let formInline = reactive<formCheckInOut>({
+  unique_id: null,
   type: useCookie("type").value ?? "in",
   location: "",
   location_id: "",
@@ -796,7 +819,7 @@ const handleSelectAddress = (record: Record<string, any>) => {
 
 const onSelectReference_id = async (data: Inquiry) => {
   console.log("reference", formInline.reference);
-  console.log("data", data);
+  console.log("data", data.item_request);
 
   tableItem.value = [];
   if (formInline.type == "out") {
@@ -826,10 +849,22 @@ const onSelectReference_id = async (data: Inquiry) => {
   }
 
   data.item_request.forEach((element) => {
+    const history = (element.item_request_trail ?? [])
+      .filter(
+        (trail) =>
+          trail.reference == ItemRequestTrailReference.MOVEMENT_ITEM &&
+          trail.status == ItemRequestTrailStatus.DONE
+      )
+      .reduce((accumulator, currentValue) => {
+        // Add the current object's property value to the accumulator
+        return accumulator + (currentValue.quantity ?? 0);
+      }, 0);
+
+    console.log("history", history);
     tableItem.value.push({
       unique_id: "",
       id: 0,
-      item_request: "",
+      item_request: element.unique_id,
       reference:
         formInline.reference === "inquiry"
           ? InventoryMovementReferenceItem.ITEM_REQUEST
@@ -840,7 +875,7 @@ const onSelectReference_id = async (data: Inquiry) => {
       item_name: element.catalogue_name ?? "",
       catalogue_id: element.catalogue_id ?? "",
       inventory_id: "",
-      quantity: element.request_qty ?? 0,
+      quantity: 0,
       cost: 0,
       selling_price: null,
       sn: element.catalogue?.sn ?? "",
@@ -854,6 +889,7 @@ const onSelectReference_id = async (data: Inquiry) => {
       is_traceable: "",
       quantity_to_in: null,
       stok: element.stok ?? 0,
+      pending_qty: element.request_qty - history,
     });
   });
 
@@ -968,8 +1004,8 @@ const rules = reactive<FormRules<formCheckInOut>>({
 });
 
 interface inititalTable {
-  id: number;
-  unique_id: string;
+  id?: number;
+  unique_id: string | null;
   item_request: string | null;
   reference: string | null;
   reference_id: string | null;
@@ -993,6 +1029,8 @@ interface inititalTable {
   is_traceable: string;
   quantity_to_in: number | null;
   stok?: number;
+  item_request_trail?: ItemRequestTrail;
+  pending_qty?: number;
 }
 
 const handleRemove: UploadProps["onRemove"] = (file, uploadFiles) => {
@@ -1035,6 +1073,7 @@ const onSubmit = async () => {
   loading.value = true;
   try {
     const data = {
+      unique_id: formInline.unique_id,
       type: formInline.type,
       from_name: formInline.location,
       from: formInline.location_id,
@@ -1048,6 +1087,7 @@ const onSubmit = async () => {
       status: formInline.status,
       movement_item: tableItem.value.map((value) => {
         return {
+          unique_id: value.unique_id,
           reference: value.reference,
           reference_id: value.reference_id,
           inventory_id: value.inventory_id,
@@ -1058,12 +1098,14 @@ const onSubmit = async () => {
           unit_name: value.unit_name,
           unit_id: value.unit_id,
           unit_version: value.unit_version,
+          item_request_trail: value.item_request_trail,
         };
       }),
     };
 
     const formData = new FormData();
 
+    formData.append("unique_id", `${formInline.unique_id}`);
     formData.append("type", formInline.type);
     formData.append("from_name", formInline.location);
     formData.append("from", formInline.location_id);
@@ -1089,10 +1131,24 @@ const onSubmit = async () => {
     tableItem.value.forEach((element, index) => {
       if (element.catalogue_id != null) {
         formData.append(
+          `movement_item[${index}][unique_id]`,
+          `${element.unique_id}`
+        );
+      }
+      if (element.catalogue_id != null) {
+        formData.append(
           `movement_item[${index}][catalogue_id]`,
           element.catalogue_id
         );
       }
+      formData.append(
+        `movement_item[${index}][reference]`,
+        `${element.reference}`
+      );
+      formData.append(
+        `movement_item[${index}][reference_id]`,
+        `${element.reference_id}`
+      );
       formData.append(`movement_item[${index}][unit_name]`, element.unit_name);
       formData.append(`movement_item[${index}][name]`, element.item_name);
       formData.append(`movement_item[${index}][unit_id]`, element.unit_id);
@@ -1121,6 +1177,45 @@ const onSubmit = async () => {
         `movement_item[${index}][is_traceable]`,
         (element.is_traceable == "1" ? true : false).toString()
       );
+
+      formData.append(
+        `movement_item[${index}][item_request_trail][0][unique_id]`,
+        element.item_request_trail?.unique_id ?? ""
+      );
+      formData.append(
+        `movement_item[${index}][item_request_trail][0][item_request_id]`,
+        element.item_request ?? ""
+      );
+
+      formData.append(
+        `movement_item[${index}][item_request_trail][0][reference]`,
+        ItemRequestTrailReference.MOVEMENT_ITEM ?? ""
+      );
+
+      formData.append(
+        `movement_item[${index}][item_request_trail][0][quantity]`,
+        `${element.quantity ?? 0}`
+      );
+
+      if (formInline.status == "draft") {
+        formData.append(
+          `movement_item[${index}][item_request_trail][0][status]`,
+          `draft`
+        );
+      } else if (
+        formInline.status == "delivery" ||
+        formInline.status == "ready"
+      ) {
+        formData.append(
+          `movement_item[${index}][item_request_trail][0][status]`,
+          `waiting`
+        );
+      } else if (formInline.status == "done") {
+        formData.append(
+          `movement_item[${index}][item_request_trail][0][status]`,
+          `done`
+        );
+      }
 
       if (element.contact_id != "") {
         formData.append(
@@ -1201,4 +1296,103 @@ const onAddNewAddress = (address: AddressType) => {
   formInline.address_version = address.version || 1;
   dialogNewAddress.value = false;
 };
+
+const fetchInquiry = async () => {
+  loading.value = true;
+  try {
+    // Fetch related purchase orders
+    const inquiry = await useFetchApi<BaseResponse<Inquiry>>(
+      `/inquiries-read/${inquiry_id.value}`,
+      "inquiry",
+      "get",
+      null
+    );
+
+    if (inquiry.status.value === "success" && inquiry.data.value!.data) {
+      const dataInquiry: Inquiry = inquiry.data.value!.data;
+      onSelectReference_id(dataInquiry);
+    }
+  } catch (error) {
+    console.error("Failed to fetch related data", error);
+  } finally {
+    loading.value = false;
+  }
+};
+const fetchDataEdit = async () => {
+  loading.value = true;
+  try {
+    // Fetch related purchase orders
+    const response = await useFetchApi<BaseResponse<InventoryMovement>>(
+      `/inventory-movement-read/${id.value}`,
+      "movement",
+      "get",
+      null
+    );
+
+    if (response.status.value === "success" && response.data.value!.data) {
+      const movement: InventoryMovement = response.data.value!.data;
+      console.log("movement", movement);
+      formInline.unique_id = movement.unique_id ?? "";
+      formInline.address_id = movement.address_id ?? "";
+      formInline.address_name = movement.address?.address_name ?? "";
+      formInline.address_version = movement.address?.version ?? 0;
+      formInline.location = movement.from_name;
+      formInline.location_id = movement.from;
+      formInline.version = movement.version;
+      formInline.reference = movement.reference;
+      formInline.reference_from = movement.reference_from ?? "contact";
+      formInline.reference_view = movement.data_reference?.unique_code;
+      formInline.reference_to = movement.reference_to ?? "catalogue";
+      formInline.to = movement.to ?? "catalogue";
+      formInline.to_name = movement.to_name ?? "";
+      formInline.to_version = movement.to_version ?? 0;
+      formInline.reference_id = movement.reference_id;
+      formInline.source_document = movement.source_document;
+      formInline.status = movement.status;
+
+      tableItem.value = movement.inventory_movement_item.map((item) => ({
+        catalogue_id: item.inventory?.catalogue_id ?? "",
+        unique_id: item.unique_id,
+        item_request: item.reference_id ?? "",
+        reference: item.reference ?? "item_request",
+        reference_id: item.reference_id ?? "",
+        reference_view: "",
+        reference_item: "",
+        item_name: item.inventory?.catalogue?.name ?? "",
+        inventory_id: item.inventory_id,
+        quantity: item.quantity,
+        cost: item.cost,
+        selling_price: item.selling_price,
+        sn: item.sn,
+        unit_id: item.unit_id,
+        unit_name: item.unit_name,
+        unit_version: item.unit_version ?? 0,
+        contact_id: item.contact_id ?? "",
+        contact_name: item.contact_name ?? "",
+        contact_version: item.contact_version ?? 0,
+        request_qty: item.reference_data?.request_qty ?? 0,
+        is_traceable: "false",
+        quantity_to_in: item.quantity,
+        stok: item.inventory?.quantity ?? 0,
+        item_request_trail: item.item_request_trail,
+      }));
+
+      // formInline.address_id = movement.address_id;
+    }
+  } catch (error) {
+    console.error("Failed to fetch related data", error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(() => {
+  if (inquiry_id.value) {
+    fetchInquiry();
+  }
+
+  if (id.value) {
+    fetchDataEdit();
+  }
+});
 </script>

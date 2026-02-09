@@ -12,9 +12,9 @@ import {
   Sell,
   Setting,
   CreditCard,
-  Collection
+  Collection,
 } from "@element-plus/icons-vue";
-import * as ElementPlusIconsVue from '@element-plus/icons-vue'
+import * as ElementPlusIconsVue from "@element-plus/icons-vue";
 import { useRouter } from "vue-router";
 import type { Menu } from "~/types/menu";
 import type { People } from "~/types/people";
@@ -28,15 +28,12 @@ const authStore = useAuthStore();
 const userdata = ref<People | null>(null);
 const visibleDialogLogOut = ref<boolean>(false);
 
-
 const imageUrl = config.public.baseImageURL;
 const id_token = localStorage.getItem("id_token");
 const client_id = config.public.baseOIDCICID;
 
-
 const issuer = config.public.baseOIDCIssuer;
 const logoutUri = config.public.baseOIDCILOGOUTURL;
-
 
 const navigateToSetting = (name = "") => {
   const path = `/setting/profile/${name}`;
@@ -46,44 +43,37 @@ const navigateToSetting = (name = "") => {
 const user = useCookie("userdata");
 const menus = ref<Menu[]>([]);
 const nameFront = ref("");
-const icons = ElementPlusIconsVue as Record<string, any>
-
+const icons = ElementPlusIconsVue as Record<string, any>;
 
 const showIcon = (icon: any) => {
   return icons[icon] || null;
 };
 
 onMounted(() => {
-  userdata.value = JSON.parse(localStorage.getItem('user_data') ?? '');
-  menus.value = JSON.parse(localStorage.getItem('menu') ?? '[]');
+  userdata.value = JSON.parse(localStorage.getItem("user_data") ?? "");
+  menus.value = JSON.parse(localStorage.getItem("menu") ?? "[]");
 
   nameFront.value = userdata.value?.name?.split(" ")[0] || "";
 });
 
 const logOut = async () => {
-
   try {
-    const response = await useApiFetch<BaseResponse<any>>('/people-logout', {
-      method: 'GET',
-    })
+    const response = await useApiFetch<BaseResponse<any>>("/people-logout", {
+      method: "GET",
+    });
 
-    if(response.success){
+    if (response.success) {
       // const id_token = authStore.idToken;
 
-
-    // const url = `${issuer}/session/end?id_token_hint=${id_token}&post_logout_redirect_uri=${logoutUri}&client_id=${client_id}`;
+      // const url = `${issuer}/session/end?id_token_hint=${id_token}&post_logout_redirect_uri=${logoutUri}&client_id=${client_id}`;
       authStore.clearAuth();
       user.value = null;
-      window.location.href = '/';
+      window.location.href = "/";
     }
   } catch (error: any) {
     ElMessage.error(error.response?.message ?? error);
   }
-  
-
-  
-
-}
+};
 
 const handleMenuClick = (menuKey: string) => {
   router.push(menuKey);
@@ -152,28 +142,30 @@ const handleMenuClick = (menuKey: string) => {
       <el-scrollbar>
         <el-menu @select="handleMenuClick">
           <div v-for="menu in menus" :key="menu.unique_id">
-            <el-sub-menu v-if="menu.menus && menu.menus.length > 0" :index="menu.route">
+            <el-sub-menu
+              v-if="menu.menus && menu.menus.length > 0"
+              :index="menu.route"
+            >
               <template #title>
                 <el-icon v-if="showIcon(menu.icon)">
                   <component :is="showIcon(menu.icon)" />
                 </el-icon>
-                {{capitalizeWords(menu.name)}}
+                {{ menu.name }}
               </template>
               <el-menu-item-group>
-                <el-menu-item v-for="sub in menu.menus" :index="sub.route"
-                  >{{ capitalizeWords(sub.name) }}</el-menu-item
-                >
+                <el-menu-item v-for="sub in menu.menus" :index="sub.route">{{
+                  sub.name
+                }}</el-menu-item>
               </el-menu-item-group>
             </el-sub-menu>
             <el-menu-item v-else :index="menu.route">
               <el-icon v-if="showIcon(menu.icon)">
                 <component :is="showIcon(menu.icon)" />
               </el-icon>
-              <span>{{capitalizeWords(menu.name)}}</span>
+              <span>{{ menu.name }}</span>
             </el-menu-item>
-            
           </div>
-          
+
           <!-- <el-menu-item index="/catalogue">
             <el-icon><Collection /></el-icon>
             <span>Catalog</span>
@@ -318,15 +310,11 @@ const handleMenuClick = (menuKey: string) => {
     </div>
 
     <el-dialog v-model="visibleDialogLogOut" title="Warning" width="500" center>
-      <span class="text-center">
-        Anda Yakin Ingin Keluar Dari Aplikasi?
-      </span>
+      <span class="text-center"> Anda Yakin Ingin Keluar Dari Aplikasi? </span>
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="visibleDialogLogOut = false">Cancel</el-button>
-          <el-button type="danger" @click="logOut">
-            Log Out
-          </el-button>
+          <el-button type="danger" @click="logOut"> Log Out </el-button>
         </div>
       </template>
     </el-dialog>

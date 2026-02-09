@@ -1,8 +1,7 @@
 <template>
   <TrumsWrapper>
-    
     <el-card
-    shadow="never"
+      shadow="never"
       class="my-3"
       v-loading="loading"
       element-loading-text="Loading..."
@@ -43,12 +42,21 @@
           >
             Ajukan Approval
           </el-button>
-          <NuxtLink
+          <el-button
+            v-if="
+              canvassingData?.status == CanvassingStatus.PENDING_APPROVAL_RAB
+            "
+            type="default"
+            @click="() => updateStatus(CanvassingStatus.DRAFT)"
+          >
+            Batalkan Pengajuan
+          </el-button>
+          <!-- <NuxtLink
             class="el-button el-button--primary"
             :href="`/sales/canvassing/add?id=${canvassingData?.unique_id}&type=copy`"
           >
             Salin Canvassing
-          </NuxtLink>
+          </NuxtLink> -->
         </div>
       </template>
 
@@ -65,9 +73,12 @@
               {{ canvassingData?.description || "-" }}
             </el-descriptions-item>
             <el-descriptions-item label="Status">
-                <el-tag v-if="canvassingData" :type="getStatusTagType(canvassingData.status)">
-                    {{ formatStatus(canvassingData.status) }}
-                </el-tag>
+              <el-tag
+                v-if="canvassingData"
+                :type="getStatusTagType(canvassingData.status)"
+              >
+                {{ formatStatus(canvassingData.status) }}
+              </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="Catatan">
               {{ canvassingData?.note ?? "" }}
@@ -135,7 +146,6 @@
         :expand-row-keys="getExpandRowKeys ?? []"
         border
       >
-        
         <el-table-column prop="item_name" label="Item" width="400" fixed="left">
           <template #default="{ row }">
             {{ row.catalogue_name }}
@@ -220,7 +230,6 @@
       </el-table>
     </el-card>
 
-    
     <el-dialog
       v-model="visibleApproveDialog"
       title="Approve Canvasing!"
@@ -310,7 +319,6 @@ import { currency, formatLocalDate, getFirstFileUrl } from "#imports";
 import type { Permission } from "~/types/menu";
 import ItemImageUpload from "../../inquiry/components/ItemImageUpload.vue";
 
-
 const config = useRuntimeConfig();
 const imageUrl = config.public.baseImageURL;
 
@@ -379,7 +387,6 @@ interface VendorGroup {
   vendor_name: string;
   items: CanvassingVendor[];
 }
-
 
 const props = defineProps<{
   canvassingData: Canvassing;
@@ -985,7 +992,6 @@ const tableRowClassName = ({
   }
   return "";
 };
-
 
 const disableButtonApprove = computed(() => {
   return Object.values(selectedVendors.value).every((v) => v !== "");
@@ -1670,237 +1676,232 @@ const generateQuotation = async () => {
 };
 
 const initialCanvassing = (data: Canvassing) => {
-    canvassingData.value = data;
-    contactsFee.value = [];
-    (data.reference_transaction ?? []).forEach(
-        (element) => {
-        if (element.party_type == PartyType.CONTACT) {
-            contactsFee.value.push(element);
-        }
-        if (
-            (element.adjustments_transaction?.name ?? "").toLowerCase() !==
-            "fee" &&
-            (element.adjustments_transaction?.name ?? "").toLowerCase() !==
-            "ongkos kirim"
-        ) {
-            references.value.push(element);
-        }
-        }
+  canvassingData.value = data;
+  contactsFee.value = [];
+  (data.reference_transaction ?? []).forEach((element) => {
+    if (element.party_type == PartyType.CONTACT) {
+      contactsFee.value.push(element);
+    }
+    if (
+      (element.adjustments_transaction?.name ?? "").toLowerCase() !== "fee" &&
+      (element.adjustments_transaction?.name ?? "").toLowerCase() !==
+        "ongkos kirim"
+    ) {
+      references.value.push(element);
+    }
+  });
+
+  (data.canvassing_item ?? []).forEach((element) => {
+    if (element.type_item !== "equivalent") {
+      fileList.value.push(getFile(element.files ?? []));
+      element.canvassing_vendor
+        .map((child) => getFile(child.files ?? []))
+        .forEach((element) => {
+          fileList.value.push(element);
+        });
+
+      console.log("item canvassing", element);
+
+      item_canvassing.value.push({
+        index: `${element.unique_id}`,
+        canvassing_id: element.canvassing_id,
+        canvaasing_version: element.canvaasing_version,
+        item_request_trail_version: element.item_request_trail_version,
+        item_request_trail_id: element.item_request_trail_id,
+        unique_id: element.unique_id,
+        vendor_id: null,
+        vendor_name: "",
+        unit_id: element.unit_id,
+        unit_name: element.unit_name,
+        unit_version: null,
+        offer_item_id: null,
+        offer_item_version: 0,
+        catalogue_id: element.catalogue_id ?? "",
+        parent_catalogue_id: "",
+        catalogue_name: element.catalogue_name ?? "",
+        sn: element.catalogue?.sn ?? "N/A",
+        quantity: element.quantity ?? 1,
+        unit_price: 0,
+        total_price:
+          Number(element.unit_selling_price) * Number(element.quantity),
+        status: CanvassingVendorStatus.SUBMITTED,
+        taxes: [],
+        editing: null,
+        type: "parent",
+        type_item: element.type_item,
+        equivalent_id: element.equivalent_id,
+        children: element.canvassing_vendor.map((child) => ({
+          type_item: child.type_item,
+          image: getFirstFileUrl(child.files ?? []),
+          equivalent_id: child.equivalent_id,
+          index: `${child.unique_id}`,
+          canvassing_id: null,
+          canvaasing_version: null,
+          item_request_trail_version: null,
+          item_request_trail_id: null,
+          unique_id: child.unique_id,
+          vendor_id: child.vendor_id ?? "",
+          vendor_name: child.vendor?.name ?? "",
+          unit_id: child.unit_id,
+          unit_name: child.unit_name,
+          unit_version: null,
+          offer_item_id: null,
+          offer_item_version: 0,
+          catalogue_id: child.catalogue_id ?? "",
+          parent_catalogue_id: child.catalogue_id,
+          catalogue_name: child.catalogue?.name ?? "",
+          sn: child.catalogue?.sn ?? "",
+          quantity: child.quantity,
+          unit_price: child.unit_price,
+          total_price: child.total_price,
+          status: child.status,
+          checked:
+            child.status == CanvassingVendorStatus.SELECTED ? true : false,
+          taxes: [],
+          editing: null,
+          type: "child",
+          children: [],
+          selling_price: child.selling_price ?? 0,
+          profit: child.profit,
+          profit_unit: child.profit_unit,
+          fee: child.fee,
+          fee_unit: child.fee_unit,
+          ongkir: child.ongkir,
+          ongkir_unit: child.ongkir_unit,
+          pricetag_item_id: child.pricetag_item_id ?? "",
+          pricetag_item_version: child.pricetag_item_version ?? 0,
+          contacts_fee: (child.reference_transaction ?? []).filter(
+            (value) => value.party_type == PartyType.CONTACT
+          ),
+        })),
+        selling_price: element.unit_selling_price,
+        profit: 0,
+        profit_unit: "percent",
+        fee: 0,
+        fee_unit: "percent",
+        ongkir: 0,
+        ongkir_unit: "percent",
+        pricetag_item_id: "",
+        pricetag_item_version: 0,
+        contacts_fee: [],
+        files: mapApiFilesView(element.files ?? []),
+        image:
+          mapApiFilesView(element.files ?? []).length > 0
+            ? mapApiFilesView(element.files ?? [])[0].url
+            : "",
+      });
+    }
+  });
+
+  const equivalent: CanvassingItemForm[] = [];
+
+  (data.canvassing_item ?? []).forEach((element) => {
+    if (element.type_item == "equivalent") {
+      equivalent.push({
+        index: `${element.unique_id}`,
+        canvassing_id: element.canvassing_id,
+        canvaasing_version: element.canvaasing_version,
+        item_request_trail_version: element.item_request_trail_version,
+        item_request_trail_id: element.item_request_trail_id,
+        unique_id: element.unique_id,
+        vendor_id: null,
+        vendor_name: "",
+        unit_id: element.unit_id,
+        unit_name: element.unit_name,
+        unit_version: null,
+        offer_item_id: null,
+        offer_item_version: 0,
+        catalogue_id: element.catalogue_id ?? "",
+        parent_catalogue_id: "",
+        catalogue_name: element.catalogue_name ?? "",
+        sn: element.catalogue?.sn ?? "N/A",
+        quantity: element.quantity ?? 1,
+        unit_price: 0,
+        total_price:
+          Number(element.unit_selling_price) * Number(element.quantity),
+        status: CanvassingVendorStatus.SUBMITTED,
+        taxes: [],
+        editing: null,
+        type: "parent",
+        type_item: element.type_item,
+        equivalent_id: element.equivalent_id,
+        children: element.canvassing_vendor.map((child) => ({
+          type_item: child.type_item,
+          equivalent_id: child.equivalent_id,
+          index: `${child.unique_id}`,
+          canvassing_id: null,
+          canvaasing_version: null,
+          item_request_trail_version: null,
+          item_request_trail_id: null,
+          unique_id: child.unique_id,
+          vendor_id: child.vendor_id ?? "",
+          vendor_name: child.vendor?.name ?? "",
+          unit_id: child.unit_id,
+          unit_name: child.unit_name,
+          unit_version: null,
+          offer_item_id: null,
+          offer_item_version: 0,
+          catalogue_id: child.catalogue_id ?? "",
+          parent_catalogue_id: child.catalogue_id,
+          catalogue_name: child.catalogue?.name ?? "",
+          sn: child.catalogue?.sn ?? "",
+          quantity: child.quantity,
+          unit_price: child.unit_price,
+          total_price: child.total_price,
+          status: child.status,
+          checked:
+            child.status == CanvassingVendorStatus.SELECTED ? true : false,
+          taxes: [],
+          editing: null,
+          type: "child",
+          children: [],
+          selling_price: child.selling_price ?? 0,
+          profit: child.profit,
+          profit_unit: child.profit_unit,
+          fee: child.fee,
+          fee_unit: child.fee_unit,
+          ongkir: child.ongkir,
+          ongkir_unit: child.ongkir_unit,
+          pricetag_item_id: child.pricetag_item_id ?? "",
+          pricetag_item_version: child.pricetag_item_version ?? 0,
+          contacts_fee: (child.reference_transaction ?? []).filter(
+            (value) => value.party_type == PartyType.CONTACT
+          ),
+        })),
+        selling_price: element.unit_selling_price,
+        profit: 0,
+        profit_unit: "percent",
+        fee: 0,
+        fee_unit: "percent",
+        ongkir: 0,
+        ongkir_unit: "percent",
+        pricetag_item_id: "",
+        pricetag_item_version: 0,
+        contacts_fee: [],
+      });
+    }
+  });
+
+  equivalent.forEach((element) => {
+    const indexParent = item_canvassing.value.findIndex(
+      (data) => data.unique_id === element.equivalent_id
     );
+    if (indexParent >= 0) {
+      // item_canvassing.value.splice(indexParent + 1, 0, element);
+      const eq = element.children.map((child) => ({
+        ...child,
+        equivalent_id: element.equivalent_id,
+      }));
+      item_canvassing.value[indexParent].children = [
+        ...item_canvassing.value[indexParent].children,
+        ...eq,
+      ];
+    }
+  });
 
-    (data.canvassing_item ?? []).forEach((element) => {
-        if (element.type_item !== "equivalent") {
-        fileList.value.push(getFile(element.files ?? []));
-        element.canvassing_vendor
-            .map((child) => getFile(child.files ?? []))
-            .forEach((element) => {
-            fileList.value.push(element);
-            });
-
-        console.log('item canvassing', element);    
-
-        item_canvassing.value.push({
-            
-            index: `${element.unique_id}`,
-            canvassing_id: element.canvassing_id,
-            canvaasing_version: element.canvaasing_version,
-            item_request_trail_version: element.item_request_trail_version,
-            item_request_trail_id: element.item_request_trail_id,
-            unique_id: element.unique_id,
-            vendor_id: null,
-            vendor_name: "",
-            unit_id: element.unit_id,
-            unit_name: element.unit_name,
-            unit_version: null,
-            offer_item_id: null,
-            offer_item_version: 0,
-            catalogue_id: element.catalogue_id ?? "",
-            parent_catalogue_id: "",
-            catalogue_name: element.catalogue_name ?? "",
-            sn: element.catalogue?.sn ?? "N/A",
-            quantity: element.quantity ?? 1,
-            unit_price: 0,
-            total_price:
-            Number(element.unit_selling_price) * Number(element.quantity),
-            status: CanvassingVendorStatus.SUBMITTED,
-            taxes: [],
-            editing: null,
-            type: "parent",
-            type_item: element.type_item,
-            equivalent_id: element.equivalent_id,
-            children: element.canvassing_vendor.map((child) => ({
-              type_item: child.type_item,
-              image: getFirstFileUrl(child.files ?? []),
-              equivalent_id: child.equivalent_id,
-              index: `${child.unique_id}`,
-              canvassing_id: null,
-              canvaasing_version: null,
-              item_request_trail_version: null,
-              item_request_trail_id: null,
-              unique_id: child.unique_id,
-              vendor_id: child.vendor_id ?? "",
-              vendor_name: child.vendor?.name ?? "",
-              unit_id: child.unit_id,
-              unit_name: child.unit_name,
-              unit_version: null,
-              offer_item_id: null,
-              offer_item_version: 0,
-              catalogue_id: child.catalogue_id ?? "",
-              parent_catalogue_id: child.catalogue_id,
-              catalogue_name: child.catalogue?.name ?? "",
-              sn: child.catalogue?.sn ?? "",
-              quantity: child.quantity,
-              unit_price: child.unit_price,
-              total_price: child.total_price,
-              status: child.status,
-              checked:
-                  child.status == CanvassingVendorStatus.SELECTED
-                  ? true
-                  : false,
-              taxes: [],
-              editing: null,
-              type: "child",
-              children: [],
-              selling_price: child.selling_price ?? 0,
-              profit: child.profit,
-              profit_unit: child.profit_unit,
-              fee: child.fee,
-              fee_unit: child.fee_unit,
-              ongkir: child.ongkir,
-              ongkir_unit: child.ongkir_unit,
-              pricetag_item_id: child.pricetag_item_id ?? "",
-              pricetag_item_version: child.pricetag_item_version ?? 0,
-              contacts_fee: (child.reference_transaction ?? []).filter(
-                  (value) => value.party_type == PartyType.CONTACT
-              ),
-            })),
-            selling_price: element.unit_selling_price,
-            profit: 0,
-            profit_unit: "percent",
-            fee: 0,
-            fee_unit: "percent",
-            ongkir: 0,
-            ongkir_unit: "percent",
-            pricetag_item_id: "",
-            pricetag_item_version: 0,
-            contacts_fee: [],
-            files: mapApiFilesView(element.files ?? []),
-            image: mapApiFilesView(element.files ?? []).length > 0 ? mapApiFilesView(element.files ?? [])[0].url : '',
-        });
-        }
-    });
-
-    const equivalent: CanvassingItemForm[] = [];
-
-    (data.canvassing_item ?? []).forEach((element) => {
-        if (element.type_item == "equivalent") {
-        equivalent.push({
-            index: `${element.unique_id}`,
-            canvassing_id: element.canvassing_id,
-            canvaasing_version: element.canvaasing_version,
-            item_request_trail_version: element.item_request_trail_version,
-            item_request_trail_id: element.item_request_trail_id,
-            unique_id: element.unique_id,
-            vendor_id: null,
-            vendor_name: "",
-            unit_id: element.unit_id,
-            unit_name: element.unit_name,
-            unit_version: null,
-            offer_item_id: null,
-            offer_item_version: 0,
-            catalogue_id: element.catalogue_id ?? "",
-            parent_catalogue_id: "",
-            catalogue_name: element.catalogue_name ?? "",
-            sn: element.catalogue?.sn ?? "N/A",
-            quantity: element.quantity ?? 1,
-            unit_price: 0,
-            total_price:
-            Number(element.unit_selling_price) * Number(element.quantity),
-            status: CanvassingVendorStatus.SUBMITTED,
-            taxes: [],
-            editing: null,
-            type: "parent",
-            type_item: element.type_item,
-            equivalent_id: element.equivalent_id,
-            children: element.canvassing_vendor.map((child) => ({
-            type_item: child.type_item,
-            equivalent_id: child.equivalent_id,
-            index: `${child.unique_id}`,
-            canvassing_id: null,
-            canvaasing_version: null,
-            item_request_trail_version: null,
-            item_request_trail_id: null,
-            unique_id: child.unique_id,
-            vendor_id: child.vendor_id ?? "",
-            vendor_name: child.vendor?.name ?? "",
-            unit_id: child.unit_id,
-            unit_name: child.unit_name,
-            unit_version: null,
-            offer_item_id: null,
-            offer_item_version: 0,
-            catalogue_id: child.catalogue_id ?? "",
-            parent_catalogue_id: child.catalogue_id,
-            catalogue_name: child.catalogue?.name ?? "",
-            sn: child.catalogue?.sn ?? "",
-            quantity: child.quantity,
-            unit_price: child.unit_price,
-            total_price: child.total_price,
-            status: child.status,
-            checked:
-                child.status == CanvassingVendorStatus.SELECTED
-                ? true
-                : false,
-            taxes: [],
-            editing: null,
-            type: "child",
-            children: [],
-            selling_price: child.selling_price ?? 0,
-            profit: child.profit,
-            profit_unit: child.profit_unit,
-            fee: child.fee,
-            fee_unit: child.fee_unit,
-            ongkir: child.ongkir,
-            ongkir_unit: child.ongkir_unit,
-            pricetag_item_id: child.pricetag_item_id ?? "",
-            pricetag_item_version: child.pricetag_item_version ?? 0,
-            contacts_fee: (child.reference_transaction ?? []).filter(
-                (value) => value.party_type == PartyType.CONTACT
-            ),
-            })),
-            selling_price: element.unit_selling_price,
-            profit: 0,
-            profit_unit: "percent",
-            fee: 0,
-            fee_unit: "percent",
-            ongkir: 0,
-            ongkir_unit: "percent",
-            pricetag_item_id: "",
-            pricetag_item_version: 0,
-            contacts_fee: [],
-        });
-        }
-    });
-
-    equivalent.forEach((element) => {
-        const indexParent = item_canvassing.value.findIndex(
-        (data) => data.unique_id === element.equivalent_id
-        );
-        if (indexParent >= 0) {
-        // item_canvassing.value.splice(indexParent + 1, 0, element);
-        const eq = element.children.map((child) => ({
-            ...child,
-            equivalent_id: element.equivalent_id,
-        }));
-        item_canvassing.value[indexParent].children = [
-            ...item_canvassing.value[indexParent].children,
-            ...eq,
-        ];
-        }
-    });
-
-    item_canvassing.value.forEach((parent) => {
-        setProfit(parent);
-    });
+  item_canvassing.value.forEach((parent) => {
+    setProfit(parent);
+  });
 };
 
 watch(
@@ -1913,9 +1914,7 @@ watch(
   { immediate: true }
 );
 
-onMounted(() => {
-    
-});
+onMounted(() => {});
 </script>
 
 <style scoped>

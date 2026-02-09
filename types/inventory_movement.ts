@@ -1,6 +1,7 @@
 import type { AddressType } from "./address";
 import type { Contact } from "./contact";
 import type { Inventory } from "./inventory";
+import type { ItemRequest, ItemRequestTrail } from "./item_request";
 
 export interface FileDocument {
   unique_id: string;
@@ -35,6 +36,13 @@ export interface InventoryMovementItem {
   contact_name: string | null;
   contact_version: number | null;
   inventory: Inventory | null;
+  reference?: string;
+  reference_id?: string;
+  unit_id: string;
+  unit_name: string;
+  unit_version: number;
+  reference_data?: ItemRequest;
+  item_request_trail?: ItemRequestTrail;
 }
 
 export interface InventoryMovement {
@@ -45,6 +53,7 @@ export interface InventoryMovement {
   reference_to?: string;
   reference: string;
   reference_id: string;
+  reference_from: "contact" | "catalogue";
   from: string;
   from_name: string;
   from_version: number;
