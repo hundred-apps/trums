@@ -80,7 +80,7 @@ const columns: Column<Canvassing>[] = [
     width: 300,
     cellRenderer: ({ rowData: row }) => (
       <NuxtLink
-        href={`/sales/canvassing/${row.unique_id}`}
+        href={`/sales/quotation/${row.unique_id}`}
         class="text-blue-500"
       >
         {row.unique_code}
