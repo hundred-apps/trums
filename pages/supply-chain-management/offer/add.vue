@@ -132,55 +132,62 @@
           </el-table-column>
           <el-table-column prop="item_name" label="item" class="my-0">
             <template #default="scope">
-              <el-autocomplete
-                :disabled="loading"
-                :fetch-suggestions="querySearchAsyncInventories"
-                v-model="scope.row.item_name"
-                placeholder="Cari item"
-                @select="(item: Record<string, any>) => onHandleSelectItemAutocomplete(item, scope)"
-              >
-                <template #default="{ item }">
-                  <div
-                    v-if="item.isNew"
-                    class="flex items-center text-blue-500"
-                  >
-                    <el-icon><Plus /></el-icon>
-                    <span class="ml-2">Tambahkan "{{ item.value }}"</span>
-                  </div>
-                  <div v-else class="flex items-center gap-2">
-                    <!-- Thumbnail file pertama -->
-                    <div class="flex-shrink-0 mt-1">
-                      <div
-                        v-if="item.files && item.files.length > 0"
-                        class="w-10 h-10 rounded overflow-hidden border"
-                      >
-                        <img
-                          :src="getFirstFileUrl(item.files)"
-                          :alt="item.catalogue_name"
-                          class="w-full h-full object-cover"
-                        />
-                      </div>
-                      <div
-                        v-else
-                        class="w-10 h-10 rounded border flex items-center justify-center text-gray-400"
-                      >
-                        <el-icon><Picture /></el-icon>
-                      </div>
+              <div class="flex">
+                <el-button
+                  @click="() => openCatalogueDetail(scope.row, scope.$index)"
+                  text
+                  ><el-icon><Warning /></el-icon
+                ></el-button>
+                <el-autocomplete
+                  :disabled="loading"
+                  :fetch-suggestions="querySearchAsyncInventories"
+                  v-model="scope.row.item_name"
+                  placeholder="Cari item"
+                  @select="(item: Record<string, any>) => onHandleSelectItemAutocomplete(item, scope)"
+                >
+                  <template #default="{ item }">
+                    <div
+                      v-if="item.isNew"
+                      class="flex items-center text-blue-500"
+                    >
+                      <el-icon><Plus /></el-icon>
+                      <span class="ml-2">Tambahkan "{{ item.value }}"</span>
                     </div>
+                    <div v-else class="flex items-center gap-2">
+                      <!-- Thumbnail file pertama -->
+                      <div class="flex-shrink-0 mt-1">
+                        <div
+                          v-if="item.files && item.files.length > 0"
+                          class="w-10 h-10 rounded overflow-hidden border"
+                        >
+                          <img
+                            :src="getFirstFileUrl(item.files)"
+                            :alt="item.catalogue_name"
+                            class="w-full h-full object-cover"
+                          />
+                        </div>
+                        <div
+                          v-else
+                          class="w-10 h-10 rounded border flex items-center justify-center text-gray-400"
+                        >
+                          <el-icon><Picture /></el-icon>
+                        </div>
+                      </div>
 
-                    <!-- Informasi produk -->
-                    <div class="flex-1 min-w-0">
-                      <p style="line-height: 15px" class="font-bold truncate">
-                        {{ item.catalogue_name || item.value }}
-                      </p>
-                      <p class="text-sm text-gray-500 truncate">
-                        PN/SN: {{ item.sn_number || "Tidak Ada" }} | Brand:
-                        {{ item.brand_name || "N/A" }}
-                      </p>
+                      <!-- Informasi produk -->
+                      <div class="flex-1 min-w-0">
+                        <p style="line-height: 15px" class="font-bold truncate">
+                          {{ item.catalogue_name || item.value }}
+                        </p>
+                        <p class="text-sm text-gray-500 truncate">
+                          PN/SN: {{ item.sn_number || "Tidak Ada" }} | Brand:
+                          {{ item.brand_name || "N/A" }}
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </template>
-              </el-autocomplete>
+                  </template>
+                </el-autocomplete>
+              </div>
             </template>
           </el-table-column>
           <el-table-column prop="sn" label="Serial Number" width="150" />
@@ -316,7 +323,13 @@
   </TrumsWrapper>
 </template>
 <script lang="tsx" setup>
-import { Filter, InfoFilled, Delete, Picture } from "@element-plus/icons-vue";
+import {
+  Filter,
+  InfoFilled,
+  Delete,
+  Picture,
+  Warning,
+} from "@element-plus/icons-vue";
 import {
   ElCheckbox,
   ElIcon,
@@ -366,6 +379,27 @@ definePageMeta({
   middleware: ["auth", "check-access"],
   requiredPermission: "pricetag-create",
 });
+
+interface ItemInterface {
+  image?: string;
+  imageFile?: UploadUserFile;
+  unique_id: string | null;
+  id: string | null;
+  item: string;
+  item_id: string | null;
+  quantity: number;
+  sn: string | null;
+  unit_id: string;
+  unit_name: string;
+  is_traceable: boolean;
+  catalogue_name: string;
+  inventory_id: string;
+  inventory_version: number;
+  catalogue_version: number;
+  catalogue: Catalogue | null;
+  files?: UploadUserFile[];
+}
+
 const loading = ref<boolean>(false);
 const drawerCatalogue = ref<boolean>(false);
 const itemActive = ref<number>(-1);
@@ -1009,6 +1043,39 @@ const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
       indeterminate={intermediate}
     />
   );
+};
+
+const openCatalogueDetail = (cat: ItemInterface, index: number) => {
+  if (cat.catalogue == null) {
+    tmpCatalogue.value = {
+      name: "",
+      id: null,
+      unique_id: null,
+      unique_code: null,
+      brand_id: null,
+      brand_name: null,
+      year: null,
+      sn: null,
+      description: null,
+      berat: null,
+      volume: null,
+      length: null,
+      width: null,
+      height: null,
+      is_asset: null,
+      tmp_asset: null,
+      version: null,
+      type: "item",
+      created_at: null,
+      created_by: null,
+      updated_at: null,
+      file_catalogues: [],
+    };
+  } else {
+    tmpCatalogue.value = cat.catalogue;
+  }
+  itemActive.value = index;
+  drawerCatalogue.value = true;
 };
 
 const querySearchAsyncInventories = (

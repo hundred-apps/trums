@@ -25,6 +25,7 @@
 import { NuxtLink } from "#components";
 import { Filter, SetUp } from "@element-plus/icons-vue";
 import {
+  ElButton,
   ElCheckbox,
   ElCheckboxGroup,
   ElIcon,
@@ -168,13 +169,13 @@ const columns: Column<Canvassing>[] = [
         >
           Edit
         </NuxtLink>
-        <el-button
+        <ElButton
           size="small"
           type="danger"
           onClick={() => handleSubmitDelete([rowData.unique_id!])}
         >
           Hapus
-        </el-button>
+        </ElButton>
       </>
     ),
     width: 150,

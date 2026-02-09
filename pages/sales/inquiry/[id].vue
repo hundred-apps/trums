@@ -30,7 +30,7 @@
         <div v-else-if="!loading && !inquiryData.pending && inquiryData.data">
           <CanvassingTable
             :request_search="canvassing_search"
-            :key="'get-canvassing-inquiry'"
+            :fetch-key="'get-canvassing-inquiry'"
           />
         </div>
 
@@ -54,7 +54,7 @@
         <div v-else-if="!loading && !inquiryData.pending && inquiryData.data">
           <CanvassingTable
             :request_search="rab_search"
-            :key="'get-rab-inquiry'"
+            :fetch-key="'get-rab-inquiry'"
           />
         </div>
         <el-result
