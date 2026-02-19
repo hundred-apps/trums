@@ -9,39 +9,46 @@
         />
       </el-col>
     </el-row>
-    
+
     <el-table :data="data" style="width: 100%">
       <el-table-column label="Nomor Referensi" width="300">
         <template #default="scope">
-          <NuxtLink class="text-blue-500" :to="`/inventory-management/inqueiries/${scope.row.unique_id}`">
-            {{ scope.row.unique_code ?? '-' }}
+          <NuxtLink
+            class="text-blue-500"
+            :to="`/inventory-management/inqueiries/${scope.row.unique_id}`"
+          >
+            {{ scope.row.unique_code ?? "-" }}
           </NuxtLink>
         </template>
       </el-table-column>
       <el-table-column label="Customer">
         <template #default="scope">
-          <p>{{ scope.row.request_by?.name ?? '-' }}</p>
+          <p>{{ scope.row.request_to?.name ?? "-" }}</p>
         </template>
       </el-table-column>
       <el-table-column label="Jumlah Item">
         <template #default="scope">
-          <p>{{ scope.row.item_request?.length ?? '-' }}</p>
+          <p>{{ scope.row.item_request?.length ?? "-" }}</p>
         </template>
       </el-table-column>
       <el-table-column label="Aksi">
         <template #default="scope">
-          <el-button size="default" type="primary" @click="handleSelect(scope.row)">
+          <el-button
+            size="default"
+            type="primary"
+            @click="handleSelect(scope.row)"
+          >
             Tambahkan
           </el-button>
         </template>
       </el-table-column>
     </el-table>
-    
+
     <div class="flex justify-end mt-3">
-      <el-pagination 
-        background 
-        layout="prev, pager, next" 
-        :total="totalData" 
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :total="totalData"
         @current-change="handlePagination"
       />
     </div>
@@ -49,35 +56,35 @@
 </template>
 
 <script setup lang="ts">
-import type { Inquiry } from '~/types/inquiry'
+import type { Inquiry } from "~/types/inquiry";
 
 interface Props {
-  visible: boolean
-  data: Inquiry[]
-  searchParams: any
-  totalData: number
+  visible: boolean;
+  data: Inquiry[];
+  searchParams: any;
+  totalData: number;
 }
 
 interface Emits {
-  (e: 'update:visible', value: boolean): void
-  (e: 'select-request', item: Inquiry): void
-  (e: 'pagination-change', page: number): void
+  (e: "update:visible", value: boolean): void;
+  (e: "select-request", item: Inquiry): void;
+  (e: "pagination-change", page: number): void;
 }
 
-const props = defineProps<Props>()
-const emit = defineEmits<Emits>()
+const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
 
 const visible = computed({
   get: () => props.visible,
-  set: (value) => emit('update:visible', value)
-})
+  set: (value) => emit("update:visible", value),
+});
 
 const handleSelect = (item: Inquiry) => {
-  emit('select-request', item)
-  visible.value = false
-}
+  emit("select-request", item);
+  visible.value = false;
+};
 
 const handlePagination = (page: number) => {
-  emit('pagination-change', page)
-}
+  emit("pagination-change", page);
+};
 </script>

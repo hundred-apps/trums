@@ -71,16 +71,22 @@
       </template>
 
       <el-table :data="ruleForm.items" border>
-        <el-table-column prop="item_name" label="Item" width="300" />
+        <el-table-column prop="item_name" label="Item" />
         <el-table-column
           prop="request_number"
           label="Nomor Permintaan"
           width="200"
         />
-        <el-table-column prop="quantity" label="Request QTY" align="right" />
+        <el-table-column
+          prop="quantity"
+          label="Request QTY"
+          align="right"
+          width="200"
+        />
         <el-table-column
           prop="request_quantity"
           label="QTY Purchase"
+          width="200"
           align="right"
         >
           <template #default="scope">
@@ -619,7 +625,7 @@ const submitPurchaseRequest = async () => {
       );
       formData.append(
         `item_request_trail[${index}][reference]`,
-        `${item.reference}`
+        `${item.reference}`.toLocaleLowerCase()
       );
       formData.append(
         `item_request_trail[${index}][reference_id]`,

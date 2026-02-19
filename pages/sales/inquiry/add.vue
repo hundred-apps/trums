@@ -174,6 +174,7 @@ interface ItemInterface {
   catalogue_version: number;
   catalogue: Catalogue | null;
   files?: UploadUserFile[];
+  description: string;
 }
 const dataTable = ref<ItemInterface[]>([]);
 
@@ -277,6 +278,7 @@ const addNewLine = () => {
     inventory_id: "",
     inventory_version: 0,
     catalogue: null,
+    description: "",
   });
 };
 
@@ -361,6 +363,10 @@ const onSubmit = async () => {
         `${item.item_id}`
       );
       formData.append(`item_request[${index}][catalogue_name]`, `${item.item}`);
+      formData.append(
+        `item_request[${index}][description]`,
+        `${item.description}`
+      );
       formData.append(`item_request[${index}][unit_id]`, `${item.unit_id}`);
       formData.append(`item_request[${index}][unit_name]`, `${item.unit_name}`);
       formData.append(
@@ -493,6 +499,7 @@ const onSelectReference_id = async (data: any) => {
       inventory_id: "",
       inventory_version: 0,
       catalogue: value.catalogue ?? null,
+      description: "",
     }));
   } else if (ruleForm.reference == "maintenance") {
     const maintenance = data as Maintenance;
@@ -517,6 +524,7 @@ const onSelectReference_id = async (data: any) => {
       inventory_id: value.inventory_id ?? "",
       inventory_version: value.inventory_version,
       catalogue: value.catalogue,
+      description: "",
     }));
   }
 
@@ -1156,6 +1164,7 @@ const fetchInquiry = async () => {
           catalogue_version: element.catalogue_version,
           catalogue: element.catalogue,
           files: mapApiFilesToUpload(element.files ?? []),
+          description: element.description ?? "",
         });
       });
     }
@@ -1835,6 +1844,17 @@ const handleEditAddress = (addressEdit: AddressType) => {
                 </template>
               </el-autocomplete>
             </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="description" label="Deskripsi">
+          <template #default="scope">
+            <el-input
+              v-model="scope.row.description"
+              style="width: 240px"
+              :autosize="{ minRows: 2, maxRows: 4 }"
+              type="textarea"
+              placeholder="Tambahkan Deskripsi"
+            />
           </template>
         </el-table-column>
         <el-table-column prop="sn" label="Serial Number" />

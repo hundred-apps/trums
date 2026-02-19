@@ -1045,7 +1045,8 @@ const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
   );
 };
 
-const openCatalogueDetail = (cat: ItemInterface, index: number) => {
+const openCatalogueDetail = (cat: Pricetag_item, index: number) => {
+  console.log("catalogue", cat);
   if (cat.catalogue == null) {
     tmpCatalogue.value = {
       name: "",
@@ -1230,6 +1231,30 @@ const onHandleSelectItemAutocomplete = async (
     );
     // ruleForm.pricetag_item[scope.$index].catalogue = catalogue;
     ruleForm.pricetag_item[scope.$index].price = 0;
+    ruleForm.pricetag_item[scope.$index].catalogue = {
+      id: null,
+      unique_id: selected.catalogue_id,
+      unique_code: null,
+      name: selected.catalogue_name,
+      brand_id: selected.brand_id,
+      brand_name: selected.brand_name,
+      year: null,
+      sn: selected.sn_number,
+      description: null,
+      berat: null,
+      volume: null,
+      length: null,
+      width: null,
+      height: null,
+      is_asset: false,
+      tmp_asset: null,
+      version: null,
+      type: "item",
+      created_at: null,
+      created_by: null,
+      updated_at: null,
+      file_catalogues: [],
+    };
   }
 };
 

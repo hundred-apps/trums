@@ -30,7 +30,11 @@ export function normalizePhone(number: any) {
 export function capitalizeWords(str: string) {
   return str
     .toLowerCase()
-    .split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ')
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 }
+
+export const formattedText = (text: string) => {
+  return text.replace(/\n/g, "<br>");
+};

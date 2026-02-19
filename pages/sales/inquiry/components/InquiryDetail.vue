@@ -84,15 +84,28 @@
             ></div>
           </el-descriptions-item>
         </el-descriptions>
+        <h5 class="font-bold text-black text-1xl mt-6">Lampiran</h5>
+        <div v-for="(file, key) in dataInterface?.data?.files" :key="key">
+          <NuxtLink
+            class="text-blue-600 text-sm"
+            :href="`${imageUrl}/${file.image_path}/${file.filename}`"
+            target="_blank"
+            >{{ file.filename_original }}</NuxtLink
+          >
+        </div>
       </el-card>
       <el-card shadow="never">
         <h1 class="mb-4">Item Permintaan</h1>
-        <el-table :data="inquiryData?.item_request ?? []" style="width: 100%" border>
+        <el-table
+          :data="inquiryData?.item_request ?? []"
+          style="width: 100%"
+          border
+        >
           <el-table-column prop="image" label="Image" width="75">
             <template #default="scope">
               <div class="demo-image__preview flex items-center">
                 <ItemImageUpload
-                v-if="getFile(scope.row as ItemRequest) != ''"
+                  v-if="getFile(scope.row as ItemRequest) != ''"
                   v-model="scope.row.files"
                   :image-url="getFirstFileUrl((scope.row as ItemRequest).files ?? [])"
                   :show-text="false"
@@ -113,6 +126,13 @@
             </template>
           </el-table-column>
           <el-table-column prop="catalogue_name" label="Nama Item" />
+          <el-table-column prop="description" label="Deskripsi Item">
+            <template #default="scope">
+              <div
+                v-html="`${formattedText(scope.row.description ?? '')}`"
+              ></div>
+            </template>
+          </el-table-column>
 
           <el-table-column prop="sn" label="Serial/Part Number" width="180" />
           <el-table-column prop="request_qty" label="Request QTY" width="150" />
@@ -229,7 +249,6 @@ definePageMeta({
   middleware: ["auth", "app"],
 });
 const router = useRouter();
-
 const errorPage = ref<boolean>(false);
 const previewImage = ref<boolean>(false);
 const initialIndexImage = ref<number>(0);
@@ -244,8 +263,6 @@ const approveForm = reactive({
 });
 
 const goBack = () => router.back();
-
-
 
 const request_sugestion_item = ref<RequestSearch>({
   table: "inventories",
@@ -324,10 +341,9 @@ const getFile = (itemRequest: ItemRequest) => {
 };
 const getFilesUrl = (itemRequest: ItemRequest): string[] => {
   if (itemRequest.files != null && itemRequest.files!.length > 0) {
-    return itemRequest.files.map((file) => `${imageUrl}/${file.image_path}/${
-      file.filename
-    }`);
-    
+    return itemRequest.files.map(
+      (file) => `${imageUrl}/${file.image_path}/${file.filename}`
+    );
   } else {
     return [""];
   }

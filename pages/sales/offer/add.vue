@@ -73,6 +73,26 @@
             </el-autocomplete>
           </el-form-item>
 
+          <el-form-item prop="pic_name" label="PIC">
+            <el-autocomplete
+              v-model="ruleForm.pic_name"
+              :fetch-suggestions="querySearchPIC"
+              placeholder="Cari Kontak"
+              @select="(item) => onHandleSelectVendor(item, 'pic')"
+              style="width: 100%"
+            >
+              <template #default="{ item }">
+                <div v-if="item.isNew" class="flex items-center text-blue-500">
+                  <el-icon><Plus /></el-icon>
+                  <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                </div>
+                <div v-else>
+                  {{ item.value }}
+                </div>
+              </template>
+            </el-autocomplete>
+          </el-form-item>
+
           <el-form-item prop="start_date" label="Tanggal Mulai Berlaku">
             <el-date-picker
               v-model="ruleForm.start_date"
@@ -209,7 +229,25 @@
                 class="mb-0"
                 style="margin-bottom: 0px !important"
               >
-                <el-input v-model="scope.row.price" class="mb-0" />
+                <el-input
+                  v-model="scope.row.displayPrice"
+                  class="mb-0"
+                  inputmode="decimal"
+                  @input="
+                    (val) => {
+                      const parsed = parseCurrencyID(val);
+                      scope.row.price = parsed;
+                      scope.row.displayPrice = formatCurrencyID(parsed);
+                    }
+                  "
+                  @blur="
+                    () => {
+                      scope.row.displayPrice = formatCurrencyID(
+                        scope.row.price
+                      );
+                    }
+                  "
+                />
               </el-form-item>
             </template>
           </el-table-column>
@@ -243,6 +281,98 @@
         <el-button class="mt-4" style="width: 100%" @click="addNewLine">
           Tambahkan Baris Baru
         </el-button>
+      </el-card>
+
+      <AdjustmentTransactionComponent
+        v-if="!loadingGetEditData"
+        :references="references"
+        @update:total="
+          (value) => {
+            console.log('update total', value);
+          }
+        "
+      />
+
+      <CustomPaymentTerm
+        v-if="
+          id === undefined && !loadingGetEditData && !canvassing_id && !loading
+        "
+        @update:term-of-payments="onUpdatePaymentTerms"
+        type="input"
+      />
+      <CustomPaymentTerm
+        v-else
+        @update:term-of-payments="onUpdatePaymentTerms"
+        :data="termOfPayments"
+        type="input"
+        v-if="!loadingGetEditData && !loading"
+      />
+
+      <el-card class="mb-3" shadow="never">
+        <template #header>
+          <div class="card-header">
+            <span>Summary</span>
+          </div>
+        </template>
+
+        <el-descriptions :column="1" border>
+          <el-descriptions-item
+            :width="100"
+            label="Total Price"
+            align="right"
+            >{{ currency(totalPrice || 0) }}</el-descriptions-item
+          >
+          <el-descriptions-item
+            :width="100"
+            align="right"
+            v-for="ref in references.filter(
+              (value) => value.adjustment?.operator == 'minus'
+            )"
+            :key="ref.adjustment_id"
+            :label="ref.adjustment?.name ?? ''"
+            >{{
+              currency(showTransactionAdjustmentValue(ref))
+            }}</el-descriptions-item
+          >
+          <el-descriptions-item :width="100" label="Subtotal" align="right">{{
+            currency(subtotal)
+          }}</el-descriptions-item>
+          <el-descriptions-item
+            :width="100"
+            align="right"
+            v-for="ref in references.filter(
+              (value) =>
+                value.adjustment?.operator == 'plus' &&
+                value.adjustment?.category == 'adjustment'
+            )"
+            :key="ref.adjustment_id"
+            :label="ref.adjustment?.name ?? ''"
+            >{{
+              currency(showTransactionAdjustmentValue(ref))
+            }}</el-descriptions-item
+          >
+          <el-descriptions-item
+            :width="100"
+            align="right"
+            v-for="ref in references.filter(
+              (value) =>
+                value.adjustment?.category == 'transform' ||
+                value.adjustment?.category == 'tax'
+            )"
+            :key="ref.adjustment_id"
+            :label="ref.adjustment?.name ?? ''"
+            >{{
+              currency(showTransactionAdjustmentValue(ref))
+            }}</el-descriptions-item
+          >
+          <el-descriptions-item
+            :width="100"
+            label="Grand Total"
+            align="right"
+            >{{ currency(grandTotal) }}</el-descriptions-item
+          >
+          <!-- <el-descriptions-item :width="100" label="Grand Total">{{ currency(grandTotal) }}</el-descriptions-item> -->
+        </el-descriptions>
       </el-card>
     </div>
 
@@ -310,6 +440,21 @@
         </div>
       </template>
     </el-drawer>
+
+    <ModalAdjustmentTransaction
+      v-model:visible="visibleModalAdjustmentTransaction"
+      @select-adjustment="handleSelectAdjustment"
+      @create-new="visibleModalNewAdjustment = true"
+      :data="adjustmentTransactions.data?.value?.data ?? []"
+      :search-params="querySearchAdjustmentTransaction"
+    />
+    <el-dialog
+      v-model="visibleModalNewAdjustment"
+      title="Buat Biaya Lain"
+      width="1000"
+    >
+      <AddAdjustment @submit="handleAdjustmentSubmit" />
+    </el-dialog>
   </TrumsWrapper>
 </template>
 <script lang="tsx" setup>
@@ -352,7 +497,7 @@ import type { BaseResponse } from "~/types/response";
 import type { Pricelist_item } from "~/types/pricelist";
 import type { ItemSearch } from "~/types/item_search";
 import type { Pagination } from "~/types/pagination";
-import type { Canvassing } from "~/types/scm/canvasing";
+import { CanvassingVendorStatus, type Canvassing } from "~/types/scm/canvasing";
 import TrumsUploadFile from "~/components/trums/form/TrumsUploadFile.vue";
 import type { AppFile } from "~/types/file";
 import type { AddressType } from "~/types/address";
@@ -360,13 +505,30 @@ import PhotoWallUploads from "~/components/trums/PhotoWallUploads.vue";
 import ItemImageUpload from "../inquiry/components/ItemImageUpload.vue";
 import CatalogueAdd from "~/components/trums/CatalogueAdd.vue";
 import { getFirstFileUrl } from "#imports";
+import { currency, displayAmount } from "#imports";
+import {
+  ReferenceAdjustment,
+  type AdjustmentTransaction,
+  type ReferenceTransactionAdjustment,
+} from "~/types/attribute_adjustment";
+import ModalAdjustmentTransaction from "~/components/trums/ModalAdjustmentTransaction.vue";
+import AddAdjustment from "~/components/trums/AddAdjustment.vue";
+import AdjustmentTransactionComponent from "~/components/trums/AdjustmentTransactionComponent.vue";
+import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
+import {
+  TermOfPaymentReference,
+  type TermOfPayment,
+} from "~/types/payment_term";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
   requiredPermission: "pricetag-create",
 });
+const loadingGetEditData = ref<boolean>(true);
 const loading = ref<boolean>(false);
 const drawerCatalogue = ref<boolean>(false);
+const visibleModalAdjustmentTransaction = ref(false);
+const visibleModalNewAdjustment = ref(false);
 const itemActive = ref<number>(-1);
 const router = useRouter();
 const api = useApi();
@@ -472,6 +634,9 @@ const ruleForm = reactive<Pricetag>({
   to_id: "",
   to_name: "",
   files: [],
+  pic_id: "",
+  pic_name: "",
+  pic_version: 0,
 });
 
 const tmpCatalogue = ref<Catalogue | null>(null);
@@ -510,6 +675,12 @@ const photoWallRef = ref<InstanceType<typeof PhotoWallUploads>>();
 const uploadAction = computed(
   () => `${config.public.apiBaseURL}/upload-item-image`
 );
+
+// const biayaLain = ref<number>(0);
+// const potonganBiaya = ref<number>(0);
+// const totalPajak = ref<number>(0);
+
+const references = ref<ReferenceTransactionAdjustment[]>([]);
 
 const collapse_special_price =
   ref<{ title: string; name: string; element: any }[]>();
@@ -566,7 +737,26 @@ const search_default = ref<RequestSearch>({
   offset: "1",
 });
 
+const querySearchAdjustmentTransaction = ref<RequestSearch>({
+  keyword: "",
+  table: "adjustments_transaction",
+  column: [
+    {
+      operator: ["plus"],
+    },
+  ],
+  sort: null,
+  limit: "10",
+  offset: "1",
+  flag: "form",
+});
+
+const adjustmentTransactions = await useFetchApi<
+  ResponsePagination<AdjustmentTransaction[]>
+>("/search", "search-adjustment", "post", querySearchAdjustmentTransaction);
+
 const units = ref<Unit[]>([]);
+const termOfPayments = ref<TermOfPayment[]>([]);
 
 const rules = reactive<FormRules>({
   code: [
@@ -577,6 +767,9 @@ const rules = reactive<FormRules>({
     },
   ],
   owner_name: [
+    { required: true, message: "Vendor Tidak Boleh Kosong!", trigger: "blur" },
+  ],
+  to_name: [
     { required: true, message: "Vendor Tidak Boleh Kosong!", trigger: "blur" },
   ],
 
@@ -597,6 +790,194 @@ const rules = reactive<FormRules>({
     trigger: "change",
   },
 });
+
+const onUpdatePaymentTerms = (data: TermOfPayment[]) => {
+  termOfPayments.value = data;
+};
+
+const totalPrice = computed(() => {
+  return ruleForm.pricetag_item.reduce((accumulator, currentValue) => {
+    return accumulator + currentValue.price;
+  }, 0);
+});
+const subtotal = computed(() => {
+  console.log("get minus", totalPrice.value);
+  return Number(totalPrice.value) - Number(getMinus.value);
+});
+
+const showTransactionAdjustmentValue = (
+  ref: ReferenceTransactionAdjustment
+) => {
+  if (ref.include) {
+    return 0;
+  } else {
+    if (
+      ref.adjustment?.category == "tax" &&
+      ref.adjustment.name.toLowerCase() === "ppn"
+    ) {
+      const dpp: ReferenceTransactionAdjustment | undefined =
+        references.value.find(
+          (value) => value.adjustment?.unique_code == "DPPL"
+        );
+      if (dpp) {
+        const dppValue = getDPPFormula(dpp, subtotal.value || 0);
+        return getPPNFormula(ref, dppValue || subtotal.value);
+      } else {
+        return getPPNFormula(ref, subtotal.value);
+      }
+    } else {
+      return ref.type == "amount"
+        ? ref.amount
+        : displayAmount(ref, subtotal.value || 0);
+    }
+  }
+};
+
+const getMinus = computed(() => {
+  var minus = 0;
+  references.value
+    .filter((value) => value.adjustment?.operator == "minus")
+    .forEach((ref) => {
+      if (ref.include == false) {
+        minus += Number(ref.amount);
+      }
+    });
+
+  return minus;
+});
+const getPlus = computed(() => {
+  var plus = 0;
+
+  references.value
+    .filter(
+      (value) =>
+        value.adjustment?.operator == "plus" &&
+        value.adjustment?.category === "adjustment"
+    )
+    .forEach((ref) => {
+      if (ref.include == false) {
+        plus += Number(ref.amount);
+      }
+    });
+
+  return plus;
+});
+
+const dppComponent = computed(() => {
+  return references.value.find(
+    (value) =>
+      value.adjustment?.category == "transform" &&
+      value.adjustment?.unique_code == "DPPL"
+  );
+});
+
+const ppnComponent = computed(() => {
+  const ppnComponentRef = references.value.find(
+    (value) =>
+      value.adjustment?.category == "tax" &&
+      value.adjustment?.name.toLowerCase() === "ppn"
+  );
+
+  if (ppnComponentRef) {
+    if (dppComponent.value) {
+      const dppValue = getDPPFormula(dppComponent.value, subtotal.value || 0);
+      if (ppnComponentRef.include) {
+        return 0;
+      } else {
+        return getPPNFormula(ppnComponentRef, dppValue);
+      }
+    } else {
+      if (ppnComponentRef.include) {
+        return 0;
+      } else {
+        return getPPNFormula(ppnComponentRef, subtotal.value || 0);
+      }
+    }
+  } else {
+    return 0;
+  }
+});
+
+const grandTotal = computed(() => {
+  console.log("PPN", ppnComponent.value);
+  return subtotal.value + getPlus.value + ppnComponent.value;
+});
+
+const getDPP = async (): Promise<AdjustmentTransaction | undefined> => {
+  loading.value = true;
+  try {
+    querySearchAdjustmentTransaction.value.column = [
+      {
+        category: ["transform"],
+        unique_code: ["DPPL"],
+      },
+    ];
+    const response = await useFetchApi<
+      ResponsePagination<AdjustmentTransaction[]>
+    >("/search", "search-adjustment", "post", querySearchAdjustmentTransaction);
+
+    if (response.status.value === "success") {
+      if (
+        response.data.value?.data != null &&
+        response.data.value?.data != undefined &&
+        response.data.value!.data.length > 0
+      )
+        return response.data.value!.data[0];
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleSelectAdjustment = (items: AdjustmentTransaction[]) => {
+  items.forEach(async (element) => {
+    if (
+      element.category == "tax" &&
+      element.name.toLocaleLowerCase() === "ppn"
+    ) {
+      const adj = await getDPP();
+      if (adj) {
+        references.value.push({
+          unique_id: "",
+          reference: ReferenceAdjustment.OFFER,
+          reference_id: "",
+          adjustment_id: adj.unique_id,
+          type: adj.type,
+          amount: adj.default_value,
+          created_at: 0,
+          value: adj.default_value,
+          adjustment: adj,
+          changeType: true,
+          inc_tmp: "0",
+          include: false,
+        });
+      }
+    }
+
+    references.value.push({
+      unique_id: "",
+      reference: ReferenceAdjustment.OFFER,
+      reference_id: "",
+      adjustment_id: element.unique_id,
+      type: element.type,
+      amount: element.default_value,
+      created_at: 0,
+      value: element.default_value,
+      adjustment: element,
+      changeType: true,
+      inc_tmp: "0",
+      include: false,
+    });
+  });
+  visibleModalAdjustmentTransaction.value = false;
+};
+
+const handleAdjustmentSubmit = () => {
+  visibleModalNewAdjustment.value = false;
+  refreshNuxtData("search-adjustment");
+};
 
 const querySearchLocation = (queryString: string, cb: (arg: any) => void) => {
   requestSearchLocation.value.keyword = queryString;
@@ -644,7 +1025,7 @@ const resetFormCatalogue = () => {
 
 const handleSubmit = async (catalogue: Catalogue) => {
   loading.value = true;
-
+  console.log("on submit");
   try {
     const catalogueInsert = (await create_catalogue(catalogue)) ?? undefined;
 
@@ -850,6 +1231,89 @@ const querySearchVendors = (query: string, cb: (arg: any) => void) => {
     cb([]);
   }
 };
+const querySearchPIC = (query: string, cb: (arg: any) => void) => {
+  try {
+    const request_search: RequestSearch = {
+      column: [
+        {
+          parent_id: ruleForm.to_id,
+        },
+      ],
+      keyword: query,
+      limit: "50",
+      offset: "1",
+      sort: {
+        column: "created_at",
+        order: OrderColumn.ASC,
+      },
+      flag: "form",
+      table: "contacts",
+    };
+
+    useFetchApi<ResponsePagination<Contact>>(
+      "/search",
+      "search-customer",
+      "post",
+      request_search
+    ).then((response) => {
+      if (response.status.value == "success") {
+        const contacts: Contact[] = (response.data.value?.data ??
+          []) as Contact[];
+        if (contacts.length > 0) {
+          cb(
+            contacts.map((value) => ({
+              value: value.name,
+              unique_id: value.unique_id,
+              data: value,
+            }))
+          );
+        } else {
+          cb([
+            {
+              value: query,
+              isNew: true,
+              keyword: query,
+            },
+          ]);
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Failed to fetch vendors", error);
+    cb([]);
+  }
+};
+
+const submitRemoveCost = async (ids: string[]) => {
+  loading.value = true;
+  try {
+    const response = await useFetchApi(
+      "/reference-transaction-delete",
+      "remove-cost",
+      "post",
+      ids
+    );
+    if (response.status.value == "success") {
+      ElMessage.success("Biaya Lainya Berhasil Dihapus!");
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const removeAnotherCost = async (adj_id: string) => {
+  const findIndex = references.value.findIndex(
+    (ref) => ref.adjustment_id === adj_id
+  );
+  const unique_id = references.value[findIndex].unique_id;
+  if (unique_id != "") {
+    await submitRemoveCost([unique_id]);
+  }
+
+  references.value.splice(findIndex, 1);
+};
 
 const querySearchUnit = (queryString: string, cb: (arg: any) => void) => {
   var params = { ...requestSearchUnit.value };
@@ -895,13 +1359,17 @@ const createNewVendor = async (data: any) => {
   }
 };
 
-const onHandleSelectVendor = (item: any, type: "to" | "vendor") => {
+const onHandleSelectVendor = (item: any, type: "to" | "vendor" | "pic") => {
   if (item.isNew) {
     createNewVendor({ name: item.keyword }).then((customer) => {
       if (customer) {
         if (type == "vendor") {
           ruleForm.owner_id = customer.unique_id;
           ruleForm.owner_name = customer.name;
+        } else if (type == "pic") {
+          ruleForm.pic_id = customer.unique_id;
+          ruleForm.pic_name = customer.name;
+          ruleForm.pic_version = customer.version;
         } else {
           ruleForm.to_id = customer.unique_id;
           ruleForm.to_name = customer.name;
@@ -914,6 +1382,10 @@ const onHandleSelectVendor = (item: any, type: "to" | "vendor") => {
     if (type == "vendor") {
       ruleForm.owner_id = customer.unique_id;
       ruleForm.owner_name = customer.name;
+    } else if (type == "pic") {
+      ruleForm.pic_id = customer.unique_id;
+      ruleForm.pic_name = customer.name;
+      ruleForm.pic_version = customer.version;
     } else {
       ruleForm.to_id = customer.unique_id;
       ruleForm.to_name = customer.name;
@@ -1247,6 +1719,9 @@ const onSubmit = async (formEl: FormInstance) => {
     formData.append("to_id", `${ruleForm.to_id}`);
     formData.append("to_version", `${ruleForm.to_version}`);
     formData.append("category", `penawaran`);
+    formData.append("pic_id", `${ruleForm.pic_id}`);
+    formData.append("pic_name", `${ruleForm.pic_name}`);
+    formData.append("pic_version", `${ruleForm.pic_version}`);
 
     // Append pricetag_item array
     ruleForm.pricetag_item.forEach((value, index) => {
@@ -1279,14 +1754,14 @@ const onSubmit = async (formEl: FormInstance) => {
       );
       formData.append(`pricetag_item[${index}][quantity]`, `${value.quantity}`);
 
-      value.fileUploads.forEach((file) => {
+      (value.fileUploads ?? []).forEach((file) => {
         if (file.raw) {
           formData.append(`pricetag_item[${index}][files]`, file.raw as Blob);
         }
       });
     });
 
-    fileList.value.forEach((file, index) => {
+    (fileList.value ?? []).forEach((file, index) => {
       if (file.raw) {
         formData.append(`files[${index}]`, file.raw);
       }
@@ -1297,6 +1772,44 @@ const onSubmit = async (formEl: FormInstance) => {
     if (unique_id.value) {
       formData.append("unique_id", `${unique_id.value}`);
     }
+
+    termOfPayments.value.forEach((top, indexTOP) => {
+      formData.append(
+        `payment_terms[${indexTOP}][unique_id]`,
+        `${top.unique_id}`
+      );
+      formData.append(`payment_terms[${indexTOP}][name]`, `${top.name}`);
+      formData.append(`payment_terms[${indexTOP}][value]`, `${top.value}`);
+      formData.append(`payment_terms[${indexTOP}][unit]`, `${top.unit}`);
+      formData.append(
+        `payment_terms[${indexTOP}][term_of_payment]`,
+        `${top.term_of_payment}`
+      );
+      formData.append(
+        `payment_terms[${indexTOP}][duration]`,
+        `${top.duration}`
+      );
+    });
+    references.value.forEach((ref, index) => {
+      formData.append(`ref_trans_adj[${index}][unique_id]`, `${ref.unique_id}`);
+      formData.append(
+        `ref_trans_adj[${index}][adjustment_id]`,
+        `${ref.adjustment_id}`
+      );
+      formData.append(
+        `ref_trans_adj[${index}][adjustment_version]`,
+        `${ref.adjustment?.version}`
+      );
+      formData.append(`ref_trans_adj[${index}][value]`, `${ref.value}`);
+      formData.append(`ref_trans_adj[${index}][amount]`, `${ref.amount}`);
+      formData.append(
+        `ref_trans_adj[${index}][party_type]`,
+        `${ref.party_type}`
+      );
+      formData.append(`ref_trans_adj[${index}][party_id]`, `${ref.party_id}`);
+      formData.append(`ref_trans_adj[${index}][type]`, `${ref.type}`);
+      formData.append(`ref_trans_adj[${index}][include]`, `${ref.include}`);
+    });
 
     const response = await useFetchApi<BaseResponse<Pricetag>>(
       "/pricetag-create",
@@ -1309,18 +1822,18 @@ const onSubmit = async (formEl: FormInstance) => {
       const pricetag: Pricetag | undefined = response.data.value?.data;
       ElMessage.success("Berhasil");
 
-      // if(id.value){
+      // if (id.value) {
       //   fetchInitialData();
-      // }else{
-      //   if(canvassing_id.value && pricetag){
+      // } else {
+      //   if (canvassing_id.value && pricetag) {
       //     window.location.href = `/sales/offer/${pricetag.unique_id}`;
-      //   }else{
+      //   } else {
       //     window.location.href = `/sales/offer/${pricetag!.unique_id}`;
       //   }
       // }
     }
   } catch (error: any) {
-    ElMessage.error(error.response?.data?.message ?? error);
+    ElMessage.error(error);
   } finally {
     loading.value = false;
   }
@@ -1343,6 +1856,27 @@ const resetForm = (formEl: FormInstance | undefined) => {
 };
 
 // watch(requestSearchInventory, fetchData, {immediate: true});
+
+const formatCurrencyID = (value: number | null) => {
+  if (value === null || value === undefined) return "";
+  return value.toLocaleString("id-ID", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+};
+
+const parseCurrencyID = (val: string): number => {
+  if (!val) return 0;
+
+  // hapus ribuan
+  let clean = val.replace(/\./g, "");
+  // ubah koma ke titik
+  clean = clean.replace(",", ".");
+  // hanya angka & titik
+  clean = clean.replace(/[^0-9.]/g, "");
+
+  return Number(clean) || 0;
+};
 
 const initialSpecialPrice = () => {
   collapse_special_price.value = [
@@ -1380,7 +1914,7 @@ const initialSpecialPrice = () => {
 };
 
 const fetchInitialData = async () => {
-  loading.value = true;
+  loadingGetEditData.value = true;
 
   try {
     const response = await useFetchApi<BaseResponse<Pricetag>>(
@@ -1408,6 +1942,8 @@ const fetchInitialData = async () => {
       ruleForm.to_name = pricetagEdit.to?.name;
       ruleForm.location_id = pricetagEdit.location_id;
       ruleForm.start_date = dateViewStart.getTime();
+      ruleForm.reference = pricetagEdit.reference;
+      ruleForm.reference_id = pricetagEdit.reference_id;
       if (dateViewEnd != null) {
         ruleForm.end_date = dateViewEnd.getTime();
       }
@@ -1429,6 +1965,10 @@ const fetchInitialData = async () => {
       }));
       ruleForm.pricetag_condition = pricetagEdit.pricetag_condition;
       ruleForm.location = pricetagEdit.location;
+      ruleForm.pic_id = pricetagEdit.pic_id;
+      ruleForm.pic_name = pricetagEdit.pic_name;
+      ruleForm.pic_version = pricetagEdit.pic_version;
+      ruleForm.subject = pricetagEdit.subject;
 
       pricetagEdit.pricetag_condition.forEach((value) => {
         if (value.variable_pricetag?.name == VariablePriceTag.KONTAK) {
@@ -1462,12 +2002,21 @@ const fetchInitialData = async () => {
         // response: file, // simpan response original jika diperlukan
       }));
 
+      references.value = (
+        pricetagEdit.reference_transaction_adjustment ?? []
+      ).map((ref) => ({
+        ...ref,
+        adjustment: ref.adjustments_transaction,
+      }));
+      console.log("reference", references.value);
+      termOfPayments.value = pricetagEdit.payment_terms ?? [];
+
       initialSpecialPrice();
     }
   } catch (error: any) {
     ElMessage.error(`${error.response?.message ?? error}`);
   } finally {
-    loading.value = false;
+    loadingGetEditData.value = false;
   }
 };
 
@@ -1483,7 +2032,7 @@ const fetchCanvassing = async () => {
 
     if (response.status.value == "success") {
       const canvassing: Canvassing | null = response.data.value?.data ?? null;
-
+      console.log("data RAB", canvassing);
       if (canvassing) {
         ruleForm.reference = ReferencePriceTag.CANVASSING;
         ruleForm.reference_id = canvassing.unique_id;
@@ -1494,24 +2043,80 @@ const fetchCanvassing = async () => {
         ruleForm.to_name = canvassing.source?.request_to?.name;
         ruleForm.to_version = canvassing.source?.request_to?.version;
 
-        ruleForm.pricetag_item = canvassing.canvassing_item.map((item) => ({
-          unique_id: null,
-          tag_id: null,
-          catalogue: item.catalogue ?? null,
-          catalogue_id: item.catalogue_id,
-          inventory_id: "",
-          inventory: null,
-          price: item.unit_selling_price,
-          is_new: true,
-          unit_id: item.unit_id,
-          unit_name: item.unit_name,
-          unit_version: item.unit_version,
-          sn: item.catalogue?.sn ?? "N/A",
-          checked: false,
-          item_name: item.catalogue?.name ?? "",
-          quantity: 1,
-          fileUploads: [],
+        if (canvassing.source) {
+          ruleForm.pic_id = canvassing.source?.request_by?.unique_id;
+          ruleForm.pic_name = canvassing.source?.request_by?.name;
+          ruleForm.pic_version = canvassing.source?.request_by?.version;
+        }
+        ruleForm.pricetag_item = [];
+        canvassing.canvassing_item.forEach((element) => {
+          element.canvassing_vendor.forEach((cvendor) => {
+            if (cvendor.status == CanvassingVendorStatus.SELECTED) {
+              // console.log(
+              //   "canvassing vendor selected",
+              //   cvendor.catalogue?.name
+              // );
+
+              ruleForm.pricetag_item.push({
+                unique_id: null,
+                tag_id: null,
+                catalogue: cvendor.catalogue ?? null,
+                catalogue_id: cvendor.catalogue_id,
+                inventory_id: "",
+                inventory: null,
+                price: element.unit_selling_price,
+                displayPrice: formatCurrencyID(element.unit_selling_price),
+                is_new: true,
+                unit_id: cvendor.unit_id,
+                unit_name: cvendor.unit_name,
+                unit_version: cvendor.unit_version,
+                sn: cvendor.catalogue?.sn ?? "N/A",
+                checked: false,
+                item_name: cvendor.catalogue?.name ?? "",
+                quantity: 1,
+                fileUploads: [],
+              });
+            }
+          });
+        });
+
+        references.value = (canvassing.reference_transaction ?? []).map(
+          (ref) => ({
+            ...ref,
+            unique_id: "",
+            reference: ReferenceAdjustment.OFFER,
+            adjustment: ref.adjustments_transaction,
+          })
+        );
+
+        termOfPayments.value = (canvassing.payment_terms ?? []).map((ref) => ({
+          ...ref,
+          unique_id: "",
+          reference: TermOfPaymentReference.OFFER,
+          unique_code: "",
         }));
+        console.log("payment terms", termOfPayments.value);
+        // console.log("references", canvassing.reference_transaction);
+
+        // ruleForm.pricetag_item = canvassing.canvassing_item.map((item) => ({
+        //   unique_id: null,
+        //   tag_id: null,
+        //   catalogue: item.catalogue ?? null,
+        //   catalogue_id: item.catalogue_id,
+        //   inventory_id: "",
+        //   inventory: null,
+        //   price: item.unit_selling_price,
+        //   displayPrice: formatCurrencyID(item.unit_selling_price),
+        //   is_new: true,
+        //   unit_id: item.unit_id,
+        //   unit_name: item.unit_name,
+        //   unit_version: item.unit_version,
+        //   sn: item.catalogue?.sn ?? "N/A",
+        //   checked: false,
+        //   item_name: item.catalogue?.name ?? "",
+        //   quantity: 1,
+        //   fileUploads: [],
+        // }));
 
         contact_condition.value.push({
           operation: "is_equal",
@@ -1568,6 +2173,7 @@ const initialSetting = () => {
 };
 
 onMounted(() => {
+  loadingGetEditData.value = false;
   if (canvassing_id.value) {
     fetchCanvassing();
   }

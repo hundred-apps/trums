@@ -1,6 +1,7 @@
 import type { AddressType } from "./address";
 import type { Catalogue } from "./catalogue";
 import type { Contact } from "./contact";
+import type { AppFile } from "./file";
 import type { ItemRequest } from "./item_request";
 import type { Maintenance } from "./maintenance";
 import type { People } from "./people";
@@ -70,4 +71,5 @@ export type Inquiry = {
   canvassing?: Canvassing;
   sales_order?: PurchaseOrder;
   version?: number;
+  files?: AppFile[];
 };

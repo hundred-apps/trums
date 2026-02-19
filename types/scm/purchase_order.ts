@@ -5,6 +5,7 @@ import type { Contact } from "../contact";
 import type { PaymentMethod } from "../finance/bill";
 import type { Invoice } from "../finance/invoice";
 import type { ItemRequestTrail } from "../item_request";
+import type { TermOfPayment } from "../payment_term";
 import type { Tax } from "../tax";
 import type { DiscountUnit } from "./offers";
 // import { WarrantyUnit } from "./offers";
@@ -63,6 +64,7 @@ export type PurchaseOrder = {
   type: "po" | "so";
   reference_transaction: ReferenceTransactionAdjustment[];
   reference_data: Invoice[];
+  payment_terms?: TermOfPayment[];
 };
 
 export type PurchaseOrderItem = {

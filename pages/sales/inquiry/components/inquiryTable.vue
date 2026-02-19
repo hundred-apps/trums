@@ -2,10 +2,9 @@
 definePageMeta({
   middleware: ["auth", "check-access"],
   requiredPermission: "inquiries-read",
-  name: "List Of Inquiries",
 });
 import { ref, onMounted } from "vue";
-import { Filter, SetUp, Eleme, Refresh } from "@element-plus/icons-vue";
+import { Filter, SetUp } from "@element-plus/icons-vue";
 import { TypeInquiry, type Inquiry } from "~/types/inquiry";
 import customTable from "~/components/trums/table/customTable.vue";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
@@ -30,14 +29,14 @@ import type { CellRendererParams } from "element-plus/es/components/table-v2/src
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import DeleteButton from "~/components/trums/DeleteButton.vue";
 import { NuxtLink } from "#components";
-import { refreshNuxtData } from "#app";
-
+import type { BaseResponse } from "~/types/response";
+import { canAccess } from "#imports";
 const column_selected = ref<string[]>([
   "selection",
   "unique_code",
   "date",
-  "reference",
-  "reference_view",
+  "request_by",
+  "request_to",
   "operation",
   "setup",
 ]);
@@ -50,7 +49,7 @@ const request_search = ref<RequestSearch>({
   keyword: "",
   column: [
     {
-      type: [TypeInquiry.INTERNAL],
+      type: [TypeInquiry.SALES_INQUIRY],
       reference: [],
       priority: [],
       status: [],
@@ -63,11 +62,12 @@ const request_search = ref<RequestSearch>({
     column: "created_at",
     order: OrderColumn.DESC,
   },
+  flag: "list",
 });
 
-const { data, pending } = await useFetchApi<ResponsePagination<Inquiry[]>>(
+const { data } = await useFetchApi<ResponsePagination<Inquiry[]>>(
   `/search`,
-  "get-inquiries",
+  "fetch-inquiries",
   "post",
   request_search.value
 );
@@ -100,6 +100,7 @@ const availableColumn: Column<Inquiry>[] = [
             row.checked = value;
             return row;
           })!,
+          privilege: _data?.privilege ?? [],
         });
       const allSelected = _data!.data.every((row) => row.checked);
       const containsChecked = _data?.data.some((row) => row.checked);
@@ -120,7 +121,7 @@ const availableColumn: Column<Inquiry>[] = [
     key: "unique_code",
     width: 200,
     cellRenderer: ({ rowData: row }) => (
-      <NuxtLink href={`inqueiries/${row.unique_id}`} class={"text-blue-600"}>
+      <NuxtLink href={`inquiry/${row.unique_id}`} class={"text-blue-600"}>
         {row.unique_code}
       </NuxtLink>
     ),
@@ -136,43 +137,22 @@ const availableColumn: Column<Inquiry>[] = [
     ),
   },
   {
-    title: "Reference Type",
-    dataKey: "reference",
-    key: "reference",
+    title: "Diminta oleh",
+    dataKey: "request_by",
+    key: "request_by",
     width: 200,
-    headerCellRenderer: () => (
-      <div class="flex items-center justify-center">
-        <span class="mr-2 text-xs">Reference Type</span>
-        <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
-          {{
-            default: () => (
-              <div class="filter-wrapper">
-                <div class="filter-group flex flex-col">
-                  <ElCheckboxGroup
-                    v-model={request_search.value.column[0].reference}
-                  >
-                    <ElCheckbox value={"internal"}>Internal</ElCheckbox>
-                    <ElCheckbox value={"repair"}>Repair</ElCheckbox>
-                  </ElCheckboxGroup>
-                </div>
-              </div>
-            ),
-            reference: () => (
-              <ElIcon class="cursor-pointer">
-                <Filter />
-              </ElIcon>
-            ),
-          }}
-        </ElPopover>
-      </div>
+    cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
+      <p>{rowData.request_by?.name ?? ""}</p>
     ),
   },
   {
-    title: "Reference",
-    dataKey: "reference_view",
-    key: "reference_view",
+    title: "Ditujukan Untuk",
+    dataKey: "request_to",
+    key: "request_to",
     width: 200,
-    cellRenderer: ({ rowData: row }) => getReference(row),
+    cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
+      <p>{rowData.request_to?.name ?? "Tidak Ada"}</p>
+    ),
   },
   {
     title: "Priority",
@@ -200,7 +180,7 @@ const availableColumn: Column<Inquiry>[] = [
                   >
                     <ElCheckbox value={"low"}>Low</ElCheckbox>
                     <ElCheckbox value={"medium"}>Medium</ElCheckbox>
-                    <ElCheckbox value={"high"}>High</ElCheckbox>
+                    <ElCheckbox value={"height"}>Height</ElCheckbox>
                   </ElCheckboxGroup>
                 </div>
               </div>
@@ -225,7 +205,7 @@ const availableColumn: Column<Inquiry>[] = [
       getStatus(row),
     headerCellRenderer: () => (
       <div class="flex items-center justify-center">
-        <span class="mr-2 text-xs">Reference Type</span>
+        <span class="mr-2 text-xs">Status</span>
         <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
           {{
             default: () => (
@@ -260,14 +240,17 @@ const availableColumn: Column<Inquiry>[] = [
     cellRenderer: ({ rowData: row }) => (
       <>
         <NuxtLink
-          href={"/inventory-management/inqueiries/add?id=" + row.unique_id}
+          href={"/sales/inquiry/add?id=" + row.unique_id}
           class="el-button el-button--small"
         >
           Edit
         </NuxtLink>
+        {/* {
+          can('inquiries-delete', data.value?.privilege ?? []) && ()
+        } */}
         <DeleteButton
-          size="small"
           onConfirm={() => handleDelete(row)}
+          size="small"
           onCancel={() => {}}
         />
       </>
@@ -362,7 +345,7 @@ const handleDelete = (row: Inquiry) => {
 
 const handleSubmitDelete = async (values: string[]) => {
   try {
-    const response = await useFetchApi(
+    const response = await useFetchApi<BaseResponse<any>>(
       "/inquiries-delete",
       "delete_data",
       "post",
@@ -370,6 +353,12 @@ const handleSubmitDelete = async (values: string[]) => {
     );
     if (response.status.value == "success") {
       await refreshNuxtData("inventories");
+    }
+
+    console.log(response);
+
+    if (response.code != 200) {
+      ElMessage.error(`${response.data.value?.message}`);
     }
   } catch (error: any) {
     ElMessage.error(`${error?.response?.data?.message ?? error}`);
@@ -444,65 +433,56 @@ const onSort = (sortBy: SortBy) => {
   request_search.value = data;
 };
 
-watch(request_search, () => refreshNuxtData("get-inquiries"), {
-  immediate: true,
-});
+const handlePageChange = (page: number) => {
+  request_search.value.offset = `${page}`;
+};
 
-watch(request_search, () => refreshNuxtData("get-inquiries"), {
-  immediate: true,
-});
+const handleSizeChange = (size: number) => {
+  request_search.value.limit = `${size}`;
+};
 
 const hasSelected = computed(() => {
   return data.value?.data?.some((item) => item.checked) || false;
 });
 
-onMounted(() => {});
+watch(request_search.value, () => refreshNuxtData("fetch-inquiries"), {
+  immediate: true,
+});
 </script>
 <template>
-  <TrumsWrapper>
-    <el-row :gutter="20" class="mb-3">
-      <el-col :span="6"
-        ><el-input
-          v-model="request_search.keyword"
-          size="default"
-          placeholder="Type to search"
-      /></el-col>
-      <NuxtLink
-        class="el-button el-button--primary"
-        :href="`/inventory-management/inqueiries/add`"
-        >Buat Inquiri</NuxtLink
-      >
-      <el-button
+  <el-row :gutter="20" class="mb-3">
+    <el-col :span="6"
+      ><el-input
+        v-model="request_search.keyword"
         size="default"
-        type="default"
-        :loading="pending"
-        :loading-icon="Eleme"
-        :icon="Refresh"
-        @click="() => refreshNuxtData('get-inquiries')"
-        >Reload</el-button
-      >
-      <el-button
-        :disabled="!hasSelected"
-        @click="bulkDelete"
-        size="default"
-        type="danger"
-        >Hapus</el-button
-      >
-    </el-row>
-    <customTable
-      :column-sort="onSort"
-      :columns="filteredColumn"
-      :data="data?.data ?? []"
+        placeholder="Type to search"
+    /></el-col>
+    <NuxtLink
+      v-if="canAccess('inquiries-create', data?.privilege ?? [])"
+      class="el-button el-button--default"
+      href="/sales/inquiry/add"
+      >Buat Inquiri</NuxtLink
+    >
+    <el-button
+      :disabled="!hasSelected"
+      @click="bulkDelete"
+      size="default"
+      type="danger"
+      >Hapus</el-button
+    >
+  </el-row>
+  <customTable
+    :column-sort="onSort"
+    :columns="filteredColumn"
+    :data="data?.data ?? []"
+  />
+  <div class="flex justify-end mt-3">
+    <el-pagination
+      background
+      layout="prev, pager, next"
+      :total="data?.total_data"
+      @current-change="handlePageChange"
+      @size-change="handleSizeChange"
     />
-    <div class="flex justify-end mt-3">
-      <el-pagination
-        background
-        layout="prev, pager, next"
-        :total="data?.total_data"
-        @next-click="paginationClick"
-        @prev-click="paginationClick"
-        @change="paginationClick"
-      />
-    </div>
-  </TrumsWrapper>
+  </div>
 </template>

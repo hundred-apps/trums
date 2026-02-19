@@ -11,7 +11,7 @@
         <div>
           <NuxtLink
             v-if="canAccess('pricetag-update', dataInterface?.privilege ?? [])"
-            :href="`/sales/offer/add?id=${dataInterface?.data?.unique_id}`"
+            :href="`/sales/offer/add?id=${dataInterface?.data?.unique_id}&type=${dataInterface?.data?.type}`"
             class="el-button el-button--defult"
           >
             Edit
@@ -52,6 +52,16 @@
 
     <h1 class="font-bold">Note</h1>
     <div class="text-sm" v-html="getNote"></div>
+
+    <h5 class="font-bold text-black text-1xl mt-6">Lampiran</h5>
+    <div v-for="(file, key) in dataInterface?.data?.files" :key="key">
+      <NuxtLink
+        class="text-blue-600 text-sm"
+        :href="`${baseImageURL}/${file.image_path}/${file.filename}`"
+        target="_blank"
+        >{{ file.filename_original }}</NuxtLink
+      >
+    </div>
   </el-card>
   <el-card class="mb-3" shadow="never">
     <el-row :gutter="20" class="mb-3">
@@ -121,6 +131,80 @@
     <!-- <el-button class="mt-4" style="width: 100%" @click="addNewLine">
               Tambahkan Item
           </el-button> -->
+  </el-card>
+
+  <CustomPaymentTerm
+    type="view"
+    :data="dataInterface.data?.payment_terms ?? []"
+  />
+
+  <el-card class="mb-3" shadow="never">
+    <template #header>
+      <div class="card-header">
+        <span>Summary</span>
+      </div>
+    </template>
+
+    <el-descriptions :column="1" border>
+      <el-descriptions-item :width="100" label="Total Price" align="right">{{
+        currency(totalPrice || 0)
+      }}</el-descriptions-item>
+      <el-descriptions-item
+        :width="100"
+        align="right"
+        v-for="ref in (
+          dataInterface.data?.reference_transaction_adjustment ?? []
+        ).filter((value) => value.adjustments_transaction?.operator == 'minus')"
+        :key="ref.adjustment_id"
+        :label="ref.adjustments_transaction?.name ?? ''"
+        >{{
+          currency(showTransactionAdjustmentValue(ref))
+        }}</el-descriptions-item
+      >
+      <el-descriptions-item :width="100" label="Subtotal" align="right">{{
+        currency(subtotal)
+      }}</el-descriptions-item>
+      <el-descriptions-item
+        :width="100"
+        align="right"
+        v-for="ref in (
+          dataInterface.data?.reference_transaction_adjustment ?? []
+        ).filter(
+          (value) =>
+            value.adjustments_transaction?.operator == 'plus' &&
+            value.adjustments_transaction?.category == 'adjustment'
+        )"
+        :key="ref.adjustment_id"
+        :label="ref.adjustments_transaction?.name ?? ''"
+        >{{
+          currency(showTransactionAdjustmentValue(ref))
+        }}</el-descriptions-item
+      >
+      <el-descriptions-item
+        :width="100"
+        align="right"
+        v-for="ref in (
+          dataInterface.data?.reference_transaction_adjustment ?? []
+        ).filter(
+          (value) =>
+            value.adjustments_transaction?.category == 'transform' ||
+            value.adjustments_transaction?.category == 'tax'
+        )"
+        :key="ref.adjustment_id"
+        :label="ref.adjustments_transaction?.name ?? ''"
+        >{{
+          currency(showTransactionAdjustmentValue(ref))
+        }}</el-descriptions-item
+      >
+      <el-descriptions-item :width="100" align="right" class-name="font-bold">
+        <template #label>
+          <div class="cell-item font-bold">Grand Total</div> </template
+        ><span class="font-bold">{{
+          currency(grandTotal)
+        }}</span></el-descriptions-item
+      >
+      <!-- <el-descriptions-item :width="100" label="Grand Total">{{ currency(grandTotal) }}</el-descriptions-item> -->
+    </el-descriptions>
   </el-card>
 
   <el-dialog
@@ -196,6 +280,8 @@ import {
   mapAllAppFileToFileUri,
 } from "#imports";
 import ItemImageUpload from "../../inquiry/components/ItemImageUpload.vue";
+import type { ReferenceTransactionAdjustment } from "~/types/attribute_adjustment";
+import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
 
 const router = useRouter();
 const loading = ref<boolean>(false);
@@ -246,6 +332,9 @@ const pricelist_item_new = ref<Pricelist_item[]>([]);
 const size = ref<ComponentSize>("default");
 
 const pdfBlob = ref<Blob | null>(null);
+
+const config = useRuntimeConfig();
+const baseImageURL = config.public.baseImageURL;
 
 const handlePageChange = (page: number) => {
   request_search_pricelist_item.value.offset = `${page}`;
@@ -304,6 +393,49 @@ const generateResultSearchAddress = (address: AddressType | null) => {
     };
   }
 };
+
+const totalPrice = computed(() => {
+  return (props.dataInterface.data?.pricetag_item ?? []).reduce(
+    (accumulator, currentValue) => {
+      return accumulator + currentValue.price;
+    },
+    0
+  );
+});
+const subtotal = computed(() => {
+  console.log("get minus", totalPrice.value);
+  return Number(totalPrice.value) - Number(getMinus.value);
+});
+
+const getMinus = computed(() => {
+  var minus = 0;
+  (props.dataInterface.data?.reference_transaction_adjustment ?? [])
+    .filter((value) => value.adjustment?.operator == "minus")
+    .forEach((ref) => {
+      if (ref.include == false) {
+        minus += Number(ref.amount);
+      }
+    });
+
+  return minus;
+});
+const getPlus = computed(() => {
+  var plus = 0;
+
+  (props.dataInterface.data?.reference_transaction_adjustment ?? [])
+    .filter(
+      (value) =>
+        value.adjustment?.operator == "plus" &&
+        value.adjustment?.category === "adjustment"
+    )
+    .forEach((ref) => {
+      if (ref.include == false) {
+        plus += Number(ref.amount);
+      }
+    });
+
+  return plus;
+});
 
 const generateQuotationPdf = async () => {
   const doc = new jsPDF();
@@ -364,7 +496,7 @@ const generateQuotationPdf = async () => {
   doc.setFontSize(11);
   doc.text("Number", labelX, 60);
   doc.text(":", colonX, 60);
-  doc.text(`${props.dataInterface?.data?.name}`, valueX, 60);
+  doc.text(`${props.dataInterface?.data?.unique_code}`, valueX, 60);
   doc.text(`Jakarta, ${formatted}`, pageWidth - marginX, 60, {
     align: "right",
   });
@@ -373,34 +505,72 @@ const generateQuotationPdf = async () => {
   doc.text(":", colonX, 66);
   doc.text(`${props.dataInterface?.data?.subject ?? "-"}`, valueX, 66);
 
-  doc.text("To", labelX, 72);
-  doc.text(":", colonX, 72);
-  doc.text(`${props.dataInterface?.data?.to?.name ?? "-"}`, valueX, 72);
+  doc.text("To", labelX, 78);
+  doc.text(":", colonX, 78);
+  doc.text(`${props.dataInterface?.data?.to?.name ?? "-"}`, valueX, 78);
+  doc.text("PIC", labelX, 84);
+  doc.text(":", colonX, 84);
+  doc.text(`${props.dataInterface?.data?.pic_name ?? "-"}`, valueX, 84);
 
   // ================= BODY TEXT =================
-  doc.text("Bersama ini kami kirimkan penawaran sebagai berikut:", marginX, 90);
-
-  const grandTotal = (props.dataInterface?.data?.pricetag_item ?? []).reduce(
-    (acc, item) => {
-      return acc + item.quantity * item.price;
-    },
-    0
-  );
+  doc.text("Bersama ini kami kirimkan penawaran sebagai berikut:", marginX, 98);
 
   let rowData: RowInput[] = (
     props.dataInterface?.data?.pricetag_item ?? []
   ).map((item: Pricetag_item, i: number) => [
-    { content: `${i + 1}`, styles: { halign: "left" } },
-    { content: `${item.catalogue?.name}`, styles: { halign: "left" } },
-    { content: `${item.quantity}`, styles: { halign: "right" } },
-    { content: `${item.unit_name}`, styles: { halign: "left" } },
+    {
+      content: `${i + 1}`,
+      styles: {
+        halign: "center",
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${item.catalogue?.name}`,
+      styles: {
+        halign: "left",
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${item.quantity}`,
+      styles: {
+        halign: "center",
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${item.unit_name}`,
+      styles: {
+        halign: "center",
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
     {
       content: `${currencyWithoutSymbol(item.price)}`,
-      styles: { halign: "right" },
+      styles: {
+        halign: "right",
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
     },
     {
       content: `${currencyWithoutSymbol(item.quantity * (item.price || 0))}`,
-      styles: { halign: "right" },
+      styles: {
+        halign: "right",
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
     },
   ]);
 
@@ -408,49 +578,353 @@ const generateQuotationPdf = async () => {
   // rowData.push(['','','','','Total Price',grandTotal])
   // rowData.push(['','','','','PPN','11%'])
 
+  let summeryNumber =
+    (props.dataInterface?.data?.pricetag_item ?? []).length + 1;
+
   if (typeSummery.value === "total") {
     rowData.push([
       {
+        content: `${summeryNumber}`,
+        styles: {
+          halign: "center",
+          cellWidth: 0.0,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
         content: `Total Price`,
-        styles: { halign: "right", fontStyle: "bold" },
-        colSpan: 5,
+        colSpan: 4,
+        styles: {
+          halign: "right",
+          fontStyle: "bold",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
       },
       {
-        content: `${currencyWithoutSymbol(grandTotal)}`,
-        styles: { halign: "right" },
+        content: `${currencyWithoutSymbol(totalPrice.value)}`,
+        styles: {
+          halign: "right",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
       },
     ]);
+    (props.dataInterface.data?.reference_transaction_adjustment ?? []).forEach(
+      (element) => {
+        console.log("ref", displayAmount(element, totalPrice.value || 0));
+        if (
+          element.adjustments_transaction?.category == "adjustment" &&
+          element.adjustments_transaction?.operator == "minus"
+        ) {
+          summeryNumber++;
+          rowData.push([
+            {
+              content: `${summeryNumber}`,
+              styles: {
+                halign: "center",
+                cellWidth: 0.0,
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+            {
+              content: `${element.adjustments_transaction?.name}`,
+              colSpan: 4,
+              styles: {
+                halign: "right",
+                fontStyle: "bold",
+                cellWidth: 0.0,
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+            {
+              content: `${currencyWithoutSymbol(
+                displayAmount(element, totalPrice.value || 0)
+              )}`,
+              styles: {
+                halign: "right",
+                cellWidth: 0.0,
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+          ]);
+        }
+      }
+    );
+
+    summeryNumber++;
     rowData.push([
       {
-        content: `PPN (11%)`,
-        styles: { halign: "right", fontStyle: "bold" },
-        colSpan: 5,
+        content: `${summeryNumber}`,
+        styles: {
+          halign: "center",
+          cellWidth: 0.0,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
       },
       {
-        content: `${currencyWithoutSymbol(grandTotal * 0.11)}`,
-        styles: { halign: "right" },
+        content: `Subtotal`,
+        colSpan: 4,
+        styles: {
+          halign: "right",
+          fontStyle: "bold",
+          cellWidth: 0.0,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${currencyWithoutSymbol(subtotal.value)}`,
+        styles: {
+          halign: "right",
+          cellWidth: 0.0,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
       },
     ]);
+    (props.dataInterface.data?.reference_transaction_adjustment ?? []).forEach(
+      (element) => {
+        if (
+          element.adjustments_transaction?.category == "adjustment" &&
+          element.adjustments_transaction?.operator == "plus"
+        ) {
+          summeryNumber++;
+          rowData.push([
+            {
+              content: `${summeryNumber}`,
+              styles: {
+                halign: "center",
+                cellWidth: 0.0,
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+            {
+              content: `${element.adjustments_transaction?.name}`,
+              colSpan: 4,
+              styles: {
+                halign: "right",
+                fontStyle: "bold",
+                cellWidth: 0.0,
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+            {
+              content: `${currencyWithoutSymbol(
+                displayAmount(element, subtotal.value || 0)
+              )}`,
+              styles: {
+                halign: "right",
+                cellWidth: 0.0,
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+          ]);
+        }
+      }
+    );
+
+    const dppComp = getDppComponent(
+      props.dataInterface.data?.reference_transaction_adjustment ?? []
+    );
+    const ppnComp = getPPNComponent(
+      props.dataInterface.data?.reference_transaction_adjustment ?? []
+    );
+
+    if (dppComp) {
+      const dppValue = getDPPFormula(dppComp, subtotal.value || 0);
+      const ppnValue = getPPNFormula(dppComp, dppValue);
+      summeryNumber++;
+      rowData.push([
+        {
+          content: summeryNumber,
+          styles: {
+            halign: "center",
+            cellWidth: 0.0,
+            lineWidth: 0.1,
+            lineColor: [0, 0, 0],
+            fillColor: [255, 255, 255],
+          },
+        },
+        {
+          content: `${dppComp.adjustments_transaction?.name}`,
+          colSpan: 4,
+          styles: {
+            halign: "right",
+            fontStyle: "bold",
+            cellWidth: 0.0,
+            lineWidth: 0.1,
+            lineColor: [0, 0, 0],
+            fillColor: [255, 255, 255],
+          },
+        },
+        {
+          content: `${currencyWithoutSymbol(dppValue || 0)}`,
+          styles: {
+            halign: "right",
+            cellWidth: 0.0,
+            lineWidth: 0.1,
+            lineColor: [0, 0, 0],
+            fillColor: [255, 255, 255],
+          },
+        },
+      ]);
+      if (ppnComp) {
+        summeryNumber++;
+        rowData.push([
+          {
+            content: summeryNumber,
+            styles: {
+              halign: "center",
+              cellWidth: 0.0,
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: `${ppnComp.adjustments_transaction?.name}`,
+            colSpan: 4,
+            styles: {
+              halign: "right",
+              fontStyle: "bold",
+              cellWidth: 0.0,
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: `${currencyWithoutSymbol(ppnValue || 0)}`,
+            styles: {
+              halign: "right",
+              cellWidth: 0.0,
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+        ]);
+      }
+    }
+    summeryNumber++;
     rowData.push([
       {
-        content: `Total`,
-        styles: { halign: "right", fontStyle: "bold" },
-        colSpan: 5,
+        content: summeryNumber,
+
+        styles: {
+          halign: "center",
+          cellWidth: 0.0,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
       },
       {
-        content: `${currencyWithoutSymbol(grandTotal + grandTotal * 0.11)}`,
-        styles: { halign: "right" },
+        content: `Grand Total`,
+        colSpan: 4,
+        styles: {
+          halign: "right",
+          fontStyle: "bold",
+          cellWidth: 0.0,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${currencyWithoutSymbol(grandTotal.value || 0)}`,
+        styles: {
+          halign: "right",
+          cellWidth: 0.0,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
       },
     ]);
+
+    // (props.dataInterface.data?.reference_transaction_adjustment ?? []).forEach(
+    //   (element) => {
+    //     if (element.adjustments_transaction?.category == "transform") {
+    //       rowData.push([
+    //         {
+    //           content: `${element.adjustments_transaction?.name}`,
+    //           styles: { halign: "right", fontStyle: "bold" },
+    //           colSpan: 5,
+    //         },
+    //         {
+    //           content: `${currencyWithoutSymbol(
+    //             displayAmount(element, subtotal.value || 0)
+    //           )}`,
+    //           styles: { halign: "right" },
+    //         },
+    //       ]);
+    //     }
+    //   }
+    // );
+    // (props.dataInterface.data?.reference_transaction_adjustment ?? []).forEach(
+    //   (element) => {
+    //     getDppComponent(props.dataInterface.data?.reference_transaction_adjustment)
+    //     if (element.adjustments_transaction?.category == "tax" && ) {
+    //       rowData.push([
+    //         {
+    //           content: `${element.adjustments_transaction?.name}`,
+    //           styles: { halign: "right", fontStyle: "bold" },
+    //           colSpan: 5,
+    //         },
+    //         {
+    //           content: `${currencyWithoutSymbol(
+    //             displayAmount(element,  || 0)
+    //           )}`,
+    //           styles: { halign: "right" },
+    //         },
+    //       ]);
+    //     }
+    //   }
+    // );
   }
+
   // Table
   autoTable(doc, {
-    startY: 96,
-    head: [["No", "Item", "Qty", "UoM", "Price", "Total"]],
+    startY: 105,
+    head: [
+      ["No", "Item", "Qty", "UoM", "Price exc. PPN", "Total Price exc. PPN"],
+    ],
     body: rowData,
-    styles: { fontSize: 10 },
+    styles: {
+      fontSize: 10,
+    },
     margin: { left: marginX, right: marginX },
-    headStyles: { fillColor: [200, 200, 200] },
+    headStyles: {
+      fillColor: [248, 248, 248], // background
+      textColor: [0, 0, 0], // warna text
+      fontStyle: "bold", // bold
+      halign: "center", // center text
+      valign: "middle", // vertical align
+      lineWidth: 0.1, // border
+      lineColor: [0, 0, 0], // warna border
+    },
   });
 
   // // Summary
@@ -469,7 +943,7 @@ const generateQuotationPdf = async () => {
 
   if (canvassing) {
     let currentY = finalY + 15;
-
+    doc.setFontSize(9);
     const writeWrappedText = (text: string) => {
       const lines = doc.splitTextToSize(text, pageWidth - 30);
       doc.text(lines, 20, currentY);
@@ -483,16 +957,28 @@ const generateQuotationPdf = async () => {
         }`
       );
 
-      writeWrappedText(
-        `\u2022 ${
-          canvassing.payment_term == PaymentTerm.TEMPO
-            ? `${paymentTermView(canvassing.payment_term)} ${
-                canvassing.tempo_value
-              } Hari`
-            : paymentTermView(canvassing.payment_term)
-        }`
-      );
+      // writeWrappedText(
+      //   `\u2022 ${
+      //     canvassing.payment_term == PaymentTerm.TEMPO
+      //       ? `${paymentTermView(canvassing.payment_term)} ${
+      //           canvassing.tempo_value
+      //         } Hari`
+      //       : paymentTermView(canvassing.payment_term)
+      //   }`
+      // );
+
+      (props.dataInterface.data?.payment_terms ?? []).forEach((element) => {
+        writeWrappedText(
+          `\u2022 ${element.name} ${
+            element.term_of_payment == PaymentTerm.TEMPO
+              ? `${element.duration}D`
+              : ""
+          }`
+        );
+      });
     }
+
+    doc.setFontSize(11);
   }
 
   if (props.dataInterface?.data?.note) {
@@ -521,6 +1007,64 @@ const generateQuotationPdf = async () => {
   pdfUrl.value = URL.createObjectURL(blob);
 
   return { doc, blob };
+};
+
+const ppnComponent = computed(() => {
+  const ppnComponentRef = getPPNComponent(
+    props.dataInterface.data?.reference_transaction_adjustment ?? []
+  );
+  const dppComponent = getDppComponent(
+    props.dataInterface.data?.reference_transaction_adjustment ?? []
+  );
+  console.log("ppn componen", ppnComponentRef);
+  if (ppnComponentRef) {
+    if (dppComponent) {
+      const dppValue = getDPPFormula(dppComponent, subtotal.value || 0);
+      if (ppnComponentRef.include) {
+        return 0;
+      } else {
+        return getPPNFormula(ppnComponentRef, dppValue);
+      }
+    } else {
+      if (ppnComponentRef.include) {
+        return 0;
+      } else {
+        return getPPNFormula(ppnComponentRef, subtotal.value || 0);
+      }
+    }
+  } else {
+    return 0;
+  }
+});
+
+const grandTotal = computed(() => {
+  return subtotal.value + getPlus.value + ppnComponent.value;
+});
+const showTransactionAdjustmentValue = (
+  ref: ReferenceTransactionAdjustment
+) => {
+  if (ref.include) {
+    return 0;
+  } else {
+    if (
+      ref.adjustments_transaction?.category == "tax" &&
+      ref.adjustments_transaction?.name.toLowerCase() === "ppn"
+    ) {
+      const dpp: ReferenceTransactionAdjustment | undefined = (
+        props.dataInterface.data?.reference_transaction_adjustment ?? []
+      ).find((value) => value.adjustments_transaction?.unique_code == "DPPL");
+      if (dpp) {
+        const dppValue = getDPPFormula(dpp, subtotal.value || 0);
+        return getPPNFormula(ref, dppValue || subtotal.value);
+      } else {
+        return getPPNFormula(ref, subtotal.value);
+      }
+    } else {
+      return ref.type == "amount"
+        ? ref.amount
+        : displayAmount(ref, subtotal.value || 0);
+    }
+  }
 };
 
 const generateQuotation = async () => {
@@ -621,6 +1165,7 @@ const fetchItem = async () => {
 };
 
 onMounted(() => {
+  console.log("pricetag", props.dataInterface.data);
   if (props.dataInterface.data?.unique_id) {
     request_search_pricelist_item.value.column = [
       {

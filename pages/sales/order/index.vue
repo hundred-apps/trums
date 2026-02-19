@@ -81,7 +81,7 @@
         </el-button>
         <el-button
           type="danger"
-          :disabled="hasDelete && selected.length > 0"
+          :disabled="!hasDelete || selected.length == 0"
           @click="batchDelete"
         >
           Hapus yang Dipilih

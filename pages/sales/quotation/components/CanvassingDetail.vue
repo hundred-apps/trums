@@ -16,7 +16,7 @@
           >
           <NuxtLink
             :to="`/sales/quotation/add?id=${canvassingData?.unique_id}`"
-            class="el-button el-button--primary"
+            class="el-button el-button--default"
           >
             <el-icon class="me-2"><Edit /></el-icon> Edit
           </NuxtLink>
@@ -60,9 +60,9 @@
                 CanvassingStatus.PENDING_APPROVAL_RAB && editState == false
             "
             type="success"
-            @click="editState = true"
+            @click="approveWithCreateRAB"
           >
-            <el-icon class="me-2"><CircleCheck /></el-icon> Approve dan Buat RAP
+            <el-icon class="me-2"><CircleCheck /></el-icon> Approve dan Buat RAB
           </el-button>
 
           <!-- <NuxtLink
@@ -79,6 +79,35 @@
           >
             Buat Penawaran
           </NuxtLink>
+          <el-button
+            v-if="editState"
+            type="default"
+            size="default"
+            @click="() => (editState = false)"
+            class="mr-3"
+          >
+            Batal
+          </el-button>
+          <el-button
+            v-if="editState"
+            type="success"
+            size="default"
+            @click="() => submitRAB(ruleFormRef)"
+            :loading="loading"
+          >
+            <el-icon class="me-2"><CircleCheck /></el-icon>
+            Simpan dan Lanjutkan
+          </el-button>
+          <el-button
+            v-if="editState"
+            type="primary"
+            size="default"
+            @click="() => submitApproveRab(CanvassingStatus.RAB)"
+            :loading="loading"
+          >
+            <el-icon class="me-2"><CircleCheck /></el-icon>
+            Simpan
+          </el-button>
         </div>
       </template>
 
@@ -136,9 +165,18 @@
           generateResultSearchAddress(canvassingData?.address ?? null).street
         }}</el-descriptions-item>
       </el-descriptions>
+      <h5 class="font-bold text-black text-1xl mt-6">Lampiran</h5>
+      <div v-for="(file, key) in canvassingData?.files" :key="key">
+        <NuxtLink
+          class="text-blue-600 text-sm"
+          :href="`${baseImageURL}/${file.image_path}/${file.filename}`"
+          target="_blank"
+          >{{ file.filename_original }}</NuxtLink
+        >
+      </div>
     </el-card>
 
-    <el-card class="mb-3" v-if="canvassingData && editState">
+    <el-card shadow="never" class="mb-3" v-if="canvassingData && editState">
       <el-form
         ref="ruleFormRef"
         style="max-width: 600px"
@@ -149,32 +187,6 @@
         size="default"
         status-icon
       >
-        <el-form-item label="Pembayaran" prop="payment_term">
-          <el-select
-            v-model="canvassingData.payment_term"
-            placeholder="Select"
-            style="width: 240px"
-          >
-            <el-option
-              v-for="item in [
-                { value: PaymentTerm.COD, label: 'COD' },
-                { value: PaymentTerm.CBD, label: 'CBD' },
-                { value: PaymentTerm.TEMPO, label: 'TEMPO' },
-              ]"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item
-          label="Durasi Tempo (Hari)"
-          prop="tempo_value"
-          v-if="canvassingData.payment_term === PaymentTerm.TEMPO"
-        >
-          <el-input-number v-model="canvassingData.tempo_value" :min="1" />
-        </el-form-item>
-
         <el-form-item label="Alamat Pengiriman" prop="address_view">
           <el-autocomplete
             v-model="canvassingData.address_view"
@@ -212,7 +224,15 @@
       </el-form>
     </el-card>
 
-    <el-card class="mb-3" shadow="never">
+    <el-card
+      class="mb-3"
+      shadow="never"
+      v-if="
+        statusRAB().includes(
+          canvassingData?.status ?? CanvassingStatus.DRAFT
+        ) || editState
+      "
+    >
       <template #header>
         <div class="card-header flex justify-between items-center">
           <p>Penerima Fee</p>
@@ -299,7 +319,12 @@
 
         <el-table-column label="Aksi" width="100">
           <template #default="{ $index }">
-            <el-button type="danger" link @click="removeContact($index)">
+            <el-button
+              type="danger"
+              :disabled="!editState"
+              link
+              @click="removeContact($index)"
+            >
               Hapus
             </el-button>
           </template>
@@ -423,7 +448,22 @@
         :expand-row-keys="getExpandRowKeys ?? []"
         border
       >
-        <el-table-column prop="item_name" label="Item" width="400" fixed="left">
+        <el-table-column
+          v-if="
+            statusRAB().includes(
+              canvassingData?.status ?? CanvassingStatus.DRAFT
+            ) || editState
+          "
+          prop="item_name"
+          label="Item"
+          width="500"
+          fixed="left"
+        >
+          <template #default="{ row }">
+            {{ row.catalogue_name }}
+          </template>
+        </el-table-column>
+        <el-table-column v-else prop="item_name" label="Item" fixed="left">
           <template #default="{ row }">
             {{ row.catalogue_name }}
           </template>
@@ -441,8 +481,8 @@
             </div>
             <div v-else>
               {{
-                row.type_item == "request"
-                  ? "Permintaan"
+                row.type_item == "original"
+                  ? "AS Requested"
                   : row.type_item == "quotation"
                   ? "Subtitution"
                   : "Equivalent"
@@ -501,7 +541,15 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="Profit" width="200">
+        <el-table-column
+          v-if="
+            statusRAB().includes(
+              canvassingData?.status ?? CanvassingStatus.DRAFT
+            ) || editState
+          "
+          label="Profit"
+          width="200"
+        >
           <template #default="{ row }">
             <div v-if="row.type === 'child'">
               <el-input
@@ -538,7 +586,15 @@
             </el-input> -->
           </template>
         </el-table-column>
-        <el-table-column label="Fee" width="200">
+        <el-table-column
+          v-if="
+            statusRAB().includes(
+              canvassingData?.status ?? CanvassingStatus.DRAFT
+            ) || editState
+          "
+          label="Fee"
+          width="200"
+        >
           <template #default="{ row }">
             <div v-if="row.type === 'child'">
               <el-input
@@ -571,7 +627,15 @@
             </div>
           </template>
         </el-table-column>
-        <el-table-column label="Ongkir" width="200">
+        <el-table-column
+          v-if="
+            statusRAB().includes(
+              canvassingData?.status ?? CanvassingStatus.DRAFT
+            ) || editState
+          "
+          label="Ongkir"
+          width="200"
+        >
           <template #default="{ row }">
             <div v-if="row.type === 'child'">
               <el-input
@@ -588,7 +652,15 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="Harga Jual" width="200">
+        <el-table-column
+          v-if="
+            statusRAB().includes(
+              canvassingData?.status ?? CanvassingStatus.DRAFT
+            ) || editState
+          "
+          label="Harga Jual"
+          width="200"
+        >
           <template #default="{ row }">
             <div v-if="row.type === 'parent'">
               {{ currency(row.selling_price ?? 0) }}
@@ -596,7 +668,15 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="Margin (%)" width="150">
+        <el-table-column
+          v-if="
+            statusRAB().includes(
+              canvassingData?.status ?? CanvassingStatus.DRAFT
+            ) || editState
+          "
+          label="Margin (%)"
+          width="150"
+        >
           <template #default="{ row }">
             <div v-if="row.type === 'child' && row.unit_price">
               {{ calculateMargin(row).toFixed(2) }} %
@@ -604,7 +684,15 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="Subtotal" width="200">
+        <el-table-column
+          v-if="
+            statusRAB().includes(
+              canvassingData?.status ?? CanvassingStatus.DRAFT
+            ) || editState
+          "
+          label="Subtotal"
+          width="200"
+        >
           <template #default="{ row }">
             <div v-if="row.type === 'parent'">
               {{ currency(row.total_price) }}
@@ -631,7 +719,11 @@
             <div>
               <el-descriptions title="" :column="1" size="small" border>
                 <el-descriptions-item label="Nomor Penawaran">
-                  {{ vendor.name ?? "N/A" }}
+                  <NuxtLink
+                    class="text-blue-600"
+                    :href="`/supply-chain-management/offer/${vendor.unique_id}`"
+                    >{{ vendor.unique_code ?? "N/A" }}</NuxtLink
+                  >
                 </el-descriptions-item>
                 <el-descriptions-item label="Keterangan">
                   {{ vendor?.note ?? "Tidak Ada Keterangan" }}
@@ -665,16 +757,27 @@
       </div>
     </el-card>
 
-    <el-card class="mb-3" shadow="never">
+    <el-card
+      class="mb-3"
+      shadow="never"
+      v-if="
+        statusRAB().includes(
+          canvassingData?.status ?? CanvassingStatus.DRAFT
+        ) || editState
+      "
+    >
       <template #header>
         <div class="card-header"><span>Biaya Lainya</span></div>
       </template>
       <div>
         <div
           class="flex justify-between items-center mb-2"
-          v-for="ref in [...references, adjustmentTransactionOngkirTotal]"
+          v-for="ref in [adjustmentTransactionOngkirTotal, ...references]"
         >
-          <div v-if="ref.adjustment_id != ''">
+          <div
+            v-if="ref.adjustment_id != ''"
+            class="flex w-full justify-between items-center mb-2"
+          >
             <span class="font-bold text-sm">{{
               ref.adjustments_transaction?.name
                 ? ref.adjustments_transaction?.name
@@ -682,7 +785,7 @@
                 ? ref.adjustment?.name
                 : ""
             }}</span>
-            <span class="text-sm">
+            <span class="text-sm flex gap-2">
               <el-input
                 :disabled="!editState"
                 v-model="ref.amount"
@@ -701,6 +804,15 @@
                   </el-select>
                 </template>
               </el-input>
+              <el-button
+                type="danger"
+                :icon="Delete"
+                circle
+                :disabled="
+                  (ref.adjustments_transaction?.name || ref.adjustment?.name) ==
+                    'Ongkos Kirim' || !editState
+                "
+              />
             </span>
           </div>
         </div>
@@ -716,7 +828,121 @@
       </el-button>
     </el-card>
 
-    <el-card class="mb-3" shadow="never">
+    <el-card
+      class="mb-4"
+      header="Informasi Pembayaran"
+      :class="{ 'error-card': paymentTermError }"
+      shadow="never"
+      v-if="
+        statusRAB().includes(
+          canvassingData?.status ?? CanvassingStatus.DRAFT
+        ) || editState
+      "
+    >
+      <el-table
+        :data="canvassingData?.payment_terms ?? []"
+        border
+        style="width: 100%"
+      >
+        <el-table-column label="Nama">
+          <template #default="{ row, $index }">
+            <el-input
+              v-model="row.name"
+              :disabled="!editState"
+              placeholder="TOP 1"
+            />
+          </template>
+        </el-table-column>
+
+        <el-table-column label="Jumlah">
+          <template #default="{ row, $index }">
+            <el-input
+              v-model="row.value"
+              style="max-width: 300px"
+              placeholder="Jumlah"
+              :disabled="!editState"
+            >
+              <template #append>
+                <el-select
+                  :disabled="!editState"
+                  v-model="row.unit"
+                  style="width: 100px"
+                >
+                  <el-option label="%" value="percentage" />
+                  <el-option label="Rp" value="nominal" />
+                </el-select>
+              </template>
+            </el-input>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="TOP">
+          <template #default="{ row }">
+            <el-select
+              v-model="row.term_of_payment"
+              placeholder="Select"
+              style="width: 240px"
+              :disabled="!editState"
+            >
+              <el-option
+                v-for="item in [
+                  { value: PaymentTerm.COD, label: 'COD' },
+                  { value: PaymentTerm.CBD, label: 'CBD' },
+                  { value: PaymentTerm.TEMPO, label: 'TEMPO' },
+                ]"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+              />
+            </el-select>
+          </template>
+        </el-table-column>
+
+        <el-table-column :label="`Durasi Tempo`">
+          <template #default="scope">
+            <el-input
+              :step="1"
+              :min="0"
+              v-model="scope.row.duration"
+              placeholder="Masukkan Durasi Tempo"
+              :disabled="
+                scope.row.term_of_payment !== PaymentTerm.TEMPO || !editState
+              "
+            />
+          </template>
+        </el-table-column>
+
+        <el-table-column label="Aksi" width="100">
+          <template #default="scope">
+            <el-button
+              type="danger"
+              :icon="Delete"
+              circle
+              :disabled="!editState"
+              @click="() => removePaymentTerm(scope.row)"
+            />
+          </template>
+        </el-table-column>
+      </el-table>
+      <el-button
+        class="mt-4"
+        style="width: 100%"
+        :disabled="!editState"
+        @click="addNewPaymentTerm"
+      >
+        Add New Item
+      </el-button>
+    </el-card>
+
+    <el-card
+      class="mb-3"
+      shadow="never"
+      v-if="
+        statusRAB().includes(
+          canvassingData?.status ?? CanvassingStatus.DRAFT
+        ) || editState
+      "
+    >
       <el-table :data="summeryData ?? []" style="width: 100%">
         <el-table-column label="" prop="label" fixed="left" width="250">
           <template #default="{ row }">
@@ -827,30 +1053,6 @@
       @save="handleSaveFee"
     />
 
-    <transition name="el-fade-in">
-      <div v-if="editState" class="floating-save-container">
-        <div class="floating-save-actions">
-          <el-button
-            type="default"
-            size="default"
-            @click="() => (editState = false)"
-            class="mr-3"
-          >
-            Batal
-          </el-button>
-          <el-button
-            type="success"
-            size="default"
-            @click="() => submitRAB(ruleFormRef)"
-            :loading="loading"
-          >
-            <el-icon class="me-2"><CircleCheck /></el-icon>
-            Simpan dan Lanjutkan
-          </el-button>
-        </div>
-      </div>
-    </transition>
-
     <el-dialog
       v-model="dialogSelectedItem"
       title="Pilih Item Yang Akan Diajukan!"
@@ -883,7 +1085,15 @@
             <div v-if="row.type === 'parent'">
               {{ row.type_item == "request" ? "Permintaan" : "Equivalent" }}
             </div>
-            <div v-else></div>
+            <div v-else>
+              {{
+                row.type_item == "original"
+                  ? "AS Requested"
+                  : row.type_item == "quotation"
+                  ? "Subtitution"
+                  : "Equivalent"
+              }}
+            </div>
           </template>
         </el-table-column>
 
@@ -985,7 +1195,10 @@
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="dialogSelectedItem = false">Cancel</el-button>
-          <el-button type="primary" @click="submitApproveRab">
+          <el-button
+            type="primary"
+            @click="() => submitApproveRab(CanvassingStatus.PENDING_APPROVAL)"
+          >
             Simpan dan Ajukan
           </el-button>
         </div>
@@ -1057,6 +1270,7 @@ import {
   CanvassingVendorStatus,
   PaymentTerm,
   paymentTermView,
+  statusRAB,
 } from "~/types/scm/canvasing";
 import type {
   Canvassing,
@@ -1094,6 +1308,10 @@ import AddAdjustment from "~/components/trums/AddAdjustment.vue";
 import type { Permission } from "~/types/menu";
 import { canAccess, currency, formatLocalDate } from "#imports";
 import FormAddress from "~/components/trums/FormAddress.vue";
+import {
+  TermOfPaymentReference,
+  type TermOfPayment,
+} from "~/types/payment_term";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -1119,7 +1337,7 @@ const svg = `
     L 15 15
   " style="stroke-width: 4px; fill: rgba(0, 0, 0, 0)"/>
 `;
-
+const paymentTermError = ref(false);
 const dialogCancelApproval = ref(false);
 const dialogNewAddress = ref(false);
 const dialogSelectedItem = ref<boolean>(false);
@@ -1233,17 +1451,19 @@ const rules: FormRules = {
   address_view: [
     { required: true, message: "Pengiriman wajib dipilih", trigger: "change" },
   ],
-  payment_term: [
-    { required: true, message: "Pembayaran wajib dipilih", trigger: "change" },
-  ],
 };
 
 const adjustmentTransactions = await useFetchApi<
   ResponsePagination<AdjustmentTransaction[]>
 >("/search", "search-adjustment", "post", querySearchAdjustmentTransaction);
 
+const getReferences = computed(() => {
+  return [...references.value, adjustmentTransactionOngkirTotal.value];
+});
+
 const pricetagList = computed(() => {
   const list = removeDuplicates<Pricetag>(pricetags.value, "unique_id");
+  console.log("pricetag list", list);
   return list;
 });
 
@@ -1259,10 +1479,8 @@ const adjustmentContact = computed(() => {
 const adjustmentOngkir = computed(() => {
   const data = adjustmentTransactions.data.value?.data || [];
 
-  return data.find(
-    (value: AdjustmentTransaction) =>
-      value.name?.toLowerCase().includes("ongkos kirim") &&
-      value.operator === ongkirState.value
+  return data.find((value: AdjustmentTransaction) =>
+    value.name?.toLowerCase().includes("ongkos kirim")
   );
 });
 
@@ -1278,6 +1496,29 @@ const adjustmentTransactionOngkirTotal = ref<ReferenceTransactionAdjustment>({
   created_at: 0,
   changeType: false,
 });
+
+watch(
+  adjustmentOngkir,
+  () => {
+    if (adjustmentTransactionOngkirTotal.value.reference_id === "") {
+      adjustmentTransactionOngkirTotal.value = {
+        unique_id: "",
+        reference: ReferenceAdjustment.CANVASSING,
+        reference_id: "",
+        adjustment_id: `${adjustmentOngkir.value?.unique_id}`,
+        adjustment: adjustmentOngkir.value,
+        value: null,
+        type: FeeType.AMOUNT,
+        amount: 0,
+        created_at: 0,
+        changeType: false,
+      };
+    }
+
+    console.log("adjustment ongkir", adjustmentOngkir.value);
+  },
+  { immediate: true }
+);
 
 const handleAdjustmentSubmit = () => {
   visibleModalNewAdjustment.value = false;
@@ -1308,6 +1549,77 @@ const changeDiscount = (
   } else {
     return 0;
   }
+};
+
+const submitDeletePaymentTerm = async (data: TermOfPayment) => {
+  try {
+    const response = await useFetchApi<BaseResponse<any>>(
+      "/payment-terms-delete",
+      "delete-top",
+      "post",
+      [data.unique_id]
+    );
+    if (response.status.value === "success") {
+      canvassingData.value!.payment_terms = (
+        canvassingData.value?.payment_terms ?? []
+      ).filter((term) => term.unique_id !== data.unique_id);
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+  }
+};
+
+const removePaymentTerm = async (data: TermOfPayment) => {
+  await ElMessageBox.confirm("Yakin ingin menghapus TOP ini?", "Warning", {
+    confirmButtonText: "Hapus",
+    cancelButtonText: "Batal",
+    type: "warning",
+  });
+
+  if (data.unique_id) {
+    canvassingData.value!.payment_terms = (
+      canvassingData.value?.payment_terms ?? []
+    ).filter((term) => term.unique_id !== data.unique_id);
+  } else {
+    submitDeletePaymentTerm(data);
+  }
+};
+
+const addNewPaymentTerm = () => {
+  if (props.canvassingData.payment_terms) {
+    props.canvassingData.payment_terms.push({
+      duration: 0,
+      name: "",
+      reference: TermOfPaymentReference.RAB,
+      reference_id: "",
+      term_of_payment: PaymentTerm.CBD,
+      unique_code: "",
+      unique_id: "",
+      unit: "percentage",
+      value: 0,
+    });
+  } else {
+    props.canvassingData.payment_terms = [
+      {
+        duration: 0,
+        name: "",
+        reference: TermOfPaymentReference.RAB,
+        reference_id: "",
+        term_of_payment: PaymentTerm.CBD,
+        unique_code: "",
+        unique_id: "",
+        unit: "percentage",
+        value: 0,
+      },
+    ];
+  }
+
+  console.log("payment terms", props.canvassingData.payment_terms);
+};
+
+const approveWithCreateRAB = () => {
+  editState.value = true;
+  refreshNuxtData("search-adjustment");
 };
 
 const selectableCheckbox = (row: CanvassingItemForm, index: number) => {
@@ -2393,7 +2705,6 @@ const tableRowClassName = ({
   row: CanvassingItemForm;
   rowIndex: number;
 }) => {
-  console.log("row", row);
   if (row.type_item != "request" && row.type_item != "equivalent") {
     if (row.status === CanvassingVendorStatus.SELECTED) {
       return "success-row";
@@ -2824,7 +3135,7 @@ const formatStatus = (status: CanvassingStatus) => {
     case CanvassingStatus.PENDING_APPROVAL:
       return "Menunggu Di Setujui";
     case CanvassingStatus.RAB:
-      return "DRAFT";
+      return "RAB";
     case CanvassingStatus.PENDING_APPROVAL_RAB:
       return "Menunggu Di Setujui";
     case CanvassingStatus.DONE:
@@ -3030,7 +3341,7 @@ const updateParentSelectionState = (
   });
 };
 
-const submitApproveRab = async () => {
+const submitApproveRab = async (status: CanvassingStatus) => {
   loading.value = true;
   try {
     const referenceAdjustment: ReferenceTransactionAdjustment[] = [
@@ -3069,7 +3380,7 @@ const submitApproveRab = async () => {
       canvassingData.value?.source_document || ""
     );
     formData.append("description", canvassingData.value?.description || "");
-    formData.append("status", CanvassingStatus.PENDING_APPROVAL || "");
+    formData.append("status", status || "");
     formData.append(`payment_term`, `${canvassingData.value?.payment_term}`);
     formData.append(`tempo_value`, `${canvassingData.value?.tempo_value}`);
     formData.append(`tempo_unit`, `${canvassingData.value?.tempo_unit}`);
@@ -3240,6 +3551,18 @@ const submitApproveRab = async () => {
       });
     });
 
+    (props.canvassingData.payment_terms ?? []).forEach((term, iterm) => {
+      formData.append(`payment_terms[${iterm}][unique_id]`, term.unique_id);
+      formData.append(`payment_terms[${iterm}][name]`, term.name);
+      formData.append(`payment_terms[${iterm}][value]`, `${term.value}`);
+      formData.append(`payment_terms[${iterm}][unit]`, `${term.unit}`);
+      formData.append(
+        `payment_terms[${iterm}][term_of_payment]`,
+        `${term.term_of_payment}`
+      );
+      formData.append(`payment_terms[${iterm}][duration]`, `${term.duration}`);
+    });
+
     // Untuk debugging: lihat semua entries FormData
     console.log("=== FORM DATA ENTRIES ===");
     for (let [key, value] of formData.entries()) {
@@ -3257,6 +3580,7 @@ const submitApproveRab = async () => {
       item_canvassing.value = [];
       contactsFee.value = [];
       editState.value = false;
+      dialogSelectedItem.value = false;
       fetchCanvassing();
     }
   } catch (error: any) {
@@ -4022,6 +4346,18 @@ const generateQuotation = async () => {
 
 const submitRAB = async (formEl: FormInstance | undefined) => {
   if (!formEl) return;
+
+  paymentTermError.value = false;
+
+  if (
+    !canvassingData.value?.payment_terms ||
+    canvassingData.value?.payment_terms.length === 0
+  ) {
+    paymentTermError.value = true;
+
+    ElMessage.warning("Informasi pembayaran wajib diisi");
+    return;
+  }
 
   await formEl.validate(async (valid) => {
     if (valid) {

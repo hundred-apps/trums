@@ -73,16 +73,6 @@
             <el-descriptions-item label="Kontak">
               {{ purchaseOrderData?.vendor?.name || "-" }}
             </el-descriptions-item>
-
-            <el-descriptions-item label="Diskon">
-              {{
-                purchaseOrderData?.is_discount
-                  ? `${purchaseOrderData.discount}${
-                      purchaseOrderData.discount_unit === "percent" ? "%" : ""
-                    }`
-                  : "Tidak ada"
-              }}
-            </el-descriptions-item>
           </el-descriptions>
         </div>
         <div class="flex-1">
@@ -117,20 +107,20 @@
                   : "-"
               }}
             </el-descriptions-item>
-            <el-descriptions-item label="Informasi Tambahan">
-              {{ purchaseOrderData?.additional_information ?? "Tidak Ada" }}
-            </el-descriptions-item>
           </el-descriptions>
         </div>
       </div>
 
-      <el-descriptions
-        title="Informasi Tambahan"
-        v-if="purchaseOrderData?.additional_information"
-      >
-        <el-descriptions-item label="">{{
-          purchaseOrderData.additional_information
-        }}</el-descriptions-item>
+      <el-descriptions title="Informasi Tambahan">
+        <el-descriptions-item label="">
+          <div
+            v-html="
+              `${formattedText(
+                purchaseOrderData?.additional_information ?? ''
+              )}`
+            "
+          ></div>
+        </el-descriptions-item>
       </el-descriptions>
     </el-card>
 
@@ -215,20 +205,7 @@
             }}
           </template>
         </el-table-column>
-        <el-table-column
-          label="Status"
-          align="center"
-          width="150"
-          v-if="
-            purchaseOrderData?.status !== PurchaseOrderStatus.PENDING_APPROVAL
-          "
-        >
-          <template #default="scope">
-            <el-tag :type="getItemStatusTagType(scope.row.status)">
-              {{ formatItemStatus(scope.row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
+
         <el-table-column
           label="Aksi"
           align="center"
@@ -304,15 +281,74 @@
       </el-table>
     </el-card>
 
-    <el-card class="mb-3" shadow="hover">
-      <el-table :data="summeryData ?? []" style="width: 100%">
-        <el-table-column label="" prop="label" width="300">
-          <template #default="{ row }">
-            <div class="font-bold">{{ row.label }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column label="" prop="value" align="right" />
-      </el-table>
+    <CustomPaymentTerm
+      type="view"
+      :data="purchaseOrderData?.payment_terms ?? []"
+    />
+
+    <el-card class="mb-3" shadow="never">
+      <template #header>
+        <div class="card-header">
+          <span>Summary</span>
+        </div>
+      </template>
+
+      <el-descriptions :column="1" border>
+        <el-descriptions-item :width="100" label="Total Price" align="right">{{
+          currency(totalPrice || 0)
+        }}</el-descriptions-item>
+        <el-descriptions-item
+          :width="100"
+          align="right"
+          v-for="ref in (purchaseOrderData?.reference_transaction ?? []).filter(
+            (value) => value.adjustments_transaction?.operator == 'minus'
+          )"
+          :key="ref.adjustment_id"
+          :label="ref.adjustments_transaction?.name ?? ''"
+          >{{
+            currency(showTransactionAdjustmentValue(ref))
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item :width="100" label="Subtotal" align="right">{{
+          currency(subtotal)
+        }}</el-descriptions-item>
+        <el-descriptions-item
+          :width="100"
+          align="right"
+          v-for="ref in (purchaseOrderData?.reference_transaction ?? []).filter(
+            (value) =>
+              value.adjustments_transaction?.operator == 'plus' &&
+              value.adjustments_transaction?.category == 'adjustment'
+          )"
+          :key="ref.adjustment_id"
+          :label="ref.adjustments_transaction?.name ?? ''"
+          >{{
+            currency(showTransactionAdjustmentValue(ref))
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :width="100"
+          align="right"
+          v-for="ref in (purchaseOrderData?.reference_transaction ?? []).filter(
+            (value) =>
+              value.adjustments_transaction?.category == 'transform' ||
+              value.adjustments_transaction?.category == 'tax'
+          )"
+          :key="ref.adjustment_id"
+          :label="ref.adjustments_transaction?.name ?? ''"
+          >{{
+            currency(showTransactionAdjustmentValue(ref))
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item :width="100" align="right" class-name="font-bold">
+          <template #label>
+            <div class="cell-item font-bold">Grand Total</div> </template
+          ><span class="font-bold">{{
+            currency(grandTotal)
+          }}</span></el-descriptions-item
+        >
+        <!-- <el-descriptions-item :width="100" label="Grand Total">{{ currency(grandTotal) }}</el-descriptions-item> -->
+      </el-descriptions>
     </el-card>
 
     <el-dialog
@@ -372,7 +408,8 @@ import {
 } from "~/types/scm/purchase_order";
 import type { BaseResponse } from "~/types/response";
 import type { ReferenceTransactionAdjustment } from "~/types/attribute_adjustment";
-import { formatLocalDate, currency } from "#imports";
+import { formatLocalDate, currency, formattedText } from "#imports";
+import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -463,6 +500,33 @@ const fetchPurchaseOrderItems = async () => {
     }
   } catch (error) {
     console.error("Failed to fetch purchase order items", error);
+  }
+};
+
+const showTransactionAdjustmentValue = (
+  ref: ReferenceTransactionAdjustment
+) => {
+  if (ref.include) {
+    return 0;
+  } else {
+    if (
+      ref.adjustments_transaction?.category == "tax" &&
+      ref.adjustments_transaction?.name.toLowerCase() === "ppn"
+    ) {
+      const dpp: ReferenceTransactionAdjustment | undefined = (
+        purchaseOrderData?.value?.reference_transaction ?? []
+      ).find((value) => value.adjustments_transaction?.unique_code == "DPPL");
+      if (dpp) {
+        const dppValue = getDPPFormula(dpp, subtotal.value || 0);
+        return getPPNFormula(ref, dppValue || subtotal.value);
+      } else {
+        return getPPNFormula(ref, subtotal.value);
+      }
+    } else {
+      return ref.type == "amount"
+        ? ref.amount
+        : displayAmount(ref, subtotal.value || 0);
+    }
   }
 };
 
@@ -691,11 +755,79 @@ const deletePurchaseOrder = async () => {
   }
 };
 
-const subtotal = computed(() => {
-  return (purchaseOrderData.value?.purchase_order_item ?? []).reduce(
-    (sum, item) => sum + item.quantity * item.unit_price,
+const getMinus = computed(() => {
+  var minus = 0;
+  (purchaseOrderData?.value?.reference_transaction ?? [])
+    .filter((value) => value.adjustment?.operator == "minus")
+    .forEach((ref) => {
+      if (ref.include == false) {
+        minus += Number(ref.amount);
+      }
+    });
+
+  return minus;
+});
+const getPlus = computed(() => {
+  var plus = 0;
+
+  (purchaseOrderData?.value?.reference_transaction ?? [])
+    .filter(
+      (value) =>
+        value.adjustment?.operator == "plus" &&
+        value.adjustment?.category === "adjustment"
+    )
+    .forEach((ref) => {
+      if (ref.include == false) {
+        plus += Number(ref.amount);
+      }
+    });
+
+  return plus;
+});
+
+const ppnComponent = computed(() => {
+  const ppnComponentRef = getPPNComponent(
+    purchaseOrderData.value?.reference_transaction ?? []
+  );
+  const dppComponent = getDppComponent(
+    purchaseOrderData.value?.reference_transaction ?? []
+  );
+  console.log("ppn componen", ppnComponentRef);
+  if (ppnComponentRef) {
+    if (dppComponent) {
+      const dppValue = getDPPFormula(dppComponent, subtotal.value || 0);
+      if (ppnComponentRef.include) {
+        return 0;
+      } else {
+        return getPPNFormula(ppnComponentRef, dppValue);
+      }
+    } else {
+      if (ppnComponentRef.include) {
+        return 0;
+      } else {
+        return getPPNFormula(ppnComponentRef, subtotal.value || 0);
+      }
+    }
+  } else {
+    return 0;
+  }
+});
+
+const grandTotal = computed(() => {
+  return subtotal.value + getPlus.value + ppnComponent.value;
+});
+
+const totalPrice = computed(() => {
+  return (purchaseOrderData?.value?.purchase_order_item ?? []).reduce(
+    (accumulator, currentValue) => {
+      return accumulator + currentValue.total_price;
+    },
     0
   );
+});
+const subtotal = computed(() => {
+  console.log("get minus", totalPrice.value);
+  return Number(totalPrice.value) - Number(getMinus.value);
 });
 
 const summeryData = computed(() => {

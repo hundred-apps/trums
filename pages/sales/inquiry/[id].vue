@@ -31,6 +31,7 @@
           <CanvassingTable
             :request_search="canvassing_search"
             :fetch-key="'get-canvassing-inquiry'"
+            :type="'CANASSING'"
           />
         </div>
 
@@ -55,6 +56,7 @@
           <CanvassingTable
             :request_search="rab_search"
             :fetch-key="'get-rab-inquiry'"
+            :type="'RAB'"
           />
         </div>
         <el-result
@@ -72,6 +74,7 @@
         <div v-if="loading">Loading.....</div>
         <div v-else-if="!loading && !inquiryData.pending && inquiryData.data">
           <OfferTable
+            :refresh_trigger="refreshTrigger"
             :request_search="offer_search"
             :key="'get-offer-to-customer'"
             v-on:has-bulk="(value) => {}"
@@ -149,6 +152,7 @@ definePageMeta({
 const router = useRouter();
 
 const errorPage = ref<boolean>(false);
+const refreshTrigger = ref<number>(0);
 
 const activeNameTab = ref("inquiry");
 

@@ -21,6 +21,7 @@ import type { People } from "~/types/people";
 import type { BaseResponse } from "~/types/response";
 
 const config = useRuntimeConfig();
+const imageUrl = config.public.baseImageURL;
 const { t } = useI18n();
 
 const router = useRouter();
@@ -28,7 +29,6 @@ const authStore = useAuthStore();
 const userdata = ref<People | null>(null);
 const visibleDialogLogOut = ref<boolean>(false);
 
-const imageUrl = config.public.baseImageURL;
 const id_token = localStorage.getItem("id_token");
 const client_id = config.public.baseOIDCICID;
 

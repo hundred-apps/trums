@@ -8,6 +8,7 @@ import type { ItemRequest, ItemRequestTrail } from "../item_request";
 import type { PurchaseRequestItem } from "../purchase_request";
 import type { DeliveryUnitTime, DiscountUnit, WarrantyUnit } from "./offers";
 import type { AppFile } from "../file";
+import type { TermOfPayment } from "../payment_term";
 
 export enum CanvassingStatus {
   DRAFT = "draft",
@@ -18,6 +19,17 @@ export enum CanvassingStatus {
   DONE = "done",
   CANCEL = "cancel",
 }
+
+export const statusRAB = () => [
+  CanvassingStatus.RAB,
+  CanvassingStatus.PENDING_APPROVAL,
+  CanvassingStatus.DONE,
+];
+export const statusCanvassing = () => [
+  CanvassingStatus.CANVASSING,
+  CanvassingStatus.PENDING_APPROVAL_RAB,
+  CanvassingStatus.DONE,
+];
 
 export enum CanvassingVendorStatus {
   SUBMITTED = "submitted",
@@ -75,6 +87,8 @@ export type Canvassing = {
   address?: AddressType;
   address_version?: number;
   address_view?: string;
+  payment_terms?: TermOfPayment[];
+  files: AppFile[];
 };
 
 export type CanvassingItem = {

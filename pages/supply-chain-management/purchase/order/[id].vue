@@ -162,9 +162,6 @@
                   : "-"
               }}
             </el-descriptions-item>
-            <el-descriptions-item label="Biaya Pengiriman">
-              {{ currency(purchaseOrderData?.delivery_cost || 0) }}
-            </el-descriptions-item>
             <el-descriptions-item label="Alamat Pengiriman">
               ({{ purchaseOrderData?.address?.address_name }})
               <div>

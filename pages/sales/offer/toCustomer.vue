@@ -15,7 +15,7 @@ import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import type { Catalogue } from "~/types/catalogue";
-import { Filter } from "@element-plus/icons-vue";
+import { Eleme, Filter } from "@element-plus/icons-vue";
 import { NuxtLink } from "#components";
 import { InfoFilled, SetUp } from "@element-plus/icons-vue";
 import type { Pricetag } from "~/types/pricetag";
@@ -42,9 +42,11 @@ const request_search = ref<RequestSearch>({
   table: "pricetag",
   sort: {
     column: "created_at",
-    order: OrderColumn.ASC,
+    order: OrderColumn.DESC,
   },
 });
+
+const refreshTrigger = ref<number>(0);
 
 const hasCreate = await checkPermission("pricetag-create");
 const hasUpdate = await checkPermission("pricetag-update");
@@ -109,7 +111,7 @@ const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
     />
   );
 };
-
+const childRef = ref();
 const handleDelete = async (ids: string[]) => {
   loading.value = true;
   try {
@@ -120,7 +122,7 @@ const handleDelete = async (ids: string[]) => {
       ids
     );
     if (response.status.value == "success") {
-      await refreshNuxtData("Pricetag");
+      refreshTrigger.value++;
       ElMessage.success("Data Berhasil Dihapus");
     }
   } catch (error: any) {
@@ -161,58 +163,69 @@ const deleteBulk = () => {
   handleDelete(idsSelected.value);
 };
 
+const onRefreshTable = () => refreshTrigger.value++;
+
 onMounted(() => {
   fetchLocation();
 });
 </script>
 <template>
-  <TrumsWrapper>
-    <div class="w-auto">
-      <el-row :gutter="20" class="mb-3">
-        <el-col :span="6"
-          ><el-input
-            v-model="request_search.keyword"
-            size="default"
-            placeholder="Type to search"
-        /></el-col>
-        <NuxtLink
-          v-if="hasCreate"
-          href="/sales/offer/add?type=out"
-          @click="
-            () => {
-              const cookie = useCookie('tag_id');
-              cookie.value = null;
-            }
-          "
-          class="el-button el-button--primary el-button--default"
-          >Buat Penawaran Baru</NuxtLink
-        >
-        <el-popconfirm
-          v-if="idsSelected.length > 0 && hasDelete"
-          width="220"
-          :icon="InfoFilled"
-          icon-color="#626AEF"
-          title="Apakah Anda Yakin Ingin Menghapus Data ini?"
-          @cancel="() => {}"
-        >
-          <template #reference>
-            <el-button size="default" class="ml-3" type="danger"
-              >Delete</el-button
-            >
-          </template>
-          <template #actions="{ confirm, cancel }">
-            <el-button size="small" @click="cancel">Batal</el-button>
-            <el-button type="danger" size="small" @click="deleteBulk">
-              Hapus
-            </el-button>
-          </template>
-        </el-popconfirm>
-      </el-row>
-      <OfferTable
-        :request_search="request_search"
-        :key="'get-offer-to-customer'"
-        v-on:has-bulk="(value) => (idsSelected = value)"
-      />
-    </div>
-  </TrumsWrapper>
+  <div class="w-auto">
+    <el-row :gutter="20" class="mb-3">
+      <el-col :span="6"
+        ><el-input
+          v-model="request_search.keyword"
+          size="default"
+          placeholder="Type to search"
+      /></el-col>
+      <NuxtLink
+        v-if="hasCreate"
+        href="/sales/offer/add?type=out"
+        @click="
+          () => {
+            const cookie = useCookie('tag_id');
+            cookie.value = null;
+          }
+        "
+        class="el-button el-button--primary el-button--default"
+        >Buat Penawaran Baru</NuxtLink
+      >
+      <el-button
+        size="default"
+        class="ml-3"
+        type="default"
+        :icon="Eleme"
+        @click="onRefreshTable"
+        >Reload</el-button
+      >
+      <el-popconfirm
+        v-if="idsSelected.length > 0 && hasDelete"
+        width="220"
+        :icon="InfoFilled"
+        icon-color="#626AEF"
+        title="Apakah Anda Yakin Ingin Menghapus Data ini?"
+        @cancel="() => {}"
+      >
+        <template #reference>
+          <el-button size="default" class="ml-3" type="danger"
+            >Delete</el-button
+          >
+        </template>
+
+        <template #actions="{ confirm, cancel }">
+          <el-button size="small" @click="cancel">Batal</el-button>
+          <el-button type="danger" size="small" @click="deleteBulk">
+            Hapus
+          </el-button>
+        </template>
+      </el-popconfirm>
+    </el-row>
+    <OfferTable
+      ref="childRef"
+      :request_search="request_search"
+      :refresh_trigger="refreshTrigger"
+      :key="'get-offer-to-customer'"
+      v-on:has-bulk="(value) => (idsSelected = value)"
+    />
+  </div>
 </template>

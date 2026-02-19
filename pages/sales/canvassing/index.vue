@@ -87,6 +87,7 @@
     <CanvassingTable
       :request_search="request_search"
       :fetchKey="'get-canvassing'"
+      :type="'CANASSING'"
     />
   </TrumsWrapper>
 </template>

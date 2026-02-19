@@ -4,6 +4,8 @@ import type { Contact } from "./contact";
 import type { AppFile } from "./file";
 import type { Inventory } from "./inventory";
 import type { Canvassing } from "./scm/canvasing";
+import type { TermOfPayment } from "./payment_term";
+import type { ReferenceTransactionAdjustment } from "./attribute_adjustment";
 
 export enum ReferencePriceTag {
   CANVASING_VENDOR = "canvassing_vendor",
@@ -43,6 +45,11 @@ export type Pricetag = {
   files: AppFile[];
   reference_data?: any | Canvassing;
   subject?: string;
+  pic_id?: string;
+  pic_name?: string;
+  pic_version?: number;
+  payment_terms?: TermOfPayment[];
+  reference_transaction_adjustment?: ReferenceTransactionAdjustment[];
 };
 
 export type Pricetag_item = {
@@ -55,6 +62,7 @@ export type Pricetag_item = {
   inventory: Inventory | null;
   quantity: number;
   price: number;
+  displayPrice?: string;
   readonly?: boolean;
   pricetag?: Pricetag;
   sn?: string;

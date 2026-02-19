@@ -51,7 +51,14 @@ import type {
   MainInstance,
   UploadUserFile,
 } from "element-plus";
-import { Search, Timer, Plus, Operation, User } from "@element-plus/icons-vue";
+import {
+  Search,
+  Timer,
+  Plus,
+  Operation,
+  User,
+  Delete,
+} from "@element-plus/icons-vue";
 import type { Maintenance } from "~/types/maintenance";
 import type { Contact } from "~/types/contact";
 import type { Catalogue } from "~/types/catalogue";
@@ -1360,6 +1367,39 @@ const paginationClickSalesOrderClick = (val: number) => {
   request_search_sales_order.value = data;
 };
 
+const submitRemoveItem = async (index: number) => {
+  loading.value = true;
+  try {
+    const response = await useFetchApi(
+      "/item-request-delete",
+      "delete-item-request",
+      "post",
+      [dataTable.value[index].unique_id]
+    );
+    if (response.status.value == "success") {
+      ElMessage.success("Data Berhasil Dihapus!");
+      dataTable.value.splice(index, 1);
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const removeItem = async (index: number) => {
+  await ElMessageBox.confirm("Yakin ingin menghapus Item ini?", "Warning", {
+    confirmButtonText: "Hapus",
+    cancelButtonText: "Batal",
+    type: "warning",
+  });
+  if (dataTable.value[index].unique_id) {
+    submitRemoveItem(index);
+  } else {
+    dataTable.value.splice(index, 1);
+  }
+};
+
 onMounted(() => {
   // getContacts();
   // getMaintenance();
@@ -1553,7 +1593,7 @@ onMounted(() => {
       </el-card>
 
       <el-card class="mb-3">
-        <el-table :data="dataTable">
+        <el-table :data="dataTable" border>
           <el-table-column prop="item" label="item">
             <template #default="scope">
               <el-autocomplete
@@ -1587,29 +1627,37 @@ onMounted(() => {
               </el-autocomplete>
             </template>
           </el-table-column>
-          <el-table-column prop="sn" label="Serial Number">
+          <el-table-column prop="sn" label="Serial Number" width="200">
             <template #default="scope">
               <el-input v-model="scope.row.sn" placeholder="Serial Number" />
             </template>
           </el-table-column>
-          <el-table-column prop="quantity" label="Quantity">
+          <el-table-column prop="quantity" label="Quantity" width="200">
             <template #default="scope">
-              <el-input
-                :step="0.01"
-                :min="0"
+              <el-input-number
                 v-model="scope.row.quantity"
-                @input="(value: string) => validateDecimal(value, scope)"
-                placeholder="Masukkan item"
+                :min="0.01"
+                @input="(value: number | null | undefined) => validateDecimal(`${value}`, scope)"
               />
             </template>
           </el-table-column>
-          <el-table-column prop="unit_name" label="Unit">
+          <el-table-column prop="unit_name" label="Unit" width="100">
             <template #default="scope">
               <el-autocomplete
                 :fetch-suggestions="querySearchUnit"
                 v-model="scope.row.unit_name"
                 placeholder="Input Units"
                 @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteUnit(item, scope)"
+              />
+            </template>
+          </el-table-column>
+          <el-table-column label="Aksi" width="60" fixed="right">
+            <template #default="scope">
+              <el-button
+                type="danger"
+                :icon="Delete"
+                circle
+                @click="removeItem(scope.$index)"
               />
             </template>
           </el-table-column>
@@ -1656,7 +1704,7 @@ onMounted(() => {
       </el-row>
 
       <el-table :data="sales_order.data.value?.data ?? []" border>
-        <el-table-column label="Unique Code" width="150">
+        <el-table-column label="Unique Code" width="200">
           <template #default="scope">
             <NuxtLink
               :href="
@@ -1674,7 +1722,7 @@ onMounted(() => {
             {{ scope.row.vendor_name }}
           </template>
         </el-table-column>
-        <el-table-column label="Tanggal SO">
+        <el-table-column label="Tanggal">
           <template #default="scope">
             {{ formatLocalDate(scope.row.date) }}
           </template>

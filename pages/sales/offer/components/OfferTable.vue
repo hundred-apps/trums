@@ -7,7 +7,7 @@
   <div class="flex justify-end mt-3">
     <el-pagination
       background
-      layout="prev, pager, next"
+      layout="prev, pager, next, sizes"
       :total="data?.total_data"
       @next-click="paginationClick"
       @prev-click="paginationClick"
@@ -40,6 +40,7 @@ const props = defineProps<{
   // onSubmit: (catalogue: Catalogue) => void,
   // onCancel: () => void,
   request_search: RequestSearch;
+  refresh_trigger: number;
   key: string;
 }>();
 
@@ -55,7 +56,7 @@ const selected = ref<string[]>([]);
 
 const { data } = await useFetchApi<ResponsePagination<Pricetag[]>>(
   `/search`,
-  "Pricetag-to-customer",
+  props.key,
   "post",
   request_search.value
 );
@@ -102,7 +103,9 @@ const availableColumn: Column<Pricetag>[] = [
     key: "reference",
     dataKey: "reference",
     width: 200,
-    cellRenderer: ({ rowData: row }) => <>{formatLocalDate(row.start_date)}</>,
+    cellRenderer: ({ rowData: row }) => (
+      <>{row.start_date ? formatLocalDate(row.start_date) : "-"}</>
+    ),
   },
   {
     title: "Operasi",
@@ -117,7 +120,7 @@ const availableColumn: Column<Pricetag>[] = [
           Detail
         </NuxtLink>
         <NuxtLink
-          href={`/sales/offer/add?id=${row.unique_id}`}
+          href={`/sales/offer/add?id=${row.unique_id}&type=${row.type}`}
           class="el-button el-button--small"
         >
           Edit
@@ -254,6 +257,14 @@ watch(
     emit("has-bulk", val);
   },
   { deep: true }
+);
+
+watch(
+  () => props.refresh_trigger,
+  async () => {
+    selected.value = [];
+    await refreshNuxtData(props.key);
+  }
 );
 
 onMounted(() => {

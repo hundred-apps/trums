@@ -6,7 +6,7 @@
       </template>
     </el-page-header>
 
-    <el-card class="my-3">
+    <el-card class="my-3" shadow="never">
       <template #header>
         <div class="card-header">
           <el-form-item>
@@ -77,6 +77,23 @@
           </el-autocomplete>
         </el-form-item>
 
+        <el-form-item v-if="address" label=" ">
+          <div>
+            <div class="flex items-center gap-2">
+              <p>{{ address.address_name }}</p>
+              <el-icon
+                class="cursor-pointer text-blue-500 hover:text-blue-600"
+                @click="handleEditAddress(address)"
+                ><Edit
+              /></el-icon>
+            </div>
+            <div>
+              {{ address.street }},
+              {{ generateResultSearchAddress(address).name }}
+            </div>
+          </div>
+        </el-form-item>
+
         <el-form-item label="Tanggal PO" prop="date">
           <el-date-picker
             v-model="ruleForm.date"
@@ -89,46 +106,6 @@
         <!-- <el-form-item label="Tempo Payment" prop="is_tempo">
           <el-switch v-model="ruleForm.is_tempo" />
         </el-form-item> -->
-
-        <el-form-item label="Pembayaran" prop="payment_term">
-          <el-select
-            v-model="ruleForm.payment_term"
-            placeholder="Select"
-            style="width: 240px"
-          >
-            <el-option
-              v-for="item in [
-                { value: PaymentTerm.COD, label: 'COD' },
-                { value: PaymentTerm.CBD, label: 'CBD' },
-                { value: PaymentTerm.TEMPO, label: 'TEMPO' },
-              ]"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item
-          label="Durasi Tempo (Hari)"
-          prop="tempo_value"
-          v-if="ruleForm.payment_term === PaymentTerm.TEMPO"
-        >
-          <el-input-number v-model="ruleForm.payment_term_value" :min="1" />
-        </el-form-item>
-
-        <el-form-item label="Metode Pembayaran" prop="payment_method">
-          <el-select
-            v-model="ruleForm.payment_method"
-            placeholder="Select payment method"
-          >
-            <el-option
-              v-for="method in paymentMethods"
-              :key="method.value"
-              :label="method.label"
-              :value="method.value"
-            />
-          </el-select>
-        </el-form-item>
 
         <el-form-item label="Estimasi Tiba" prop="expected_arrival">
           <el-date-picker
@@ -194,7 +171,7 @@
     </el-card>
 
     <!-- Items Section -->
-    <el-card class="mb-3">
+    <el-card class="mb-3" shadow="never">
       <template #header>
         <div class="card-header flex justify-between items-center">
           <span>Items</span>
@@ -261,63 +238,88 @@
       </el-table>
     </el-card>
 
-    <el-card class="mb-3">
+    <AdjustmentTransactionComponent
+      v-if="!loadingGetEditData"
+      :references="references"
+      @update:total="
+        (value) => {
+          console.log('update total', value);
+        }
+      "
+    />
+
+    <CustomPaymentTerm
+      v-if="id === undefined && !loadingGetEditData"
+      @update:term-of-payments="onUpdatePaymentTerms"
+      type="input"
+    />
+    <CustomPaymentTerm
+      v-else
+      @update:term-of-payments="onUpdatePaymentTerms"
+      :data="termOfPayments"
+      type="input"
+      v-if="!loadingGetEditData"
+    />
+
+    <el-card class="mb-3" shadow="never">
       <template #header>
-        <div class="card-header"><span>Biaya Lainya</span></div>
-      </template>
-      <div>
-        <div
-          class="flex justify-between items-center mb-2"
-          v-for="ref in references"
-        >
-          <span class="font-bold text-sm">{{
-            ref.adjustment?.name ?? ""
-          }}</span>
-          <span class="text-sm flex">
-            <el-input
-              v-model="ref.amount"
-              style="max-width: 300px"
-              placeholder="Masukan Nilai"
-            >
-              <template #append>
-                <el-select
-                  v-model="ref.type"
-                  :disabled="ref.changeType == false"
-                  style="width: 100px"
-                >
-                  <el-option label="%" value="percent" />
-                  <el-option label="Rp" value="amount" />
-                </el-select>
-              </template>
-            </el-input>
-            <el-button
-              link
-              type="danger"
-              @click="() => removeReferenceTransaction(ref)"
-              ><el-icon><RemoveFilled /></el-icon
-            ></el-button>
-          </span>
+        <div class="card-header">
+          <span>Summary</span>
         </div>
-      </div>
+      </template>
 
-      <el-button
-        class="mt-4"
-        style="width: 100%"
-        @click="visibleModalAdjustmentTransaction = true"
-      >
-        Tambah Item
-      </el-button>
-    </el-card>
-
-    <el-card class="mb-3" shadow="hover">
-      <el-table :data="summeryData ?? []" style="width: 100%">
-        <el-table-column label="" prop="label" width="300">
-          <template #default="{ row }">
-            <div class="font-bold">{{ row.label }}</div>
-          </template>
-        </el-table-column>
-        <el-table-column label="" prop="value" align="right" />
-      </el-table>
+      <el-descriptions :column="1" border>
+        <el-descriptions-item :width="100" label="Total Price" align="right">{{
+          currency(totalPrice || 0)
+        }}</el-descriptions-item>
+        <el-descriptions-item
+          :width="100"
+          align="right"
+          v-for="ref in references.filter(
+            (value) => value.adjustment?.operator == 'minus'
+          )"
+          :key="ref.adjustment_id"
+          :label="ref.adjustment?.name ?? ''"
+          >{{
+            currency(showTransactionAdjustmentValue(ref))
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item :width="100" label="Subtotal" align="right">{{
+          currency(subtotal)
+        }}</el-descriptions-item>
+        <el-descriptions-item
+          :width="100"
+          align="right"
+          v-for="ref in references.filter(
+            (value) =>
+              value.adjustment?.operator == 'plus' &&
+              value.adjustment?.category == 'adjustment'
+          )"
+          :key="ref.adjustment_id"
+          :label="ref.adjustment?.name ?? ''"
+          >{{
+            currency(showTransactionAdjustmentValue(ref))
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :width="100"
+          align="right"
+          v-for="ref in references.filter(
+            (value) =>
+              value.adjustment?.category == 'transform' ||
+              value.adjustment?.category == 'tax'
+          )"
+          :key="ref.adjustment_id"
+          :label="ref.adjustment?.name ?? ''"
+          >{{
+            currency(showTransactionAdjustmentValue(ref))
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item :width="100" label="Grand Total" align="right">{{
+          currency(grandTotal)
+        }}</el-descriptions-item>
+        <!-- <el-descriptions-item :width="100" label="Grand Total">{{ currency(grandTotal) }}</el-descriptions-item> -->
+      </el-descriptions>
     </el-card>
 
     <ModalAdjustmentTransaction
@@ -378,16 +380,14 @@
         @selection-change="handlePricetagSelectionChange"
       >
         <el-table-column type="selection" width="55" />
-        <el-table-column prop="catalogue.name" label="Item" width="350">
+        <el-table-column prop="catalogue.name" label="Item">
           <template #default="scope">
             {{ scope.row.catalogue?.name || "-" }}
           </template>
         </el-table-column>
-
-        <el-table-column prop="unit_name" label="Satuan" width="100" />
         <el-table-column prop="pricetag.name" label="Nomor Penawaran">
           <template #default="scope">
-            {{ scope.row.pricetag?.name || "N/A" }}
+            {{ scope.row.pricetag?.unique_code || "N/A" }}
           </template>
         </el-table-column>
         <el-table-column prop="" label="Tgl Berlaku" width="200">
@@ -405,6 +405,7 @@
             {{ formatCurrency(scope.row.price) }}
           </template>
         </el-table-column>
+        <el-table-column prop="unit_name" label="Satuan" width="100" />
       </el-table>
 
       <template #footer>
@@ -427,6 +428,20 @@
     <TrumsFormAddress
       @success="onAddressNew"
       @back="() => (dialogNewAddress = false)"
+      :onSetInitital="{
+          contact_id: ruleForm.vendor_id,
+          contact_name: ruleForm.vendor_name,
+          address_name: address?.address_name,
+          unique_id: address?.unique_id,
+          street: address?.street,
+          codepos: address?.codepos,
+          village: address?.village,
+          village_id: address?.village_id,
+          city: address?.city,
+          regency: address?.regency,
+          province: address?.province,
+          address_view: address != null ? generateAddressView(address!) : ''
+        }"
     />
   </el-dialog>
 
@@ -447,7 +462,7 @@
 </template>
 
 <script lang="ts" setup>
-import { Delete, Plus, RemoveFilled } from "@element-plus/icons-vue";
+import { Delete, Plus, RemoveFilled, Edit } from "@element-plus/icons-vue";
 import {
   ElMessage,
   type FormInstance,
@@ -491,6 +506,11 @@ import ModalAdjustmentTransaction from "~/components/trums/ModalAdjustmentTransa
 import AddAdjustment from "~/components/trums/AddAdjustment.vue";
 import { refreshNuxtData } from "#app";
 import { formatLocalDate } from "#imports";
+import { generateAddressView } from "#imports";
+import type { TermOfPayment } from "~/types/payment_term";
+import AdjustmentTransactionComponent from "~/components/trums/AdjustmentTransactionComponent.vue";
+import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
+import { currency } from "#imports";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -504,6 +524,7 @@ const router = useRouter();
 
 const ruleFormRef = ref<FormInstance>();
 const loading = ref(false);
+const loadingGetEditData = ref<boolean>(false);
 const dialogNewAddress = ref(false);
 const visibleModalPricetagNewItem = ref<boolean>(false);
 const visibleModalAdjustmentTransaction = ref(false);
@@ -512,6 +533,8 @@ const visibleModalNewAdjustment = ref(false);
 const route = useRoute();
 const id = computed(() => route.query.id as string);
 const quotation_id = computed(() => route.query.quotation_id as string);
+
+const address = ref<AddressType | null>(null);
 
 const setInitialAddress = () => {
   if (ruleForm.vendor_id == "") {
@@ -541,7 +564,7 @@ const ruleForm = reactive({
   date: Date.now(),
   is_discount: false,
   is_tempo: false,
-  payment_term: PaymentTerm.CASH,
+  payment_term: PaymentTerm.CBD,
   payment_term_value: 0,
   payment_term_unit: "day",
   payment_method: PaymentMethod.Giro,
@@ -575,6 +598,8 @@ const selectedPricetagItems = ref<Pricetag_item[]>([]);
 const canvassingItems = ref<CanvassingVendor[]>([]);
 
 const pricetagItems = ref<Pricetag_item[]>([]);
+
+const termOfPayments = ref<TermOfPayment[]>([]);
 
 const references = ref<ReferenceTransactionAdjustment[]>([]);
 
@@ -640,21 +665,80 @@ const adjustmentTransactions = await useFetchApi<
   querySearchAdjustmentTransaction.value
 );
 
+const getMinus = computed(() => {
+  var minus = 0;
+  references.value
+    .filter((value) => value.adjustment?.operator == "minus")
+    .forEach((ref) => {
+      if (ref.include == false) {
+        minus += Number(ref.amount);
+      }
+    });
+
+  return minus;
+});
+const getPlus = computed(() => {
+  var plus = 0;
+
+  references.value
+    .filter(
+      (value) =>
+        value.adjustment?.operator == "plus" &&
+        value.adjustment?.category === "adjustment"
+    )
+    .forEach((ref) => {
+      if (ref.include == false) {
+        plus += Number(ref.amount);
+      }
+    });
+
+  return plus;
+});
+
+const dppComponent = computed(() => {
+  return references.value.find(
+    (value) =>
+      value.adjustment?.category == "transform" &&
+      value.adjustment?.unique_code == "DPPL"
+  );
+});
+
+const ppnComponent = computed(() => {
+  const ppnComponentRef = references.value.find(
+    (value) =>
+      value.adjustment?.category == "tax" &&
+      value.adjustment?.name.toLowerCase() === "ppn"
+  );
+
+  if (ppnComponentRef) {
+    if (dppComponent.value) {
+      const dppValue = getDPPFormula(dppComponent.value, subtotal.value || 0);
+      if (ppnComponentRef.include) {
+        return 0;
+      } else {
+        return getPPNFormula(ppnComponentRef, dppValue);
+      }
+    } else {
+      if (ppnComponentRef.include) {
+        return 0;
+      } else {
+        return getPPNFormula(ppnComponentRef, subtotal.value || 0);
+      }
+    }
+  } else {
+    return 0;
+  }
+});
+
 const subtotal = computed(() => {
   return ruleForm.items.reduce(
     (sum, item) => sum + item.quantity * item.unit_price,
     0
   );
 });
-const grand_total = computed(() => {
-  const total = subtotal.value;
-  let other = 0;
-
-  references.value.forEach((ref) => {
-    other += Number(displayAmount(ref, total));
-  });
-
-  return Number(total) + Number(other);
+const grandTotal = computed(() => {
+  console.log("PPN", ppnComponent.value);
+  return subtotal.value + getPlus.value + ppnComponent.value;
 });
 
 const calculatedDiscount = computed(() => {
@@ -664,6 +748,44 @@ const calculatedDiscount = computed(() => {
   }
   return ruleForm.discount;
 });
+
+const showTransactionAdjustmentValue = (
+  ref: ReferenceTransactionAdjustment
+) => {
+  if (ref.include) {
+    return 0;
+  } else {
+    if (
+      ref.adjustment?.category == "tax" &&
+      ref.adjustment.name.toLowerCase() === "ppn"
+    ) {
+      const dpp: ReferenceTransactionAdjustment | undefined =
+        references.value.find(
+          (value) => value.adjustment?.unique_code == "DPPL"
+        );
+      if (dpp) {
+        const dppValue = getDPPFormula(dpp, subtotal.value || 0);
+        return getPPNFormula(ref, dppValue || subtotal.value);
+      } else {
+        return getPPNFormula(ref, subtotal.value);
+      }
+    } else {
+      return ref.type == "amount"
+        ? ref.amount
+        : displayAmount(ref, subtotal.value || 0);
+    }
+  }
+};
+
+const totalPrice = computed(() => {
+  return ruleForm.items.reduce((accumulator, currentValue) => {
+    return accumulator + currentValue.total_price;
+  }, 0);
+});
+
+const onUpdatePaymentTerms = (data: TermOfPayment[]) => {
+  termOfPayments.value = data;
+};
 
 const handlePageChange = (page: number) => {
   request_search_pricetag_item.value.offset = `${page}`;
@@ -717,33 +839,6 @@ const removeReferenceTransaction = async (
     (ref) => ref.adjustment_id == adjustmentTransactions.adjustment_id
   );
 };
-
-const summeryData = computed(() => {
-  const tableData: any[] = [
-    {
-      label: "Subtotal",
-      value: currency(subtotal.value),
-    },
-  ];
-
-  references.value.forEach((element) => {
-    tableData.push({
-      label: element.adjustment?.name
-        ? `${element.adjustment?.name} (${Number(
-            displayPercentage(element, subtotal.value) || 0
-          ).toFixed(2)}%)`
-        : "-",
-      value: currency(displayAmount(element, subtotal.value)),
-    });
-  });
-
-  tableData.push({
-    label: "Grand Total",
-    value: currency(grand_total.value),
-  });
-
-  return tableData;
-});
 
 // Validation rules
 const rules: FormRules = {
@@ -857,7 +952,14 @@ const generateResultSearchAddress = (address: AddressType) => {
     street: street,
     address_id: address_id,
     address_version: address.version,
+    data: address,
   };
+};
+
+const handleEditAddress = (addressEdit: AddressType) => {
+  address.value = addressEdit;
+  console.log("handle edit click", address.value);
+  dialogNewAddress.value = true;
 };
 
 const querySearchAddress = (queryString: string, cb: (arg: any) => void) => {
@@ -904,10 +1006,11 @@ const handleSelectAddress = (record: Record<string, any>) => {
     dialogNewAddress.value = true;
   } else {
     console.log(record);
-    // const address: AddressType = record as AddressType;
-    ruleForm.delivery_address_id = record.address_id;
-    ruleForm.delivery_address_version = record.address_version;
-    ruleForm.delivery_address_view = record.name;
+    const addressType: AddressType = record.data as AddressType;
+    ruleForm.delivery_address_id = addressType.unique_id;
+    ruleForm.delivery_address_version = addressType.version;
+    ruleForm.delivery_address_view = addressType.address_name;
+    address.value = addressType;
   }
 };
 
@@ -916,6 +1019,7 @@ const onAddressNew = (value: AddressType) => {
   ruleForm.delivery_address_id = value.unique_id;
   ruleForm.delivery_address_version = value.version;
   ruleForm.delivery_address_view = addressView.name;
+  address.value = value;
 };
 
 watchDebounced(
@@ -1119,7 +1223,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       loading.value = true;
       try {
         // Calculate total price
-        ruleForm.total_price = grand_total.value;
+        ruleForm.total_price = grandTotal.value;
 
         const formData = new FormData();
 
@@ -1218,22 +1322,48 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           formData.append(`item[${index}][status]`, `done`);
         });
 
-        references.value.forEach((ref, i) => {
-          const refFields = {
-            unique_id: ref.unique_id,
-            adjustment_id: ref.adjustment_id,
-            value: ref.value,
-            amount: ref.amount,
-            type: ref.type,
-            party_type: ref.party_type,
-            party_id: ref.party_id,
-            reference: ref.reference,
-            reference_id: ref.reference_id,
-          };
-
-          Object.entries(refFields).forEach(([key, value]) => {
-            formData.append(`reference_transaction[${i}][${key}]`, `${value}`);
-          });
+        termOfPayments.value.forEach((top, indexTOP) => {
+          formData.append(
+            `payment_terms[${indexTOP}][unique_id]`,
+            `${top.unique_id}`
+          );
+          formData.append(`payment_terms[${indexTOP}][name]`, `${top.name}`);
+          formData.append(`payment_terms[${indexTOP}][value]`, `${top.value}`);
+          formData.append(`payment_terms[${indexTOP}][unit]`, `${top.unit}`);
+          formData.append(
+            `payment_terms[${indexTOP}][term_of_payment]`,
+            `${top.term_of_payment}`
+          );
+          formData.append(
+            `payment_terms[${indexTOP}][duration]`,
+            `${top.duration}`
+          );
+        });
+        references.value.forEach((ref, index) => {
+          formData.append(
+            `ref_trans_adj[${index}][unique_id]`,
+            `${ref.unique_id}`
+          );
+          formData.append(
+            `ref_trans_adj[${index}][adjustment_id]`,
+            `${ref.adjustment_id}`
+          );
+          formData.append(
+            `ref_trans_adj[${index}][adjustment_version]`,
+            `${ref.adjustment?.version}`
+          );
+          formData.append(`ref_trans_adj[${index}][value]`, `${ref.value}`);
+          formData.append(`ref_trans_adj[${index}][amount]`, `${ref.amount}`);
+          formData.append(
+            `ref_trans_adj[${index}][party_type]`,
+            `${ref.party_type}`
+          );
+          formData.append(
+            `ref_trans_adj[${index}][party_id]`,
+            `${ref.party_id}`
+          );
+          formData.append(`ref_trans_adj[${index}][type]`, `${ref.type}`);
+          formData.append(`ref_trans_adj[${index}][include]`, `${ref.include}`);
         });
 
         // Append files

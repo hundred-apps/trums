@@ -6,10 +6,10 @@ import type { PaymentMethod, PaymentStatus } from "./bill";
 import type { TransactionBank, TransactionItem } from "./transaction";
 
 export enum FinanceReference {
-  TRANSACTION_RECAP = 'transaction_recap',
-  SALES = 'sales',
-  PURCHASE_ORDER = 'purchase_order',
-  OTHER = 'other',
+  TRANSACTION_RECAP = "transaction_recap",
+  SALES = "sales",
+  PURCHASE_ORDER = "purchase_order",
+  OTHER = "other",
 }
 
 export type Invoice = {
@@ -17,18 +17,18 @@ export type Invoice = {
   source_document?: string | null;
   unique_code: string;
 
-  customer_id: string|null;
+  customer_id: string | null;
   customer_name: string;
   customer_version: number;
 
-  vendor_id: string|null;
+  vendor_id: string | null;
   vendor_name: string;
   vendor_version: number;
   vendor_address_id: string;
   vendor_address_view?: string;
   vendor_address_version: number;
 
-  billing_address_id: string|null;
+  billing_address_id: string | null;
   billing_address_view: string;
   billing_address_version: number;
 
@@ -44,15 +44,15 @@ export type Invoice = {
   is_tempo: boolean;
   payment_term: PaymentTerm;
   payment_term_value?: number | null;
-  payment_term_unit: 'day' | 'weeks' | 'months' | null;
-
+  payment_term_unit: "day" | "weeks" | "months" | null;
+  payment_term_id?: string;
   payment_method: PaymentMethod;
   recipient_bank?: string | null;
   account_bank_name?: string | null;
   account_bank_number?: string | null;
 
   account_id: string | null;
-  account_name?: string|null;
+  account_name?: string | null;
 
   status: PaymentStatus;
 
@@ -61,31 +61,30 @@ export type Invoice = {
 
   invoice_item: InvoiceItem[];
 
-  notes: string|null;
+  notes: string | null;
 
-  reference: string|null;
-  reference_id: string|null;
-  reference_number: string|null;
+  reference: string | null;
+  reference_id: string | null;
+  reference_number: string | null;
 
   created_at: number;
   created_by: number;
   updated_at: number;
   checked?: boolean;
-  history_payment?: TransactionItem[],
-  purchase_order_bank?: TransactionBank[], 
-  data_reference?: any,
-  reference_transaction?: ReferenceTransactionAdjustment[],
+  history_payment?: TransactionItem[];
+  purchase_order_bank?: TransactionBank[];
+  data_reference?: any;
+  reference_transaction?: ReferenceTransactionAdjustment[];
   vendor?: Contact;
   vendor_address?: AddressType;
-}
-
+};
 
 export type InvoiceItem = {
   unique_id: string;
   unique_code: string;
 
-  invoice_id: string|null;
-  item_id: string|null;
+  invoice_id: string | null;
+  item_id: string | null;
 
   item_version: number;
   item_name: string;
@@ -101,4 +100,4 @@ export type InvoiceItem = {
   created_at: number;
   created_by: number;
   updated_at: number;
-}
+};

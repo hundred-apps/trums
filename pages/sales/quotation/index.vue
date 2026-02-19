@@ -4,7 +4,9 @@
     <el-row :gutter="16">
       <el-col :span="6">
         <div class="statistic-card">
-          <el-statistic :value="(data?.data ?? []).filter((item: Canvassing) => item.status === CanvassingStatus.DRAFT).length">
+          <el-statistic
+            :value="(data?.data ?? []).filter((item: Canvassing) => item.status === CanvassingStatus.DRAFT).length"
+          >
             <template #title>
               <div style="display: inline-flex; align-items: center">
                 Draft Canvassing
@@ -15,7 +17,9 @@
       </el-col>
       <el-col :span="6">
         <div class="statistic-card">
-          <el-statistic :value="(data?.data ?? []).filter((item: Canvassing) => item.status === CanvassingStatus.PENDING_APPROVAL).length">
+          <el-statistic
+            :value="(data?.data ?? []).filter((item: Canvassing) => item.status === CanvassingStatus.PENDING_APPROVAL).length"
+          >
             <template #title>
               <div style="display: inline-flex; align-items: center">
                 Pending Approval
@@ -26,7 +30,9 @@
       </el-col>
       <el-col :span="6">
         <div class="statistic-card">
-          <el-statistic :value="(data?.data ?? []).filter((item: Canvassing) => item.status === CanvassingStatus.CANCEL).length">
+          <el-statistic
+            :value="(data?.data ?? []).filter((item: Canvassing) => item.status === CanvassingStatus.CANCEL).length"
+          >
             <template #title>
               <div style="display: inline-flex; align-items: center">
                 Cancelled
@@ -55,14 +61,14 @@
           v-model="request_search.keyword"
           size="default"
           placeholder="Cari canvassing..."
-          clearable 
+          clearable
         />
       </el-col>
-      <NuxtLink 
-        class="el-button el-button--primary el-button--default" 
+      <NuxtLink
+        class="el-button el-button--primary el-button--default"
         href="quotation/add"
       >
-        Buat Canvassing Baru
+        Buat RAB Baru
       </NuxtLink>
       <el-button
         size="default"
@@ -72,15 +78,11 @@
       >
         Muat Ulang
       </el-button>
-      <el-button 
-        type="danger" 
-        :disabled="!hasSelected"
-        @click="batchDelete"
-      >
-        Hapus yang Dipilih 
+      <el-button type="danger" :disabled="!hasSelected" @click="batchDelete">
+        Hapus yang Dipilih
       </el-button>
     </el-row>
-    
+
     <!-- Table -->
     <CustomTable
       :columns="filteredColumns"
@@ -106,42 +108,58 @@
 </template>
 
 <script lang="tsx" setup>
-import { Eleme, SetUp, Filter } from '@element-plus/icons-vue'
-import { type Column, type CheckboxValueType, TableV2FixedDir, ElPopover, ElCheckbox, ElIcon, type SortBy, ElCheckboxGroup } from 'element-plus'
-import { CanvassingStatus, type Canvassing } from '~/types/scm/canvasing'
-import type { Pagination } from '~/types/pagination'
-import { NuxtLink } from '#components';
-import CustomTable from '~/components/trums/table/customTable.vue'
-import type { ResponsePagination } from '~/types/response_pagination'
-import { OrderColumn, type RequestSearch } from '~/types/request_search'
-import type { BaseResponse } from '~/types/response'
-import SelectionCell from '~/components/trums/table/SelectionCell.vue';
-import { TypeInquiry } from '~/types/inquiry';
+import { Eleme, SetUp, Filter } from "@element-plus/icons-vue";
+import {
+  type Column,
+  type CheckboxValueType,
+  TableV2FixedDir,
+  ElPopover,
+  ElCheckbox,
+  ElIcon,
+  type SortBy,
+  ElCheckboxGroup,
+  ElButton,
+  ElTag,
+} from "element-plus";
+import { CanvassingStatus, type Canvassing } from "~/types/scm/canvasing";
+import type { Pagination } from "~/types/pagination";
+import { NuxtLink } from "#components";
+import CustomTable from "~/components/trums/table/customTable.vue";
+import type { ResponsePagination } from "~/types/response_pagination";
+import { OrderColumn, type RequestSearch } from "~/types/request_search";
+import type { BaseResponse } from "~/types/response";
+import SelectionCell from "~/components/trums/table/SelectionCell.vue";
+import { TypeInquiry } from "~/types/inquiry";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
   requiredPermission: "canvassing-read",
-})
-
+});
 
 // Search request
 const request_search = ref<RequestSearch>({
-  keyword: '',
+  keyword: "",
   column: [
     {
       inquiries: {
         type: [TypeInquiry.SALES_INQUIRY],
       },
-      status: [CanvassingStatus.DRAFT, CanvassingStatus.RAB, CanvassingStatus.PENDING_APPROVAL, CanvassingStatus.PENDING_APPROVAL_RAB, CanvassingStatus.DONE]
-    }
+      status: [
+        CanvassingStatus.DRAFT,
+        CanvassingStatus.RAB,
+        CanvassingStatus.PENDING_APPROVAL,
+        CanvassingStatus.PENDING_APPROVAL_RAB,
+        CanvassingStatus.DONE,
+      ],
+    },
   ],
   limit: "10",
   offset: "1",
-  table: 'canvassing',
+  table: "canvassing",
   sort: {
-    column: 'created_at',
+    column: "created_at",
     order: OrderColumn.DESC,
-  }
+  },
 });
 
 // Data state
@@ -152,42 +170,54 @@ const data = ref<ResponsePagination<Canvassing[]>>({
   total_data: 0,
   total_page: 1,
 });
-const selectedCanvassing = ref<Canvassing[]>([])
-const loading = ref<boolean>(false)
-const columnsSelected = ref<string[]>(['selection', 'unique_code', 'source_document', 'description', 'status', 'created_at', 'operations', 'setup'])
+const selectedCanvassing = ref<Canvassing[]>([]);
+const loading = ref<boolean>(false);
+const columnsSelected = ref<string[]>([
+  "selection",
+  "unique_code",
+  "source_document",
+  "description",
+  "status",
+  "created_at",
+  "operations",
+  "setup",
+]);
 
 // Columns
 const columns: Column<Canvassing>[] = [
   {
-    key: 'unique_code',
-    title: 'Nomor Canvassing',
-    dataKey: 'unique_code',
+    key: "unique_code",
+    title: "Nomor Canvassing",
+    dataKey: "unique_code",
     width: 300,
     cellRenderer: ({ rowData: row }) => (
-      <NuxtLink href={`/sales/quotation/${row.unique_id}`} class="text-blue-500">
+      <NuxtLink
+        href={`/sales/quotation/${row.unique_id}`}
+        class="text-blue-500"
+      >
         {row.unique_code}
       </NuxtLink>
-    )
+    ),
   },
   {
-    key: 'source_document',
-    title: 'Dokumen Sumber',
-    dataKey: 'source_document',
+    key: "source_document",
+    title: "Dokumen Sumber",
+    dataKey: "source_document",
     width: 200,
     cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
-      <span>{rowData.source_document || '-'}</span>
-    )
+      <span>{rowData.source_document || "-"}</span>
+    ),
   },
   {
-    key: 'description',
-    title: 'Deskripsi',
-    dataKey: 'description',
-    width: 250
+    key: "description",
+    title: "Deskripsi",
+    dataKey: "description",
+    width: 250,
   },
   {
-    key: 'status',
-    title: 'Status',
-    dataKey: 'status',
+    key: "status",
+    title: "Status",
+    dataKey: "status",
     width: 250,
     cellRenderer: ({ rowData: row }) => renderStatusTag(row.status),
     headerCellRenderer: () => (
@@ -198,21 +228,23 @@ const columns: Column<Canvassing>[] = [
             default: () => (
               <div class="filter-wrapper">
                 <div class="filter-group flex flex-col">
-                  <ElCheckboxGroup v-model={request_search.value.column[0].status}>
-                    <ElCheckbox 
-                      key={CanvassingStatus.DRAFT} 
-                      value={CanvassingStatus.DRAFT} 
-                      label="Draft" 
+                  <ElCheckboxGroup
+                    v-model={request_search.value.column[0].status}
+                  >
+                    <ElCheckbox
+                      key={CanvassingStatus.DRAFT}
+                      value={CanvassingStatus.DRAFT}
+                      label="Draft"
                     />
-                    <ElCheckbox 
-                      key={CanvassingStatus.PENDING_APPROVAL} 
-                      value={CanvassingStatus.PENDING_APPROVAL} 
-                      label="Pending Approval" 
+                    <ElCheckbox
+                      key={CanvassingStatus.PENDING_APPROVAL}
+                      value={CanvassingStatus.PENDING_APPROVAL}
+                      label="Pending Approval"
                     />
-                    <ElCheckbox 
-                      key={CanvassingStatus.CANCEL} 
-                      value={CanvassingStatus.CANCEL} 
-                      label="Cancel" 
+                    <ElCheckbox
+                      key={CanvassingStatus.CANCEL}
+                      value={CanvassingStatus.CANCEL}
+                      label="Cancel"
                     />
                   </ElCheckboxGroup>
                 </div>
@@ -229,59 +261,70 @@ const columns: Column<Canvassing>[] = [
     ),
   },
   {
-    key: 'created_at',
-    title: 'Tanggal Dibuat',
-    dataKey: 'created_at',
+    key: "created_at",
+    title: "Tanggal Dibuat",
+    dataKey: "created_at",
     width: 150,
     sortable: true,
     cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
       <span>{formatDate(rowData.created_at)}</span>
-    )
+    ),
   },
   {
-    key: 'operations',
-    title: 'Aksi',
+    key: "operations",
+    title: "Aksi",
     cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
       <>
-        <NuxtLink class="el-button el-button--small" href={`/sales/quotation/add?id=${rowData.unique_id}`} >Edit</NuxtLink>
-        <el-button size="small" type="danger" onClick={() => onDelete([rowData.unique_id!])}>
+        <NuxtLink
+          class="el-button el-button--small"
+          href={`/sales/quotation/add?id=${rowData.unique_id}`}
+        >
+          Edit
+        </NuxtLink>
+        <ElButton
+          size="small"
+          type="danger"
+          onClick={() => onDelete([rowData.unique_id!])}
+        >
           Hapus
-        </el-button>
+        </ElButton>
       </>
     ),
     width: 150,
-    align: 'center'
+    align: "center",
   },
   {
-    title: '',
-    key: 'setup',
+    title: "",
+    key: "setup",
     width: 50,
     fixed: TableV2FixedDir.RIGHT,
-  }
-]
+  },
+];
 
 // Add selection column
 columns.unshift({
-  key: 'selection',
+  key: "selection",
   width: 50,
   maxWidth: 50,
-  align: 'center',
+  align: "center",
   cellRenderer: ({ rowData }) => {
-    const onChange = (value: CheckboxValueType) => (rowData.checked = value)
-    return <SelectionCell value={rowData.checked} onChange={onChange} />
+    const onChange = (value: CheckboxValueType) => (rowData.checked = value);
+    return <SelectionCell value={rowData.checked} onChange={onChange} />;
   },
   headerCellRenderer: () => {
     const onChange = (value: CheckboxValueType) => {
-      data.value?.data?.forEach(item => {
-        item.checked = value as boolean
-      })
-    }
-    return <SelectionCell 
-      value={data.value?.data?.every(item => item.checked) || false} 
-      onChange={onChange} 
-    />
+      data.value?.data?.forEach((item) => {
+        item.checked = value as boolean;
+      });
+    };
+    return (
+      <SelectionCell
+        value={data.value?.data?.every((item) => item.checked) || false}
+        onChange={onChange}
+      />
+    );
   },
-})
+});
 
 // Setup column configuration
 columns[columns.length - 1].headerCellRenderer = () => {
@@ -294,13 +337,17 @@ columns[columns.length - 1].headerCellRenderer = () => {
             <div class="filter-wrapper">
               <div class="filter-group flex flex-col">
                 <ElCheckboxGroup v-model={columnsSelected.value}>
-                  {columns.filter(col => col.key !== 'selection' && col.key !== 'setup').map(col => (
-                    <ElCheckbox 
-                      key={col.key} 
-                      value={col.key!.toString()} 
-                      label={col.title} 
-                    />
-                  ))}
+                  {columns
+                    .filter(
+                      (col) => col.key !== "selection" && col.key !== "setup"
+                    )
+                    .map((col) => (
+                      <ElCheckbox
+                        key={col.key}
+                        value={col.key!.toString()}
+                        label={col.title}
+                      />
+                    ))}
                 </ElCheckboxGroup>
               </div>
             </div>
@@ -313,121 +360,131 @@ columns[columns.length - 1].headerCellRenderer = () => {
         }}
       </ElPopover>
     </div>
-  )
-}
+  );
+};
 
 // Computed
 const filteredColumns = computed(() => {
-  return columns.filter(col => columnsSelected.value.includes(col.key!.toString()))
-})
+  return columns.filter((col) =>
+    columnsSelected.value.includes(col.key!.toString())
+  );
+});
 
 const hasSelected = computed(() => {
-  return data.value?.data?.some(item => item.checked) || false
-})
+  return data.value?.data?.some((item) => item.checked) || false;
+});
 
 // Methods
 const formatDate = (timestamp: number) => {
-  return new Date(timestamp * 1000).toLocaleDateString('id-ID')
-}
+  return new Date(timestamp * 1000).toLocaleDateString("id-ID");
+};
 
 const renderStatusTag = (status: CanvassingStatus) => {
-  if (!status) return <></>
-  
+  if (!status) return <></>;
+
   switch (status) {
     case CanvassingStatus.DRAFT:
-      return <el-tag type="info">DRAFT</el-tag>
+      return <ElTag type="info">DRAFT</ElTag>;
     case CanvassingStatus.PENDING_APPROVAL:
-      return <el-tag type="warning">PENDING APPROVAL RAB</el-tag>
+      return <ElTag type="warning">PENDING APPROVAL RAB</ElTag>;
     case CanvassingStatus.PENDING_APPROVAL_RAB:
-      return <el-tag type="warning">PENDING APPROVAL CANVASSING</el-tag>
+      return <ElTag type="warning">PENDING APPROVAL CANVASSING</ElTag>;
     case CanvassingStatus.RAB:
-      return <el-tag type="success">RAB APPROVED</el-tag>
+      return <ElTag type="success">RAB</ElTag>;
     case CanvassingStatus.CANCEL:
-      return <el-tag type="danger">CANCELED</el-tag>
+      return <ElTag type="danger">CANCELED</ElTag>;
     default:
-      return <el-tag>{status}</el-tag>
+      return <ElTag>{status}</ElTag>;
   }
-}
+};
 
 const handleSelectionChange = (selection: Canvassing[]) => {
-  selectedCanvassing.value = selection
-}
+  selectedCanvassing.value = selection;
+};
 
 const handlePageChange = (page: number) => {
-  request_search.value.offset = `${page}`
-  fetchData()
-}
+  request_search.value.offset = `${page}`;
+  fetchData();
+};
 
 const handleSizeChange = (size: number) => {
-  request_search.value.limit = `${size}`
-  fetchData()
-}
+  request_search.value.limit = `${size}`;
+  fetchData();
+};
 
 const onEdit = (canvassing: Canvassing) => {
-  navigateTo(`/supply-chain-management/canvassing/edit/${canvassing.unique_id}`)
-}
+  navigateTo(
+    `/supply-chain-management/canvassing/edit/${canvassing.unique_id}`
+  );
+};
 
 const onDelete = async (uniques: string[]) => {
   try {
-    
-    
   } catch (error) {
     // User canceled or error occurred
   }
-}
+};
 
 const batchDelete = async () => {
-  const ids = data.value?.data
-    ?.filter(item => item.checked)
-    .map(item => item.unique_id!) || []
-  
+  const ids =
+    data.value?.data
+      ?.filter((item) => item.checked)
+      .map((item) => item.unique_id!) || [];
+
   if (ids.length > 0) {
-    await onDelete(ids)
+    await onDelete(ids);
   }
-}
+};
 
 const onSort = (sortBy: SortBy) => {
   request_search.value.sort = {
     column: sortBy.key.toString(),
-    order: request_search.value.sort?.order === OrderColumn.ASC ? OrderColumn.DESC : OrderColumn.ASC
-  }
-  fetchData()
-}
+    order:
+      request_search.value.sort?.order === OrderColumn.ASC
+        ? OrderColumn.DESC
+        : OrderColumn.ASC,
+  };
+  fetchData();
+};
 
 // Fetch data
 const fetchData = async () => {
-  loading.value = true
+  loading.value = true;
   try {
-    const response = await useFetchApi<ResponsePagination<Canvassing[]>>('/search', 'get-canvasing', 'post', request_search);
-    if(response.status.value == 'success'){
+    const response = await useFetchApi<ResponsePagination<Canvassing[]>>(
+      "/search",
+      "get-canvasing",
+      "post",
+      request_search
+    );
+    if (response.status.value == "success") {
       data.value = response.data.value ?? {
         currentPage: 0,
         data: [],
         success: true,
         total_data: 0,
-        total_page: 0
-      }
+        total_page: 0,
+      };
     }
   } catch (error) {
-    ElMessage.error('Gagal memuat data canvassing')
+    ElMessage.error("Gagal memuat data canvassing");
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 // Watch search query
 watchDebounced(
   request_search,
   () => {
-    fetchData()
+    fetchData();
   },
   { debounce: 500, deep: true }
-)
+);
 
 onMounted(() => {
   fetchData();
-
-})
+});
 </script>
 
 <style scoped>

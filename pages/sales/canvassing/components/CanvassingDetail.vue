@@ -84,6 +84,16 @@
               {{ canvassingData?.note ?? "" }}
             </el-descriptions-item>
           </el-descriptions>
+
+          <h5 class="font-bold text-black text-1xl mt-6">Lampiran</h5>
+          <div v-for="(file, key) in canvassingData?.files" :key="key">
+            <NuxtLink
+              class="text-blue-600 text-sm"
+              :href="`${imageUrl}/${file.image_path}/${file.filename}`"
+              target="_blank"
+              >{{ file.filename_original }}</NuxtLink
+            >
+          </div>
         </div>
       </div>
     </el-card>
@@ -172,8 +182,8 @@
             </div>
             <div v-else>
               {{
-                row.type_item == "request"
-                  ? "Permintaan"
+                row.type_item == "original"
+                  ? "AS Requested"
                   : row.type_item == "quotation"
                   ? "Subtitution"
                   : "Equivalent"

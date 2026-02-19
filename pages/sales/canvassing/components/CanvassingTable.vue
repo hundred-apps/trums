@@ -47,6 +47,7 @@ const props = defineProps<{
   // onCancel: () => void,
   request_search: RequestSearch;
   fetchKey: string;
+  type: "RAB" | "CANASSING";
 }>();
 
 const selectedCanvassing = ref<Canvassing[]>([]);
@@ -78,14 +79,22 @@ const columns: Column<Canvassing>[] = [
     title: "Nomor Canvassing",
     dataKey: "unique_code",
     width: 300,
-    cellRenderer: ({ rowData: row }) => (
-      <NuxtLink
-        href={`/sales/quotation/${row.unique_id}`}
-        class="text-blue-500"
-      >
-        {row.unique_code}
-      </NuxtLink>
-    ),
+    cellRenderer: ({ rowData: row }) =>
+      props.type == "RAB" ? (
+        <NuxtLink
+          href={`/sales/quotation/${row.unique_id}`}
+          class="text-blue-500"
+        >
+          {row.unique_code}
+        </NuxtLink>
+      ) : (
+        <NuxtLink
+          href={`/sales/canvassing/${row.unique_id}`}
+          class="text-blue-500"
+        >
+          {row.unique_code}
+        </NuxtLink>
+      ),
   },
   {
     key: "source_document",

@@ -167,7 +167,7 @@
             >
               <el-option :label="`Subtitution`" :value="'quotation'" />
               <el-option :label="`Equivalent`" :value="'equivalent'" />
-              <el-option :label="`Original`" :value="'original'" />
+              <el-option :label="`AS Requested`" :value="'original'" />
             </el-select>
             <div v-else>Permintaan</div>
           </template>
