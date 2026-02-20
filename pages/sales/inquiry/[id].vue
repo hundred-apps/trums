@@ -25,10 +25,43 @@
           :data-interface="inquiryData!"
         />
       </el-tab-pane>
-      <el-tab-pane label="CANVASSING" name="canvassing">
+      <el-tab-pane label="CANVASSING" name="canvassing" class="h-full">
         <div v-if="loading">Loading.....</div>
-        <div v-else-if="!loading && !inquiryData.pending && inquiryData.data">
+        <div
+          v-else-if="!loading && !inquiryData.pending && inquiryData.data"
+          class="h-full"
+        >
+          <!-- Action Bar -->
+          <el-row :gutter="20" class="mb-3">
+            <el-col :span="6">
+              <el-input
+                v-model="canvassing_search.keyword"
+                size="default"
+                placeholder="Cari canvassing..."
+                clearable
+              />
+            </el-col>
+            <NuxtLink
+              class="el-button el-button--primary el-button--default"
+              href="/sales/canvassing/add"
+            >
+              Buat Canvassing Baru
+            </NuxtLink>
+            <el-button
+              size="default"
+              :loading-icon="Eleme"
+              :loading="loading"
+              @click="
+                () => {
+                  canvassingRefreshTrigger++;
+                }
+              "
+            >
+              Muat Ulang
+            </el-button>
+          </el-row>
           <CanvassingTable
+            :refresh-trigger="canvassingRefreshTrigger"
             :request_search="canvassing_search"
             :fetch-key="'get-canvassing-inquiry'"
             :type="'CANASSING'"
@@ -53,7 +86,36 @@
       <el-tab-pane label="RAB" name="rab">
         <div v-if="loading">Loading.....</div>
         <div v-else-if="!loading && !inquiryData.pending && inquiryData.data">
+          <el-row :gutter="20" class="mb-3">
+            <el-col :span="6">
+              <el-input
+                v-model="canvassing_search.keyword"
+                size="default"
+                placeholder="Cari canvassing..."
+                clearable
+              />
+            </el-col>
+            <NuxtLink
+              class="el-button el-button--primary el-button--default"
+              href="/sales/quotation/add"
+            >
+              Buat Canvassing Baru
+            </NuxtLink>
+            <el-button
+              size="default"
+              :loading-icon="Eleme"
+              :loading="loading"
+              @click="
+                () => {
+                  rabRefreshTrigger++;
+                }
+              "
+            >
+              Muat Ulang
+            </el-button>
+          </el-row>
           <CanvassingTable
+            :refresh-trigger="rabRefreshTrigger"
             :request_search="rab_search"
             :fetch-key="'get-rab-inquiry'"
             :type="'RAB'"
@@ -115,6 +177,7 @@
 </template>
 
 <script lang="tsx" setup>
+import { Eleme } from "@element-plus/icons-vue";
 import { NuxtLink } from "#components";
 import { ElLoading } from "element-plus";
 import { ref, onMounted } from "vue";
@@ -179,6 +242,7 @@ const canvassing = ref<DataInterface<Canvassing>>({
   pending: true,
 });
 
+const canvassingRefreshTrigger = ref<number>(0);
 const canvassing_search = ref<RequestSearch>({
   column: [],
   keyword: "",
@@ -188,6 +252,7 @@ const canvassing_search = ref<RequestSearch>({
   sort: null,
 });
 
+const rabRefreshTrigger = ref<number>(0);
 const rab_search = ref<RequestSearch>({
   column: [],
   keyword: "",

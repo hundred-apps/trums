@@ -37,6 +37,7 @@ const column_selected = ref<string[]>([
   "date",
   "request_by",
   "request_to",
+  "status",
   "operation",
   "setup",
 ]);
@@ -149,7 +150,7 @@ const availableColumn: Column<Inquiry>[] = [
     title: "Ditujukan Untuk",
     dataKey: "request_to",
     key: "request_to",
-    width: 200,
+    width: 300,
     cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
       <p>{rowData.request_to?.name ?? "Tidak Ada"}</p>
     ),

@@ -47,6 +47,7 @@ export type ItemRequest = {
   version?: number;
   item_request_trail: ItemRequestTrail[];
   stok?: number;
+  total_canvassing_vendor?: number;
 };
 
 export type ItemRequestTrail = {

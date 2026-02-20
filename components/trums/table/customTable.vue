@@ -1,5 +1,5 @@
 <template>
-  <el-auto-resizer>
+  <el-auto-resizer style="height: 100vh">
     <template #default="{ height, width }">
       <el-table-v2
         :columns="columns"
@@ -129,5 +129,9 @@ onMounted(() => {
 }  */
 .example-showcase .el-table-v2__overlay {
   z-index: 9;
+}
+
+.table-bordered {
+  border: 1px solid var(--el-border-color);
 }
 </style>

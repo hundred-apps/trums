@@ -48,6 +48,7 @@ const props = defineProps<{
   request_search: RequestSearch;
   fetchKey: string;
   type: "RAB" | "CANASSING";
+  refreshTrigger: number;
 }>();
 
 const selectedCanvassing = ref<Canvassing[]>([]);
@@ -355,6 +356,13 @@ watch(
   request_search.value,
   () => {
     console.log("watch");
+    refreshNuxtData(props.fetchKey);
+  },
+  { immediate: true }
+);
+watch(
+  () => props.refreshTrigger,
+  () => {
     refreshNuxtData(props.fetchKey);
   },
   { immediate: true }

@@ -73,12 +73,12 @@
       <el-button
         size="default"
         :loading-icon="Eleme"
-        :loading="loading"
-        @click="fetchData"
+        :loading="pending"
+        @click="onRefresh"
       >
         Muat Ulang
       </el-button>
-      <el-button type="danger" :disabled="!hasSelected" @click="batchDelete">
+      <el-button type="danger" :disabled="!hasSelected" @click="bulkDelete">
         Hapus yang Dipilih
       </el-button>
     </el-row>
@@ -163,13 +163,12 @@ const request_search = ref<RequestSearch>({
 });
 
 // Data state
-const data = ref<ResponsePagination<Canvassing[]>>({
-  currentPage: 1,
-  data: [],
-  success: true,
-  total_data: 0,
-  total_page: 1,
-});
+const { data, pending } = await useFetchApi<ResponsePagination<Canvassing[]>>(
+  "/search",
+  "get-canvasing",
+  "post",
+  request_search
+);
 const selectedCanvassing = ref<Canvassing[]>([]);
 const loading = ref<boolean>(false);
 const columnsSelected = ref<string[]>([
@@ -404,12 +403,12 @@ const handleSelectionChange = (selection: Canvassing[]) => {
 
 const handlePageChange = (page: number) => {
   request_search.value.offset = `${page}`;
-  fetchData();
+  refreshNuxtData("get-canvassing");
 };
 
 const handleSizeChange = (size: number) => {
   request_search.value.limit = `${size}`;
-  fetchData();
+  refreshNuxtData("get-canvassing");
 };
 
 const onEdit = (canvassing: Canvassing) => {
@@ -425,14 +424,45 @@ const onDelete = async (uniques: string[]) => {
   }
 };
 
-const batchDelete = async () => {
-  const ids =
-    data.value?.data
-      ?.filter((item) => item.checked)
-      .map((item) => item.unique_id!) || [];
+const onRefresh = () => refreshNuxtData("get-canvassing");
 
-  if (ids.length > 0) {
-    await onDelete(ids);
+const bulkDelete = async () => {
+  try {
+    await ElMessageBox.confirm("Yakin ingin menghapus data RAB?", "Warning", {
+      confirmButtonText: "Hapus",
+      cancelButtonText: "Batal",
+      type: "warning",
+    });
+
+    const ids =
+      (data.value?.data ?? [])
+        .filter((item) => item.checked)
+        .map((item) => item.unique_id!) || [];
+
+    // Jika sampai sini, user klik Delete
+    await submitToDelete(ids);
+  } catch (error) {
+    // User klik Cancel atau close dialog
+    console.log("Delete cancelled");
+  }
+};
+
+const submitToDelete = async (ids: string[]) => {
+  loading.value = false;
+  try {
+    const response = await useFetchApi<ResponsePagination<string[]>>(
+      `/canvassing-delete`,
+      "canvassing-delete",
+      "post",
+      ids
+    );
+    if (response.status.value == "success") {
+      await refreshNuxtData("get-canvassing");
+    }
+  } catch (error: any) {
+    ElMessage.error(`${error.response?.data?.message}`);
+  } finally {
+    loading.value = false;
   }
 };
 
@@ -444,46 +474,20 @@ const onSort = (sortBy: SortBy) => {
         ? OrderColumn.DESC
         : OrderColumn.ASC,
   };
-  fetchData();
-};
-
-// Fetch data
-const fetchData = async () => {
-  loading.value = true;
-  try {
-    const response = await useFetchApi<ResponsePagination<Canvassing[]>>(
-      "/search",
-      "get-canvasing",
-      "post",
-      request_search
-    );
-    if (response.status.value == "success") {
-      data.value = response.data.value ?? {
-        currentPage: 0,
-        data: [],
-        success: true,
-        total_data: 0,
-        total_page: 0,
-      };
-    }
-  } catch (error) {
-    ElMessage.error("Gagal memuat data canvassing");
-  } finally {
-    loading.value = false;
-  }
+  refreshNuxtData("get-canvassing");
 };
 
 // Watch search query
 watchDebounced(
   request_search,
   () => {
-    fetchData();
+    refreshNuxtData("get-canvassing");
   },
   { debounce: 500, deep: true }
 );
 
 onMounted(() => {
-  fetchData();
+  refreshNuxtData("get-canvassing");
 });
 </script>
 

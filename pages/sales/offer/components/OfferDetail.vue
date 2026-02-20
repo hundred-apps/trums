@@ -97,12 +97,12 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column prop="name" label="item" width="300">
+      <el-table-column prop="name" label="item">
         <template #default="scope">
           {{ scope.row.catalogue?.name ?? "-" }}
         </template>
       </el-table-column>
-      <el-table-column prop="catalogue.sn" label="SN/PN" />
+      <el-table-column prop="catalogue.sn" label="SN/PN" width="300" />
       <el-table-column prop="quantity" label="QTY" width="70" />
       <el-table-column prop="unit_name" label="UOM" width="100" />
       <el-table-column

@@ -200,7 +200,7 @@
               </el-autocomplete>
             </template>
           </el-table-column>
-          <el-table-column prop="sn" label="Serial Number" width="150" />
+          <el-table-column prop="sn" label="Serial Number" width="300" />
           <el-table-column prop="quantity" label="QTY" class="mb-0" width="200">
             <template #default="scope">
               <el-input-number v-model="scope.row.quantity" />
@@ -1957,12 +1957,20 @@ const fetchInitialData = async () => {
       ruleForm.created_by = pricetagEdit.created_by;
       ruleForm.updated_at = pricetagEdit.updated_at;
       ruleForm.version = pricetagEdit.version;
-      ruleForm.pricetag_item = pricetagEdit.pricetag_item.map((value) => ({
-        ...value,
-        item_name: value.catalogue?.name ?? "",
-        sn: value.catalogue?.sn ?? "N/A",
-        is_new: false,
-      }));
+
+      ruleForm.pricetag_item = pricetagEdit.pricetag_item.map((value) => {
+        const parsed = parseCurrencyID(`${value.price}`);
+        return {
+          ...value,
+          price: parsed,
+          displayPrice: formatCurrencyID(parsed),
+          item_name: value.catalogue?.name ?? "",
+          sn: value.catalogue?.sn ?? "N/A",
+          is_new: false,
+        };
+      });
+
+      console.log("pricetag item", ruleForm.pricetag_item);
       ruleForm.pricetag_condition = pricetagEdit.pricetag_condition;
       ruleForm.location = pricetagEdit.location;
       ruleForm.pic_id = pricetagEdit.pic_id;

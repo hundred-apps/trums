@@ -98,7 +98,7 @@
         <h1 class="mb-4">Item Permintaan</h1>
         <el-table
           :data="inquiryData?.item_request ?? []"
-          style="width: 100%"
+          style="width: 100%; height: 100%"
           border
         >
           <el-table-column prop="image" label="Image" width="75">

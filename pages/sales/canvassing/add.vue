@@ -201,7 +201,7 @@
                       v-if="item.isNew"
                       class="flex items-center text-blue-500"
                     >
-                      <el-icon><Plus /></el-icon>
+                      <el-icon><Search /></el-icon>
                       <span class="ml-2">Tambahkan "{{ item.value }}"</span>
                     </div>
                     <div v-else class="flex items-center gap-2">
@@ -240,7 +240,10 @@
                     </div>
                   </template>
                   <template #prepend>
-                    <el-button @click="() => showPricetag(row)" :icon="Plus" />
+                    <el-button
+                      @click="() => showPricetag(row)"
+                      :icon="Search"
+                    />
                   </template>
                 </el-autocomplete>
                 <el-autocomplete
@@ -258,7 +261,7 @@
                       v-if="item.isNew"
                       class="flex items-center text-blue-500"
                     >
-                      <el-icon><Plus /></el-icon>
+                      <el-icon><Search /></el-icon>
                       <span class="ml-2">Tambahkan "{{ item.value }}"</span>
                     </div>
                     <div v-else>
@@ -306,7 +309,6 @@
               {{ row.quantity }}
             </div>
             <el-input-number
-              :disabled="true"
               v-else
               v-model="row.quantity"
               :min="1"
@@ -634,7 +636,11 @@ const hasInquirySelected = computed(() => !!ruleForm.inquiry);
 
 // Search Parameters
 const request_search_inquiry = ref<RequestSearch>({
-  column: [],
+  column: [
+    {
+      type: ["sales_inquiry"],
+    },
+  ],
   keyword: "",
   limit: "10",
   offset: "1",
@@ -2297,7 +2303,7 @@ const addChildItem = (
     parent_catalogue_id: item_canvassing.value[parentIndex].catalogue_id,
     catalogue_name: item.catalogue?.name ?? "",
     sn: item.catalogue?.sn ?? "",
-    quantity: item_canvassing.value[parentIndex].quantity,
+    quantity: 1,
     unit_price: item.price,
     total_price: 0,
     status: CanvassingVendorStatus.SUBMITTED,
@@ -2719,55 +2725,6 @@ const onHandleSelectItemAutocompleteItem = async (
 ) => {
   if (item.isNew) {
     visibleModalPricetagNewItem.value = true;
-    // const catalogueInsert: Catalogue = {
-    //   name: item.value,
-    //   id: null,
-    //   unique_id: null,
-    //   unique_code: null,
-    //   brand_id: null,
-    //   brand_name: null,
-    //   year: null,
-    //   sn: null,
-    //   description: null,
-    //   berat: null,
-    //   volume: null,
-    //   panjang: null,
-    //   lebar: null,
-    //   tinggi: null,
-    //   is_asset: null,
-    //   tmp_asset: null,
-    //   version: null,
-    //   type: 'item',
-    //   created_at: null,
-    //   created_by: null,
-    //   updated_at: null,
-    //   file_catalogues: []
-    // }
-    // const selected: Catalogue|null = await create_catalogue(catalogueInsert) ?? null;
-
-    // if(selected != null){
-
-    //   if(row.type === 'parent'){
-    //     item_canvassing.value.forEach((item) => {
-    //       if(item.index == itemIndex){
-    //         item.catalogue_id = selected.unique_id ?? '';
-    //         item.catalogue_name = selected.name ?? '';
-    //       }
-    //     })
-    //   }else{
-    //     item_canvassing.value.forEach((item) => {
-    //       item.children.forEach((child) => {
-    //         if(child.index == itemIndex){
-    //           child.catalogue_id = selected.unique_id ?? '';
-    //           child.catalogue_name = selected.name ?? '';
-    //         }
-    //       })
-    //     })
-    //   }
-
-    // }else{
-    //   ElMessage.error(`Ops, Something wrong!!`);
-    // }
   } else {
     const selected: Pricetag_item = item as Pricetag_item;
     if (row.type === "parent") {
@@ -2793,7 +2750,7 @@ const onHandleSelectItemAutocompleteItem = async (
             child.unit_price = selected.price ?? 0;
             child.vendor_id = selected.pricetag?.owner?.unique_id ?? "";
             child.vendor_name = selected.pricetag?.owner?.name ?? "";
-            child.quantity = item.quantity;
+            child.quantity = 1;
             child.pricetag_item_id = selected.unique_id ?? "";
             child.pricetag_item_version = selected.version ?? 0;
           }

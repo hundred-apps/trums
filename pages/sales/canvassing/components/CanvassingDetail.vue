@@ -104,26 +104,20 @@
         <div class="flex gap-3 my-3">
           <div class="flex-1">
             <el-descriptions :column="1" size="large" border>
-              <el-descriptions-item label="Prioritas Permintaan">
-                {{ canvassingData?.source?.priority?.toUpperCase() }}
+              <el-descriptions-item label="Nomor RFQ">
+                <NuxtLink
+                  class="text-blue-600"
+                  :href="`/sales/inquiry/${canvassingData?.source?.unique_id}`"
+                  >{{ canvassingData?.source?.unique_code }}</NuxtLink
+                >
               </el-descriptions-item>
               <el-descriptions-item label="Tanggal Permintaan">
                 {{ formatLocalDate(canvassingData?.source?.date!) }}
-              </el-descriptions-item>
-              <el-descriptions-item label="Permintaan">
-                {{
-                  canvassingData?.source?.type === "sales_inquiry"
-                    ? "Sales Inquiry"
-                    : "Internal"
-                }}
               </el-descriptions-item>
             </el-descriptions>
           </div>
           <div class="flex-1">
             <el-descriptions :column="1" size="large" border>
-              <el-descriptions-item label="Lokasi">
-                {{ canvassingData?.source.location?.name ?? "Tidak Ada" }}
-              </el-descriptions-item>
               <el-descriptions-item label="Diminta Oleh">
                 {{ canvassingData?.source?.request_to?.name ?? "-" }}
               </el-descriptions-item>
@@ -133,6 +127,15 @@
             </el-descriptions>
           </div>
         </div>
+        <el-descriptions title="Alamat">
+          <el-descriptions-item label="" v-if="canvassingData?.source?.address">
+            {{
+              `(${canvassingData!.source?.address?.address_name ?? "-"}) ${
+                canvassingData!.source?.address?.street
+              } ,` + generateAddressViewName(canvassingData!.source!.address!)
+            }}
+          </el-descriptions-item>
+        </el-descriptions>
         <el-descriptions title="Note">
           <el-descriptions-item label="">{{
             canvassingData?.source?.description
@@ -175,7 +178,7 @@
             />
           </template>
         </el-table-column>
-        <el-table-column prop="type_item" label="Item Type" width="100">
+        <el-table-column prop="type_item" label="Item Type" width="150">
           <template #default="{ row }">
             <div v-if="row.type === 'parent'">
               {{ row.type_item == "request" ? "Permintaan" : "Equivalent" }}
@@ -200,7 +203,6 @@
             }}
           </template>
         </el-table-column>
-
         <el-table-column prop="sn" label="SN/PN" width="150">
           <template #default="{ row }">
             {{ row.sn ?? "N/A" }}
@@ -328,6 +330,7 @@ import type { AppFile } from "~/types/file";
 import { currency, formatLocalDate, getFirstFileUrl } from "#imports";
 import type { Permission } from "~/types/menu";
 import ItemImageUpload from "../../inquiry/components/ItemImageUpload.vue";
+import { generateAddressView, generateAddressViewName } from "#imports";
 
 const config = useRuntimeConfig();
 const imageUrl = config.public.baseImageURL;

@@ -447,7 +447,13 @@ const querySearchAddress = (queryString: string, cb: (arg: any) => void) => {
       const resultApi: AddressType[] = response.data.value?.data!;
 
       if (resultApi.length > 0) {
-        cb(resultApi.map(generateResultSearchAddress));
+        cb(
+          resultApi.map((value) => {
+            const result = generateResultSearchAddress(value);
+            console.log("result", result);
+            return result;
+          })
+        );
       } else {
         cb([
           {
@@ -462,13 +468,14 @@ const querySearchAddress = (queryString: string, cb: (arg: any) => void) => {
   });
 };
 const generateResultSearchAddress = (address: AddressType | null) => {
+  console.log("address", address);
   if (address) {
     const name = `(${address.contact_name}) - ${address.village}, ${address.city}, ${address.regency}, ${address.province}, ${address.codepos}`;
     const street = `${address.street}`;
     const address_id = address.unique_id;
     const address_version = address.version;
     return {
-      value: name,
+      value: generateAddressView(address),
       name: address.address_name,
       street: street,
       address_id: address_id,

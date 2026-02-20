@@ -10,17 +10,28 @@ const activeNameTab = ref("RFQ");
 </script>
 <template>
   <TrumsWrapper>
-    <el-tabs
-      v-model="activeNameTab"
-      class="demo-tabs mt-5 h-full"
-      type="border-card"
-    >
-      <el-tab-pane label="RFQ" name="RFQ" class="h-full">
-        <inquiryTable />
+    <el-tabs v-model="activeNameTab" class="demo-tabs mt-5" type="border-card">
+      <el-tabs
+        v-model="activeNameTab"
+        type="card"
+        class="demo-tabs"
+        @tab-click="() => {}"
+      >
+        <el-tab-pane label="RFQ" name="RFQ">
+          <inquiryTable />
+        </el-tab-pane>
+        <el-tab-pane label="ITEM" name="RFQ ITEM">
+          <inquiryItemTable />
+        </el-tab-pane>
+      </el-tabs>
+      <!-- <el-tab-pane label="RFQ" name="RFQ">
+        <div style="height: 100%">
+          <inquiryTable />
+        </div>
       </el-tab-pane>
       <el-tab-pane label="RFQ ITEM" name="ITEM">
         <inquiryItemTable />
-      </el-tab-pane>
+      </el-tab-pane> -->
     </el-tabs>
   </TrumsWrapper>
 </template>

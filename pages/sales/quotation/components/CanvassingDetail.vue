@@ -123,14 +123,6 @@
             <el-descriptions-item label="Description">
               {{ canvassingData?.description || "-" }}
             </el-descriptions-item>
-            <el-descriptions-item label="Status">
-              <div v-if="canvassingData">
-                <el-tag :type="getStatusTagType(canvassingData.status)">
-                  {{ formatStatus(canvassingData.status) }}
-                </el-tag>
-              </div>
-              <span v-else>-</span>
-            </el-descriptions-item>
           </el-descriptions>
         </div>
         <div class="flex-1">
@@ -141,20 +133,16 @@
             >
               {{ canvassingData?.source?.request_to?.name ?? "-" }}
             </el-descriptions-item>
+            <el-descriptions-item label="Status">
+              <div v-if="canvassingData">
+                <el-tag :type="getStatusTagType(canvassingData.status)">
+                  {{ formatStatus(canvassingData.status) }}
+                </el-tag>
+              </div>
+              <span v-else>-</span>
+            </el-descriptions-item>
             <el-descriptions-item v-if="canvassingData?.source" label="PIC">
               {{ canvassingData?.source?.request_by?.name ?? "-" }}
-            </el-descriptions-item>
-            <el-descriptions-item label="Pembayaran">
-              {{ paymentTermView(canvassingData?.payment_term) || "-" }}
-              {{
-                canvassingData?.payment_term == PaymentTerm.TEMPO
-                  ? `${canvassingData?.tempo_value} Hari`
-                  : ""
-              }}
-            </el-descriptions-item>
-
-            <el-descriptions-item label="Catatan">
-              {{ canvassingData?.note ?? "" }}
             </el-descriptions-item>
           </el-descriptions>
         </div>
@@ -954,17 +942,61 @@
           prop="max"
           align="right"
           width="150"
-        />
-        <el-table-column width="100" label="" prop="beli" />
-        <el-table-column width="100" label="" prop="jual" />
+        >
+          <template #default="scope">
+            <div
+              v-if="scope.$index <= 1"
+              :class="`${
+                scope.$index == 0 ? 'text-green-600' : 'text-red-600'
+              }`"
+            >
+              {{ scope.row.max }}
+            </div>
+            <div v-else class="">
+              {{ scope.row.max }}
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column width="100" label="" prop="beli">
+          <template #default="{ row }">
+            <div class="text-red-600">{{ row.beli }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column width="100" label="" prop="jual">
+          <template #default="{ row }">
+            <div class="text-green-600">{{ row.jual }}</div>
+          </template>
+        </el-table-column>
         <el-table-column
           label="Profit Minimum"
           prop="min"
           align="right"
           width="150"
-        />
-        <el-table-column width="100" label="" prop="beliMin" />
-        <el-table-column width="100" label="" prop="jualMin" />
+        >
+          <template #default="scope">
+            <div
+              v-if="scope.$index <= 1"
+              :class="`${
+                scope.$index == 0 ? 'text-green-600' : 'text-red-600'
+              }`"
+            >
+              {{ scope.row.min }}
+            </div>
+            <div v-else class="">
+              {{ scope.row.min }}
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column width="100" label="" prop="beliMin">
+          <template #default="{ row }">
+            <div class="text-red-600">{{ row.beliMin }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column width="100" label="" prop="jualMin">
+          <template #default="{ row }">
+            <div class="text-green-600">{{ row.jualMin }}</div>
+          </template>
+        </el-table-column>
         <el-table-column
           v-if="
             canvassingData?.status == CanvassingStatus.DONE ||
@@ -974,7 +1006,21 @@
           prop="selected"
           align="right"
           width="150"
-        />
+        >
+          <template #default="scope">
+            <div
+              v-if="scope.$index <= 1"
+              :class="`${
+                scope.$index == 0 ? 'text-green-600' : 'text-red-600'
+              }`"
+            >
+              {{ scope.row.selected }}
+            </div>
+            <div v-else class="">
+              {{ scope.row.selected }}
+            </div>
+          </template></el-table-column
+        >
         <el-table-column
           v-if="
             canvassingData?.status == CanvassingStatus.DONE ||
@@ -983,7 +1029,11 @@
           width="100"
           label=""
           prop="selectedBeli"
-        />
+        >
+          <template #default="{ row }">
+            <div class="text-red-600">{{ row.selectedBeli }}</div>
+          </template>
+        </el-table-column>
         <el-table-column
           v-if="
             canvassingData?.status == CanvassingStatus.DONE ||
@@ -992,7 +1042,11 @@
           width="100"
           label=""
           prop="selectedJual"
-        />
+        >
+          <template #default="{ row }">
+            <div class="text-green-600">{{ row.selectedJual }}</div>
+          </template>
+        </el-table-column>
       </el-table>
     </el-card>
 
