@@ -85,6 +85,7 @@
 
     <!-- Table -->
     <CanvassingTable
+      :refresh-trigger="refreshTrigger"
       :request_search="request_search"
       :fetchKey="'get-canvassing'"
       :type="'CANASSING'"
@@ -146,6 +147,8 @@ const request_search = ref<RequestSearch>({
   },
 });
 
+const refreshTrigger = ref<number>(0);
+
 // Data state
 const data = await useFetchApi<ResponsePagination<Canvassing[]>>(
   "/search",
@@ -154,7 +157,9 @@ const data = await useFetchApi<ResponsePagination<Canvassing[]>>(
   request_search
 );
 const selectedCanvassing = ref<Canvassing[]>([]);
+
 const loading = ref<boolean>(false);
+
 const columnsSelected = ref<string[]>([
   "selection",
   "unique_code",
@@ -413,6 +418,7 @@ const handleSubmitDelete = async (values: string[]) => {
       values
     );
     if (response.status.value == "success") {
+      refreshTrigger.value++;
       await refreshNuxtData("get-canvasing");
     }
   } catch (error: any) {

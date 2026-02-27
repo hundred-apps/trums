@@ -23,50 +23,110 @@
           status-icon
           :disabled="loading"
         >
-          <el-form-item label="Nomor Penawaran" prop="code">
+          <el-form-item
+            prop="owner_name"
+            v-if="ruleForm.type == 'in'"
+            label="Vendor"
+          >
+            <div class="flex items-center gap-3">
+              <el-autocomplete
+                v-model="ruleForm.owner_name"
+                :fetch-suggestions="querySearchVendors"
+                placeholder="Cari vendor"
+                @select="(item) => onHandleSelectVendor(item, 'vendor')"
+                style="width: 100%"
+              >
+                <template #default="{ item }">
+                  <div
+                    v-if="item.isNew"
+                    class="flex items-center text-blue-500"
+                  >
+                    <el-icon><Plus /></el-icon>
+                    <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                  </div>
+                  <div v-else>
+                    {{ item.value }}
+                  </div>
+                </template>
+              </el-autocomplete>
+              <el-button
+                type="primary"
+                v-if="ruleForm.owner_id"
+                @click="() => openModalContact('vendor')"
+                :icon="ElUserIcon"
+              />
+            </div>
+          </el-form-item>
+          <el-form-item label="Subject" prop="subject">
             <el-input
-              v-model="ruleForm.code"
-              placeholder="Masukan Nomor Penawaran"
+              v-model="ruleForm.subject"
+              placeholder="Masukan Subject"
             />
           </el-form-item>
-
-          <el-form-item prop="owner_name" label="Vendor">
-            <el-autocomplete
-              v-model="ruleForm.owner_name"
-              :fetch-suggestions="querySearchVendors"
-              placeholder="Cari vendor"
-              @select="(item) => onHandleSelectVendor(item, 'vendor')"
-              style="width: 100%"
-            >
-              <template #default="{ item }">
-                <div v-if="item.isNew" class="flex items-center text-blue-500">
-                  <el-icon><Plus /></el-icon>
-                  <span class="ml-2">Tambahkan "{{ item.value }}"</span>
-                </div>
-                <div v-else>
-                  {{ item.value }}
-                </div>
-              </template>
-            </el-autocomplete>
+          <el-form-item
+            prop="to_name"
+            label="Kepada"
+            v-if="ruleForm.type == 'out'"
+          >
+            <div class="flex items-center gap-3">
+              <el-autocomplete
+                v-model="ruleForm.to_name"
+                :fetch-suggestions="querySearchVendors"
+                placeholder="Cari Kontak"
+                @select="(item) => onHandleSelectVendor(item, 'to')"
+                style="width: 100%"
+              >
+                <template #default="{ item }">
+                  <div
+                    v-if="item.isNew"
+                    class="flex items-center text-blue-500"
+                  >
+                    <el-icon><Plus /></el-icon>
+                    <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                  </div>
+                  <div v-else>
+                    {{ item.value }}
+                  </div>
+                </template>
+              </el-autocomplete>
+              <el-button
+                type="primary"
+                v-if="ruleForm.to_id"
+                @click="() => openModalContact('customer')"
+                :icon="ElUserIcon"
+              />
+            </div>
           </el-form-item>
-          <el-form-item prop="to_name" label="Kepada">
-            <el-autocomplete
-              v-model="ruleForm.to_name"
-              :fetch-suggestions="querySearchVendors"
-              placeholder="Cari Kontak"
-              @select="(item) => onHandleSelectVendor(item, 'to')"
-              style="width: 100%"
-            >
-              <template #default="{ item }">
-                <div v-if="item.isNew" class="flex items-center text-blue-500">
-                  <el-icon><Plus /></el-icon>
-                  <span class="ml-2">Tambahkan "{{ item.value }}"</span>
-                </div>
-                <div v-else>
-                  {{ item.value }}
-                </div>
-              </template>
-            </el-autocomplete>
+
+          <el-form-item prop="pic_name" label="PIC">
+            <div class="flex items-center gap-3">
+              <el-autocomplete
+                v-model="ruleForm.pic_name"
+                :fetch-suggestions="querySearchPIC"
+                placeholder="Cari Kontak"
+                @select="(item) => onHandleSelectVendor(item, 'pic')"
+                style="width: 100%"
+              >
+                <template #default="{ item }">
+                  <div
+                    v-if="item.isNew"
+                    class="flex items-center text-blue-500"
+                  >
+                    <el-icon><Plus /></el-icon>
+                    <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                  </div>
+                  <div v-else>
+                    {{ item.value }}
+                  </div>
+                </template>
+              </el-autocomplete>
+              <el-button
+                type="primary"
+                v-if="ruleForm.pic_id"
+                @click="() => openModalContact('pic')"
+                :icon="ElUserIcon"
+              />
+            </div>
           </el-form-item>
 
           <el-form-item prop="start_date" label="Tanggal Mulai Berlaku">
@@ -103,14 +163,71 @@
       </el-card>
 
       <el-card class="mb-3" v-if="!loading" shadow="never">
-        <el-row :gutter="20" class="mb-3">
-          <el-col :span="6"
-            ><el-input
-              v-model="requestSearchInventory.keyword"
-              size="large"
-              placeholder="Type to search"
-          /></el-col>
-        </el-row>
+        <el-form
+          :label-position="'top'"
+          label-width="auto"
+          :model="tmpEditBulk"
+        >
+          <div
+            class="flex mb-3 p-4 gap-3 border items-end border-gray-200 rounded-lg w-full bg-gray-50"
+          >
+            <el-form-item class="mb-0 form-bulk" label="Harga">
+              <el-input
+                v-model="tmpEditBulk.priceview"
+                inputmode="decimal"
+                placeholder="Harga"
+                @input="
+                  (val) => {
+                    const parsed = parseCurrencyID(val);
+                    tmpEditBulk.price = parsed;
+                    tmpEditBulk.priceview = formatCurrencyID(parsed);
+                  }
+                "
+                @blur="
+                  () => {
+                    tmpEditBulk.priceview = formatCurrencyID(tmpEditBulk.price);
+                  }
+                "
+              />
+            </el-form-item>
+            <el-form-item class="mb-0 form-bulk" label="QTY">
+              <el-input-number
+                class="w-full"
+                v-model="tmpEditBulk.qty"
+                :min="1"
+              />
+            </el-form-item>
+            <el-form-item class="mb-0 form-bulk" label="Unit">
+              <el-autocomplete
+                :fetch-suggestions="querySearchUnit"
+                v-model="tmpEditBulk.unit_name"
+                placeholder="Input Units"
+                @select="(item: Record<string, any>) => {
+  const unit = item as Unit;
+  tmpEditBulk.unit_id = unit.unique_id;
+  tmpEditBulk.unit_name = unit.name;
+  tmpEditBulk.unit_version = unit.version;
+                  }"
+              />
+            </el-form-item>
+            <el-button
+              type="primary"
+              size="default"
+              @click="applyBulkEdit"
+              :disabled="!hasBulkInput"
+            >
+              Terapkan Semua
+            </el-button>
+            <el-button
+              type="danger"
+              size="default"
+              @click="resetBulkEdit"
+              plain
+            >
+              Reset All
+            </el-button>
+          </div>
+        </el-form>
 
         <el-table :data="ruleForm.pricetag_item">
           <el-table-column prop="fileUploads" label="image" width="75">
@@ -140,28 +257,43 @@
                     <el-icon><Plus /></el-icon>
                     <span class="ml-2">Tambahkan "{{ item.value }}"</span>
                   </div>
-                  <div v-else>
-                    <p style="line-height: 15px" class="font-bold">
-                      {{ item.value }}
-                    </p>
-                    <p v-if="item.type === 'inventory'">
-                      PN/SN: {{ item.sn_number ?? "Tidak Ada" }} | Lokasi:
-                      {{ item.location_name ?? "Tidak Ada" }} | Available Stok:
-                      {{ item.available }}
-                    </p>
-                    <p v-if="item.type === 'catalogue'">
-                      PN/SN: {{ item.sn_number ?? "Tidak Ada" }}
-                    </p>
+                  <div v-else class="flex items-center gap-2">
+                    <!-- Thumbnail file pertama -->
+                    <div class="flex-shrink-0 mt-1">
+                      <div
+                        v-if="item.files && item.files.length > 0"
+                        class="w-10 h-10 rounded overflow-hidden border"
+                      >
+                        <img
+                          :src="getFirstFileUrl(item.files)"
+                          :alt="item.catalogue_name"
+                          class="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div
+                        v-else
+                        class="w-10 h-10 rounded border flex items-center justify-center text-gray-400"
+                      >
+                        <el-icon><Picture /></el-icon>
+                      </div>
+                    </div>
+
+                    <!-- Informasi produk -->
+                    <div class="flex-1 min-w-0">
+                      <p style="line-height: 15px" class="font-bold truncate">
+                        {{ item.catalogue_name || item.value }}
+                      </p>
+                      <p class="text-sm text-gray-500 truncate">
+                        PN/SN: {{ item.sn_number || "Tidak Ada" }} | Brand:
+                        {{ item.brand_name || "N/A" }}
+                      </p>
+                    </div>
                   </div>
                 </template>
               </el-autocomplete>
             </template>
           </el-table-column>
-          <el-table-column prop="sn" label="Serial Number" width="150">
-            <template #default="scope">
-              <el-input v-model="scope.row.sn" />
-            </template>
-          </el-table-column>
+          <el-table-column prop="sn" label="Serial Number" width="300" />
           <el-table-column prop="quantity" label="QTY" class="mb-0" width="200">
             <template #default="scope">
               <el-input-number v-model="scope.row.quantity" />
@@ -179,7 +311,7 @@
           </el-table-column>
           <el-table-column
             prop="selling_price"
-            label="Harga Jual"
+            label="Harga"
             class="mb-0"
             width="150"
           >
@@ -190,7 +322,25 @@
                 class="mb-0"
                 style="margin-bottom: 0px !important"
               >
-                <el-input v-model="scope.row.price" class="mb-0" />
+                <el-input
+                  v-model="scope.row.displayPrice"
+                  class="mb-0"
+                  inputmode="decimal"
+                  @input="
+                    (val) => {
+                      const parsed = parseCurrencyID(val);
+                      scope.row.price = parsed;
+                      scope.row.displayPrice = formatCurrencyID(parsed);
+                    }
+                  "
+                  @blur="
+                    () => {
+                      scope.row.displayPrice = formatCurrencyID(
+                        scope.row.price
+                      );
+                    }
+                  "
+                />
               </el-form-item>
             </template>
           </el-table-column>
@@ -225,6 +375,98 @@
           Tambahkan Baris Baru
         </el-button>
       </el-card>
+
+      <AdjustmentTransactionComponent
+        v-if="!loadingGetEditData"
+        :references="references"
+        @update:total="
+          (value) => {
+            console.log('update total', value);
+          }
+        "
+      />
+
+      <CustomPaymentTerm
+        v-if="
+          id === undefined && !loadingGetEditData && !canvassing_id && !loading
+        "
+        @update:term-of-payments="onUpdatePaymentTerms"
+        type="input"
+      />
+      <CustomPaymentTerm
+        v-else
+        @update:term-of-payments="onUpdatePaymentTerms"
+        :data="termOfPayments"
+        type="input"
+        v-if="!loadingGetEditData && !loading"
+      />
+
+      <el-card class="mb-3" shadow="never">
+        <template #header>
+          <div class="card-header">
+            <span>Summary</span>
+          </div>
+        </template>
+
+        <el-descriptions :column="1" border>
+          <el-descriptions-item
+            :width="100"
+            label="Total Price"
+            align="right"
+            >{{ currency(totalPrice || 0) }}</el-descriptions-item
+          >
+          <el-descriptions-item
+            :width="100"
+            align="right"
+            v-for="ref in references.filter(
+              (value) => value.adjustment?.operator == 'minus'
+            )"
+            :key="ref.adjustment_id"
+            :label="ref.adjustment?.name ?? ''"
+            >{{
+              currency(showTransactionAdjustmentValue(ref))
+            }}</el-descriptions-item
+          >
+          <el-descriptions-item :width="100" label="Subtotal" align="right">{{
+            currency(subtotal)
+          }}</el-descriptions-item>
+          <el-descriptions-item
+            :width="100"
+            align="right"
+            v-for="ref in references.filter(
+              (value) =>
+                value.adjustment?.operator == 'plus' &&
+                value.adjustment?.category == 'adjustment'
+            )"
+            :key="ref.adjustment_id"
+            :label="ref.adjustment?.name ?? ''"
+            >{{
+              currency(showTransactionAdjustmentValue(ref))
+            }}</el-descriptions-item
+          >
+          <el-descriptions-item
+            :width="100"
+            align="right"
+            v-for="ref in references.filter(
+              (value) =>
+                value.adjustment?.category == 'transform' ||
+                value.adjustment?.category == 'tax'
+            )"
+            :key="ref.adjustment_id"
+            :label="ref.adjustment?.name ?? ''"
+            >{{
+              currency(showTransactionAdjustmentValue(ref))
+            }}</el-descriptions-item
+          >
+          <el-descriptions-item
+            :width="100"
+            label="Grand Total"
+            align="right"
+            >{{ currency(grandTotal) }}</el-descriptions-item
+          >
+          <!-- <el-descriptions-item :width="100" label="Grand Total">{{ currency(grandTotal) }}</el-descriptions-item> -->
+        </el-descriptions>
+      </el-card>
     </div>
 
     <el-dialog
@@ -247,13 +489,10 @@
           @change="handleModalImagesChange"
           @remove="handleRemoveImageList"
         />
-        
+
         <!-- Preview Section -->
-        <div v-if="modalImageFiles.length > 0" class="preview-section">
-          
-          
-        </div>
-        
+        <div v-if="modalImageFiles.length > 0" class="preview-section"></div>
+
         <!-- Empty State -->
         <div v-else class="empty-state-modal">
           <el-empty description="Belum ada gambar" :image-size="100">
@@ -264,12 +503,12 @@
           </el-empty>
         </div>
       </div>
-      
+
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="cancelImageUpload">Batal</el-button>
-          <el-button 
-            type="primary" 
+          <el-button
+            type="primary"
             @click="saveItemImages"
             :disabled="modalImageFiles.length === 0"
           >
@@ -278,10 +517,56 @@
         </span>
       </template>
     </el-dialog>
+
+    <el-drawer
+      v-model="drawerCatalogue"
+      title="Detail Item"
+      :with-header="true"
+    >
+      <CatalogueAdd :catalogue_form="tmpCatalogue!" :loading="loading" />
+      <template #footer>
+        <div style="flex: auto">
+          <el-button @click="handleCancel">Batal</el-button>
+          <el-button type="primary" @click="() => handleSubmit(tmpCatalogue!)"
+            >Simpan</el-button
+          >
+        </div>
+      </template>
+    </el-drawer>
+
+    <ModalAdjustmentTransaction
+      v-model:visible="visibleModalAdjustmentTransaction"
+      @select-adjustment="handleSelectAdjustment"
+      @create-new="visibleModalNewAdjustment = true"
+      :data="adjustmentTransactions.data?.value?.data ?? []"
+      :search-params="querySearchAdjustmentTransaction"
+    />
+    <el-dialog
+      v-model="visibleModalNewAdjustment"
+      title="Buat Biaya Lain"
+      width="1000"
+    >
+      <AddAdjustment @submit="handleAdjustmentSubmit" />
+    </el-dialog>
+    <el-dialog v-model="dialogContact" title="Detail Kontak">
+      <AddContact
+        ref="formFieldsRefContact"
+        :contact-data="stateActiveTypeContat == 'customer' ? ruleForm.to! : stateActiveTypeContat == 'pic' ? ruleForm.pic! : ruleForm.owner!"
+        :loading="loading"
+        @submit="handleSubmitContact"
+        @reset="handleResetContact"
+      />
+    </el-dialog>
   </TrumsWrapper>
 </template>
 <script lang="tsx" setup>
-import { Filter, InfoFilled, Delete } from "@element-plus/icons-vue";
+import {
+  Filter,
+  InfoFilled,
+  Delete,
+  Picture,
+  User as ElUserIcon,
+} from "@element-plus/icons-vue";
 import {
   ElCheckbox,
   ElIcon,
@@ -318,132 +603,186 @@ import type { BaseResponse } from "~/types/response";
 import type { Pricelist_item } from "~/types/pricelist";
 import type { ItemSearch } from "~/types/item_search";
 import type { Pagination } from "~/types/pagination";
-import type { Canvassing } from "~/types/scm/canvasing";
+import { CanvassingVendorStatus, type Canvassing } from "~/types/scm/canvasing";
 import TrumsUploadFile from "~/components/trums/form/TrumsUploadFile.vue";
+import type { AppFile } from "~/types/file";
 import type { AddressType } from "~/types/address";
-import PhotoWallUploads from "./PhotoWallUploads.vue";
-definePageMeta({
-  middleware: ["auth", "app"],
-});
-
-
-const config = useRuntimeConfig();
-const baseImageURL = config.public.baseImageURL;
+import PhotoWallUploads from "~/components/trums/PhotoWallUploads.vue";
+import ItemImageUpload from "~/pages/sales/inquiry/components/ItemImageUpload.vue";
+import CatalogueAdd from "~/components/trums/CatalogueAdd.vue";
+import { getFirstFileUrl } from "#imports";
+import { currency, displayAmount } from "#imports";
+import {
+  ReferenceAdjustment,
+  type AdjustmentTransaction,
+  type ReferenceTransactionAdjustment,
+} from "~/types/attribute_adjustment";
+import ModalAdjustmentTransaction from "~/components/trums/ModalAdjustmentTransaction.vue";
+import AddAdjustment from "~/components/trums/AddAdjustment.vue";
+import AdjustmentTransactionComponent from "~/components/trums/AdjustmentTransactionComponent.vue";
+import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
+import AddContact from "./AddContact.vue";
+import {
+  TermOfPaymentReference,
+  type TermOfPayment,
+} from "~/types/payment_term";
 
 const props = defineProps<{
-  onSubmit: () => void;
+  onSubmit: (data: Pricetag | undefined) => void;
+  data?: Pricetag;
 }>();
 
+definePageMeta({
+  middleware: ["auth", "check-access"],
+  requiredPermission: "pricetag-create",
+});
+const loadingGetEditData = ref<boolean>(true);
 const loading = ref<boolean>(false);
+const drawerCatalogue = ref<boolean>(false);
+const visibleModalAdjustmentTransaction = ref(false);
+const visibleModalNewAdjustment = ref(false);
+
+const stateActiveTypeContat = ref<"vendor" | "customer" | "pic">("vendor");
+const dialogContact = ref<boolean>(false);
+
+const itemActive = ref<number>(-1);
 const router = useRouter();
 const api = useApi();
-
-const showImageModal = ref(false)
-const activeItemIndex = ref(-1)
-const activeItemData = ref<Pricetag_item | null>(null)
-const modalImageFiles = ref<UploadUserFile[]>([])
-const photoWallRef = ref<InstanceType<typeof PhotoWallUploads>>()
-const uploadAction = computed(() => `${config.public.apiBaseURL}/upload-item-image`)
 
 const goBack = () => router.back();
 const popoverRef = ref();
 const route = useRoute();
 const canvassing_id = computed(() => route.query.canvassing_id as string);
+const id = computed(() => route.query.id as string);
 const fileList = ref<UploadUserFile[]>([]);
 const formSize = ref<ComponentSize>("default");
 const ruleFormRef = ref<FormInstance>();
-const ruleForm = reactive<Pricetag>({
-  code: "",
-  unique_id: "",
-  name: "",
-  location_id: "",
-  start_date: Date.now(),
-  end_date: Date.now(),
-  start_date_view: "",
-  end_date_view: "",
-  owner_id: "",
-  created_at: 0,
-  created_by: "",
-  updated_at: 0,
-  version: 0,
-  type: "in",
-  note: "",
-  pricetag_item: [
-    {
-      catalogue: {
-        id: null,
-        unique_id: null,
-        unique_code: null,
-        name: "",
-
-        brand_id: null,
-        brand_name: null,
-        year: null,
-        sn: null,
-        description: null,
-        berat: null,
-        volume: null,
-        length: null,
-        width: null,
-        height: null,
-        is_asset: null,
-        tmp_asset: null,
-        version: null,
-        type: "",
-        created_at: null,
-        created_by: null,
-        updated_at: null,
-        file_catalogues: [],
-      },
-      unique_id: null,
-      tag_id: null,
-      catalogue_id: "",
-      inventory_id: "",
-      inventory: null,
-      price: 0,
-      is_new: true,
-      unit_id: "",
-      unit_name: "",
-      unit_version: 0,
-      checked: false,
-      quantity: 1,
-      fileUploads: []
-    },
-  ],
-
-  location: {
-    id: null,
-    unique_id: null,
-    unique_code: null,
+const ruleForm = reactive<Pricetag>(
+  props.data ?? {
+    code: "",
+    unique_id: "",
     name: "",
-    brand_id: null,
-    brand_name: null,
-    year: null,
-    sn: null,
-    description: null,
-    berat: null,
-    volume: null,
-    length: null,
-    width: null,
-    height: null,
-    is_asset: null,
-    tmp_asset: null,
-    version: null,
-    type: "",
-    created_at: null,
-    created_by: null,
-    updated_at: null,
-    file_catalogues: [],
-    checked: undefined,
-  },
-  pricetag_condition: [],
-  reference: null,
-  reference_version: null,
-  reference_id: null,
-  to_id: "",
-  to_name: "",
-  files: [],
+    location_id: "",
+    start_date: Date.now(),
+    end_date: Date.now(),
+    start_date_view: "",
+    end_date_view: "",
+    owner_id: "",
+    created_at: 0,
+    created_by: "",
+    updated_at: 0,
+    version: 0,
+    type: "in",
+    note: "",
+    subject: "",
+    pricetag_item: [
+      {
+        catalogue: {
+          id: null,
+          unique_id: null,
+          unique_code: null,
+          name: "",
+
+          brand_id: null,
+          brand_name: null,
+          year: null,
+          sn: null,
+          description: null,
+          berat: null,
+          volume: null,
+          length: null,
+          width: null,
+          height: null,
+          is_asset: null,
+          tmp_asset: null,
+          version: null,
+          type: "",
+          created_at: null,
+          created_by: null,
+          updated_at: null,
+          file_catalogues: [],
+        },
+        unique_id: null,
+        tag_id: null,
+        catalogue_id: "",
+        inventory_id: "",
+        inventory: null,
+        price: 0,
+        is_new: true,
+        unit_id: "",
+        unit_name: "",
+        unit_version: 0,
+        checked: false,
+        quantity: 1,
+        fileUploads: [],
+      },
+    ],
+
+    location: {
+      id: null,
+      unique_id: null,
+      unique_code: null,
+      name: "",
+      brand_id: null,
+      brand_name: null,
+      year: null,
+      sn: null,
+      description: null,
+      berat: null,
+      volume: null,
+      length: null,
+      width: null,
+      height: null,
+      is_asset: null,
+      tmp_asset: null,
+      version: null,
+      type: "",
+      created_at: null,
+      created_by: null,
+      updated_at: null,
+      file_catalogues: [],
+      checked: undefined,
+    },
+    pricetag_condition: [],
+    reference: null,
+    reference_version: null,
+    reference_id: null,
+    to_id: "",
+    to_name: "",
+    files: [],
+    pic_id: "",
+    pic_name: "",
+    pic_version: 0,
+  }
+);
+
+const formatCurrencyID = (value: number | null) => {
+  if (value === null || value === undefined) return "";
+  return value.toLocaleString("id-ID", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  });
+};
+
+const tmpCatalogue = ref<Catalogue | null>(null);
+const tmpEditBulk = ref<{
+  qty: number;
+  unit_id: string;
+  unit_name: string;
+  price: number;
+  priceview: string;
+  unit_version: number;
+}>({
+  price: 1,
+  priceview: formatCurrencyID(0),
+  qty: 1,
+  unit_id: "",
+  unit_name: "",
+  unit_version: 0,
 });
+
+const config = useRuntimeConfig();
+const baseImageURL = config.public.baseImageURL;
 
 // special price
 const contact_condition = ref<Pricetag_condition[]>([]);
@@ -467,6 +806,21 @@ const quantity = ref<Pricetag_condition>({
     slug: "",
   },
 });
+
+const showImageModal = ref(false);
+const activeItemIndex = ref(-1);
+const activeItemData = ref<Pricetag_item | null>(null);
+const modalImageFiles = ref<UploadUserFile[]>([]);
+const photoWallRef = ref<InstanceType<typeof PhotoWallUploads>>();
+const uploadAction = computed(
+  () => `${config.public.apiBaseURL}/upload-item-image`
+);
+
+// const biayaLain = ref<number>(0);
+// const potonganBiaya = ref<number>(0);
+// const totalPajak = ref<number>(0);
+
+const references = ref<ReferenceTransactionAdjustment[]>([]);
 
 const collapse_special_price =
   ref<{ title: string; name: string; element: any }[]>();
@@ -523,7 +877,26 @@ const search_default = ref<RequestSearch>({
   offset: "1",
 });
 
+const querySearchAdjustmentTransaction = ref<RequestSearch>({
+  keyword: "",
+  table: "adjustments_transaction",
+  column: [
+    {
+      operator: ["plus"],
+    },
+  ],
+  sort: null,
+  limit: "10",
+  offset: "1",
+  flag: "form",
+});
+
+const adjustmentTransactions = await useFetchApi<
+  ResponsePagination<AdjustmentTransaction[]>
+>("/search", "search-adjustment", "post", querySearchAdjustmentTransaction);
+
 const units = ref<Unit[]>([]);
+const termOfPayments = ref<TermOfPayment[]>([]);
 
 const rules = reactive<FormRules>({
   code: [
@@ -534,6 +907,9 @@ const rules = reactive<FormRules>({
     },
   ],
   owner_name: [
+    { required: true, message: "Vendor Tidak Boleh Kosong!", trigger: "blur" },
+  ],
+  to_name: [
     { required: true, message: "Vendor Tidak Boleh Kosong!", trigger: "blur" },
   ],
 
@@ -555,95 +931,297 @@ const rules = reactive<FormRules>({
   },
 });
 
-const openImageModal = (index: number, itemData: Pricetag_item) => {
-  activeItemIndex.value = index
-  activeItemData.value = itemData
-  
-  // Reset photoWallRef jika perlu (clear selection)
-  if (photoWallRef.value) {
-    photoWallRef.value.clearFiles?.()
-  }
-  
-  // Load files dengan memastikan URL valid
-  modalImageFiles.value = (itemData.fileUploads || []).map(file => {
-    // Clone file object
-    const fileCopy = { ...file }
-    
-    // Jika file punya raw tapi URL invalid/expired, buat URL baru
-    if (fileCopy.raw && (!fileCopy.url || !isValidUrl(fileCopy.url))) {
-      fileCopy.url = URL.createObjectURL(fileCopy.raw)
-    }
-    
-    return fileCopy
-  })
+const onUpdatePaymentTerms = (data: TermOfPayment[]) => {
+  termOfPayments.value = data;
+};
 
-  console.log('modal file ', modalImageFiles.value);
-  
-  showImageModal.value = true
-}
+const totalPrice = computed(() => {
+  return ruleForm.pricetag_item.reduce((accumulator, currentValue) => {
+    return accumulator + currentValue.price;
+  }, 0);
+});
+const subtotal = computed(() => {
+  console.log("get minus", totalPrice.value);
+  return Number(totalPrice.value) - Number(getMinus.value);
+});
 
-const saveItemImages = () => {
-  if (activeItemIndex.value >= 0) {
-    // Update dataTable dengan files baru
-    ruleForm.pricetag_item[activeItemIndex.value].fileUploads = [...modalImageFiles.value]
-    
-    // Set image URL untuk preview di tabel (mengambil gambar pertama)
-    if (modalImageFiles.value.length > 0) {
-      const firstFile = modalImageFiles.value[0]
-      if (firstFile.url) {
-        ruleForm.pricetag_item[activeItemIndex.value].image = firstFile.url
-      } else if (firstFile.raw) {
-        ruleForm.pricetag_item[activeItemIndex.value].image = URL.createObjectURL(firstFile.raw)
+const applyBulkEdit = () => {
+  ruleForm.pricetag_item.forEach((element) => {
+    element.price = tmpEditBulk.value.price;
+    (element.displayPrice = formatCurrencyID(element.price)),
+      (element.quantity = tmpEditBulk.value.qty);
+    element.unit_id = tmpEditBulk.value.unit_id;
+    element.unit_name = tmpEditBulk.value.unit_name;
+  });
+};
+const resetBulkEdit = () => {
+  ruleForm.pricetag_item.forEach((element) => {
+    element.price = 0;
+    (element.displayPrice = "0"), (element.quantity = 0);
+    element.unit_id = "";
+    element.unit_name = "";
+  });
+};
+
+const hasBulkInput = computed(() => {
+  return (
+    tmpEditBulk.value.price > 0 ||
+    tmpEditBulk.value.qty > 0 ||
+    tmpEditBulk.value.unit_id != ""
+  );
+});
+
+const showTransactionAdjustmentValue = (
+  ref: ReferenceTransactionAdjustment
+) => {
+  if (ref.include) {
+    return 0;
+  } else {
+    if (
+      ref.adjustment?.category == "tax" &&
+      ref.adjustment.name.toLowerCase() === "ppn"
+    ) {
+      const dpp: ReferenceTransactionAdjustment | undefined =
+        references.value.find(
+          (value) => value.adjustment?.unique_code == "DPPL"
+        );
+      if (dpp) {
+        const dppValue = getDPPFormula(dpp, subtotal.value || 0);
+        return getPPNFormula(ref, dppValue || subtotal.value);
+      } else {
+        return getPPNFormula(ref, subtotal.value);
       }
     } else {
-      ruleForm.pricetag_item[activeItemIndex.value].image = ''
+      return ref.type == "amount"
+        ? ref.amount
+        : displayAmount(ref, subtotal.value || 0);
     }
-    
-    ElMessage.success(`Gambar untuk item ${activeItemIndex.value + 1} disimpan`)
   }
-  
-  showImageModal.value = false
-}
+};
 
-const cancelImageUpload = () => {
-  showImageModal.value = false
-}
-
-const handleRemoveImageList = async (file: UploadUserFile, files: UploadUserFile[]) => {
-  if(file.raw){
-    console.log('file baru upload');
-  }else{
-    console.log('file lama', file.uid);
-    try {
-      const response = await useApiFetch<BaseResponse<any>>('/file-delete', {
-        method: 'POST',
-        body: [file.uid]
-      })
-
-      if(response.success){
-        ElMessage.success(`Image Berhasil Di Hapus!`);
+const getMinus = computed(() => {
+  var minus = 0;
+  references.value
+    .filter((value) => value.adjustment?.operator == "minus")
+    .forEach((ref) => {
+      if (ref.include == false) {
+        minus += Number(ref.amount);
       }
-    } catch (error: any) {
-      ElMessage.error(`${error?.response?.message ?? error}`);
+    });
+
+  return minus;
+});
+const getPlus = computed(() => {
+  var plus = 0;
+
+  references.value
+    .filter(
+      (value) =>
+        value.adjustment?.operator == "plus" &&
+        value.adjustment?.category === "adjustment"
+    )
+    .forEach((ref) => {
+      if (ref.include == false) {
+        plus += Number(ref.amount);
+      }
+    });
+
+  return plus;
+});
+
+const dppComponent = computed(() => {
+  return references.value.find(
+    (value) =>
+      value.adjustment?.category == "transform" &&
+      value.adjustment?.unique_code == "DPPL"
+  );
+});
+const handleSubmitContact = async (formData: Contact) => {
+  try {
+    const contact: Contact | null = await createNewContact({
+      parent_id: formData.parent_id,
+      parent_version: formData.parent_version,
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      tax_id: formData.tax_id,
+      website: formData.website,
+      title: formData.title,
+      is_personal: formData.is_personal,
+      is_company: formData.is_company,
+      tags: formData.tmp_tags?.join(","),
+      unique_id: formData.unique_id,
+      ownership: formData.ownership,
+    });
+    if (contact !== null) {
+      ruleForm.owner = contact;
     }
+    dialogContact.value = false;
+  } catch (error) {
+    console.log("eror", error);
   }
-}
+};
 
-const handleModalImagesChange = (files: UploadUserFile[]) => {
-  modalImageFiles.value = files
-}
-
-const handleImageModalClose = () => {
-  // Optional: Clear temporary blob URLs
-  modalImageFiles.value.forEach(file => {
-    if (file.url?.startsWith('blob:')) {
-      URL.revokeObjectURL(file.url)
+const createNewContact = async (data: any): Promise<Contact | null> => {
+  try {
+    const response = await useFetchApi<BaseResponse<Contact>>(
+      "/contact-create",
+      "create-customer",
+      "post",
+      data
+    );
+    if (response.status.value == "success") {
+      return response.data.value?.data ?? null;
+    } else {
+      return null;
     }
-  })
-  modalImageFiles.value = []
-  activeItemIndex.value = -1
-  activeItemData.value = null
-}
+  } catch (error: any) {
+    ElMessage.error(error.response.message ?? error);
+    return null;
+  }
+};
+
+const handleResetContact = () => {
+  dialogContact.value = false;
+};
+
+const getDetailPIC = async () => {
+  loading.value = true;
+  try {
+    const response = await useApiFetch<BaseResponse<Contact | undefined>>(
+      `/contact-read/${ruleForm.pic_id}`,
+      {
+        method: "get",
+      }
+    );
+
+    if (response.success) {
+      ruleForm.pic = response.data;
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const openModalContact = async (type: "vendor" | "customer" | "pic") => {
+  if (type == "pic") {
+    await getDetailPIC();
+  }
+  console.log("type");
+  console.log("to", ruleForm.to);
+  stateActiveTypeContat.value = type;
+  dialogContact.value = true;
+};
+
+const ppnComponent = computed(() => {
+  const ppnComponentRef = references.value.find(
+    (value) =>
+      value.adjustment?.category == "tax" &&
+      value.adjustment?.name.toLowerCase() === "ppn"
+  );
+
+  if (ppnComponentRef) {
+    if (dppComponent.value) {
+      const dppValue = getDPPFormula(dppComponent.value, subtotal.value || 0);
+      if (ppnComponentRef.include) {
+        return 0;
+      } else {
+        return getPPNFormula(ppnComponentRef, dppValue);
+      }
+    } else {
+      if (ppnComponentRef.include) {
+        return 0;
+      } else {
+        return getPPNFormula(ppnComponentRef, subtotal.value || 0);
+      }
+    }
+  } else {
+    return 0;
+  }
+});
+
+const grandTotal = computed(() => {
+  console.log("PPN", ppnComponent.value);
+  return subtotal.value + getPlus.value + ppnComponent.value;
+});
+
+const getDPP = async (): Promise<AdjustmentTransaction | undefined> => {
+  loading.value = true;
+  try {
+    querySearchAdjustmentTransaction.value.column = [
+      {
+        category: ["transform"],
+        unique_code: ["DPPL"],
+      },
+    ];
+    const response = await useFetchApi<
+      ResponsePagination<AdjustmentTransaction[]>
+    >("/search", "search-adjustment", "post", querySearchAdjustmentTransaction);
+
+    if (response.status.value === "success") {
+      if (
+        response.data.value?.data != null &&
+        response.data.value?.data != undefined &&
+        response.data.value!.data.length > 0
+      )
+        return response.data.value!.data[0];
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleSelectAdjustment = (items: AdjustmentTransaction[]) => {
+  items.forEach(async (element) => {
+    if (
+      element.category == "tax" &&
+      element.name.toLocaleLowerCase() === "ppn"
+    ) {
+      const adj = await getDPP();
+      if (adj) {
+        references.value.push({
+          unique_id: "",
+          reference: ReferenceAdjustment.OFFER,
+          reference_id: "",
+          adjustment_id: adj.unique_id,
+          type: adj.type,
+          amount: adj.default_value,
+          created_at: 0,
+          value: adj.default_value,
+          adjustment: adj,
+          changeType: true,
+          inc_tmp: "0",
+          include: false,
+        });
+      }
+    }
+
+    references.value.push({
+      unique_id: "",
+      reference: ReferenceAdjustment.OFFER,
+      reference_id: "",
+      adjustment_id: element.unique_id,
+      type: element.type,
+      amount: element.default_value,
+      created_at: 0,
+      value: element.default_value,
+      adjustment: element,
+      changeType: true,
+      inc_tmp: "0",
+      include: false,
+    });
+  });
+  visibleModalAdjustmentTransaction.value = false;
+};
+
+const handleAdjustmentSubmit = () => {
+  visibleModalNewAdjustment.value = false;
+  refreshNuxtData("search-adjustment");
+};
 
 const querySearchLocation = (queryString: string, cb: (arg: any) => void) => {
   requestSearchLocation.value.keyword = queryString;
@@ -674,6 +1252,52 @@ const querySearchLocation = (queryString: string, cb: (arg: any) => void) => {
       ElMessage.error(error.response?.data?.message ?? error);
     });
 };
+
+// Handle cancel
+const handleCancel = () => {
+  // Reset form atau navigasi kembali
+  console.log("Form cancelled");
+  resetFormCatalogue();
+  drawerCatalogue.value = false;
+  // atau navigate back
+};
+
+// Fungsi untuk reset form
+const resetFormCatalogue = () => {
+  tmpCatalogue.value = null;
+};
+
+const handleSubmit = async (catalogue: Catalogue) => {
+  loading.value = true;
+  console.log("on submit");
+  try {
+    const catalogueInsert = (await create_catalogue(catalogue)) ?? undefined;
+
+    if (catalogueInsert != undefined) {
+      // dataTable.value[itemActive.value].item = catalogueInsert?.name ?? '';
+      // dataTable.value[itemActive.value].item_id = catalogueInsert?.unique_id ?? '';
+      ruleForm.pricetag_item[itemActive.value].sn = catalogueInsert?.sn ?? "";
+      ruleForm.pricetag_item[itemActive.value].catalogue = catalogueInsert;
+      ruleForm.pricetag_item[itemActive.value].catalogue_id =
+        catalogueInsert.unique_id;
+      ruleForm.pricetag_item[itemActive.value].fileUploads = mapApiFilesView(
+        catalogueInsert.files ?? []
+      );
+      ruleForm.pricetag_item[itemActive.value].image = getFirstFileUrl(
+        catalogueInsert.files ?? []
+      );
+    } else {
+      ElMessage.error("Kesalahan saat menyimpan data catalogue!");
+    }
+  } catch (error: any) {
+    console.log(error);
+    ElMessage.error(`Gagal menyimpan catalogue`);
+  } finally {
+    loading.value = false;
+    drawerCatalogue.value = false;
+  }
+};
+
 const querySearchQuotation = (queryString: string, cb: (arg: any) => void) => {
   requestSearchLocation.value.keyword = queryString;
   requestSearchLocation.value.table = "offers";
@@ -704,6 +1328,105 @@ const querySearchQuotation = (queryString: string, cb: (arg: any) => void) => {
     });
 };
 
+const openImageModal = (index: number, itemData: Pricetag_item) => {
+  activeItemIndex.value = index;
+  activeItemData.value = itemData;
+
+  // Reset photoWallRef jika perlu (clear selection)
+  if (photoWallRef.value) {
+    photoWallRef.value.clearFiles?.();
+  }
+
+  // Load files dengan memastikan URL valid
+  modalImageFiles.value = (itemData.fileUploads || []).map((file) => {
+    // Clone file object
+    const fileCopy = { ...file };
+
+    // Jika file punya raw tapi URL invalid/expired, buat URL baru
+    if (fileCopy.raw && (!fileCopy.url || !isValidUrl(fileCopy.url))) {
+      fileCopy.url = URL.createObjectURL(fileCopy.raw);
+    }
+
+    return fileCopy;
+  });
+
+  console.log("modal file ", modalImageFiles.value);
+
+  showImageModal.value = true;
+};
+
+const handleImageModalClose = () => {
+  // Optional: Clear temporary blob URLs
+  modalImageFiles.value.forEach((file) => {
+    if (file.url?.startsWith("blob:")) {
+      URL.revokeObjectURL(file.url);
+    }
+  });
+  modalImageFiles.value = [];
+  activeItemIndex.value = -1;
+  activeItemData.value = null;
+};
+
+const handleModalImagesChange = (files: UploadUserFile[]) => {
+  console.log("images", files);
+  modalImageFiles.value = files;
+};
+
+const handleRemoveImageList = async (
+  file: UploadUserFile,
+  files: UploadUserFile[]
+) => {
+  if (file.raw) {
+    console.log("file baru upload");
+  } else {
+    console.log("file lama", file.uid);
+    try {
+      const response = await useApiFetch<BaseResponse<any>>("/file-delete", {
+        method: "POST",
+        body: [file.uid],
+      });
+
+      if (response.success) {
+        ElMessage.success(`Image Berhasil Di Hapus!`);
+      }
+    } catch (error: any) {
+      ElMessage.error(`${error?.response?.message ?? error}`);
+    }
+  }
+};
+
+const cancelImageUpload = () => {
+  showImageModal.value = false;
+};
+
+const saveItemImages = () => {
+  if (activeItemIndex.value >= 0) {
+    // Update dataTable dengan files baru
+    ruleForm.pricetag_item[activeItemIndex.value].fileUploads = [
+      ...modalImageFiles.value,
+    ];
+
+    // Set image URL untuk preview di tabel (mengambil gambar pertama)
+    if (modalImageFiles.value.length > 0) {
+      const firstFile = modalImageFiles.value[0];
+      if (firstFile.url) {
+        ruleForm.pricetag_item[activeItemIndex.value].image = firstFile.url;
+      } else if (firstFile.raw) {
+        ruleForm.pricetag_item[activeItemIndex.value].image =
+          URL.createObjectURL(firstFile.raw);
+      }
+    } else {
+      ruleForm.pricetag_item[activeItemIndex.value].image = "";
+    }
+
+    ElMessage.success(
+      `Gambar untuk item ${activeItemIndex.value + 1} disimpan`
+    );
+  }
+
+  showImageModal.value = false;
+};
+
 const querySearchVendors = (query: string, cb: (arg: any) => void) => {
   try {
     const request_search: RequestSearch = {
@@ -715,6 +1438,7 @@ const querySearchVendors = (query: string, cb: (arg: any) => void) => {
         column: "created_at",
         order: OrderColumn.ASC,
       },
+      flag: "form",
       table: "contacts",
     };
 
@@ -750,6 +1474,89 @@ const querySearchVendors = (query: string, cb: (arg: any) => void) => {
     console.error("Failed to fetch vendors", error);
     cb([]);
   }
+};
+const querySearchPIC = (query: string, cb: (arg: any) => void) => {
+  try {
+    const request_search: RequestSearch = {
+      column: [
+        {
+          parent_id: ruleForm.to_id,
+        },
+      ],
+      keyword: query,
+      limit: "50",
+      offset: "1",
+      sort: {
+        column: "created_at",
+        order: OrderColumn.ASC,
+      },
+      flag: "form",
+      table: "contacts",
+    };
+
+    useFetchApi<ResponsePagination<Contact>>(
+      "/search",
+      "search-customer",
+      "post",
+      request_search
+    ).then((response) => {
+      if (response.status.value == "success") {
+        const contacts: Contact[] = (response.data.value?.data ??
+          []) as Contact[];
+        if (contacts.length > 0) {
+          cb(
+            contacts.map((value) => ({
+              value: value.name,
+              unique_id: value.unique_id,
+              data: value,
+            }))
+          );
+        } else {
+          cb([
+            {
+              value: query,
+              isNew: true,
+              keyword: query,
+            },
+          ]);
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Failed to fetch vendors", error);
+    cb([]);
+  }
+};
+
+const submitRemoveCost = async (ids: string[]) => {
+  loading.value = true;
+  try {
+    const response = await useFetchApi(
+      "/reference-transaction-delete",
+      "remove-cost",
+      "post",
+      ids
+    );
+    if (response.status.value == "success") {
+      ElMessage.success("Biaya Lainya Berhasil Dihapus!");
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const removeAnotherCost = async (adj_id: string) => {
+  const findIndex = references.value.findIndex(
+    (ref) => ref.adjustment_id === adj_id
+  );
+  const unique_id = references.value[findIndex].unique_id;
+  if (unique_id != "") {
+    await submitRemoveCost([unique_id]);
+  }
+
+  references.value.splice(findIndex, 1);
 };
 
 const querySearchUnit = (queryString: string, cb: (arg: any) => void) => {
@@ -796,17 +1603,23 @@ const createNewVendor = async (data: any) => {
   }
 };
 
-const onHandleSelectVendor = (item: any, type: "to" | "vendor") => {
+const onHandleSelectVendor = (item: any, type: "to" | "vendor" | "pic") => {
   if (item.isNew) {
     createNewVendor({ name: item.keyword }).then((customer) => {
       if (customer) {
         if (type == "vendor") {
           ruleForm.owner_id = customer.unique_id;
           ruleForm.owner_name = customer.name;
+          ruleForm.owner = customer;
+        } else if (type == "pic") {
+          ruleForm.pic_id = customer.unique_id;
+          ruleForm.pic_name = customer.name;
+          ruleForm.pic_version = customer.version;
         } else {
           ruleForm.to_id = customer.unique_id;
           ruleForm.to_name = customer.name;
           ruleForm.to_version = customer.version;
+          ruleForm.to = customer;
         }
       }
     });
@@ -815,10 +1628,16 @@ const onHandleSelectVendor = (item: any, type: "to" | "vendor") => {
     if (type == "vendor") {
       ruleForm.owner_id = customer.unique_id;
       ruleForm.owner_name = customer.name;
+      ruleForm.owner = customer;
+    } else if (type == "pic") {
+      ruleForm.pic_id = customer.unique_id;
+      ruleForm.pic_name = customer.name;
+      ruleForm.pic_version = customer.version;
     } else {
       ruleForm.to_id = customer.unique_id;
       ruleForm.to_name = customer.name;
       ruleForm.to_version = customer.version;
+      ruleForm.to = customer;
     }
   }
 };
@@ -831,62 +1650,64 @@ const handleSelectLocation = (item: Record<string, any>) => {
 };
 
 const addNewLine = () => {
-    const newItem: {
-      unique_id: string|null,
-      tag_id: string|null,
-      catalogue_id: string|null,
-      catalogue: Catalogue | null,
-      inventory_id: string,
-      inventory: Inventory|null,
-      price: number,
-      is_new?: boolean,
-      unit_id: string|null,
-      unit_name: string|null,
-      unit_version: number|null,
-      quantity: number,
-      fileUploads: UploadUserFile[]
-    }[] = [...ruleForm.pricetag_item, {
-        catalogue: {
-          id: null,
-          unique_id: null,
-          unique_code: null,
-          name: '',
-          brand_id: null,
-          brand_name: null,
-          year: null,
-          sn: null,
-          description: null,
-          berat: null,
-          volume: null,
-          length: null,
-          width: null,
-          height: null,
-          is_asset: null,
-          tmp_asset: null,
-          version: null,
-          type: '',
-          created_at: null,
-          created_by: null,
-          updated_at: null,
-          file_catalogues: []
-        },
+  const newItem: {
+    unique_id: string | null;
+    tag_id: string | null;
+    catalogue_id: string | null;
+    catalogue: Catalogue | null;
+    inventory_id: string;
+    inventory: Inventory | null;
+    price: number;
+    is_new?: boolean;
+    unit_id: string | null;
+    unit_name: string | null;
+    unit_version: number | null;
+    quantity: number;
+    fileUploads: UploadUserFile[];
+  }[] = [
+    ...ruleForm.pricetag_item,
+    {
+      catalogue: {
+        id: null,
         unique_id: null,
-        tag_id: null,
-        catalogue_id: '',
-        inventory_id: '',
-        inventory: null,
-        price: 0,
-        is_new: true,
-        unit_id: '',
-        unit_name: '',
-        unit_version: 0,
-        quantity: 1,
-        fileUploads: [],
-    }];
+        unique_code: null,
+        name: "",
+        brand_id: null,
+        brand_name: null,
+        year: null,
+        sn: null,
+        description: null,
+        berat: null,
+        volume: null,
+        length: null,
+        width: null,
+        height: null,
+        is_asset: null,
+        tmp_asset: null,
+        version: null,
+        type: "",
+        created_at: null,
+        created_by: null,
+        updated_at: null,
+        file_catalogues: [],
+      },
+      unique_id: null,
+      tag_id: null,
+      catalogue_id: "",
+      inventory_id: "",
+      inventory: null,
+      price: 0,
+      is_new: true,
+      unit_id: "",
+      unit_name: "",
+      unit_version: 0,
+      quantity: 1,
+      fileUploads: [],
+    },
+  ];
 
-    ruleForm.pricetag_item = newItem;
-
-}
+  ruleForm.pricetag_item = newItem;
+};
 
 type SelectionCellProps = {
   value: boolean;
@@ -918,8 +1739,9 @@ const querySearchAsyncInventories = (
     location_id: ruleForm.location_id,
     keyword: queryString,
     limit: 50,
+    flag: "form",
   };
-  useFetchApi<Pagination<ItemSearch[]>>(
+  useFetchApi<ResponsePagination<ItemSearch[]>>(
     "/catalogues-inventory",
     "catalogues-inventory",
     "post",
@@ -927,15 +1749,11 @@ const querySearchAsyncInventories = (
   )
     .then((response) => {
       if (response.status.value == "success") {
-        const inventories: ItemSearch[] = response.data?.value?.query ?? [];
+        const inventories: ItemSearch[] = response.data?.value?.data ?? [];
 
         if (inventories.length > 0) {
           const results = inventories.map((data: ItemSearch) => {
-            return {
-              isNew: false,
-              value: `${data.catalogue_name}-${data.sn_number}`,
-              ...data,
-            };
+            return { isNew: false, value: `${data.catalogue_name}`, ...data };
           });
           cb(results);
         } else {
@@ -976,6 +1794,13 @@ const create_catalogue = async (catalogue: Catalogue) => {
     );
     formData.append("type", catalogue.type);
 
+    // Tambahkan file foto
+    catalogue.file_catalogues.forEach((file) => {
+      if (file.raw) {
+        formData.append("files[]", file.raw);
+      }
+    });
+
     const response = await useFetchApi<BaseResponse<Catalogue>>(
       "/catalogues-create",
       "catalogue-create",
@@ -983,7 +1808,8 @@ const create_catalogue = async (catalogue: Catalogue) => {
       formData
     );
     if (response.status.value == "success") {
-      const catalogue_result: Catalogue | undefined = response.data.value?.data;
+      const catalogue_result: Catalogue | null =
+        response.data.value?.data ?? null;
       return catalogue_result;
     }
   } catch (error: any) {
@@ -1022,18 +1848,21 @@ const onHandleSelectItemAutocomplete = async (
       updated_at: null,
       file_catalogues: [],
     };
-    const selected: Catalogue | null =
-      (await create_catalogue(catalogueInsert)) ?? null;
 
-    if (selected != null) {
-      ruleForm.pricetag_item[scope.$index].item_name = selected.name!;
-      ruleForm.pricetag_item[scope.$index].catalogue_id = selected.unique_id!;
-      ruleForm.pricetag_item[scope.$index].sn =
-        selected.sn ?? "Tidak Ada SN/PN";
-      ruleForm.pricetag_item[scope.$index].quantity = 1;
-    } else {
-      ElMessage.error(`Ops, Something wrong!!`);
-    }
+    tmpCatalogue.value = catalogueInsert;
+    itemActive.value = scope.$index;
+    drawerCatalogue.value = true;
+
+    // const selected: Catalogue|null = await create_catalogue(catalogueInsert) ?? null;
+
+    // if(selected != null){
+    //   ruleForm.pricetag_item[scope.$index].item_name = selected.name!;
+    //   ruleForm.pricetag_item[scope.$index].catalogue_id = selected.unique_id!;
+    //   ruleForm.pricetag_item[scope.$index].sn = selected.sn ?? 'Tidak Ada SN/PN';
+    //   ruleForm.pricetag_item[scope.$index].quantity = 1;
+    // }else{
+    //   ElMessage.error(`Ops, Something wrong!!`);
+    // }
   } else {
     const selected: ItemSearch = record as ItemSearch;
     ruleForm.pricetag_item[scope.$index].item_name = selected.catalogue_name!;
@@ -1045,6 +1874,13 @@ const onHandleSelectItemAutocomplete = async (
     ruleForm.pricetag_item[scope.$index].unit_id = selected.unit_id ?? "";
     ruleForm.pricetag_item[scope.$index].unit_name = selected.unit_name ?? "";
     ruleForm.pricetag_item[scope.$index].quantity = 1;
+    ruleForm.pricetag_item[scope.$index].catalogue_id = selected.catalogue_id;
+    ruleForm.pricetag_item[scope.$index].fileUploads = mapApiFilesView(
+      selected.files ?? []
+    );
+    ruleForm.pricetag_item[scope.$index].image = getFirstFileUrl(
+      selected.files ?? []
+    );
     // ruleForm.pricetag_item[scope.$index].catalogue = catalogue;
     ruleForm.pricetag_item[scope.$index].price = 0;
   }
@@ -1116,6 +1952,7 @@ const onSubmit = async (formEl: FormInstance) => {
 
     const formData = new FormData();
 
+    formData.append("unique_id", `${ruleForm.unique_id}`);
     formData.append("name", `${ruleForm.code}`);
     formData.append("location_id", `${ruleForm.location_id}`);
     formData.append("start_date", `${ruleForm.start_date / 1000}`);
@@ -1125,10 +1962,14 @@ const onSubmit = async (formEl: FormInstance) => {
     formData.append("reference_id", `${ruleForm.reference_id}`);
     formData.append("reference_version", `${ruleForm.reference_version}`);
     formData.append("type", `${ruleForm.type}`);
+    formData.append("subject", `${ruleForm.subject}`);
     formData.append("note", `${ruleForm.note}`);
     formData.append("to_id", `${ruleForm.to_id}`);
     formData.append("to_version", `${ruleForm.to_version}`);
     formData.append("category", `penawaran`);
+    formData.append("pic_id", `${ruleForm.pic_id}`);
+    formData.append("pic_name", `${ruleForm.pic_name}`);
+    formData.append("pic_version", `${ruleForm.pic_version}`);
 
     // Append pricetag_item array
     ruleForm.pricetag_item.forEach((value, index) => {
@@ -1160,14 +2001,15 @@ const onSubmit = async (formEl: FormInstance) => {
         `${value.unit_version}`
       );
       formData.append(`pricetag_item[${index}][quantity]`, `${value.quantity}`);
-      value.fileUploads.forEach(file => {
-        if(file.raw){
-          formData.append(`pricetag_item[${index}][files]`, file.raw as Blob)
+
+      (value.fileUploads ?? []).forEach((file) => {
+        if (file.raw) {
+          formData.append(`pricetag_item[${index}][files]`, file.raw as Blob);
         }
       });
     });
 
-    fileList.value.forEach((file, index) => {
+    (fileList.value ?? []).forEach((file, index) => {
       if (file.raw) {
         formData.append(`files[${index}]`, file.raw);
       }
@@ -1178,6 +2020,44 @@ const onSubmit = async (formEl: FormInstance) => {
     if (unique_id.value) {
       formData.append("unique_id", `${unique_id.value}`);
     }
+
+    termOfPayments.value.forEach((top, indexTOP) => {
+      formData.append(
+        `payment_terms[${indexTOP}][unique_id]`,
+        `${top.unique_id}`
+      );
+      formData.append(`payment_terms[${indexTOP}][name]`, `${top.name}`);
+      formData.append(`payment_terms[${indexTOP}][value]`, `${top.value}`);
+      formData.append(`payment_terms[${indexTOP}][unit]`, `${top.unit}`);
+      formData.append(
+        `payment_terms[${indexTOP}][term_of_payment]`,
+        `${top.term_of_payment}`
+      );
+      formData.append(
+        `payment_terms[${indexTOP}][duration]`,
+        `${top.duration}`
+      );
+    });
+    references.value.forEach((ref, index) => {
+      formData.append(`ref_trans_adj[${index}][unique_id]`, `${ref.unique_id}`);
+      formData.append(
+        `ref_trans_adj[${index}][adjustment_id]`,
+        `${ref.adjustment_id}`
+      );
+      formData.append(
+        `ref_trans_adj[${index}][adjustment_version]`,
+        `${ref.adjustment?.version}`
+      );
+      formData.append(`ref_trans_adj[${index}][value]`, `${ref.value}`);
+      formData.append(`ref_trans_adj[${index}][amount]`, `${ref.amount}`);
+      formData.append(
+        `ref_trans_adj[${index}][party_type]`,
+        `${ref.party_type}`
+      );
+      formData.append(`ref_trans_adj[${index}][party_id]`, `${ref.party_id}`);
+      formData.append(`ref_trans_adj[${index}][type]`, `${ref.type}`);
+      formData.append(`ref_trans_adj[${index}][include]`, `${ref.include}`);
+    });
 
     const response = await useFetchApi<BaseResponse<Pricetag>>(
       "/pricetag-create",
@@ -1190,10 +2070,10 @@ const onSubmit = async (formEl: FormInstance) => {
       const pricetag: Pricetag | undefined = response.data.value?.data;
       ElMessage.success("Berhasil");
 
-      return props.onSubmit();
+      return props.onSubmit(pricetag);
     }
   } catch (error: any) {
-    ElMessage.error(error.response?.data?.message ?? error);
+    ElMessage.error(error);
   } finally {
     loading.value = false;
   }
@@ -1215,12 +2095,27 @@ const resetForm = (formEl: FormInstance | undefined) => {
   formEl.resetFields();
 };
 
+// watch(requestSearchInventory, fetchData, {immediate: true});
+
+const parseCurrencyID = (val: string): number => {
+  if (!val) return 0;
+
+  // hapus ribuan
+  let clean = val.replace(/\./g, "");
+  // ubah koma ke titik
+  clean = clean.replace(",", ".");
+  // hanya angka & titik
+  clean = clean.replace(/[^0-9.]/g, "");
+
+  return Number(clean) || 0;
+};
+
 const fetchInitialData = async () => {
-  loading.value = true;
-  const unique_id = useCookie("tag_id");
+  loadingGetEditData.value = true;
+
   try {
     const response = await useFetchApi<BaseResponse<Pricetag>>(
-      `/pricetag-read/${unique_id.value}`,
+      `/pricetag-read/${id.value}`,
       "pricetag-detail",
       "get",
       null
@@ -1237,8 +2132,15 @@ const fetchInitialData = async () => {
 
       ruleForm.unique_id = pricetagEdit.unique_id;
       ruleForm.name = pricetagEdit.name;
+      ruleForm.code = pricetagEdit.name;
+      ruleForm.owner_id = pricetagEdit.owner_id;
+      ruleForm.owner_name = pricetagEdit.owner?.name ?? "";
+      ruleForm.to_id = pricetagEdit.to_id;
+      ruleForm.to_name = pricetagEdit.to?.name;
       ruleForm.location_id = pricetagEdit.location_id;
       ruleForm.start_date = dateViewStart.getTime();
+      ruleForm.reference = pricetagEdit.reference;
+      ruleForm.reference_id = pricetagEdit.reference_id;
       if (dateViewEnd != null) {
         ruleForm.end_date = dateViewEnd.getTime();
       }
@@ -1252,14 +2154,26 @@ const fetchInitialData = async () => {
       ruleForm.created_by = pricetagEdit.created_by;
       ruleForm.updated_at = pricetagEdit.updated_at;
       ruleForm.version = pricetagEdit.version;
-      ruleForm.pricetag_item = pricetagEdit.pricetag_item.map((value) => ({
-        ...value,
-        item_name: value.catalogue?.name ?? "",
-        sn: value.catalogue?.sn ?? "N/A",
-        is_new: false,
-      }));
+
+      ruleForm.pricetag_item = pricetagEdit.pricetag_item.map((value) => {
+        const parsed = parseCurrencyID(`${value.price}`);
+        return {
+          ...value,
+          price: parsed,
+          displayPrice: formatCurrencyID(parsed),
+          item_name: value.catalogue?.name ?? "",
+          sn: value.catalogue?.sn ?? "N/A",
+          is_new: false,
+        };
+      });
+
+      console.log("pricetag item", ruleForm.pricetag_item);
       ruleForm.pricetag_condition = pricetagEdit.pricetag_condition;
       ruleForm.location = pricetagEdit.location;
+      ruleForm.pic_id = pricetagEdit.pic_id;
+      ruleForm.pic_name = pricetagEdit.pic_name;
+      ruleForm.pic_version = pricetagEdit.pic_version;
+      ruleForm.subject = pricetagEdit.subject;
 
       pricetagEdit.pricetag_condition.forEach((value) => {
         if (value.variable_pricetag?.name == VariablePriceTag.KONTAK) {
@@ -1285,11 +2199,27 @@ const fetchInitialData = async () => {
 
         // initialSpecialPrice();
       });
+
+      fileList.value = pricetagEdit.files.map((file: AppFile) => ({
+        name: file.filename_original || "",
+        url: `${baseImageURL}${file.image_path}/${file.filename}`,
+        // status: 'success', // status penting untuk menunjukkan file sudah terupload
+        // response: file, // simpan response original jika diperlukan
+      }));
+
+      references.value = (
+        pricetagEdit.reference_transaction_adjustment ?? []
+      ).map((ref) => ({
+        ...ref,
+        adjustment: ref.adjustments_transaction,
+      }));
+      console.log("reference", references.value);
+      termOfPayments.value = pricetagEdit.payment_terms ?? [];
     }
   } catch (error: any) {
     ElMessage.error(`${error.response?.message ?? error}`);
   } finally {
-    loading.value = false;
+    loadingGetEditData.value = false;
   }
 };
 
@@ -1305,32 +2235,91 @@ const fetchCanvassing = async () => {
 
     if (response.status.value == "success") {
       const canvassing: Canvassing | null = response.data.value?.data ?? null;
-
-      if (canvassing != null) {
+      console.log("data RAB", canvassing);
+      if (canvassing) {
         ruleForm.reference = ReferencePriceTag.CANVASSING;
         ruleForm.reference_id = canvassing.unique_id;
         ruleForm.reference_version = canvassing.version;
         ruleForm.start_date_view = (Date.now() / 1000).toString();
         ruleForm.type = "out";
+        ruleForm.to_id = canvassing.source?.request_to?.unique_id;
+        ruleForm.to_name = canvassing.source?.request_to?.name;
+        ruleForm.to_version = canvassing.source?.request_to?.version;
 
-        ruleForm.pricetag_item = canvassing.canvassing_item.map((item) => ({
-          unique_id: null,
-          tag_id: null,
-          catalogue: item.catalogue ?? null,
-          catalogue_id: item.catalogue_id,
-          inventory_id: "",
-          inventory: null,
-          price: item.unit_selling_price,
-          is_new: true,
-          unit_id: item.unit_id,
-          unit_name: item.unit_name,
-          unit_version: item.unit_version,
-          sn: item.catalogue?.sn ?? "N/A",
-          checked: false,
-          item_name: item.catalogue?.name ?? "",
-          quantity: item.quantity,
-          fileUploads: [],
+        if (canvassing.source) {
+          ruleForm.pic_id = canvassing.source?.request_by?.unique_id;
+          ruleForm.pic_name = canvassing.source?.request_by?.name;
+          ruleForm.pic_version = canvassing.source?.request_by?.version;
+        }
+        ruleForm.pricetag_item = [];
+        canvassing.canvassing_item.forEach((element) => {
+          element.canvassing_vendor.forEach((cvendor) => {
+            if (cvendor.status == CanvassingVendorStatus.SELECTED) {
+              // console.log(
+              //   "canvassing vendor selected",
+              //   cvendor.catalogue?.name
+              // );
+
+              ruleForm.pricetag_item.push({
+                unique_id: null,
+                tag_id: null,
+                catalogue: cvendor.catalogue ?? null,
+                catalogue_id: cvendor.catalogue_id,
+                inventory_id: "",
+                inventory: null,
+                price: element.unit_selling_price,
+                displayPrice: formatCurrencyID(element.unit_selling_price),
+                is_new: true,
+                unit_id: cvendor.unit_id,
+                unit_name: cvendor.unit_name,
+                unit_version: cvendor.unit_version,
+                sn: cvendor.catalogue?.sn ?? "N/A",
+                checked: false,
+                item_name: cvendor.catalogue?.name ?? "",
+                quantity: 1,
+                fileUploads: [],
+              });
+            }
+          });
+        });
+
+        references.value = (canvassing.reference_transaction ?? []).map(
+          (ref) => ({
+            ...ref,
+            unique_id: "",
+            reference: ReferenceAdjustment.OFFER,
+            adjustment: ref.adjustments_transaction,
+          })
+        );
+
+        termOfPayments.value = (canvassing.payment_terms ?? []).map((ref) => ({
+          ...ref,
+          unique_id: "",
+          reference: TermOfPaymentReference.OFFER,
+          unique_code: "",
         }));
+        console.log("payment terms", termOfPayments.value);
+        // console.log("references", canvassing.reference_transaction);
+
+        // ruleForm.pricetag_item = canvassing.canvassing_item.map((item) => ({
+        //   unique_id: null,
+        //   tag_id: null,
+        //   catalogue: item.catalogue ?? null,
+        //   catalogue_id: item.catalogue_id,
+        //   inventory_id: "",
+        //   inventory: null,
+        //   price: item.unit_selling_price,
+        //   displayPrice: formatCurrencyID(item.unit_selling_price),
+        //   is_new: true,
+        //   unit_id: item.unit_id,
+        //   unit_name: item.unit_name,
+        //   unit_version: item.unit_version,
+        //   sn: item.catalogue?.sn ?? "N/A",
+        //   checked: false,
+        //   item_name: item.catalogue?.name ?? "",
+        //   quantity: 1,
+        //   fileUploads: [],
+        // }));
 
         contact_condition.value.push({
           operation: "is_equal",
@@ -1363,7 +2352,7 @@ const fetchCanvassing = async () => {
   }
 };
 
-const getSetting = () => {
+const initialSetting = () => {
   const store = localStorage.getItem("setting");
   if (store) {
     const setting: {
@@ -1371,27 +2360,37 @@ const getSetting = () => {
       address: AddressType;
     } = JSON.parse(store);
     console.log("type", ruleForm.type);
-    ruleForm.to = setting.company;
-    ruleForm.to_id = setting.company.unique_id;
-    ruleForm.to_version = setting.company.version;
-    ruleForm.to_name = setting.company.name;
+    if (ruleForm.type == "in") {
+      ruleForm.to = setting.company;
+      ruleForm.to_id = setting.company.unique_id;
+      ruleForm.to_version = setting.company.version;
+      ruleForm.to_name = setting.company.name;
+    } else {
+      ruleForm.owner = setting.company;
+      ruleForm.owner_id = setting.company.unique_id;
+      ruleForm.owner_name = setting.company.name;
+    }
 
     console.log("rule form", ruleForm);
   }
 };
 
 onMounted(() => {
+  loadingGetEditData.value = false;
   if (canvassing_id.value) {
     fetchCanvassing();
   }
 
-  const unique_id = useCookie("tag_id");
-
-  if (unique_id.value) {
+  if (id.value) {
     fetchInitialData();
   } else {
-    // initialSpecialPrice();
-    getSetting();
+    initialSetting();
   }
 });
 </script>
+
+<style scoped>
+:deep(.form-bulk) {
+  margin-bottom: 0px !important;
+}
+</style>

@@ -36,7 +36,7 @@
   <div class="flex justify-end mt-3">
     <el-pagination
       background
-      layout="prev, pager, next"
+      layout="prev, pager, next, sizes, total"
       :total="data?.total_data"
       @current-change="handlePageChange"
       @size-change="handleSizeChange"
@@ -169,34 +169,28 @@ const availableColumn: Column<ItemRequest>[] = [
     ),
   },
   {
-    title: "Diminta oleh",
-    dataKey: "request_by",
-    key: "request_by",
-    width: 200,
+    title: "Nama Item",
+    dataKey: "catalogue_name",
+    key: "catalogue_name",
+    width: 300,
     fixed: true,
     cellRenderer: ({ rowData }: { rowData: ItemRequest }) => (
-      <p>{rowData.inquiry?.request_by?.name ?? ""}</p>
+      <p>{rowData.catalogue_name ?? "Tidak Ada"}</p>
     ),
   },
   {
     title: "Ditujukan Untuk",
     dataKey: "request_to",
     key: "request_to",
-    width: 300,
-    fixed: true,
+    width: 400,
+
     cellRenderer: ({ rowData }: { rowData: ItemRequest }) => (
-      <p>{rowData.inquiry?.request_to?.name ?? "Tidak Ada"}</p>
+      <p>{`${rowData.inquiry?.request_to?.name} (${
+        rowData.inquiry?.request_by?.name ?? "N/A"
+      })`}</p>
     ),
   },
-  {
-    title: "Nama Item",
-    dataKey: "catalogue_name",
-    key: "catalogue_name",
-    width: 300,
-    cellRenderer: ({ rowData }: { rowData: ItemRequest }) => (
-      <p>{rowData.catalogue_name ?? "Tidak Ada"}</p>
-    ),
-  },
+
   {
     title: "SN/PN Number",
     dataKey: "sn",

@@ -10,21 +10,26 @@ export function safePercent(a: any, b: any): string {
   return isFinite(result) ? result.toFixed(2) : "0.00";
 }
 
-
-export function displayAmount(ref: any, multiplier: number){
+export function displayAmount(ref: any, multiplier: number) {
   if (ref.type === "percent") {
-    return (multiplier || 0) * (ref.amount / 100)
-  }else{
+    return (multiplier || 0) * (ref.amount / 100);
+  } else {
     return ref.amount;
   }
+}
+
+export function percentToNominal(value: number, multiplier: number) {
+  return multiplier * (value / 100);
+}
+export function nominalToPercent(value: number, multiplier: number) {
+  return (value / multiplier) * 100;
 }
 
 export function displayPercentage(ref: any, multiplier: number): Number {
   console.log(ref);
   if (ref.type === "amount") {
-    return (ref.amount / multiplier)||0 * 100
-  }else{
+    return ref.amount / multiplier || 0 * 100;
+  } else {
     return ref.amount;
   }
-  
 }

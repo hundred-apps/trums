@@ -54,16 +54,16 @@
           >
             Batalkan Pengajuan
           </el-button>
-          <NuxtLink
+          <el-button
             v-if="
               canvassingData?.status ===
                 CanvassingStatus.PENDING_APPROVAL_RAB && editState == false
             "
-            class="el-button el-button--success el-button--default"
-            :href="`/sales/quotation/add?id=${canvassingData?.unique_id}`"
+            type="success"
+            @click="approveWithCreateRAB"
           >
             <el-icon class="me-2"><CircleCheck /></el-icon> Approve dan Buat RAB
-          </NuxtLink>
+          </el-button>
 
           <!-- <NuxtLink
             :href="`sales/quotation/add?id=${canvassingData.unique_id}`"
@@ -113,7 +113,7 @@
 
       <div class="flex gap-3 my-3">
         <div class="flex-1">
-          <el-descriptions title="" :column="1" size="large" border>
+          <el-descriptions title="" :column="1" size="default" border>
             <el-descriptions-item label="Canvassing Code">
               {{ canvassingData?.unique_code || "-" }}
             </el-descriptions-item>
@@ -126,34 +126,31 @@
           </el-descriptions>
         </div>
         <div class="flex-1">
-          <el-descriptions title="" :column="1" size="large" border>
+          <el-descriptions title="" :column="1" size="default" border>
             <el-descriptions-item
               v-if="canvassingData?.source"
               label="Diminta Oleh"
             >
               {{ canvassingData?.source?.request_to?.name ?? "-" }}
             </el-descriptions-item>
-            <el-descriptions-item label="Status">
-              <div v-if="canvassingData">
-                <el-tag :type="getStatusTagType(canvassingData.status)">
-                  {{ formatStatus(canvassingData.status) }}
-                </el-tag>
-              </div>
-              <span v-else>-</span>
-            </el-descriptions-item>
+
             <el-descriptions-item v-if="canvassingData?.source" label="PIC">
               {{ canvassingData?.source?.request_by?.name ?? "-" }}
+            </el-descriptions-item>
+            <el-descriptions-item label="Dikirim Ke">
+              <div v-if="canvassingData">
+                {{
+                  generateResultSearchAddress(canvassingData?.address ?? null)
+                    .street
+                }}
+              </div>
+              <span v-else>-</span>
             </el-descriptions-item>
           </el-descriptions>
         </div>
       </div>
 
-      <el-descriptions title="Dikirim Ke">
-        <el-descriptions-item label="">{{
-          generateResultSearchAddress(canvassingData?.address ?? null).street
-        }}</el-descriptions-item>
-      </el-descriptions>
-      <h5 class="font-bold text-black text-1xl mt-6">Lampiran</h5>
+      <h5 class="font-bold text-black text-md mt-6">Lampiran</h5>
       <div v-for="(file, key) in canvassingData?.files" :key="key">
         <NuxtLink
           class="text-blue-600 text-sm"
@@ -164,172 +161,7 @@
       </div>
     </el-card>
 
-    <el-card
-      class="mb-3"
-      shadow="never"
-      v-if="
-        statusRAB().includes(
-          canvassingData?.status ?? CanvassingStatus.DRAFT
-        ) || editState
-      "
-    >
-      <template #header>
-        <div class="card-header flex justify-between items-center">
-          <p>Penerima Fee</p>
-        </div>
-      </template>
-      <el-table :data="contactsFee" style="width: 100%" border>
-        <el-table-column label="Nama">
-          <template #default="{ row, $index }">
-            <el-autocomplete
-              v-if="editState"
-              v-model="row.party.name"
-              :fetch-suggestions="querySearchContact"
-              placeholder="Cari nama..."
-              @select="(item: any) => onHandleSelectContact(item, $index)"
-              style="width: 100%"
-            />
-            <div v-else-if="!editState">{{ row.party.name }}</div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="Email">
-          <template #default="{ row }">
-            <el-input
-              v-if="editState"
-              v-model="row.party.email"
-              placeholder="Email"
-            />
-            <div v-else-if="!editState">{{ row.party.email }}</div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="No. Telepon">
-          <template #default="{ row }">
-            <el-input
-              v-if="editState"
-              v-model="row.party.phone"
-              placeholder="Phone"
-            />
-            <div v-else-if="!editState">{{ row.party.phone }}</div>
-          </template>
-        </el-table-column>
-
-        <el-table-column :label="`Fee`">
-          <template #default="{ row }">
-            {{
-              row.type == "percent" ? row.amount + "%" : currency(row.amount)
-            }}
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
-
     <el-card class="mb-3" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span>Canvassing Items</span>
-        </div>
-      </template>
-
-      <div
-        v-if="editState"
-        class="bulk-actions mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50"
-      >
-        <div class="flex flex-wrap gap-4 items-end">
-          <!-- Bulk Profit -->
-          <div class="bulk-input-group">
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >Profit</label
-            >
-            <div class="flex gap-2">
-              <el-input
-                v-model="bulkProfit"
-                placeholder="Profit"
-                size="default"
-                style="width: 200px"
-              >
-                <template #append>
-                  <el-select
-                    v-model="bulkProfitUnit"
-                    size="default"
-                    style="width: 70px"
-                  >
-                    <el-option label="%" value="percent" />
-                    <el-option label="Rp" value="amount" />
-                  </el-select>
-                </template>
-              </el-input>
-            </div>
-          </div>
-
-          <!-- Bulk Fee -->
-          <div class="bulk-input-group">
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >Fee</label
-            >
-            <div class="flex gap-2">
-              <el-input
-                v-model="bulkFee"
-                placeholder="Fee"
-                size="default"
-                style="width: 200px"
-                :disabled="feeState === 'minus'"
-              >
-                <template #append>
-                  <el-select
-                    v-model="bulkFeeUnit"
-                    size="default"
-                    style="width: 70px"
-                  >
-                    <el-option label="%" value="percent" />
-                    <el-option label="Rp" value="amount" />
-                  </el-select>
-                </template>
-              </el-input>
-            </div>
-          </div>
-
-          <!-- Bulk Ongkir -->
-          <div class="bulk-input-group">
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >Ongkir</label
-            >
-            <div class="flex gap-2">
-              <el-input
-                v-model="bulkOngkir"
-                placeholder="Ongkir"
-                size="default"
-                style="width: 200px"
-              >
-                <template #append>
-                  <span class="px-2 text-xs">Rp</span>
-                </template>
-              </el-input>
-            </div>
-          </div>
-
-          <!-- Apply All Button -->
-          <div class="bulk-input-group">
-            <el-button
-              type="primary"
-              size="default"
-              @click="applyAllBulk"
-              :disabled="!hasBulkInput"
-            >
-              Terapkan Semua
-            </el-button>
-          </div>
-
-          <!-- Reset All -->
-          <div class="bulk-input-group">
-            <el-button type="danger" size="default" @click="resetAllBulk" plain>
-              Reset All
-            </el-button>
-          </div>
-        </div>
-      </div>
-
       <el-table
         ref="tableRef"
         :data="item_canvassing"
@@ -341,27 +173,12 @@
         :expand-row-keys="getExpandRowKeys ?? []"
         border
       >
-        <el-table-column
-          v-if="
-            statusRAB().includes(
-              canvassingData?.status ?? CanvassingStatus.DRAFT
-            ) || editState
-          "
-          prop="item_name"
-          label="Item"
-          width="500"
-          fixed="left"
-        >
+        <el-table-column prop="item_name" label="Item" width="500" fixed="left">
           <template #default="{ row }">
             {{ row.catalogue_name }}
           </template>
         </el-table-column>
-        <el-table-column v-else prop="item_name" label="Item" fixed="left">
-          <template #default="{ row }">
-            {{ row.catalogue_name }}
-          </template>
-        </el-table-column>
-
+        <!-- 
         <el-table-column
           prop="type_item"
           label="Item Type"
@@ -384,32 +201,11 @@
           </template>
         </el-table-column>
 
-        <el-table-column
-          prop="status"
-          v-if="
-            canvassingData?.status == CanvassingStatus.PENDING_APPROVAL ||
-            canvassingData?.status == CanvassingStatus.DONE
-          "
-          label="Status"
-          width="130"
-          fixed="left"
-          align="center"
-        >
-          <template #default="{ row }">
-            <div v-if="row.type === 'child'">
-              <el-tag :type="getStatusTagTypeItem(row.status)">
-                {{ getStatusTabLabelItem(row.status) }}
-              </el-tag>
-            </div>
-            <div v-else-if="row.type === 'parent'"></div>
-          </template>
-        </el-table-column>
-
         <el-table-column prop="sn" label="SN/PN" width="150">
           <template #default="{ row }">
             {{ row.sn ?? "N/A" }}
           </template>
-        </el-table-column>
+        </el-table-column> -->
         <el-table-column prop="qty" label="Qty" width="78">
           <template #default="{ row }">
             {{ row.quantity }}
@@ -420,89 +216,41 @@
             {{ row.unit_name }}
           </template>
         </el-table-column>
-        <el-table-column prop="vendor" label="Vendor" width="200">
-          <template #default="{ row }">
-            {{ row.vendor_name }}
-          </template>
-        </el-table-column>
 
         <el-table-column label="Harga Beli" width="300" align="center">
           <el-table-column label="Harga" width="150" align="center">
             <template #default="{ row }">
-              <div v-if="row.type === 'child'" class="text-right">
-                {{ currency(row.unit_price) }}
-              </div>
+              {{ currency(row.unit_price) }}
             </template>
           </el-table-column>
           <el-table-column label="Total" width="150" align="center">
             <template #default="{ row }">
-              <div v-if="row.type === 'child'" class="text-right">
-                {{ currency(Number(row.unit_price) * Number(row.quantity)) }}
-              </div>
+              {{ currency(row.total_price) }}
             </template>
           </el-table-column>
         </el-table-column>
 
-        <el-table-column
-          v-if="
-            statusRAB().includes(
-              canvassingData?.status ?? CanvassingStatus.DRAFT
-            ) || editState
-          "
-          label="Profit"
-          width="200"
-        >
+        <el-table-column label="Profit" width="200">
           <template #default="{ row }">
-            <div v-if="row.type == 'child'">
-              {{
-                `${currency(Math.round(row.profit_nominal || 0))} (${
-                  row.profit
-                } %)`
-              }}
-            </div>
+            {{
+              `${currency(Math.round(row.profit_nominal || 0))} (${
+                row.profit
+              } %)`
+            }}
           </template>
         </el-table-column>
-        <el-table-column
-          v-if="
-            statusRAB().includes(
-              canvassingData?.status ?? CanvassingStatus.DRAFT
-            ) || editState
-          "
-          label="Fee"
-          width="200"
-        >
+        <el-table-column label="Fee" width="200">
           <template #default="{ row }">
-            <div v-if="row.type === 'child'">
-              {{ `${row.fee_nominal || 0} (${row.fee} %)` }}
-            </div>
+            {{ `${row.fee_nominal || 0} (${row.fee} %)` }}
           </template>
         </el-table-column>
-        <el-table-column
-          v-if="
-            statusRAB().includes(
-              canvassingData?.status ?? CanvassingStatus.DRAFT
-            ) || editState
-          "
-          label="Ongkir"
-          width="200"
-        >
+        <el-table-column label="Ongkir" width="200">
           <template #default="{ row }">
-            <div v-if="row.type === 'child'">
-              {{ `${row.ongkir_nominal || 0} (${row.ongkir} %)` }}
-            </div>
+            {{ `${row.ongkir_nominal || 0} (${row.ongkir} %)` }}
           </template>
         </el-table-column>
 
-        <el-table-column
-          v-if="
-            statusRAB().includes(
-              canvassingData?.status ?? CanvassingStatus.DRAFT
-            ) || editState
-          "
-          label="Harga Jual"
-          width="200"
-          align="center"
-        >
+        <el-table-column label="Harga Jual" width="200" align="center">
           <el-table-column label="Harga Jual" width="150" align="center">
             <template #default="{ row }">
               <div class="text-right">
@@ -519,19 +267,44 @@
           </el-table-column>
         </el-table-column>
 
-        <el-table-column
-          v-if="
-            statusRAB().includes(
-              canvassingData?.status ?? CanvassingStatus.DRAFT
-            ) || editState
-          "
-          label="Margin (%)"
-          width="150"
-        >
+        <el-table-column label="Margin (%)" width="150">
           <template #default="{ row }">
-            <div v-if="row.type === 'child' && row.unit_price">
-              {{ calculateMargin(row).toFixed(2) }} %
-            </div>
+            {{ calculateMargin(row).toFixed(2) }} %
+          </template>
+        </el-table-column>
+      </el-table>
+    </el-card>
+
+    <el-card class="mb-3" shadow="never">
+      <template #header>
+        <div class="card-header flex justify-between items-center">
+          <p>Penerima Fee</p>
+        </div>
+      </template>
+      <el-table :data="contactsFee" style="width: 100%" border>
+        <el-table-column label="Nama">
+          <template #default="{ row, $index }">
+            <div>{{ row.party.name }}</div>
+          </template>
+        </el-table-column>
+
+        <el-table-column label="Email">
+          <template #default="{ row }">
+            {{ row.party.email }}
+          </template>
+        </el-table-column>
+
+        <el-table-column label="No. Telepon">
+          <template #default="{ row }">
+            {{ row.party.phone }}
+          </template>
+        </el-table-column>
+
+        <el-table-column :label="`Fee`">
+          <template #default="{ row }">
+            {{
+              row.type == "percent" ? row.amount + "%" : currency(row.amount)
+            }}
           </template>
         </el-table-column>
       </el-table>
@@ -2504,8 +2277,6 @@ const tableRowClassName = ({
   if (row.type_item != "request" && row.type_item != "equivalent") {
     if (row.status === CanvassingVendorStatus.SELECTED) {
       return "success-row";
-    } else if (row.status === CanvassingVendorStatus.SUBMITTED) {
-      return "primary-row";
     }
   }
   return "";
@@ -2891,9 +2662,24 @@ const initialCanvassing = (data: Canvassing) => {
   });
 
   item_canvassing.value.forEach((parent) => {
-    console.log("child", parent.children);
-    // setProfit(parent);
+    parent.children.forEach((child) => {
+      if (child.selling_price == parent.selling_price) {
+        parent.unit_price = child.unit_price;
+        parent.total_price = child.total_price;
+        parent.profit = child.profit;
+        parent.profit_nominal = child.profit_nominal;
+        parent.profit_unit = child.profit_unit;
+        parent.fee = child.fee;
+        parent.fee_nominal = child.fee_nominal;
+        parent.fee_unit = child.fee_unit;
+        parent.ongkir = child.ongkir;
+        parent.ongkir_nominal = child.ongkir_nominal;
+        parent.ongkir_unit = child.ongkir_unit;
+      }
+    });
   });
+
+  // item_canvassing.value.forEach((item) => (item.children = []));
 
   fetchPriceTagWithItems();
 };
@@ -3287,11 +3073,11 @@ const submitApproveRab = async (status: CanvassingStatus) => {
         );
         formData.append(
           `canvassing_items[${i}][canvassing_vendor][${j}][unit_id]`,
-          `${item.unit_id}`
+          `${vendor.unit_id}`
         );
         formData.append(
           `canvassing_items[${i}][canvassing_vendor][${j}][unit_name]`,
-          `${item.unit_name}`
+          `${vendor.unit_name}`
         );
         formData.append(
           `canvassing_items[${i}][canvassing_vendor][${j}][total_price]`,
@@ -3326,7 +3112,7 @@ const submitApproveRab = async (status: CanvassingStatus) => {
           `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
           `${
             vendor.checked
-              ? CanvassingVendorStatus.SELECTED
+              ? CanvassingVendorStatus.SUBMITTED
               : CanvassingVendorStatus.REJECTED
           }`
         );

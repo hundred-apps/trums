@@ -10,7 +10,10 @@
       <template #header>
         <div class="card-header">
           <el-form-item>
-            <el-button type="primary" @click="submitForm(ruleFormRef)"
+            <el-button
+              type="primary"
+              :loading="loading"
+              @click="submitForm(ruleFormRef)"
               >Simpan</el-button
             >
             <el-button @click="resetForm(ruleFormRef)">Reset</el-button>
@@ -125,7 +128,7 @@
                 {{ ruleForm.inquiry.location?.name ?? "Tidak Ada" }}
               </el-descriptions-item>
               <el-descriptions-item label="Diminta Oleh">
-                {{ ruleForm.inquiry?.request_by?.name ?? "-" }}
+                {{ ruleForm.inquiry?.request_to?.name ?? "-" }}
               </el-descriptions-item>
             </el-descriptions>
           </div>
@@ -474,14 +477,7 @@
 
         <el-table-column prop="sn" label="SN/PN" width="150">
           <template #default="{ row }">
-            <div v-if="row.type == 'parent' && row.type_item == 'request'">
-              {{ row.sn }}
-            </div>
-            <el-input
-              v-else
-              v-model="row.sn"
-              placeholder="Please Input SN/PN"
-            />
+            {{ row.sn }}
           </template>
         </el-table-column>
         <el-table-column prop="qty" label="QTY" width="200">
@@ -500,47 +496,26 @@
         </el-table-column>
         <el-table-column prop="unit_name" label="UOM" width="100">
           <template #default="{ row }">
-            <div v-if="row.type == 'parent' && row.type_item == 'request'">
-              {{ row.unit_name }}
-            </div>
-            <el-autocomplete
-              v-else
-              :fetch-suggestions="querySearchUnit"
-              v-model="row.unit_name"
-              placeholder="Input Units"
-              @select="(item: Record<string, any>) => handleSelectUnit(item, row.index, row)"
-            />
+            {{ row.unit_name }}
           </template>
         </el-table-column>
         <el-table-column prop="vendor" label="Vendor" width="200">
           <template #default="{ row }">
-            <div v-if="row.type == 'parent'">
-              {{ row.vendor_name }}
-            </div>
-            <div v-else>
-              <el-autocomplete
-                v-model="row.vendor_name"
-                :fetch-suggestions="querySearchContact"
-                placeholder="Cari vendor"
-                @select="(item) => onHandleSelectVendor(item, row.index)"
-                style="width: 100%"
-              />
-            </div>
+            {{ row.vendor_name }}
           </template>
         </el-table-column>
 
-        <el-table-column label="Harga" width="200">
-          <template #default="{ row }">
-            <div v-if="row.type === 'parent'">
+        <el-table-column label="Harga Beli" width="400" align="center">
+          <el-table-column label="Harga Beli" width="200">
+            <template #default="{ row }">
               {{ currency(row.unit_price) }}
-            </div>
-            <el-input
-              v-else
-              v-model="row.unit_price"
-              placeholder="Masukan Harga"
-              @change="(value) => setProfit(row)"
-            />
-          </template>
+            </template>
+          </el-table-column>
+          <el-table-column label="Total Harga" width="200">
+            <template #default="{ row }">
+              {{ currency(row.total_price) }}
+            </template>
+          </el-table-column>
         </el-table-column>
 
         <el-table-column label="Profit" width="200">
@@ -639,34 +614,46 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="Harga Jual" width="200">
-          <template #default="{ row }">
-            <div v-if="row.type === 'child'">
-              {{ currency(row.selling_price ?? 0) }}
-            </div>
-            <div v-else>
-              <el-input-number
-                v-model="row.selling_price"
-                :min="0"
-                @change="setProfit(row)"
-                placeholder="Harga Jual"
-              />
-            </div>
-          </template>
+        <el-table-column label="Harga Jual" width="400">
+          <el-table-column label="Harga Jual" width="200">
+            <template #default="{ row }">
+              <div v-if="row.type === 'parent'">
+                {{ currency(row.selling_price) }}
+              </div>
+              <div v-else class="flex">
+                <el-radio-group
+                  v-model="item_canvassing[row.parent_index].tmp_child_selected"
+                >
+                  <el-radio
+                    size="default"
+                    @change="
+                      (val) =>
+                        calculateSellingPriceSelected(row, row.parent_index)
+                    "
+                    :value="row.index"
+                  >
+                    &nbsp;
+                  </el-radio>
+                </el-radio-group>
+                <el-input-number
+                  v-model="row.selling_price"
+                  :min="0"
+                  @change="setProfit(row)"
+                  placeholder="Harga Jual"
+                />
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="Total Harga" width="200">
+            <template #default="{ row }">
+              {{ currency(row.total_selling_price) }}
+            </template>
+          </el-table-column>
         </el-table-column>
-
         <el-table-column label="Margin (%)" width="150">
           <template #default="{ row }">
             <div v-if="row.type === 'child' && row.unit_price">
               {{ calculateMargin(row).toFixed(2) }} %
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="Subtotal" width="200">
-          <template #default="{ row }">
-            <div v-if="row.type === 'parent'">
-              {{ currency(row.total_price) }}
             </div>
           </template>
         </el-table-column>
@@ -844,12 +831,12 @@
         </el-table-column>
 
         <el-table-column label="Aksi" width="60">
-          <template #default="{ $index }">
+          <template #default="{ row }">
             <el-button
               type="danger"
               :icon="Delete"
               circle
-              @click="() => removePaymentTerm($index)"
+              @click="() => removePaymentTerm(row)"
             />
           </template>
         </el-table-column>
@@ -867,22 +854,17 @@
             <div class="font-bold">{{ row.label }}</div>
           </template>
         </el-table-column>
-        <el-table-column
-          label="Profit Maximum"
-          prop="max"
-          width="200"
-          align="right"
-        />
-        <el-table-column label="" prop="beli" />
-        <el-table-column label="" prop="jual" />
-        <el-table-column
-          label="Profit Minimum"
+        <el-table-column label="Profit" prop="max" align="right" />
+        <el-table-column label="% Beli" prop="beli" width="200" align="right" />
+        <el-table-column label="% Jual" prop="jual" width="200" align="right" />
+        <!-- <el-table-column
+          label="Profit"
           prop="min"
           width="200"
           align="right"
         />
-        <el-table-column label="" prop="beliMin" />
-        <el-table-column label="" prop="jualMin" />
+        <el-table-column label="% Beli" prop="beliMin" />
+        <el-table-column label="% Jual" prop="jualMin" /> -->
       </el-table>
     </el-card>
 
@@ -895,14 +877,44 @@
       :search-params="querySearchAdjustmentTransaction"
     />
 
-    <ModalRequest
+    <el-dialog
+      v-model="visibleModalRequest"
+      title="Cari Permintaan"
+      width="1000"
+    >
+      <el-tabs type="border-card">
+        <el-tab-pane label="RFQ">
+          <TableSelectionRFQ
+            :data="inquiry?.data ?? []"
+            :search-params="request_search_inquiry"
+            :total-data="inquiry?.total_data ?? 0"
+            @select-request="addToForm"
+          />
+        </el-tab-pane>
+        <el-tab-pane label="Canvassing"
+          ><TableSelectionCanvassing
+            :fetch-key="'fetch-canvassing'"
+            :request_search="request_search_canvassing"
+            :refresh-trigger="refreshTriggerCanvassing"
+            @select-canvassing="
+              (val) => {
+                setDataEdit(val);
+                visibleModalRequest = false;
+              }
+            "
+            :type="'CANASSING'"
+        /></el-tab-pane>
+      </el-tabs>
+    </el-dialog>
+
+    <!-- <ModalRequest
       v-model:visible="visibleModalRequest"
       :search-params="request_search_inquiry"
       :data="inquiry?.data ?? []"
       :total-data="inquiry?.total_data ?? 0"
       @select-request="addToForm"
       @pagination-change="paginationClick"
-    />
+    /> -->
 
     <ModalSearchItemExample
       v-model:visible="visibleModalSearchItemExample"
@@ -1033,6 +1045,9 @@ import {
   type TermOfPayment,
 } from "~/types/payment_term";
 
+import TableSelectionRFQ from "~/components/trums/TableSelectionRFQ.vue";
+import TableSelectionCanvassing from "~/components/trums/TableSelectionCanvassing.vue";
+
 definePageMeta({
   middleware: ["auth", "check-access"],
   requiredPermission: "canvassing-create",
@@ -1100,6 +1115,18 @@ const payment_terms = ref<TermOfPayment[]>([
   },
 ]);
 
+const summeryView = ref<
+  {
+    label: string;
+    max: string;
+    beli: string;
+    jual: string;
+    min: string;
+    beliMin: string;
+    jualMin: string;
+  }[]
+>([]);
+
 // Bulk input data
 const bulkProfit = ref("");
 const bulkProfitUnit = ref("percent");
@@ -1132,6 +1159,24 @@ const request_search_inquiry = ref<RequestSearch>({
     order: OrderColumn.DESC,
   },
   table: "inquiries",
+  flag: "form",
+});
+
+const refreshTriggerCanvassing = ref<number>(0);
+const request_search_canvassing = ref<RequestSearch>({
+  column: [
+    {
+      status: [CanvassingStatus.PENDING_APPROVAL_RAB],
+    },
+  ],
+  keyword: "",
+  limit: "10",
+  offset: "1",
+  sort: {
+    column: "created_at",
+    order: OrderColumn.DESC,
+  },
+  table: "canvassing",
   flag: "form",
 });
 
@@ -1182,6 +1227,8 @@ const priceTagItem = await useFetchApi<ResponsePagination<Pricetag_item[]>>(
 );
 
 const inquiry = ref<ResponsePagination<Inquiry[]>>();
+const canvassing = ref<ResponsePagination<Canvassing[]>>();
+
 const querySearchAdjustmentTransaction = ref<RequestSearch>({
   keyword: "",
   table: "adjustments_transaction",
@@ -1204,14 +1251,10 @@ const adjustmentContact = computed(() => {
       value.operator === feeState.value
   );
 });
+
 const adjustmentOngkir = computed(() => {
   const data = adjustmentTransactions.data.value?.data || [];
-  console.log(
-    "data ongkir",
-    data.find((value: AdjustmentTransaction) =>
-      value.name?.toLowerCase().includes("ongkos kirim")
-    )
-  );
+
   return data.find((value: AdjustmentTransaction) =>
     value.name?.toLowerCase().includes("ongkos kirim")
   );
@@ -1222,56 +1265,30 @@ const pricetagList = computed(() => {
   return list;
 });
 
-const adjustmentTransactionFeeTotal = computed(() => {
-  return {
-    unique_id: "",
-    reference: ReferenceAdjustment.CANVASSING,
-    reference_id: "",
-    adjustment_id: `${adjustmentContact.value?.unique_id}`,
-    adjustment: adjustmentContact.value,
-    value: null,
-    type: unitFee.value,
-    amount: contactsFee.value.reduce(
-      (sum, c) => Number(sum) + Number(c.amount || 0),
-      0
-    ),
-    created_at: 0,
-  };
+const adjustmentTransactionFeeTotal = ref<ReferenceTransactionAdjustment>({
+  unique_id: "",
+  reference: ReferenceAdjustment.CANVASSING,
+  reference_id: "",
+  adjustment_id: ``,
+  adjustment: undefined,
+  value: null,
+  type: unitFee.value,
+  amount: 0,
+  created_at: 0,
 });
 
 const adjustmentTransactionOngkirTotal = ref<ReferenceTransactionAdjustment>({
   unique_id: "",
   reference: ReferenceAdjustment.CANVASSING,
   reference_id: "",
-  adjustment_id: `${adjustmentOngkir.value?.unique_id}`,
-  adjustment: adjustmentOngkir.value,
+  adjustment_id: ``,
+  adjustment: undefined,
   value: null,
   type: FeeType.AMOUNT,
   amount: 0,
   created_at: 0,
   changeType: false,
 });
-
-watch(
-  adjustmentOngkir,
-  () => {
-    adjustmentTransactionOngkirTotal.value = {
-      unique_id: "",
-      reference: ReferenceAdjustment.CANVASSING,
-      reference_id: "",
-      adjustment_id: `${adjustmentOngkir.value?.unique_id}`,
-      adjustment: adjustmentOngkir.value,
-      value: null,
-      type: FeeType.AMOUNT,
-      amount: 0,
-      created_at: 0,
-      changeType: false,
-    };
-
-    console.log("adjustment ongkir", adjustmentTransactionOngkirTotal.value);
-  },
-  { immediate: true }
-);
 
 const updateAllFeeType = () => {
   contactsFee.value.map((value) => (value.type = unitFee.value));
@@ -1323,7 +1340,7 @@ const ruleForm = reactive<CanvassingForm>({
 const canvassingStatusOptions = [
   { value: CanvassingStatus.DRAFT, label: "Draft" },
   { value: CanvassingStatus.RAB, label: "RAB" },
-  { value: CanvassingStatus.PENDING_APPROVAL_RAB, label: "Pending Approval" },
+  { value: CanvassingStatus.PENDING_APPROVAL, label: "Pending Approval" },
   { value: CanvassingStatus.DONE, label: "Done" },
   { value: CanvassingStatus.CANCEL, label: "Cancel" },
 ];
@@ -1390,19 +1407,9 @@ const totalForGrossProfitForBuyingMin = computed(() => {
 const totalBuyingPrice = computed(() => {
   let total = 0;
   item_canvassing.value.forEach((element) => {
-    console.log("total", total);
-    if (element.children.length > 0) {
-      let dataMin = element.children.reduce((max, data) =>
-        data.unit_price < max.unit_price ? data : max
-      );
-      console.log(
-        "min price",
-        Number(dataMin.unit_price) * Number(element.quantity)
-      );
-      total += Number(dataMin.unit_price) * Number(element.quantity);
-    }
+    total += Number(element.total_price);
   });
-
+  // console.log("total", total);
   return total;
 });
 const totalBuyingPriceMin = computed(() => {
@@ -1414,10 +1421,6 @@ const totalBuyingPriceMin = computed(() => {
       let dataMin = element.children.reduce((max, data) =>
         data.unit_price > max.unit_price ? data : max
       );
-      console.log(
-        "data Min",
-        Number(dataMin.unit_price) * Number(element.quantity)
-      );
       total += Number(dataMin.unit_price) * Number(element.quantity);
     }
   });
@@ -1428,7 +1431,7 @@ const totalBuyingPriceMin = computed(() => {
 const grandTotal = computed(() => {
   return item_canvassing.value.reduce((acc, row: CanvassingItemForm) => {
     if (row.type === "parent") {
-      acc += Number(row.total_price || 0);
+      acc += Number(row.total_selling_price || 0);
     }
 
     return acc;
@@ -1886,6 +1889,7 @@ const addItemVendor = (row: CanvassingItemForm) => {
         quantity: item.quantity,
         unit_price: 0,
         total_price: 0,
+        total_selling_price: 0,
         status: CanvassingVendorStatus.SUBMITTED,
         taxes: [],
         editing: null,
@@ -1907,6 +1911,7 @@ const addItemVendor = (row: CanvassingItemForm) => {
           type: FeeType.PERCENT,
         })),
         equivalent_id: null,
+        parent_index: index,
       });
     }
   });
@@ -1942,6 +1947,7 @@ const addEquivalent = (row: CanvassingItemForm) => {
     quantity: item_canvassing.value[indexParent].quantity,
     unit_price: 0,
     total_price: 0,
+    total_selling_price: 0,
     status: CanvassingVendorStatus.SUBMITTED,
     taxes: [],
     editing: null,
@@ -2034,19 +2040,30 @@ const getProfit = (row: CanvassingItemForm) => {
 };
 
 const onChangeChild = (row: CanvassingItemForm) => {
-  if (row.type == "child") {
-    const parent = findParent(item_canvassing.value, row.index);
-    if (parent != null) {
-      setProfit(parent);
-    }
-  }
+  // if (row.type == "child") {
+  //   const parent = findParent(item_canvassing.value, row.index);
+  //   if (parent != null) {
+  //     setProfit(parent);
+  //   }
+  // }
+  setProfit(row);
+};
+
+const calculateSellingPriceSelected = (
+  row: CanvassingItemForm,
+  parentIndex: number
+) => {
+  item_canvassing.value[parentIndex].selling_price = row.selling_price;
+  item_canvassing.value[parentIndex].total_selling_price =
+    Number(row.selling_price) * Number(row.quantity);
+  item_canvassing.value[parentIndex].total_price = row.total_price;
 };
 
 const setProfit = (row: CanvassingItemForm) => {
-  const selling_price = Number(row.selling_price || 0);
-
+  // const selling_price = Number(child.selling_price || 0);
   if (row.type == "parent") {
     row.children.forEach((child) => {
+      const selling_price = Number(child.selling_price || 0);
       const hargaBeli = Number(child.unit_price || 0);
 
       let ongkirNominal =
@@ -2088,6 +2105,47 @@ const setProfit = (row: CanvassingItemForm) => {
 
       calculateSellingPrice(child);
     });
+  } else {
+    const selling_price = Number(row.selling_price || 0);
+    const hargaBeli = Number(row.unit_price || 0);
+
+    let ongkirNominal =
+      row.ongkir_unit === "percent"
+        ? (hargaBeli * row.ongkir) / 100
+        : Number(row.ongkir) || 0;
+
+    const selisih = selling_price - hargaBeli - ongkirNominal;
+
+    // ganti 100
+    let profit = 100;
+    let fee = 0;
+
+    if (row.fee_unit == "percent") {
+      fee = Number(row.fee);
+    } else {
+      fee = (Number(row.fee) / hargaBeli) * 100;
+    }
+
+    if (row.profit_unit == "amount") {
+      profit = (Number(row.profit) / hargaBeli) * 100;
+    }
+
+    let profitAndFee = profit + fee;
+
+    row.fee = fee;
+    row.fee_nominal =
+      (selisih * fee) / profitAndFee < 0 ? 0 : (selisih * fee) / profitAndFee;
+
+    row.profit_nominal = ((selisih < 0 ? 0 : selisih) * profit) / profitAndFee;
+
+    console.log("profit nominal", row.profit_nominal);
+
+    row.profit = Number(((row.profit_nominal / hargaBeli) * 100).toFixed(2));
+
+    // let newProfitAndFee = child.profit + fee;
+    // child.fee_nominal = selisih * fee / newProfitAndFee;
+
+    calculateSellingPrice(row);
   }
 };
 
@@ -2156,33 +2214,17 @@ const calculateSellingPrice = (row: CanvassingItemForm) => {
   let feeAmount = Number(row.fee_nominal);
   let ongkir = Number(row.ongkir || 0);
 
+  row.total_price = Number(row.unit_price) * Number(row.quantity);
+
   // Update harga jual
   row.selling_price = basePrice + profitAmount + feeAmount + ongkir;
-
-  console.log("basePrice", basePrice);
-  console.log("profit amount", profitAmount);
-  console.log("feeAmount", feeAmount);
-  console.log("ongir", ongkir);
 
   if (feeState.value === "plus") {
     // accumulateFee();
   }
   accumulateOngkir();
 
-  if (row.type == "child") {
-    const parent = findParent(item_canvassing.value, row.index);
-    if (parent) {
-      let selling_price = 0;
-      parent.children.forEach((element) => {
-        if (element.selling_price > selling_price) {
-          selling_price = element.selling_price;
-        }
-      });
-
-      parent.selling_price = selling_price;
-      parent.total_price = Number(selling_price) * Number(parent.quantity);
-    }
-  }
+  row.total_selling_price = Number(row.selling_price) * Number(row.quantity);
 };
 
 const removeItem = async (item: CanvassingItemForm) => {
@@ -2385,6 +2427,7 @@ const addToForm = (val: Inquiry) => {
       quantity: item.request_qty ?? 1,
       unit_price: 0,
       total_price: 0,
+      total_selling_price: 0,
       status: CanvassingVendorStatus.SUBMITTED,
       taxes: [],
       editing: null,
@@ -2445,8 +2488,8 @@ const removePaymentTerm = async (data: TermOfPayment) => {
     cancelButtonText: "Batal",
     type: "warning",
   });
-
-  if (data.unique_id) {
+  console.log("masuk", data);
+  if (!data.unique_id) {
     payment_terms.value = (payment_terms.value ?? []).filter(
       (term) => term.unique_id !== data.unique_id
     );
@@ -2478,6 +2521,7 @@ const addNewItem = () => {
     quantity: 1,
     unit_price: 0,
     total_price: 0,
+    total_selling_price: 0,
     status: CanvassingVendorStatus.SUBMITTED,
     taxes: [],
     editing: null,
@@ -2533,7 +2577,10 @@ const addToOfferVendor = (val: Pricetag_item[]) => {
       sn: item.catalogue?.sn ?? "",
       quantity: item_canvassing.value[getIndex].quantity,
       unit_price: item.price,
-      total_price: 0,
+      total_price:
+        Number(item.price) *
+        Number(item_canvassing.value[getIndex].quantity || 0),
+      total_selling_price: 0,
       status: CanvassingVendorStatus.SUBMITTED,
       taxes: [],
       editing: null,
@@ -2549,6 +2596,7 @@ const addToOfferVendor = (val: Pricetag_item[]) => {
       pricetag_item_id: item.unique_id ?? "",
       pricetag_item_version: item.version ?? 0,
       contacts_fee: contactsFee.value,
+
       equivalent_id: null,
     };
 
@@ -2922,6 +2970,8 @@ const onHandleSelectItemAutocompleteItem = async (
           item.quantity = 1;
         }
       });
+
+      item_canvassing.value.forEach((element) => setProfit(element));
     } else {
       item_canvassing.value.forEach((item) => {
         item.children.forEach((child) => {
@@ -2937,9 +2987,19 @@ const onHandleSelectItemAutocompleteItem = async (
             child.quantity = item.quantity;
             child.pricetag_item_id = selected.unique_id ?? "";
             child.pricetag_item_version = selected.version ?? 0;
+            child.total_price = Number(item.quantity) * Number(selected.price);
+            child.selling_price = child.unit_price;
+            child.total_selling_price = child.total_price;
+
+            console.log(
+              "total price",
+              Number(item.quantity) * Number(selected.price)
+            );
           }
         });
       });
+
+      item_canvassing.value.forEach((element) => setProfit(element));
     }
     fetchPriceTagWithItems();
   }
@@ -3229,161 +3289,183 @@ const fetchDataEdit = async () => {
 
     if (response.status.value === "success") {
       const canvasing: Canvassing | null = response.data.value?.data ?? null;
-      if (canvasing) {
-        address.value = canvasing.address;
-
-        // Populate form data
-        Object.assign(ruleForm, {
-          unique_id: canvasing.unique_id,
-          description: canvasing.description,
-          status: canvasing.status,
-          source_document: canvasing.source_document,
-          inquiry: canvasing.source,
-          payment_term: canvasing.payment_term,
-          tempo_value: canvasing.tempo_value,
-          tempo_unit: canvasing.tempo_unit,
-          address_id: canvasing.address_id,
-          address_view: generateResultSearchAddress(canvasing.address ?? null)
-            .name,
-        });
-
-        contactsFee.value = [];
-        (canvasing.reference_transaction ?? []).forEach((element) => {
-          if (element.party_type == PartyType.CONTACT) {
-            contactsFee.value.push(element);
-
-            if ((element.type as FeeType) === FeeType.AMOUNT) {
-              unitFee.value = FeeType.AMOUNT;
-            } else {
-              unitFee.value = FeeType.PERCENT;
-            }
-          }
-          if (
-            (element.adjustments_transaction?.name ?? "").toLowerCase() !==
-              "fee" &&
-            (element.adjustments_transaction?.name ?? "").toLowerCase() !==
-              "ongkos kirim"
-          ) {
-            references.value.push(element);
-          }
-
-          if (
-            (element.adjustments_transaction?.name ?? "").toLowerCase() ==
-            "ongkos kirim"
-          ) {
-            adjustmentTransactionOngkirTotal.value = element;
-            adjustmentTransactionOngkirTotal.value.adjustment =
-              element.adjustments_transaction;
-          }
-        });
-
-        payment_terms.value = canvasing.payment_terms ?? [];
-
-        canvasing.canvassing_item.forEach((value) => {
-          item_canvassing.value.push({
-            type_item: value.type_item,
-            index: `${value.unique_id}`,
-            canvassing_id: value.canvassing_id,
-            canvaasing_version: value.canvaasing_version,
-            item_request_trail_version: null,
-            item_request_trail_id: null,
-            unique_id: value.unique_id,
-            vendor_id: null,
-            vendor_name: "",
-            unit_id: value.unit_id,
-            unit_name: value.unit_name,
-            unit_version: 1,
-            offer_item_id: null,
-            offer_item_version: 0,
-            catalogue_id: value.catalogue_id ?? "",
-            parent_catalogue_id: "",
-            catalogue_name: value.catalogue_name ?? "",
-            sn: value.catalogue?.sn ?? "N/A",
-            quantity: value.quantity ?? 1,
-            unit_price: value.unit_selling_price,
-            total_price:
-              Number(value.quantity) * Number(value.unit_selling_price),
-            status: CanvassingVendorStatus.SUBMITTED,
-            taxes: [],
-            editing: null,
-            type: "parent",
-            children: value.canvassing_vendor.map((vendor) => ({
-              type_item: vendor.type_item,
-              index: `${vendor.unique_id}`,
-              canvassing_id: null,
-              canvaasing_version: null,
-              item_request_trail_version: null,
-              item_request_trail_id: null,
-              unique_id: vendor.unique_id,
-              vendor_id: vendor.vendor_id,
-              vendor_name: vendor.vendor?.name ?? "",
-              unit_id: vendor.unit_id,
-              unit_name: vendor.unit_name,
-              unit_version: vendor.unit_version,
-              offer_item_id: null,
-              offer_item_version: 0,
-              catalogue_id: vendor.catalogue_id ?? "",
-              parent_catalogue_id: "",
-              catalogue_name: vendor.catalogue?.name ?? "",
-              sn: vendor.catalogue?.sn ?? "N/A",
-              quantity: vendor.quantity ?? 1,
-              unit_price: vendor.unit_price,
-              total_price: Number(vendor.quantity) * Number(vendor.unit_price),
-              status: vendor.status,
-              taxes: [],
-              editing: null,
-              type: "child",
-              children: [],
-              selling_price: Number(vendor.selling_price || 0),
-              profit: vendor.profit,
-              profit_unit: vendor.profit_unit,
-              fee: vendor.fee,
-              fee_unit: vendor.fee_unit,
-              ongkir: vendor.ongkir,
-              ongkir_unit: vendor.ongkir_unit,
-              pricetag_item_id: vendor.pricetag_item_id ?? "",
-              pricetag_item_version: vendor.pricetag_item_version ?? "",
-              contacts_fee: [],
-              equivalent_id: vendor.equivalent_id ?? "",
-            })),
-            selling_price: value.unit_selling_price,
-            profit: 0,
-            profit_unit: "percent",
-            fee: 0,
-            fee_unit: "percent",
-            ongkir: 0,
-            ongkir_unit: "percent",
-            pricetag_item_id: "",
-            pricetag_item_version: 0,
-            contacts_fee: [],
-            equivalent_id: value.equivalent_id,
-          });
-        });
-
-        const equivalent: CanvassingItemForm[] = item_canvassing.value.filter(
-          (value) => value.type_item === "equivalent"
-        );
-
-        item_canvassing.value = item_canvassing.value.filter(
-          (value) => value.type_item !== "equivalent"
-        );
-
-        equivalent.forEach((element) => {
-          const indexParent = item_canvassing.value.findIndex(
-            (data) => data.unique_id === element.equivalent_id
-          );
-          if (indexParent >= 0) {
-            item_canvassing.value.splice(indexParent + 1, 0, element);
-          }
-        });
-
-        item_canvassing.value.forEach((element) => setProfit(element));
-      }
+      setDataEdit(canvasing);
     }
   } catch (error: any) {
     ElMessage.error(error);
   } finally {
     loading.value = false;
+  }
+};
+
+const setDataEdit = (dataCanvassing: Canvassing | null) => {
+  if (dataCanvassing) {
+    address.value = dataCanvassing.address;
+
+    // Populate form data
+    Object.assign(ruleForm, {
+      unique_id: dataCanvassing.unique_id,
+      description: dataCanvassing.description,
+      status: dataCanvassing.status,
+      source_document: dataCanvassing.source_document,
+      inquiry: dataCanvassing.source,
+      payment_term: dataCanvassing.payment_term,
+      tempo_value: dataCanvassing.tempo_value,
+      tempo_unit: dataCanvassing.tempo_unit,
+      address_id: dataCanvassing.address_id,
+      address_view: generateResultSearchAddress(dataCanvassing.address ?? null)
+        .name,
+    });
+
+    if (dataCanvassing.status == CanvassingStatus.PENDING_APPROVAL_RAB) {
+      ruleForm.status = CanvassingStatus.RAB;
+    }
+
+    contactsFee.value = [];
+    (dataCanvassing.reference_transaction ?? []).forEach((element) => {
+      if (element.party_type == PartyType.CONTACT) {
+        contactsFee.value.push(element);
+
+        if ((element.type as FeeType) === FeeType.AMOUNT) {
+          unitFee.value = FeeType.AMOUNT;
+        } else {
+          unitFee.value = FeeType.PERCENT;
+        }
+      }
+      if (
+        (element.adjustments_transaction?.name ?? "").toLowerCase() !== "fee" &&
+        (element.adjustments_transaction?.name ?? "").toLowerCase() !==
+          "ongkos kirim"
+      ) {
+        references.value.push(element);
+      }
+
+      if (
+        (element.adjustments_transaction?.name ?? "").toLowerCase() ==
+        "ongkos kirim"
+      ) {
+        adjustmentTransactionOngkirTotal.value = element;
+        adjustmentTransactionOngkirTotal.value.adjustment =
+          element.adjustments_transaction;
+      }
+    });
+
+    payment_terms.value = dataCanvassing.payment_terms ?? [];
+
+    dataCanvassing.canvassing_item.forEach((value, index) => {
+      item_canvassing.value.push({
+        type_item: value.type_item,
+        index: `${value.unique_id}`,
+        canvassing_id: value.canvassing_id,
+        canvaasing_version: value.canvaasing_version,
+        item_request_trail_version: null,
+        item_request_trail_id: null,
+        unique_id: value.unique_id,
+        vendor_id: null,
+        vendor_name: "",
+        unit_id: value.unit_id,
+        unit_name: value.unit_name,
+        unit_version: 1,
+        offer_item_id: null,
+        offer_item_version: 0,
+        catalogue_id: value.catalogue_id ?? "",
+        parent_catalogue_id: "",
+        catalogue_name: value.catalogue_name ?? "",
+        sn: value.catalogue?.sn ?? "N/A",
+        quantity: value.quantity ?? 1,
+        unit_price: 0,
+        total_price: 0,
+        total_selling_price: value.total_selling_price || 0,
+        status: CanvassingVendorStatus.SUBMITTED,
+        taxes: [],
+        editing: null,
+        type: "parent",
+        children: value.canvassing_vendor.map((vendor) => ({
+          type_item: vendor.type_item,
+          index: `${vendor.unique_id}`,
+          canvassing_id: null,
+          canvaasing_version: null,
+          item_request_trail_version: null,
+          item_request_trail_id: null,
+          unique_id: vendor.unique_id,
+          vendor_id: vendor.vendor_id,
+          vendor_name: vendor.vendor?.name ?? "",
+          unit_id: vendor.unit_id,
+          unit_name: vendor.unit_name,
+          unit_version: vendor.unit_version,
+          offer_item_id: null,
+          offer_item_version: 0,
+          catalogue_id: vendor.catalogue_id ?? "",
+          parent_catalogue_id: "",
+          catalogue_name: vendor.catalogue?.name ?? "",
+          sn: vendor.catalogue?.sn ?? "N/A",
+          quantity: vendor.quantity ?? 1,
+          unit_price: vendor.unit_price,
+          total_price: vendor.total_price,
+          status: vendor.status,
+          taxes: [],
+          editing: null,
+          type: "child",
+          children: [],
+          selling_price: Number(vendor.selling_price || 0),
+          total_selling_price: Number(vendor.total_selling_price),
+          profit: vendor.profit,
+          profit_unit: vendor.profit_unit,
+          fee: vendor.fee,
+          fee_unit: vendor.fee_unit,
+          ongkir: vendor.ongkir,
+          ongkir_unit: vendor.ongkir_unit,
+          pricetag_item_id: vendor.pricetag_item_id ?? "",
+          pricetag_item_version: vendor.pricetag_item_version ?? "",
+          contacts_fee: [],
+          equivalent_id: vendor.equivalent_id ?? "",
+          parent_index: index,
+        })),
+        selling_price: value.unit_selling_price,
+
+        profit: 0,
+        profit_unit: "percent",
+        fee: 0,
+        fee_unit: "percent",
+        ongkir: 0,
+        ongkir_unit: "percent",
+        pricetag_item_id: "",
+        pricetag_item_version: 0,
+        contacts_fee: [],
+        equivalent_id: value.equivalent_id,
+      });
+    });
+
+    const equivalent: CanvassingItemForm[] = item_canvassing.value.filter(
+      (value) => value.type_item === "equivalent"
+    );
+
+    item_canvassing.value = item_canvassing.value.filter(
+      (value) => value.type_item !== "equivalent"
+    );
+
+    equivalent.forEach((element) => {
+      const indexParent = item_canvassing.value.findIndex(
+        (data) => data.unique_id === element.equivalent_id
+      );
+      if (indexParent >= 0) {
+        item_canvassing.value.splice(indexParent + 1, 0, element);
+      }
+    });
+
+    item_canvassing.value.forEach((element) => {
+      element.children.forEach((child) => {
+        if (child.selling_price == element.selling_price) {
+          element.tmp_child_selected = child.index;
+          element.unit_price = child.unit_price;
+          element.total_price = child.total_price;
+        }
+      });
+    });
+
+    item_canvassing.value.forEach((element) => setProfit(element));
+
+    console.log("item canvassing", item_canvassing.value);
   }
 };
 
@@ -3614,6 +3696,10 @@ const submit = async (formEl: FormInstance | undefined) => {
         `canvassing_items[${i}][unit_selling_price]`,
         `${item.selling_price}`
       );
+      formData.append(
+        `canvassing_items[${i}][total_selling_price]`,
+        `${item.total_selling_price}`
+      );
       formData.append(`canvassing_items[${i}][type_item]`, `${item.type_item}`);
       formData.append(
         `canvassing_items[${i}][equivalent_id]`,
@@ -3672,16 +3758,20 @@ const submit = async (formEl: FormInstance | undefined) => {
           `${vendor.selling_price}`
         );
         formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][total_selling_price]`,
+          `${vendor.total_selling_price}`
+        );
+        formData.append(
           `canvassing_items[${i}][canvassing_vendor][${j}][unit_id]`,
-          `${item.unit_id}`
+          `${vendor.unit_id}`
         );
         formData.append(
           `canvassing_items[${i}][canvassing_vendor][${j}][unit_name]`,
-          `${item.unit_name}`
+          `${vendor.unit_name}`
         );
         formData.append(
           `canvassing_items[${i}][canvassing_vendor][${j}][total_price]`,
-          `${Number(vendor.quantity) * Number(vendor.unit_price)}`
+          `${vendor.total_price}`
         );
         formData.append(
           `canvassing_items[${i}][canvassing_vendor][${j}][profit]`,
@@ -3921,160 +4011,89 @@ watchDebounced(
   { debounce: 500 }
 );
 
-const initItemCanvassing = () => {
-  // contactsFee.value.push({
-  //     unique_id: '',
-  //     reference: ReferenceAdjustment.CANVASSING,
-  //     reference_id: '',
-  //     adjustment_id: `${adjustmentContact.value?.unique_id}`,
-  //     adjustment: adjustmentContact.value,
-  //     value: null,
-  //     type: FeeType.PERCENT,
-  //     amount: 0,
-  //     created_at: 0,
-  //     changeType: true,
-  //     party: {
-  //       id: 0,
-  //       unique_id: 'example unique_id',
-  //       unique_code: '',
-  //       is_personal: false,
-  //       is_company: false,
-  //       internal_id: 0,
-  //       name: 'example name',
-  //       email: 'example email',
-  //       phone: 'example phone',
-  //       tax_id: '',
-  //       website: '',
-  //       title: '',
-  //       tags: '',
-  //       created_at: 0,
-  //       created_by: '',
-  //       updated_at: 0,
-  //       version: 0,
-  //       address: [],
-  //     }
+watch(item_canvassing.value, (newValue) => calcucateSummaryaData());
+watch(adjustmentTransactionFeeTotal, (newValue) => calcucateSummaryaData(), {
+  deep: true,
+});
+watch(
+  adjustmentTransactionOngkirTotal.value,
+  (newValue) => calcucateSummaryaData(),
+  { deep: true }
+);
 
-  // })
+watch(
+  contactsFee,
+  (newValue) => {
+    adjustmentTransactionFeeTotal.value = {
+      unique_id: "",
+      reference: ReferenceAdjustment.CANVASSING,
+      reference_id: "",
+      adjustment_id: `${adjustmentContact.value?.unique_id}`,
+      adjustment: adjustmentContact.value,
+      adjustments_transaction: adjustmentContact.value,
+      value: null,
+      type: unitFee.value,
+      amount: contactsFee.value.reduce(
+        (sum, c) => Number(sum) + Number(c.amount || 0),
+        0
+      ),
+      created_at: 0,
+    };
+    console.log("update", adjustmentTransactionFeeTotal.value);
+  },
+  { deep: true }
+);
 
-  item_canvassing.value.push({
-    index: `0`,
-    canvassing_id: null,
-    canvaasing_version: null,
-    item_request_trail_version: null,
-    item_request_trail_id: null,
-    unique_id: null,
-    vendor_id: null,
-    vendor_name: "",
-    unit_id: "33",
-    unit_name: "pcs",
-    unit_version: 1,
-    offer_item_id: null,
-    offer_item_version: 0,
-    catalogue_id: "0",
-    parent_catalogue_id: "",
-    catalogue_name: "Black Rubber Belt Conveyor Size: 600 MM",
-    sn: "N/A",
-    quantity: 22,
-    unit_price: 0,
-    total_price: 0,
-    status: CanvassingVendorStatus.SUBMITTED,
-    taxes: [],
-    editing: null,
-    type: "parent",
-    children: [
-      {
-        type_item: "quotation",
-        index: `0-1`,
-        canvassing_id: null,
-        canvaasing_version: null,
-        item_request_trail_version: null,
-        item_request_trail_id: null,
-        unique_id: null,
-        vendor_id: "8201773a6cb5455bdb9100864d81181c",
-        vendor_name: "sparepart indonesia",
-        unit_id: "33",
-        unit_name: "pcs",
-        unit_version: 1,
-        offer_item_id: null,
-        offer_item_version: 0,
-        catalogue_id: "0",
-        parent_catalogue_id: "",
-        catalogue_name: "Black Rubber Belt Conveyor Size: 600 MM",
-        sn: "300000710",
-        quantity: 22,
-        unit_price: 1000,
-        total_price: 1000 * 22,
-        status: CanvassingVendorStatus.SUBMITTED,
-        taxes: [],
-        editing: null,
-        type: "child",
-        children: [],
-        selling_price: 0,
-        profit: 0,
-        profit_unit: "percent",
-        fee: 0,
-        fee_unit: "percent",
-        ongkir: 0,
-        ongkir_unit: "amount",
-        pricetag_item_id: "",
-        pricetag_item_version: 0,
-        contacts_fee: contactsFee.value,
-        equivalent_id: null,
-      },
-      {
-        type_item: "quotation",
-        index: `0-2`,
-        canvassing_id: null,
-        canvaasing_version: null,
-        item_request_trail_version: null,
-        item_request_trail_id: null,
-        unique_id: null,
-        vendor_id: "2f3c43ab4769286b294fa8b5b5997ab2",
-        vendor_name: "trumecs",
-        unit_id: "33",
-        unit_name: "pcs",
-        unit_version: 1,
-        offer_item_id: null,
-        offer_item_version: 0,
-        catalogue_id: "0",
-        parent_catalogue_id: "",
-        catalogue_name: "Black Rubber Belt Conveyor Size: 600 MM",
-        sn: "300000710",
-        quantity: 22,
-        unit_price: 1200,
-        total_price: 1200 * 22,
-        status: CanvassingVendorStatus.SUBMITTED,
-        taxes: [],
-        editing: null,
-        type: "child",
-        children: [],
-        selling_price: 0,
-        profit: 0,
-        profit_unit: "percent",
-        fee: 0,
-        fee_unit: "percent",
-        ongkir: 0,
-        ongkir_unit: "amount",
-        pricetag_item_id: "",
-        pricetag_item_version: 0,
-        contacts_fee: contactsFee.value,
-        equivalent_id: null,
-      },
-    ],
-    type_item: "request",
-    selling_price: 0,
-    profit: 0,
-    profit_unit: "percent",
-    fee: 0,
-    fee_unit: "percent",
-    ongkir: 0,
-    ongkir_unit: "percent",
-    pricetag_item_id: "",
-    pricetag_item_version: 0,
-    contacts_fee: contactsFee.value,
-    equivalent_id: null,
-  });
-};
+watch(
+  () => adjustmentTransactions.data.value,
+  (newValue) => {
+    const data = adjustmentTransactions.data.value?.data || [];
+    const trxFee = data.find(
+      (value: AdjustmentTransaction) =>
+        value.name?.toLowerCase().includes("fee") &&
+        value.operator === feeState.value
+    );
+    console.log("new value", trxFee);
+    if (trxFee) {
+      adjustmentTransactionFeeTotal.value = {
+        unique_id: "",
+        reference: ReferenceAdjustment.CANVASSING,
+        reference_id: "",
+        adjustment_id: `${trxFee?.unique_id}`,
+        adjustment: trxFee,
+        adjustments_transaction: trxFee,
+        value: null,
+        type: unitFee.value,
+        amount: contactsFee.value.reduce(
+          (sum, c) => Number(sum) + Number(c.amount || 0),
+          0
+        ),
+        created_at: 0,
+      };
+    }
+
+    const trxOngkir = data.find((value: AdjustmentTransaction) =>
+      value.name?.toLowerCase().includes("ongkos kirim")
+    );
+
+    adjustmentTransactionOngkirTotal.value = {
+      unique_id: "",
+      reference: ReferenceAdjustment.CANVASSING,
+      reference_id: "",
+      adjustment_id: `${trxOngkir?.unique_id}`,
+      adjustment: trxOngkir,
+      value: null,
+      type: FeeType.AMOUNT,
+      amount: 0,
+      created_at: 0,
+      changeType: false,
+    };
+  },
+  {
+    deep: true,
+    immediate: true,
+  }
+);
 
 const summeryData = computed(() => {
   const tableData: any[] = [
@@ -4086,6 +4105,7 @@ const summeryData = computed(() => {
       min: currency(grandTotal.value),
       beliMin: "",
       jualMin: "",
+      selected: currency(grandTotal.value),
     },
     {
       label: "Total Harga Beli",
@@ -4093,6 +4113,196 @@ const summeryData = computed(() => {
       beli: "",
       jual: "",
       min: currency(totalBuyingPriceMin.value),
+      beliMin: "",
+      jualMin: "",
+    },
+    {
+      label: "Gross Profit",
+      max: currency(grossProfit.value),
+      beli: `${safePercent(grossProfit.value, totalBuyingPrice.value)} %`,
+      jual: `${
+        grandTotal.value == 0
+          ? 0
+          : safePercent(grossProfit.value, grandTotal.value)
+      } %`,
+      min: currency(grossProfitMin.value),
+      beliMin: `${safePercent(grossProfit.value, totalBuyingPriceMin.value)} %`,
+      jualMin: `${
+        grandTotal.value == 0
+          ? 0
+          : safePercent(grossProfitMin.value, grandTotal.value)
+      } %`,
+    },
+  ];
+
+  if (adjustmentTransactionOngkirTotal.value.adjustment_id != "") {
+    tableData.push({
+      label: "Ongkos Kirim",
+      max: currency(adjustmentTransactionOngkirTotal.value?.amount ?? 0),
+      beli: `${safePercent(
+        adjustmentTransactionOngkirTotal.value?.amount ?? 0,
+        totalBuyingPrice.value
+      )} %`,
+      jual: `${safePercent(
+        adjustmentTransactionOngkirTotal.value?.amount ?? 0,
+        grandTotal.value
+      )} %`,
+      min: currency(adjustmentTransactionOngkirTotal.value?.amount ?? 0),
+      beliMin: `${safePercent(
+        adjustmentTransactionOngkirTotal.value?.amount ?? 0,
+        totalBuyingPriceMin.value
+      )} %`,
+      jualMin: `${safePercent(
+        adjustmentTransactionOngkirTotal.value?.amount ?? 0,
+        grandTotal.value
+      )} %`,
+    });
+  }
+
+  console.log("reference", references.value);
+
+  references.value.forEach((element) => {
+    console.log("reference", element.adjustments_transaction?.name);
+    console.log("reference value", displayAmount(element, grandTotal.value));
+
+    tableData.push({
+      label: element.adjustments_transaction?.name
+        ? element.adjustments_transaction?.name
+        : element.adjustment?.name
+        ? element.adjustment?.name
+        : "-",
+      max: currency(displayAmount(element, grandTotal.value)),
+      beli: `${safePercent(
+        displayAmount(element, grandTotal.value),
+        totalBuyingPrice.value
+      )}  %`,
+      jual: `${safePercent(
+        displayAmount(element, grandTotal.value),
+        grandTotal.value
+      )}  %`,
+      min: currency(displayAmount(element, totalBuyingPriceMin.value)),
+      beliMin: `${safePercent(
+        displayAmount(element, grandTotal.value),
+        totalBuyingPriceMin.value
+      )}  %`,
+      jualMin: `${safePercent(
+        displayAmount(element, grandTotal.value),
+        grandTotal.value
+      )}  %`,
+    });
+  });
+
+  console.log("gross profit", grossProfit.value);
+  console.log("fee", adjustmentTransactionFeeTotal.value);
+
+  tableData.push(
+    {
+      label: adjustmentTransactionFeeTotal.value?.adjustments_transaction?.name,
+      max: currency(
+        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value)
+      ),
+      beli: `${safePercent(
+        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
+        totalBuyingPrice.value
+      )} %`,
+      jual: `${safePercent(
+        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
+        grandTotal.value
+      )} %`,
+      min: currency(
+        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value)
+      ),
+      beliMin: `${safePercent(
+        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
+        totalBuyingPriceMin.value
+      )} %`,
+      jualMin: `${safePercent(
+        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
+        grandTotal.value
+      )} %`,
+    },
+
+    {
+      label: "Net Profit",
+      max: currency(netProfitForBuying.value),
+      beli: `${safePercent(
+        netProfitForBuying.value,
+        totalBuyingPrice.value
+      )} %`,
+      jual: `${safePercent(netProfitForBuying.value, grandTotal.value)} %`,
+      min: currency(netProfitForBuyingMin.value),
+      beliMin: `${safePercent(
+        netProfitForBuying.value,
+        totalBuyingPriceMin.value
+      )} %`,
+      jualMin: `${safePercent(netProfitForBuying.value, grandTotal.value)} %`,
+    }
+  );
+
+  return tableData;
+});
+
+const calcucateSummaryaData = () => {
+  const grandTotalValue = item_canvassing.value.reduce(
+    (acc, row: CanvassingItemForm) => {
+      if (row.type === "parent") {
+        acc += Number(row.total_selling_price || 0);
+      }
+
+      return acc;
+    },
+    0
+  );
+
+  let totalBuyingPriceMax = 0;
+  item_canvassing.value.forEach((element) => {
+    if (element.children.length > 0) {
+      let dataMin = element.children.reduce((max, data) =>
+        data.unit_price < max.unit_price ? data : max
+      );
+      totalBuyingPriceMax +=
+        Number(dataMin.unit_price) * Number(dataMin.quantity);
+    }
+  });
+
+  let totalBuyingPriceMin = 0;
+
+  item_canvassing.value.forEach((element) => {
+    if (element.children.length > 0) {
+      let dataMin = element.children.reduce((max, data) =>
+        data.unit_price > max.unit_price ? data : max
+      );
+      totalBuyingPriceMin +=
+        Number(dataMin.unit_price) * Number(element.quantity);
+    }
+  });
+
+  summeryView.value = [];
+
+  const data: {
+    label: string;
+    max: string;
+    beli: string;
+    jual: string;
+    min: string;
+    beliMin: string;
+    jualMin: string;
+  }[] = [
+    {
+      label: "Total Harga Jual",
+      max: currency(grandTotalValue),
+      beli: "",
+      jual: "",
+      min: currency(grandTotalValue),
+      beliMin: "",
+      jualMin: "",
+    },
+    {
+      label: "Total Harga Beli",
+      max: currency(totalBuyingPriceMax),
+      beli: "",
+      jual: "",
+      min: currency(totalBuyingPriceMin),
       beliMin: "",
       jualMin: "",
     },
@@ -4106,7 +4316,7 @@ const summeryData = computed(() => {
           : safePercent(grossProfit.value, grandTotal.value)
       } %`,
       min: currency(grossProfitMin.value),
-      beliMin: `${safePercent(grossProfit.value, totalBuyingPriceMin.value)} %`,
+      beliMin: `${safePercent(grossProfit.value, totalBuyingPriceMin)} %`,
       jualMin: `${
         grandTotal.value == 0
           ? 0
@@ -4127,9 +4337,9 @@ const summeryData = computed(() => {
       min: currency(adjustmentTransactionOngkirTotal.value.amount),
       beliMin: `${safePercent(
         adjustmentTransactionOngkirTotal.value.amount,
-        totalBuyingPriceMin.value
+        totalBuyingPriceMin
       )} %`,
-      jualMax: `${safePercent(
+      jualMin: `${safePercent(
         adjustmentTransactionOngkirTotal.value.amount,
         grandTotal.value
       )} %`,
@@ -4137,7 +4347,7 @@ const summeryData = computed(() => {
   ];
 
   references.value.forEach((element) => {
-    tableData.push({
+    data.push({
       label: element.adjustment?.name
         ? element.adjustment?.name
         : element.adjustments_transaction?.name ?? "-",
@@ -4147,9 +4357,9 @@ const summeryData = computed(() => {
         1
       )}`,
       jual: `${safePercent(displayPercentage(element, grandTotal.value), 1)}`,
-      min: currency(displayAmount(element, totalBuyingPriceMin.value)),
+      min: currency(displayAmount(element, totalBuyingPriceMin)),
       beliMin: `${safePercent(
-        displayPercentage(element, totalBuyingPriceMin.value),
+        displayPercentage(element, totalBuyingPriceMin),
         1
       )}`,
       jualMin: `${safePercent(
@@ -4159,9 +4369,9 @@ const summeryData = computed(() => {
     });
   });
 
-  tableData.push(
+  data.push(
     {
-      label: adjustmentTransactionFeeTotal.value.adjustment?.name,
+      label: adjustmentTransactionFeeTotal.value.adjustment?.name ?? "N/A",
       max: currency(
         displayAmount(adjustmentTransactionFeeTotal.value, grossProfit.value)
       ),
@@ -4178,7 +4388,7 @@ const summeryData = computed(() => {
       ),
       beliMin: `${safePercent(
         displayAmount(adjustmentTransactionFeeTotal.value, grossProfit.value),
-        totalBuyingPriceMin.value
+        totalBuyingPriceMin
       )} %`,
       jualMin: `${safePercent(
         displayAmount(adjustmentTransactionFeeTotal.value, grossProfit.value),
@@ -4196,14 +4406,14 @@ const summeryData = computed(() => {
       min: currency(netProfitForBuyingMin.value),
       beliMin: `${safePercent(
         netProfitForBuying.value,
-        totalBuyingPriceMin.value
+        totalBuyingPriceMin
       )} %`,
       jualMin: `${safePercent(netProfitForBuying.value, grandTotal.value)} %`,
     }
   );
 
-  return tableData;
-});
+  summeryView.value = data;
+};
 
 // Lifecycle
 onMounted(async () => {

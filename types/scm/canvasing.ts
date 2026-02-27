@@ -24,7 +24,9 @@ export const statusRAB = () => [
   CanvassingStatus.RAB,
   CanvassingStatus.PENDING_APPROVAL,
   CanvassingStatus.DONE,
+  CanvassingStatus.CANCEL,
 ];
+
 export const statusCanvassing = () => [
   CanvassingStatus.CANVASSING,
   CanvassingStatus.PENDING_APPROVAL_RAB,
@@ -109,6 +111,7 @@ export type CanvassingItem = {
   catalogue_name: string;
   quantity: number;
   unit_selling_price: number;
+  total_selling_price?: number;
   created_at: number;
   created_by: number;
   updated_at: number;
@@ -134,6 +137,7 @@ export type CanvassingVendor = {
   quantity: number;
   unit_price: number;
   selling_price?: number;
+  total_selling_price?: number;
   total_price: number;
   is_warranty: boolean;
   warranty: number;
@@ -203,7 +207,7 @@ export type CanvasingVendorView = {
 
 export type CanvassingItemForm = {
   index: string;
-  parent_index?: string;
+  parent_index?: number;
   image?: string;
   imageFile?: UploadUserFile | null;
   canvassing_id: string | null;
@@ -235,6 +239,7 @@ export type CanvassingItemForm = {
   children: CanvassingItemForm[];
   parent_catalogue_id?: string;
   selling_price: number;
+  total_selling_price: number;
   profit: number;
   profit_unit: "percent" | "amount";
   profit_nominal?: number;
@@ -243,12 +248,14 @@ export type CanvassingItemForm = {
   fee_nominal?: number;
   ongkir: number;
   ongkir_unit: "percent" | "amount";
+  ongkir_nominal?: number;
   pricetag_item_id: string;
   pricetag_item_version: number;
   contacts_fee: ReferenceTransactionAdjustment[];
   checked?: boolean;
   has_different_unit?: boolean;
   files?: UploadUserFile[];
+  tmp_child_selected?: string;
 };
 
 export type CanvassingItemVendorSummery = {

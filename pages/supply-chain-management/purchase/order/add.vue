@@ -1129,6 +1129,39 @@ const addSelectedCanvassingItems = () => {
   selectedCanvassingItems.value = [];
 };
 
+const AddNewItem = () => {
+  ruleForm.items.push({
+    id: 0,
+    unique_id: "",
+    order_id: "",
+    vendor_id: ruleForm.vendor_id,
+    vendor_version: ruleForm.vendor_version,
+    catalogue_id: "",
+    catalogue_name: "",
+    catalogue_version: 1,
+    quantity: 1,
+    unit_price: 0,
+    total_price: 0,
+    is_warranty: false,
+    warranty: 0,
+    warranty_unit: "hari",
+    is_discount: false,
+    delivery_cost: 0,
+    version: 0,
+    created_at: 0,
+    created_by: 0,
+    updated_at: 0,
+    unit_id: null,
+    unit_name: null,
+    pr_item_request_trail_id: null,
+    pr_item_request_trail_version: 0,
+    item_request_trail_id: "",
+    item_request_trail_version: 0,
+    order_version: 1,
+    status: PurchaseOrderItemStatus.DRAFT,
+  });
+};
+
 const addSelectedPricetagItems = () => {
   visiblePricetagModal.value = false;
   selectedPricetagItems.value = [];

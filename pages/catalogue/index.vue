@@ -429,6 +429,19 @@ const shortcutsDate = [
     },
   },
 ];
+
+const refreshTable = () => refreshNuxtData("get-catalogues");
+
+const handlePageChange = (page: number) => {
+  request_search.value.offset = `${page}`;
+  refreshTable;
+};
+
+const handleSizeChange = (size: number) => {
+  request_search.value.limit = `${size}`;
+  request_search.value.offset = "1";
+  refreshTable;
+};
 </script>
 
 <template>
@@ -441,16 +454,7 @@ const shortcutsDate = [
           clearable
         />
       </el-col>
-      <NuxtLink
-        href="/catalogue/add"
-        @click="
-          () => {
-            const unique_id = useCookie('unique_id');
-            unique_id.value = null;
-          }
-        "
-        class="el-button el-button--primary"
-      >
+      <NuxtLink href="/catalogue/add" class="el-button el-button--primary">
         Tambah Katalog
       </NuxtLink>
 
@@ -458,7 +462,7 @@ const shortcutsDate = [
         :icon="Refresh"
         size="default"
         type="default"
-        @click="() => refreshNuxtData('get-catalogues')"
+        @click="refreshTable"
         >Reload</el-button
       >
 
@@ -483,10 +487,12 @@ const shortcutsDate = [
     <div class="flex justify-end mt-3">
       <el-pagination
         background
-        layout="prev, pager, next"
+        layout="prev, pager, next, sizes"
         :total="data?.total_data ?? 0"
-        :page-size="10"
-        @current-change="(page) => (request_search.offset = page.toString())"
+        :page-size="parseInt(request_search.limit)"
+        :current-page="parseInt(request_search.offset)"
+        @current-change="handlePageChange"
+        @size-change="handleSizeChange"
       />
     </div>
 

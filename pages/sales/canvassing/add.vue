@@ -751,7 +751,7 @@ const openImageModal = (index: number, itemData: CanvassingItemForm) => {
   activeItemData.value = itemData;
 
   if (itemData.type == "child") {
-    activeItemParentIndex.value = parseInt(itemData.parent_index ?? "-1");
+    activeItemParentIndex.value = itemData.parent_index ?? -1;
     console.log();
     const childIndex = item_canvassing.value[
       activeItemParentIndex.value
@@ -1450,7 +1450,7 @@ const addItemVendor = (row: CanvassingItemForm) => {
       const startIndex = item.children.length;
       item.children.push({
         type_item: "original",
-        parent_index: item.index,
+        parent_index: index,
         equivalent_id: null,
         index: `${item.index}-${startIndex}`,
         canvassing_id: null,
@@ -2283,7 +2283,7 @@ const addChildItem = (
   hasDifferentUnit: boolean
 ) => {
   const child: CanvassingItemForm = {
-    parent_index: `${parentIndex}`,
+    parent_index: parentIndex,
     index: `${itemIndex.value}-${childIndex}`,
     type_item: "original",
     equivalent_id: null,
@@ -2742,17 +2742,52 @@ const onHandleSelectItemAutocompleteItem = async (
       item_canvassing.value.forEach((item) => {
         item.children.forEach((child) => {
           if (child.index == itemIndex) {
-            child.catalogue_id = selected.catalogue_id ?? "";
-            child.catalogue_name = selected.catalogue?.name ?? "";
-            child.sn = selected.catalogue?.sn ?? "";
-            child.unit_id = selected.unit_id ?? "";
-            child.unit_name = selected.unit_name ?? "";
-            child.unit_price = selected.price ?? 0;
-            child.vendor_id = selected.pricetag?.owner?.unique_id ?? "";
-            child.vendor_name = selected.pricetag?.owner?.name ?? "";
-            child.quantity = 1;
-            child.pricetag_item_id = selected.unique_id ?? "";
-            child.pricetag_item_version = selected.version ?? 0;
+            if (item.unit_id != selected.unit_id) {
+              ElMessageBox.confirm(
+                `UoM Berbeda Dari Permintaan?`,
+                "Konfirmasi Unit Berbeda",
+                {
+                  dangerouslyUseHTMLString: true,
+                  confirmButtonText: "Ya, Tambahkan",
+                  cancelButtonText: "Pilih Lagi",
+                  type: "warning",
+                  center: true,
+                  customClass: "unit-difference-dialog",
+                }
+              )
+                .then(() => {
+                  child.catalogue_id = selected.catalogue_id ?? "";
+                  child.catalogue_name = selected.catalogue?.name ?? "";
+                  child.sn = selected.catalogue?.sn ?? "";
+                  child.unit_id = selected.unit_id ?? "";
+                  child.unit_name = selected.unit_name ?? "";
+                  child.unit_price = selected.price ?? 0;
+                  child.vendor_id = selected.pricetag?.owner?.unique_id ?? "";
+                  child.vendor_name = selected.pricetag?.owner?.name ?? "";
+                  child.quantity = 1;
+                  child.pricetag_item_id = selected.unique_id ?? "";
+                  child.pricetag_item_version = selected.version ?? 0;
+                })
+                .catch(() => {
+                  // User memilih "Pilih Lagi" atau menutup dialog
+                  ElMessage.info(
+                    "Proses ditambahkan dibatalkan, silakan pilih item lagi."
+                  );
+                  return; // Tidak menambahkan apa-apa
+                });
+            } else {
+              child.catalogue_id = selected.catalogue_id ?? "";
+              child.catalogue_name = selected.catalogue?.name ?? "";
+              child.sn = selected.catalogue?.sn ?? "";
+              child.unit_id = selected.unit_id ?? "";
+              child.unit_name = selected.unit_name ?? "";
+              child.unit_price = selected.price ?? 0;
+              child.vendor_id = selected.pricetag?.owner?.unique_id ?? "";
+              child.vendor_name = selected.pricetag?.owner?.name ?? "";
+              child.quantity = 1;
+              child.pricetag_item_id = selected.unique_id ?? "";
+              child.pricetag_item_version = selected.version ?? 0;
+            }
           }
         });
       });
@@ -2978,7 +3013,7 @@ const fetchDataEdit = async () => {
                   unit_price: vendor.unit_price,
                   total_price: 0,
                   status: vendor.status,
-                  parent_index: `${index}`,
+                  parent_index: index,
                   taxes: [],
                   editing: null,
                   type: "child",
@@ -3207,6 +3242,8 @@ const submit = async (formEl: FormInstance | undefined) => {
         reference_id: ref.reference_id,
       })),
     };
+
+    console.log("payload", payload);
 
     // Membuat FormData
     const formData = new FormData();

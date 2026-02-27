@@ -1056,7 +1056,7 @@ const onHandleSelectItemAutocompleteUnit = async (
     }
   } else {
     dataTable.value[scope.$index].unit_name = item.value;
-    dataTable.value[scope.$index].unit_id = `${item.id}`;
+    dataTable.value[scope.$index].unit_id = `${item.unique_id}`;
   }
 };
 

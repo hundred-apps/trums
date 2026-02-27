@@ -493,7 +493,7 @@ const generateQuotationPdf = async () => {
   const colonX = marginX + 28;
   const valueX = marginX + 32;
 
-  doc.setFontSize(11);
+  doc.setFontSize(9);
   doc.text("Number", labelX, 60);
   doc.text(":", colonX, 60);
   doc.text(`${props.dataInterface?.data?.unique_code}`, valueX, 60);
@@ -584,18 +584,8 @@ const generateQuotationPdf = async () => {
   if (typeSummery.value === "total") {
     rowData.push([
       {
-        content: `${summeryNumber}`,
-        styles: {
-          halign: "center",
-          cellWidth: 0.0,
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
-        },
-      },
-      {
         content: `Total Price`,
-        colSpan: 4,
+        colSpan: 5,
         styles: {
           halign: "right",
           fontStyle: "bold",
@@ -614,69 +604,59 @@ const generateQuotationPdf = async () => {
         },
       },
     ]);
-    (props.dataInterface.data?.reference_transaction_adjustment ?? []).forEach(
-      (element) => {
-        console.log("ref", displayAmount(element, totalPrice.value || 0));
-        if (
-          element.adjustments_transaction?.category == "adjustment" &&
-          element.adjustments_transaction?.operator == "minus"
-        ) {
-          summeryNumber++;
-          rowData.push([
-            {
-              content: `${summeryNumber}`,
-              styles: {
-                halign: "center",
-                cellWidth: 0.0,
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-            {
-              content: `${element.adjustments_transaction?.name}`,
-              colSpan: 4,
-              styles: {
-                halign: "right",
-                fontStyle: "bold",
-                cellWidth: 0.0,
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-            {
-              content: `${currencyWithoutSymbol(
-                displayAmount(element, totalPrice.value || 0)
-              )}`,
-              styles: {
-                halign: "right",
-                cellWidth: 0.0,
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-          ]);
-        }
-      }
-    );
+    // (props.dataInterface.data?.reference_transaction_adjustment ?? []).forEach(
+    //   (element) => {
+    //     console.log("ref", displayAmount(element, totalPrice.value || 0));
+    //     if (
+    //       element.adjustments_transaction?.category == "adjustment" &&
+    //       element.adjustments_transaction?.operator == "minus" && element.adjustments_transaction?.name.toLowerCase() == 'fee'
+    //     ) {
+    //       summeryNumber++;
+    //       rowData.push([
+    //         {
+    //           content: `${summeryNumber}`,
+    //           styles: {
+    //             halign: "center",
+    //             cellWidth: 0.0,
+    //             lineWidth: 0.1,
+    //             lineColor: [0, 0, 0],
+    //             fillColor: [255, 255, 255],
+    //           },
+    //         },
+    //         {
+    //           content: `${element.adjustments_transaction?.name}`,
+    //           colSpan: 4,
+    //           styles: {
+    //             halign: "right",
+    //             fontStyle: "bold",
+    //             cellWidth: 0.0,
+    //             lineWidth: 0.1,
+    //             lineColor: [0, 0, 0],
+    //             fillColor: [255, 255, 255],
+    //           },
+    //         },
+    //         {
+    //           content: `${currencyWithoutSymbol(
+    //             displayAmount(element, totalPrice.value || 0)
+    //           )}`,
+    //           styles: {
+    //             halign: "right",
+    //             cellWidth: 0.0,
+    //             lineWidth: 0.1,
+    //             lineColor: [0, 0, 0],
+    //             fillColor: [255, 255, 255],
+    //           },
+    //         },
+    //       ]);
+    //     }
+    //   }
+    // );
 
     summeryNumber++;
     rowData.push([
       {
-        content: `${summeryNumber}`,
-        styles: {
-          halign: "center",
-          cellWidth: 0.0,
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
-        },
-      },
-      {
         content: `Subtotal`,
-        colSpan: 4,
+        colSpan: 5,
         styles: {
           halign: "right",
           fontStyle: "bold",
@@ -697,52 +677,52 @@ const generateQuotationPdf = async () => {
         },
       },
     ]);
-    (props.dataInterface.data?.reference_transaction_adjustment ?? []).forEach(
-      (element) => {
-        if (
-          element.adjustments_transaction?.category == "adjustment" &&
-          element.adjustments_transaction?.operator == "plus"
-        ) {
-          summeryNumber++;
-          rowData.push([
-            {
-              content: `${summeryNumber}`,
-              styles: {
-                halign: "center",
-                cellWidth: 0.0,
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-            {
-              content: `${element.adjustments_transaction?.name}`,
-              colSpan: 4,
-              styles: {
-                halign: "right",
-                fontStyle: "bold",
-                cellWidth: 0.0,
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-            {
-              content: `${currencyWithoutSymbol(
-                displayAmount(element, subtotal.value || 0)
-              )}`,
-              styles: {
-                halign: "right",
-                cellWidth: 0.0,
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-          ]);
-        }
-      }
-    );
+    // (props.dataInterface.data?.reference_transaction_adjustment ?? []).forEach(
+    //   (element) => {
+    //     if (
+    //       element.adjustments_transaction?.category == "adjustment" &&
+    //       element.adjustments_transaction?.operator == "plus"
+    //     ) {
+    //       summeryNumber++;
+    //       rowData.push([
+    //         {
+    //           content: `${summeryNumber}`,
+    //           styles: {
+    //             halign: "center",
+    //             cellWidth: 0.0,
+    //             lineWidth: 0.1,
+    //             lineColor: [0, 0, 0],
+    //             fillColor: [255, 255, 255],
+    //           },
+    //         },
+    //         {
+    //           content: `${element.adjustments_transaction?.name}`,
+    //           colSpan: 4,
+    //           styles: {
+    //             halign: "right",
+    //             fontStyle: "bold",
+    //             cellWidth: 0.0,
+    //             lineWidth: 0.1,
+    //             lineColor: [0, 0, 0],
+    //             fillColor: [255, 255, 255],
+    //           },
+    //         },
+    //         {
+    //           content: `${currencyWithoutSymbol(
+    //             displayAmount(element, subtotal.value || 0)
+    //           )}`,
+    //           styles: {
+    //             halign: "right",
+    //             cellWidth: 0.0,
+    //             lineWidth: 0.1,
+    //             lineColor: [0, 0, 0],
+    //             fillColor: [255, 255, 255],
+    //           },
+    //         },
+    //       ]);
+    //     }
+    //   }
+    // );
 
     const dppComp = getDppComponent(
       props.dataInterface.data?.reference_transaction_adjustment ?? []
@@ -757,18 +737,8 @@ const generateQuotationPdf = async () => {
       summeryNumber++;
       rowData.push([
         {
-          content: summeryNumber,
-          styles: {
-            halign: "center",
-            cellWidth: 0.0,
-            lineWidth: 0.1,
-            lineColor: [0, 0, 0],
-            fillColor: [255, 255, 255],
-          },
-        },
-        {
           content: `${dppComp.adjustments_transaction?.name}`,
-          colSpan: 4,
+          colSpan: 5,
           styles: {
             halign: "right",
             fontStyle: "bold",
@@ -793,18 +763,8 @@ const generateQuotationPdf = async () => {
         summeryNumber++;
         rowData.push([
           {
-            content: summeryNumber,
-            styles: {
-              halign: "center",
-              cellWidth: 0.0,
-              lineWidth: 0.1,
-              lineColor: [0, 0, 0],
-              fillColor: [255, 255, 255],
-            },
-          },
-          {
             content: `${ppnComp.adjustments_transaction?.name}`,
-            colSpan: 4,
+            colSpan: 5,
             styles: {
               halign: "right",
               fontStyle: "bold",
@@ -830,19 +790,8 @@ const generateQuotationPdf = async () => {
     summeryNumber++;
     rowData.push([
       {
-        content: summeryNumber,
-
-        styles: {
-          halign: "center",
-          cellWidth: 0.0,
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
-        },
-      },
-      {
         content: `Grand Total`,
-        colSpan: 4,
+        colSpan: 5,
         styles: {
           halign: "right",
           fontStyle: "bold",
@@ -913,7 +862,7 @@ const generateQuotationPdf = async () => {
     ],
     body: rowData,
     styles: {
-      fontSize: 10,
+      fontSize: 9,
     },
     margin: { left: marginX, right: marginX },
     headStyles: {

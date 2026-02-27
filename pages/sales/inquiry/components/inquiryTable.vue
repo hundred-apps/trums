@@ -480,7 +480,7 @@ watch(request_search.value, () => refreshNuxtData("fetch-inquiries"), {
   <div class="flex justify-end mt-3">
     <el-pagination
       background
-      layout="prev, pager, next"
+      layout="prev, pager, next, sizes, total"
       :total="data?.total_data"
       @current-change="handlePageChange"
       @size-change="handleSizeChange"

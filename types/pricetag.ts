@@ -45,6 +45,7 @@ export type Pricetag = {
   files: AppFile[];
   reference_data?: any | Canvassing;
   subject?: string;
+  pic?: Contact;
   pic_id?: string;
   pic_name?: string;
   pic_version?: number;

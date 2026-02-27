@@ -6,320 +6,8 @@
           <span class="text-large font-600 mr-3"> Buat Penawaran </span>
         </template>
       </el-page-header>
-      <el-card class="my-3" shadow="never">
-        <template #header>
-          <div class="card-header">
-            <el-form-item>
-              <el-button type="primary" @click="submitForm(ruleFormRef)"
-                >Simpan</el-button
-              >
-              <el-button @click="resetForm(ruleFormRef)">Batal</el-button>
-            </el-form-item>
-          </div>
-        </template>
-        <el-form
-          ref="ruleFormRef"
-          style="max-width: 600px"
-          :model="ruleForm"
-          :rules="rules"
-          label-width="auto"
-          class="demo-ruleForm"
-          :size="formSize"
-          status-icon
-          :disabled="loading"
-        >
-          <el-form-item label="Nomor Referensi" prop="code">
-            <el-input
-              v-model="ruleForm.code"
-              placeholder="Masukan Nomor Referensi"
-            />
-          </el-form-item>
-
-          <el-form-item prop="owner_name" label="Vendor">
-            <el-autocomplete
-              v-model="ruleForm.owner_name"
-              :fetch-suggestions="querySearchVendors"
-              placeholder="Cari vendor"
-              @select="(item) => onHandleSelectVendor(item, 'vendor')"
-              style="width: 100%"
-            >
-              <template #default="{ item }">
-                <div v-if="item.isNew" class="flex items-center text-blue-500">
-                  <el-icon><Plus /></el-icon>
-                  <span class="ml-2">Tambahkan "{{ item.value }}"</span>
-                </div>
-                <div v-else>
-                  {{ item.value }}
-                </div>
-              </template>
-            </el-autocomplete>
-          </el-form-item>
-
-          <el-form-item prop="to_name" label="Kepada" disabled>
-            <el-autocomplete
-              :disabled="true"
-              v-model="ruleForm.to_name"
-              :fetch-suggestions="querySearchVendors"
-              placeholder="Cari Kontak"
-              @select="(item) => onHandleSelectVendor(item, 'to')"
-              style="width: 100%"
-            >
-              <template #default="{ item }">
-                <div v-if="item.isNew" class="flex items-center text-blue-500">
-                  <el-icon><Plus /></el-icon>
-                  <span class="ml-2">Tambahkan "{{ item.value }}"</span>
-                </div>
-                <div v-else>
-                  {{ item.value }}
-                </div>
-              </template>
-            </el-autocomplete>
-          </el-form-item>
-
-          <el-form-item prop="start_date" label="Tanggal Mulai Berlaku">
-            <el-date-picker
-              v-model="ruleForm.start_date"
-              type="date"
-              aria-label="Pilih Tanggal"
-              placeholder="Pilih Tanggal"
-              style="width: 100%"
-              ,
-            />
-          </el-form-item>
-          <el-form-item prop="end_date" label="Tanggal Akhir Berlaku">
-            <el-date-picker
-              v-model="ruleForm.end_date"
-              type="date"
-              aria-label="Pilih Tanggal"
-              placeholder="Pilih Tanggal"
-              style="width: 100%"
-              ,
-            />
-          </el-form-item>
-          <el-form-item label="File Lampiran" prop="files">
-            <TrumsUploadFile v-model:file-list="fileList" />
-          </el-form-item>
-          <el-form-item label="Catatan" prop="note">
-            <el-input
-              v-model="ruleForm.note"
-              type="textarea"
-              placeholder="Masukkan deskripsi"
-            />
-          </el-form-item>
-        </el-form>
-      </el-card>
-
-      <el-card class="mb-3" v-if="!loading" shadow="never">
-        <el-row :gutter="20" class="mb-3">
-          <el-col :span="6"
-            ><el-input
-              v-model="requestSearchInventory.keyword"
-              size="large"
-              placeholder="Type to search"
-          /></el-col>
-        </el-row>
-
-        <el-table :data="ruleForm.pricetag_item">
-          <el-table-column prop="fileUploads" label="image" width="75">
-            <template #default="scope">
-              <ItemImageUpload
-                v-model="scope.row.fileUploads"
-                :image-url="scope.row.image"
-                :show-text="false"
-                @open-modal="() => openImageModal(scope.$index, scope.row)"
-              />
-            </template>
-          </el-table-column>
-          <el-table-column prop="item_name" label="item" class="my-0">
-            <template #default="scope">
-              <div class="flex">
-                <el-button
-                  @click="() => openCatalogueDetail(scope.row, scope.$index)"
-                  text
-                  ><el-icon><Warning /></el-icon
-                ></el-button>
-                <el-autocomplete
-                  :disabled="loading"
-                  :fetch-suggestions="querySearchAsyncInventories"
-                  v-model="scope.row.item_name"
-                  placeholder="Cari item"
-                  @select="(item: Record<string, any>) => onHandleSelectItemAutocomplete(item, scope)"
-                >
-                  <template #default="{ item }">
-                    <div
-                      v-if="item.isNew"
-                      class="flex items-center text-blue-500"
-                    >
-                      <el-icon><Plus /></el-icon>
-                      <span class="ml-2">Tambahkan "{{ item.value }}"</span>
-                    </div>
-                    <div v-else class="flex items-center gap-2">
-                      <!-- Thumbnail file pertama -->
-                      <div class="flex-shrink-0 mt-1">
-                        <div
-                          v-if="item.files && item.files.length > 0"
-                          class="w-10 h-10 rounded overflow-hidden border"
-                        >
-                          <img
-                            :src="getFirstFileUrl(item.files)"
-                            :alt="item.catalogue_name"
-                            class="w-full h-full object-cover"
-                          />
-                        </div>
-                        <div
-                          v-else
-                          class="w-10 h-10 rounded border flex items-center justify-center text-gray-400"
-                        >
-                          <el-icon><Picture /></el-icon>
-                        </div>
-                      </div>
-
-                      <!-- Informasi produk -->
-                      <div class="flex-1 min-w-0">
-                        <p style="line-height: 15px" class="font-bold truncate">
-                          {{ item.catalogue_name || item.value }}
-                        </p>
-                        <p class="text-sm text-gray-500 truncate">
-                          PN/SN: {{ item.sn_number || "Tidak Ada" }} | Brand:
-                          {{ item.brand_name || "N/A" }}
-                        </p>
-                      </div>
-                    </div>
-                  </template>
-                </el-autocomplete>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column prop="sn" label="Serial Number" width="150" />
-          <el-table-column prop="quantity" label="QTY" class="mb-0" width="200">
-            <template #default="scope">
-              <el-input-number v-model="scope.row.quantity" />
-            </template>
-          </el-table-column>
-          <el-table-column prop="unit" label="Unit" width="100">
-            <template #default="scope">
-              <el-autocomplete
-                :fetch-suggestions="querySearchUnit"
-                v-model="scope.row.unit_name"
-                placeholder="Input Units"
-                @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteUnit(item, scope)"
-              />
-            </template>
-          </el-table-column>
-          <el-table-column
-            prop="selling_price"
-            label="Harga"
-            class="mb-0"
-            width="150"
-          >
-            <template #default="scope">
-              <el-form-item
-                label=""
-                :prop="`items.${scope.index}.price`"
-                class="mb-0"
-                style="margin-bottom: 0px !important"
-              >
-                <el-input v-model="scope.row.price" class="mb-0" />
-              </el-form-item>
-            </template>
-          </el-table-column>
-
-          <el-table-column label="Aksi" width="100px" class="flex items-center">
-            <template #default="scope" class="flex items-center">
-              <el-popconfirm
-                width="220"
-                :icon="InfoFilled"
-                icon-color="#626AEF"
-                title="Are you sure to delete this?"
-                @cancel="() => {}"
-              >
-                <template #reference>
-                  <el-button type="danger" :icon="Delete" circle />
-                </template>
-                <template #actions="{ confirm, cancel }">
-                  <el-button size="small" @click="cancel">No!</el-button>
-                  <el-button
-                    type="danger"
-                    size="small"
-                    @click="() => onDeleteList(scope)"
-                  >
-                    Yes?
-                  </el-button>
-                </template>
-              </el-popconfirm>
-            </template>
-          </el-table-column>
-        </el-table>
-        <el-button class="mt-4" style="width: 100%" @click="addNewLine">
-          Tambahkan Baris Baru
-        </el-button>
-      </el-card>
+      <AddPriceTagComponent @submit="onSubmit" :data="ruleForm" />
     </div>
-
-    <el-dialog
-      v-model="showImageModal"
-      :title="`Upload Gambar untuk Item ${activeItemIndex + 1}`"
-      width="900px"
-      :close-on-click-modal="false"
-      @close="handleImageModalClose"
-    >
-      <div class="image-upload-modal">
-        <!-- Photo Wall Upload -->
-        <PhotoWallUploads
-          ref="photoWallRef"
-          v-model="modalImageFiles"
-          :action="uploadAction"
-          :multiple="true"
-          :limit="10"
-          :max-size="5"
-          accept="image/*"
-          @change="handleModalImagesChange"
-          @remove="handleRemoveImageList"
-        />
-
-        <!-- Preview Section -->
-        <div v-if="modalImageFiles.length > 0" class="preview-section"></div>
-
-        <!-- Empty State -->
-        <div v-else class="empty-state-modal">
-          <el-empty description="Belum ada gambar" :image-size="100">
-            <template #description>
-              <p>Upload gambar untuk item ini</p>
-              <p class="hint">Gambar pertama akan ditampilkan di tabel</p>
-            </template>
-          </el-empty>
-        </div>
-      </div>
-
-      <template #footer>
-        <span class="dialog-footer">
-          <el-button @click="cancelImageUpload">Batal</el-button>
-          <el-button
-            type="primary"
-            @click="saveItemImages"
-            :disabled="modalImageFiles.length === 0"
-          >
-            Simpan ({{ modalImageFiles.length }} gambar)
-          </el-button>
-        </span>
-      </template>
-    </el-dialog>
-
-    <el-drawer
-      v-model="drawerCatalogue"
-      title="Detail Item"
-      :with-header="true"
-    >
-      <CatalogueAdd :catalogue_form="tmpCatalogue!" :loading="loading" />
-      <template #footer>
-        <div style="flex: auto">
-          <el-button @click="handleCancel">Batal</el-button>
-          <el-button type="primary" @click="() => handleSubmit(tmpCatalogue!)"
-            >Simpan</el-button
-          >
-        </div>
-      </template>
-    </el-drawer>
   </TrumsWrapper>
 </template>
 <script lang="tsx" setup>
@@ -374,6 +62,7 @@ import type { AddressType } from "~/types/address";
 import PhotoWallUploads from "~/components/trums/PhotoWallUploads.vue";
 import CatalogueAdd from "~/components/trums/CatalogueAdd.vue";
 import { getFirstFileUrl } from "#imports";
+import AddPriceTagComponent from "~/components/trums/AddPriceTagComponent.vue";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -411,7 +100,7 @@ const popoverRef = ref();
 const route = useRoute();
 const canvassing_id = computed(() => route.query.canvassing_id as string);
 const id = computed(() => route.query.id as string);
-const type = computed(() => (route.query.type as "in" | "out") || "in");
+
 const fileList = ref<UploadUserFile[]>([]);
 const formSize = ref<ComponentSize>("default");
 const ruleFormRef = ref<FormInstance>();
@@ -429,7 +118,7 @@ const ruleForm = reactive<Pricetag>({
   created_by: "",
   updated_at: 0,
   version: 0,
-  type: type.value,
+  type: "in",
   note: "",
   subject: "",
   pricetag_item: [
@@ -1316,117 +1005,14 @@ const onSort = (sortBy: SortBy) => {
   requestSearchInventory.value = data;
 };
 
-const onSubmit = async (formEl: FormInstance) => {
-  loading.value = true;
-  try {
-    const cookie = useCookie("userdata");
-    // ruleForm.owner_id = (cookie.value! as unknown as User).unique_id;
-
-    const formData = new FormData();
-
-    formData.append("unique_id", `${ruleForm.unique_id}`);
-    formData.append("name", `${ruleForm.code}`);
-    formData.append("location_id", `${ruleForm.location_id}`);
-    formData.append("start_date", `${ruleForm.start_date / 1000}`);
-    formData.append("end_date", `${ruleForm.end_date / 1000}`);
-    formData.append("owner_id", `${ruleForm.owner_id}`);
-    formData.append("reference", `${ruleForm.reference}`);
-    formData.append("reference_id", `${ruleForm.reference_id}`);
-    formData.append("reference_version", `${ruleForm.reference_version}`);
-    formData.append("type", `${ruleForm.type}`);
-    formData.append("subject", `${ruleForm.subject}`);
-    formData.append("note", `${ruleForm.note}`);
-    formData.append("to_id", `${ruleForm.to_id}`);
-    formData.append("to_version", `${ruleForm.to_version}`);
-    formData.append("category", `penawaran`);
-
-    // Append pricetag_item array
-    ruleForm.pricetag_item.forEach((value, index) => {
-      formData.append(
-        `pricetag_item[${index}][unique_id]`,
-        `${value.unique_id}`
-      );
-      formData.append(`pricetag_item[${index}][tag_id]`, `${value.tag_id}`);
-      formData.append(
-        `pricetag_item[${index}][catalogue_id]`,
-        `${value.catalogue_id}`
-      );
-      formData.append(
-        `pricetag_item[${index}][catalogue_version]`,
-        `${value.catalogue?.version}`
-      );
-      formData.append(
-        `pricetag_item[${index}][inventory_id]`,
-        `${value.inventory_id}`
-      );
-      formData.append(`pricetag_item[${index}][price]`, `${value.price}`);
-      formData.append(`pricetag_item[${index}][unit_id]`, `${value.unit_id}`);
-      formData.append(
-        `pricetag_item[${index}][unit_name]`,
-        `${value.unit_name}`
-      );
-      formData.append(
-        `pricetag_item[${index}][unit_version]`,
-        `${value.unit_version}`
-      );
-      formData.append(`pricetag_item[${index}][quantity]`, `${value.quantity}`);
-
-      value.fileUploads.forEach((file) => {
-        if (file.raw) {
-          formData.append(`pricetag_item[${index}][files]`, file.raw as Blob);
-        }
-      });
-    });
-
-    fileList.value.forEach((file, index) => {
-      if (file.raw) {
-        formData.append(`files[${index}]`, file.raw);
-      }
-    });
-
-    // Get unique_id from cookie
-    const unique_id = useCookie("tag_id");
-    if (unique_id.value) {
-      formData.append("unique_id", `${unique_id.value}`);
-    }
-
-    const response = await useFetchApi<BaseResponse<Pricetag>>(
-      "/pricetag-create",
-      "pricelist-create",
-      "post",
-      formData
-    );
-
-    if (response.status.value == "success") {
-      const pricetag: Pricetag | undefined = response.data.value?.data;
-      ElMessage.success("Berhasil");
-
-      // if(id.value){
-      //   fetchInitialData();
-      // }else{
-      //   if(canvassing_id.value && pricetag){
-      //     window.location.href = `/sales/offer/${pricetag.unique_id}`;
-      //   }else{
-      //     window.location.href = `/sales/offer/${pricetag!.unique_id}`;
-      //   }
-      // }
-    }
-  } catch (error: any) {
-    ElMessage.error(error.response?.data?.message ?? error);
-  } finally {
-    loading.value = false;
+const onSubmit = async (pricetag: Pricetag | undefined) => {
+  if (pricetag) {
+    window.location.href = `/supply-chain-management/offer/${pricetag.unique_id}`;
+  } else {
+    window.location.href = `/supply-chain-management/offer/${
+      pricetag!.unique_id
+    }`;
   }
-};
-
-const submitForm = async (formEl: FormInstance | undefined) => {
-  if (!formEl) return;
-  await formEl.validate((valid, fields) => {
-    if (valid) {
-      onSubmit(formEl);
-    } else {
-      console.log("error submit!", fields);
-    }
-  });
 };
 
 const resetForm = (formEl: FormInstance | undefined) => {
