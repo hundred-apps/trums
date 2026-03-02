@@ -524,7 +524,8 @@
               <el-input
                 v-model="row.profit"
                 placeholder="Masukan Profit"
-                @change="onChangeChild(row)"
+                @change="() => calculatePricing(row, 'profit')"
+                @input="() => calculatePricing(row, 'profit')"
               >
                 <template #append>
                   <el-select
@@ -638,7 +639,8 @@
                 <el-input-number
                   v-model="row.selling_price"
                   :min="0"
-                  @change="setProfit(row)"
+                  @change="() => calculatePricing(row, 'selling_price')"
+                  @input="() => calculatePricing(row, 'selling_price')"
                   placeholder="Harga Jual"
                 />
               </div>
@@ -848,7 +850,7 @@
 
     <!-- Summary -->
     <el-card class="mb-3" shadow="hover">
-      <el-table :data="summeryData ?? []" style="width: 100%">
+      <el-table :data="summeryView ?? []" style="width: 100%">
         <el-table-column label="" prop="label" width="300">
           <template #default="{ row }">
             <div class="font-bold">{{ row.label }}</div>
@@ -2148,6 +2150,98 @@ const setProfit = (row: CanvassingItemForm) => {
     calculateSellingPrice(row);
   }
 };
+
+function calculatePricing(
+  row: CanvassingItemForm,
+  activeField: "profit" | "selling_price"
+) {
+  const hargaBeli = Number(row.unit_price || 0);
+  if (hargaBeli <= 0) return;
+
+  // ==============================
+  // ONGKIR
+  // ==============================
+  const ongkirNominal =
+    row.ongkir_unit === "percent"
+      ? (hargaBeli * Number(row.ongkir || 0)) / 100
+      : Number(row.ongkir || 0);
+
+  // ==============================
+  // FEE → SELALU JADI PERSEN (BOBOT)
+  // ==============================
+  const fee =
+    row.fee_unit === "percent"
+      ? Number(row.fee || 0)
+      : (Number(row.fee || 0) / hargaBeli) * 100;
+
+  // ==============================
+  // PROFIT INPUT → PERSEN
+  // ==============================
+  const profitInputPercent =
+    row.profit_unit === "percent"
+      ? Number(row.profit || 0)
+      : (Number(row.profit || 0) / hargaBeli) * 100;
+
+  let sellingPrice = Number(row.selling_price || 0);
+  let selisih = 0;
+
+  // ==============================
+  // MODE 1: PROFIT DIINPUT → HITUNG SELLING PRICE
+  // ==============================
+  if (activeField === "profit") {
+    if (profitInputPercent <= 0) return;
+
+    // profit nominal
+    const profitNominal = (hargaBeli * profitInputPercent) / 100;
+
+    const totalWeight = profitInputPercent + fee;
+    if (totalWeight <= 0) return;
+
+    // profit hanya bagian dari selisih
+    selisih = profitNominal * (totalWeight / profitInputPercent);
+
+    sellingPrice = hargaBeli + ongkirNominal + selisih;
+    row.selling_price = Math.round(sellingPrice);
+    row.total_selling_price = Number(row.quantity) * Number(row.selling_price);
+  }
+
+  // ==============================
+  // MODE 2: SELLING PRICE DIINPUT → HITUNG PROFIT
+  // ==============================
+  if (activeField === "selling_price") {
+    selisih = sellingPrice - hargaBeli - ongkirNominal;
+  }
+
+  if (selisih <= 0) {
+    row.fee_nominal = 0;
+    row.profit_nominal = 0;
+    row.profit = 0;
+    return;
+  }
+
+  // ==============================
+  // PEMBAGIAN PROPORSIONAL (RUMUS ASLI KAMU)
+  // ==============================
+  const profitWeight = profitInputPercent > 0 ? profitInputPercent : 100;
+  const profitAndFee = profitWeight + fee;
+
+  row.fee_nominal = profitAndFee > 0 ? (selisih * fee) / profitAndFee : 0;
+
+  row.profit_nominal =
+    profitAndFee > 0 ? (selisih * profitWeight) / profitAndFee : 0;
+
+  // ==============================
+  // PROFIT OUTPUT (%)
+  // ==============================
+  row.profit = Number(((row.profit_nominal / hargaBeli) * 100).toFixed(2));
+
+  const parent = item_canvassing.value[row.parent_index || 0];
+
+  if (parent.tmp_child_selected == row.index) {
+    parent.selling_price = row.selling_price;
+    parent.total_selling_price = row.total_selling_price;
+  }
+}
 
 const handleProfitUnitChange = (row: CanvassingItemForm) => {
   const cost = Number(row.unit_price) || 0;
@@ -4159,8 +4253,6 @@ const summeryData = computed(() => {
     });
   }
 
-  console.log("reference", references.value);
-
   references.value.forEach((element) => {
     console.log("reference", element.adjustments_transaction?.name);
     console.log("reference value", displayAmount(element, grandTotal.value));
@@ -4191,9 +4283,6 @@ const summeryData = computed(() => {
       )}  %`,
     });
   });
-
-  console.log("gross profit", grossProfit.value);
-  console.log("fee", adjustmentTransactionFeeTotal.value);
 
   tableData.push(
     {
@@ -4254,28 +4343,32 @@ const calcucateSummaryaData = () => {
     0
   );
 
-  let totalBuyingPriceMax = 0;
-  item_canvassing.value.forEach((element) => {
-    if (element.children.length > 0) {
-      let dataMin = element.children.reduce((max, data) =>
-        data.unit_price < max.unit_price ? data : max
-      );
-      totalBuyingPriceMax +=
-        Number(dataMin.unit_price) * Number(dataMin.quantity);
+  const buyingPrice = item_canvassing.value.reduce(
+    (acc, row: CanvassingItemForm) => (acc += Number(row.total_price)),
+    0
+  );
+
+  const grossProfit = Number(grandTotalValue) - Number(buyingPrice);
+
+  let fee = 0;
+
+  if (adjustmentTransactionFeeTotal.value.type == FeeType.AMOUNT) {
+    fee = adjustmentTransactionFeeTotal.value.amount;
+  } else if (adjustmentTransactionFeeTotal.value.type == FeeType.PERCENT) {
+    fee = (grandTotalValue * adjustmentTransactionFeeTotal.value.amount) / 100;
+  }
+
+  var tmp_gross = grossProfit;
+
+  references.value.forEach((element) => {
+    if (element.type === FeeType.PERCENT) {
+      tmp_gross -= (element.amount / totalBuyingPrice.value) * 100;
+    } else {
+      tmp_gross -= element.amount;
     }
   });
 
-  let totalBuyingPriceMin = 0;
-
-  item_canvassing.value.forEach((element) => {
-    if (element.children.length > 0) {
-      let dataMin = element.children.reduce((max, data) =>
-        data.unit_price > max.unit_price ? data : max
-      );
-      totalBuyingPriceMin +=
-        Number(dataMin.unit_price) * Number(element.quantity);
-    }
-  });
+  const netProfit = Number(tmp_gross) - Number(fee);
 
   summeryView.value = [];
 
@@ -4299,29 +4392,23 @@ const calcucateSummaryaData = () => {
     },
     {
       label: "Total Harga Beli",
-      max: currency(totalBuyingPriceMax),
+      max: currency(buyingPrice),
       beli: "",
       jual: "",
-      min: currency(totalBuyingPriceMin),
+      min: currency(buyingPrice),
       beliMin: "",
       jualMin: "",
     },
     {
       label: "Total",
-      max: currency(grossProfit.value),
-      beli: `${safePercent(grossProfit.value, totalBuyingPrice.value)} %`,
+      max: currency(grossProfit),
+      beli: `${safePercent(grossProfit, buyingPrice)} %`,
       jual: `${
-        grandTotal.value == 0
-          ? 0
-          : safePercent(grossProfit.value, grandTotal.value)
+        grandTotalValue == 0 ? 0 : safePercent(grossProfit, grandTotalValue)
       } %`,
-      min: currency(grossProfitMin.value),
-      beliMin: `${safePercent(grossProfit.value, totalBuyingPriceMin)} %`,
-      jualMin: `${
-        grandTotal.value == 0
-          ? 0
-          : safePercent(grossProfitMin.value, grandTotal.value)
-      } %`,
+      min: currency(0),
+      beliMin: ``,
+      jualMin: ``,
     },
     {
       label: "Ongkos Kirim",
@@ -4332,7 +4419,7 @@ const calcucateSummaryaData = () => {
       )} %`,
       jual: `${safePercent(
         adjustmentTransactionOngkirTotal.value.amount,
-        grandTotal.value
+        grandTotalValue
       )} %`,
       min: currency(adjustmentTransactionOngkirTotal.value.amount),
       beliMin: `${safePercent(
@@ -4341,7 +4428,7 @@ const calcucateSummaryaData = () => {
       )} %`,
       jualMin: `${safePercent(
         adjustmentTransactionOngkirTotal.value.amount,
-        grandTotal.value
+        grandTotalValue
       )} %`,
     },
   ];
@@ -4356,16 +4443,10 @@ const calcucateSummaryaData = () => {
         displayPercentage(element, totalBuyingPrice.value),
         1
       )}`,
-      jual: `${safePercent(displayPercentage(element, grandTotal.value), 1)}`,
-      min: currency(displayAmount(element, totalBuyingPriceMin)),
-      beliMin: `${safePercent(
-        displayPercentage(element, totalBuyingPriceMin),
-        1
-      )}`,
-      jualMin: `${safePercent(
-        displayPercentage(element, grandTotal.value),
-        1
-      )}`,
+      jual: `${safePercent(displayPercentage(element, grandTotalValue), 1)}`,
+      min: currency(0),
+      beliMin: `${safePercent(0, 1)}`,
+      jualMin: `${safePercent(displayPercentage(element, grandTotalValue), 1)}`,
     });
   });
 
@@ -4373,42 +4454,36 @@ const calcucateSummaryaData = () => {
     {
       label: adjustmentTransactionFeeTotal.value.adjustment?.name ?? "N/A",
       max: currency(
-        displayAmount(adjustmentTransactionFeeTotal.value, grossProfit.value)
+        displayAmount(adjustmentTransactionFeeTotal.value, grandTotalValue)
       ),
       beli: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grossProfit.value),
-        totalBuyingPrice.value
+        displayAmount(adjustmentTransactionFeeTotal.value, grandTotalValue),
+        buyingPrice
       )} %`,
       jual: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grossProfit.value),
-        grandTotal.value
+        displayAmount(adjustmentTransactionFeeTotal.value, grandTotalValue),
+        grandTotalValue
       )} %`,
       min: currency(
         displayAmount(adjustmentTransactionFeeTotal.value, grossProfitMin.value)
       ),
       beliMin: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grossProfit.value),
+        displayAmount(adjustmentTransactionFeeTotal.value, grossProfit),
         totalBuyingPriceMin
       )} %`,
       jualMin: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grossProfit.value),
-        grandTotal.value
+        displayAmount(adjustmentTransactionFeeTotal.value, grossProfit),
+        grandTotalValue
       )} %`,
     },
     {
       label: "Net Profit",
-      max: currency(netProfitForBuying.value),
-      beli: `${safePercent(
-        netProfitForBuying.value,
-        totalBuyingPrice.value
-      )} %`,
-      jual: `${safePercent(netProfitForBuying.value, grandTotal.value)} %`,
-      min: currency(netProfitForBuyingMin.value),
-      beliMin: `${safePercent(
-        netProfitForBuying.value,
-        totalBuyingPriceMin
-      )} %`,
-      jualMin: `${safePercent(netProfitForBuying.value, grandTotal.value)} %`,
+      max: currency(netProfit),
+      beli: `${safePercent(netProfit, buyingPrice)} %`,
+      jual: `${safePercent(netProfit, grandTotalValue)} %`,
+      min: currency(0),
+      beliMin: ``,
+      jualMin: ``,
     }
   );
 

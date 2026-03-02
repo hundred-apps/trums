@@ -1042,6 +1042,7 @@ const handleNewUnit = async (name: string): Promise<Unit | null> => {
     return null;
   }
 };
+
 const onHandleSelectItemAutocompleteUnit = async (
   item: Record<string, any>,
   scope: any

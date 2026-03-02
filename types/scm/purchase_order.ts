@@ -87,6 +87,7 @@ export type PurchaseOrderItem = {
   quantity: number;
   unit_price: number;
   total_price: number;
+  displayPrice?: string;
   is_warranty: boolean;
   warranty: number;
   warranty_unit?: WarrantyUnit | null;

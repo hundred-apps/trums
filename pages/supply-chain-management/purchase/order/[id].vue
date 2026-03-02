@@ -222,7 +222,7 @@
         />
         <el-table-column
           prop="unit_price"
-          label="Harga Unit"
+          label="Harga Satuan"
           align="right"
           width="150"
         >
@@ -240,26 +240,7 @@
             {{ currency(scope.row.total_price) }}
           </template>
         </el-table-column>
-        <el-table-column label="Garansi" width="150">
-          <template #default="scope">
-            {{
-              scope.row.is_warranty
-                ? `${scope.row.warranty} ${scope.row.warranty_unit}`
-                : "Tidak ada"
-            }}
-          </template>
-        </el-table-column>
-        <el-table-column label="Diskon" width="150">
-          <template #default="scope">
-            {{
-              scope.row.is_discount
-                ? `${scope.row.discount}${
-                    scope.row.discount_unit === "percent" ? "%" : ""
-                  }`
-                : "Tidak ada"
-            }}
-          </template>
-        </el-table-column>
+
         <el-table-column
           label="Status"
           align="center"

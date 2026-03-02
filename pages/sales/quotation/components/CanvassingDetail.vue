@@ -2040,19 +2040,10 @@ const grandTotal = computed(() => {
 });
 
 const totalBuyingPrice = computed(() => {
-  let total = 0;
-
-  item_canvassing.value.forEach((element) => {
-    if (element.children.length > 0) {
-      let dataMin = element.children.reduce((max, data) =>
-        data.unit_price < max.unit_price ? data : max
-      );
-
-      total += Number(dataMin.unit_price) * Number(dataMin.quantity);
-    }
-  });
-
-  return total;
+  return item_canvassing.value.reduce(
+    (acc, row: CanvassingItemForm) => (acc += Number(row.total_price)),
+    0
+  );
 });
 const totalBuyingPriceSelected = computed(() => {
   let total = 0;
@@ -2295,6 +2286,7 @@ const setProfit = (row: CanvassingItemForm) => {
 };
 
 const summeryData = computed(() => {
+  console.log("total harga beli", totalBuyingPrice.value);
   const tableData: any[] = [
     {
       label: "Total Harga Jual",
