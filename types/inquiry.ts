@@ -14,6 +14,10 @@ export enum InquiryStatus {
   APPROVE = "approve",
   DONE = "done",
   CANCEL = "cancelled",
+  CANVASSING = "canvassing",
+  RAB = "rab",
+  QUOTATION = "quotation",
+  PENAWARAN = "penawaran",
 }
 export enum TypeInquiry {
   SALES_INQUIRY = "sales_inquiry",

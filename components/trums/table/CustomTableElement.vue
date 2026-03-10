@@ -1,14 +1,13 @@
 <template>
-  <el-table :data="data" border style="width: 100%" @sort-change="onSortChange">
+  <el-table :data="data" border style="width: 100%">
     <el-table-column
       v-for="col in columns"
       :key="col.key"
       :prop="col.dataKey"
       :label="col.title"
       :width="col.width"
-      :align="col.align ?? 'left'"
+      :align="col.align ?? 'center'"
       :sortable="col.sortable ? 'custom' : false"
-      :fixed="col.fixed"
     >
       <template #header v-if="col.headerCellRenderer">
         <component :is="renderHeader(col)" />
@@ -51,25 +50,9 @@ const renderHeader = (col: any) => {
     col.headerCellRenderer(),
   ]);
 };
-
-const emit = defineEmits(["sort"]);
-
-const onSortChange = ({
-  prop,
-  order,
-}: {
-  prop: string;
-  order: "ascending" | "descending" | null;
-}) => {
-  emit("sort", { prop, order });
-};
 </script>
-<style scoped>
+<style>
 .el-table th .cell {
   font-weight: 700 !important;
-}
-
-:deep(.el-table__cell) {
-  padding: 0px !important;
 }
 </style>

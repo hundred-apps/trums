@@ -28,6 +28,14 @@ export enum PurchaseOrderItemStatus {
 export type WarrantyUnit = "hari" | "minggu" | "bulan" | "tahun";
 export type DeliveryUnitTime = "hari" | "minggu" | "bulan" | "tahun";
 
+export type PurchaseOrderStatistic = {
+  total_purchase_order: number;
+  total_nominal: number;
+  total_pending_approve: number;
+  total_approve: number;
+  total_vendor: number;
+};
+
 export type PurchaseOrder = {
   id: number;
   unique_id: string;
@@ -65,6 +73,11 @@ export type PurchaseOrder = {
   reference_transaction: ReferenceTransactionAdjustment[];
   reference_data: Invoice[];
   payment_terms?: TermOfPayment[];
+};
+
+export type StatisticOrder = {
+  total_purchase_order: number;
+  total_nominal: number;
 };
 
 export type PurchaseOrderItem = {

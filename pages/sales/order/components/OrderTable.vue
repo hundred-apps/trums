@@ -4,7 +4,7 @@
     :columns="filteredColumns"
     :data="data?.data ?? []"
     :loading="loading"
-    :column-sort="onSort"
+    @sort-change="onSort"
   />
 
   <!-- Pagination -->
@@ -42,6 +42,7 @@ import {
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import type { BaseResponse } from "~/types/response";
 import CustomTable from "~/components/trums/table/customTable.vue";
+import type { ColumnTable } from "~/types/ColumnTable";
 
 const props = defineProps<{
   request_search: RequestSearch;
@@ -76,23 +77,24 @@ const { data, pending } = await useFetchApi<
   ResponsePagination<PurchaseOrder[]>
 >("/search", props.key, "post", request_search.value);
 
-const onSort = (sortBy: SortBy) => {
+const onSort = (sortBy: { order: string; prop: string }) => {
   request_search.value.sort = {
-    column: sortBy.key.toString(),
+    column: sortBy.prop,
     order:
-      request_search.value.sort?.order === OrderColumn.ASC
-        ? OrderColumn.DESC
-        : OrderColumn.ASC,
+      sortBy.order === OrderColumn.ASCENDING
+        ? OrderColumn.ASC
+        : OrderColumn.DESC,
   };
   refreshNuxtData(props.key);
 };
 
-const columns: Column<PurchaseOrder>[] = [
+const columns: ColumnTable<PurchaseOrder>[] = [
   {
     key: "unique_code",
     title: "Nomor PO",
     dataKey: "unique_code",
-    width: 150,
+    width: 200,
+    fixed: true,
     cellRenderer: ({ rowData: row }) => (
       <NuxtLink href={`/sales/order/${row.unique_id}`} class="text-blue-500">
         {row.unique_code}
@@ -103,13 +105,15 @@ const columns: Column<PurchaseOrder>[] = [
     key: "vendor_name",
     title: "Vendor",
     dataKey: "vendor_name",
-    width: 200,
+    fixed: true,
+    sortable: true,
   },
   {
     key: "total_price",
     title: "Total Harga",
     dataKey: "total_price",
     width: 150,
+    sortable: true,
     cellRenderer: ({ rowData }: { rowData: PurchaseOrder }) => (
       <span>{currency(rowData.total_price)}</span>
     ),
@@ -119,6 +123,7 @@ const columns: Column<PurchaseOrder>[] = [
     title: "Estimasi Tiba",
     dataKey: "expected_arrival",
     width: 150,
+    sortable: true,
     cellRenderer: ({ rowData }: { rowData: PurchaseOrder }) => (
       <span>
         {rowData.expected_arrival
@@ -127,67 +132,67 @@ const columns: Column<PurchaseOrder>[] = [
       </span>
     ),
   },
-  {
-    key: "status",
-    title: "Status",
-    dataKey: "status",
-    width: 150,
-    cellRenderer: ({ rowData: row }) => renderStatusTag(row.status),
-    headerCellRenderer: () => (
-      <div class="flex items-center justify-center">
-        <span class="mr-2 text-xs">Status</span>
-        <ElPopover trigger="click" width={200}>
-          {{
-            default: () => (
-              <div class="filter-wrapper">
-                <div class="filter-group flex flex-col">
-                  <ElCheckboxGroup
-                    v-model={request_search.value.column[0].status}
-                  >
-                    <ElCheckbox
-                      key={PurchaseOrderStatus.DRAFT}
-                      value={PurchaseOrderStatus.DRAFT}
-                      label="Draft"
-                    />
-                    <ElCheckbox
-                      key={PurchaseOrderStatus.PENDING_APPROVAL}
-                      value={PurchaseOrderStatus.PENDING_APPROVAL}
-                      label="Pending Approval"
-                    />
-                    <ElCheckbox
-                      key={PurchaseOrderStatus.APPROVED}
-                      value={PurchaseOrderStatus.APPROVED}
-                      label="Approved"
-                    />
-                    <ElCheckbox
-                      key={PurchaseOrderStatus.CANCELLED}
-                      value={PurchaseOrderStatus.CANCELLED}
-                      label="Cancelled"
-                    />
-                    <ElCheckbox
-                      key={PurchaseOrderStatus.COMPLETED}
-                      value={PurchaseOrderStatus.COMPLETED}
-                      label="Completed"
-                    />
-                  </ElCheckboxGroup>
-                </div>
-              </div>
-            ),
-            reference: () => (
-              <ElIcon class="cursor-pointer">
-                <Filter />
-              </ElIcon>
-            ),
-          }}
-        </ElPopover>
-      </div>
-    ),
-  },
+  // {
+  //   key: "status",
+  //   title: "Status",
+  //   dataKey: "status",
+  //   width: 150,
+  //   cellRenderer: ({ rowData: row }) => renderStatusTag(row.status),
+  //   headerCellRenderer: () => (
+  //     <div class="flex items-center justify-center">
+  //       <span class="mr-2 text-xs">Status</span>
+  //       <ElPopover trigger="click" width={200}>
+  //         {{
+  //           default: () => (
+  //             <div class="filter-wrapper">
+  //               <div class="filter-group flex flex-col">
+  //                 <ElCheckboxGroup
+  //                   v-model={request_search.value.column[0].status}
+  //                 >
+  //                   <ElCheckbox
+  //                     key={PurchaseOrderStatus.DRAFT}
+  //                     value={PurchaseOrderStatus.DRAFT}
+  //                     label="Draft"
+  //                   />
+  //                   <ElCheckbox
+  //                     key={PurchaseOrderStatus.PENDING_APPROVAL}
+  //                     value={PurchaseOrderStatus.PENDING_APPROVAL}
+  //                     label="Pending Approval"
+  //                   />
+  //                   <ElCheckbox
+  //                     key={PurchaseOrderStatus.APPROVED}
+  //                     value={PurchaseOrderStatus.APPROVED}
+  //                     label="Approved"
+  //                   />
+  //                   <ElCheckbox
+  //                     key={PurchaseOrderStatus.CANCELLED}
+  //                     value={PurchaseOrderStatus.CANCELLED}
+  //                     label="Cancelled"
+  //                   />
+  //                   <ElCheckbox
+  //                     key={PurchaseOrderStatus.COMPLETED}
+  //                     value={PurchaseOrderStatus.COMPLETED}
+  //                     label="Completed"
+  //                   />
+  //                 </ElCheckboxGroup>
+  //               </div>
+  //             </div>
+  //           ),
+  //           reference: () => (
+  //             <ElIcon class="cursor-pointer">
+  //               <Filter />
+  //             </ElIcon>
+  //           ),
+  //         }}
+  //       </ElPopover>
+  //     </div>
+  //   ),
+  // },
   {
     key: "created_at",
     title: "Tanggal Dibuat",
     dataKey: "created_at",
-    width: 150,
+    width: 170,
     sortable: true,
     cellRenderer: ({ rowData }: { rowData: PurchaseOrder }) => (
       <span>{formatLocalDate(rowData.created_at)}</span>
@@ -230,6 +235,7 @@ columns.unshift({
   width: 50,
   maxWidth: 50,
   align: "center",
+  fixed: true,
   cellRenderer: ({ rowData }) => {
     const onChange = (value: CheckboxValueType) => (rowData.checked = value);
     return <SelectionCell value={rowData.checked} onChange={onChange} />;
@@ -265,7 +271,11 @@ columns[columns.length - 1].headerCellRenderer = () => {
                 <ElCheckboxGroup v-model={columnsSelected.value}>
                   {columns
                     .filter(
-                      (col) => col.key !== "selection" && col.key !== "setup"
+                      (col) =>
+                        col.key !== "selection" &&
+                        col.key !== "setup" &&
+                        col.key !== "unique_code" &&
+                        col.key !== "vendor_name"
                     )
                     .map((col) => (
                       <ElCheckbox

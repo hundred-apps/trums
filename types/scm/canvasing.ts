@@ -9,6 +9,7 @@ import type { PurchaseRequestItem } from "../purchase_request";
 import type { DeliveryUnitTime, DiscountUnit, WarrantyUnit } from "./offers";
 import type { AppFile } from "../file";
 import type { TermOfPayment } from "../payment_term";
+import type { People } from "../people";
 
 export enum CanvassingStatus {
   DRAFT = "draft",
@@ -66,6 +67,18 @@ export function paymentTermView(term: PaymentTerm | undefined) {
   }
 }
 
+export type StatisticRAB = {
+  total_rab: number;
+  total_waiting_approve: number;
+  total_done: number;
+  total_cancel: number;
+};
+export type StatisticCanvassing = {
+  total_canvassing: number;
+  total_waiting_approve: number;
+  total_done: number;
+};
+
 export type Canvassing = {
   unique_id: string | null;
   unique_code: string | null;
@@ -90,6 +103,7 @@ export type Canvassing = {
   address_version?: number;
   address_view?: string;
   payment_terms?: TermOfPayment[];
+  people?: People;
   files: AppFile[];
 };
 

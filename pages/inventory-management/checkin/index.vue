@@ -5,7 +5,7 @@ definePageMeta({
   name: "List Of Inventory Movement",
 });
 import { ref, onMounted } from "vue";
-import { InfoFilled, SetUp } from "@element-plus/icons-vue";
+import { InfoFilled, Setting, SetUp } from "@element-plus/icons-vue";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
@@ -21,12 +21,16 @@ import {
   type HeaderCellSlotProps,
   type SortBy,
   ElCheckboxGroup,
+  ElDropdown,
+  ElDropdownMenu,
+  ElDropdownItem,
 } from "element-plus";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import DeleteButton from "~/components/trums/DeleteButton.vue";
 import { NuxtLink } from "#components";
 import type { InventoryMovement } from "~/types/inventory_movement";
 import { Filter } from "@element-plus/icons-vue";
+import type { ColumnTable } from "~/types/ColumnTable";
 
 interface FormFilter {
   date_range: string[];
@@ -43,12 +47,15 @@ const column_selected = ref<string[]>([
   "type",
   "from_name",
   "to_name",
+  "status",
+  "created_at",
+  "operation",
   "setup",
 ]);
 const search = ref("");
 const router = useRouter();
 const popoverRef = ref();
-const availableColumn: Column<InventoryMovement>[] = [
+const availableColumn: ColumnTable<InventoryMovement>[] = [
   {
     title: "",
     dataKey: "",
@@ -91,7 +98,7 @@ const availableColumn: Column<InventoryMovement>[] = [
     title: "Unique Code",
     dataKey: "unique_code",
     key: "unique_code",
-    width: 200,
+    width: 300,
     cellRenderer: ({ rowData: row }) => (
       <NuxtLink href={`checkin/${row.unique_id}`} class={"text-blue-600"}>
         {row.unique_code}
@@ -102,7 +109,8 @@ const availableColumn: Column<InventoryMovement>[] = [
     title: "Tipe",
     dataKey: "type",
     key: "type",
-    width: 200,
+    width: 150,
+    align: "center",
     headerCellRenderer: () => (
       <div class="flex items-center justify-center">
         <span class="mr-2 text-xs">Type</span>
@@ -114,8 +122,8 @@ const availableColumn: Column<InventoryMovement>[] = [
                   <ElCheckboxGroup
                     v-model={request_search.value.column[0].type}
                   >
-                    <ElCheckbox value="in">In</ElCheckbox>
-                    <ElCheckbox value="out">Out</ElCheckbox>
+                    <ElCheckbox value="in">Barang Masuk</ElCheckbox>
+                    <ElCheckbox value="out">Barang Keluar</ElCheckbox>
                   </ElCheckboxGroup>
                 </div>
               </div>
@@ -129,24 +137,32 @@ const availableColumn: Column<InventoryMovement>[] = [
         </ElPopover>
       </div>
     ),
+    cellRenderer: ({ rowData }: { rowData: InventoryMovement }) => (
+      <>
+        {rowData.type == "in" ? (
+          <el-tag type="danger">Barang Masuk</el-tag>
+        ) : (
+          <el-tag type="success">Barang Keluar</el-tag>
+        )}
+      </>
+    ),
   },
   {
     title: "Sumber",
     dataKey: "from_name",
     key: "from_name",
-    width: 200,
   },
   {
     title: "Tujuan",
     dataKey: "to_name",
     key: "to_name",
-    width: 200,
   },
   {
     title: "Status",
     dataKey: "status",
     key: "status",
-    width: 200,
+    width: 100,
+    align: "center",
     cellRenderer: ({ rowData: row }) => getStatus(row),
     headerCellRenderer: () => (
       <div class="flex items-center justify-center">
@@ -190,21 +206,53 @@ const availableColumn: Column<InventoryMovement>[] = [
   },
   {
     title: "Operasi",
-    key: "",
-    width: 250,
+    key: "operation",
+    width: 100,
+    align: "center",
+    // cellRenderer: ({ rowData: row }) => (
+    //   <>
+    //     <ElButton size="small" onClick={() => handleEdit(row)}>
+    //       Edit
+    //     </ElButton>
+    //     <DeleteButton
+    //       size="small"
+    //       onConfirm={() => handleDelete([row.unique_id])}
+    //       onCancel={() => {}}
+    //     />
+    //   </>
+    // ),
+    cellRenderer: ({ rowData }: { rowData: InventoryMovement }) => {
+      const onCommand = (command: string) => {
+        if (command === "edit") {
+          handleEdit(rowData);
+        }
+        if (command === "delete") {
+          handleDelete([rowData.unique_id]);
+        }
+      };
 
-    cellRenderer: ({ rowData: row }) => (
-      <>
-        <ElButton size="small" onClick={() => handleEdit(row)}>
-          Edit
-        </ElButton>
-        <DeleteButton
-          size="small"
-          onConfirm={() => handleDelete([row.unique_id])}
-          onCancel={() => {}}
-        />
-      </>
-    ),
+      return (
+        <ElDropdown onCommand={onCommand} hideOnClick={false}>
+          {{
+            default: () => (
+              <span class="cursor-pointer text-primary">
+                <ElIcon>
+                  <Setting />
+                </ElIcon>
+              </span>
+            ),
+            dropdown: () => (
+              <ElDropdownMenu>
+                <ElDropdownItem command="edit">Edit</ElDropdownItem>
+                <ElDropdownItem class={"text-red-600"} command="delete" divided>
+                  Hapus
+                </ElDropdownItem>
+              </ElDropdownMenu>
+            ),
+          }}
+        </ElDropdown>
+      );
+    },
   },
   {
     title: "",
@@ -367,18 +415,14 @@ const deleteBulk = async () => {
   }
 };
 
-const onSort = async (sortBy: SortBy) => {
-  console.log("sort", sortBy.key);
-  console.log(request_search.value);
-  const data: RequestSearch = { ...request_search.value };
-  data.sort = {
-    column: sortBy.key.toString(),
+const onSort = async (sortBy: { prop: string; order: string }) => {
+  request_search.value.sort = {
+    column: sortBy.prop,
     order:
-      request_search.value.sort?.order == OrderColumn.ASC
+      sortBy.order === OrderColumn.ASCENDING
         ? OrderColumn.DESC
         : OrderColumn.ASC,
   };
-  request_search.value = data;
 };
 
 const add = (typecheck: string) => {
@@ -391,6 +435,21 @@ watch(request_search, () => refreshNuxtData("inventory_movement"), {
   immediate: true,
 });
 
+watch(
+  ruleFormFilter,
+  (newValue) => {
+    const start = new Date(newValue.date_range[0]).getTime() / 1000;
+    const end = new Date(newValue.date_range[1]).getTime() / 1000;
+    request_search.value.filter = {
+      created_at: {
+        min: start,
+        max: end,
+      },
+    };
+  },
+  { deep: true }
+);
+
 const onSearch = (value: string) => {
   const request = { ...request_search.value };
   request.keyword = value;
@@ -401,6 +460,11 @@ const paginationClick = (val: number) => {
   const data: RequestSearch = { ...request_search.value };
   data.offset = val.toString();
   request_search.value = data;
+};
+
+const handleSizeChange = (size: number) => {
+  request_search.value.limit = `${size}`;
+  request_search.value.offset = "1";
 };
 
 const shortcutsDate = [
@@ -464,7 +528,7 @@ onMounted(() => {
       /></el-col>
       <el-button size="default" @click="() => add('in')">CheckIn</el-button>
       <el-button size="default" @click="() => add('out')">CheckOut</el-button>
-      <el-button size="default" @click="consigment">Consignment</el-button>
+      <!-- <el-button size="default" @click="consigment">Consignment</el-button> -->
       <el-form
         :model="ruleFormFilter"
         class="ml-3"
@@ -506,18 +570,19 @@ onMounted(() => {
       </el-popconfirm>
     </el-row>
     <CustomTable
-      :column-sort="onSort"
+      @sort-change="onSort"
       :columns="filteredColumn"
       :data="data?.data ?? []"
     />
     <div class="flex justify-end mt-3">
       <el-pagination
         background
-        layout="prev, pager, next"
+        layout="prev, pager, next, sizes"
         :total="data?.total_data"
-        @next-click="paginationClick"
-        @prev-click="paginationClick"
-        @change="paginationClick"
+        :page-size="parseInt(request_search.limit)"
+        :current-page="parseInt(request_search.offset)"
+        @current-change="paginationClick"
+        @size-change="handleSizeChange"
       />
     </div>
   </TrumsWrapper>

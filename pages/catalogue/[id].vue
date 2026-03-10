@@ -32,7 +32,7 @@
       </template>
       <div class="flex gap-3 my-3">
         <div class="flex-1">
-          <el-descriptions title="" :column="1" size="large" border>
+          <el-descriptions title="" :column="1" size="small" border>
             <el-descriptions-item label="Nama Item">{{
               catalogueData?.name
             }}</el-descriptions-item>
@@ -49,7 +49,7 @@
         </div>
 
         <div class="flex-1">
-          <el-descriptions title="" :column="1" size="large" border>
+          <el-descriptions title="" :column="1" size="small" border>
             <el-descriptions-item label="Serial Number">{{
               catalogueData?.sn || "-"
             }}</el-descriptions-item>
@@ -73,7 +73,7 @@
 
       <div class="mb-5">
         <h1 class="text-lg font-bold">Dimensi</h1>
-        <el-descriptions :column="3" border>
+        <el-descriptions :column="2" border size="small">
           <el-descriptions-item label="Panjang">{{
             catalogueData?.length ? `${catalogueData.length} cm` : "-"
           }}</el-descriptions-item>
@@ -85,9 +85,6 @@
           }}</el-descriptions-item>
           <el-descriptions-item label="Berat">{{
             catalogueData?.berat ? `${catalogueData.berat} gram` : "-"
-          }}</el-descriptions-item>
-          <el-descriptions-item label="Volume">{{
-            catalogueData?.volume ? `${catalogueData.volume} cm³` : "-"
           }}</el-descriptions-item>
         </el-descriptions>
       </div>
@@ -305,6 +302,7 @@ import type {
   RenderContentContext,
   RenderContentFunction,
 } from "element-plus/es/components/tree/src/tree.type.mjs";
+import type { ColumnTable } from "~/types/ColumnTable";
 definePageMeta({
   middleware: ["auth", "check-access"],
   requiredPermission: "catalogues-read",
@@ -472,6 +470,8 @@ const column_selected = ref<string[]>([
   "catalogue.name",
   "location.name",
   "quantity",
+  "unit_name",
+  "is_traceable",
   "setup",
 ]);
 
@@ -492,17 +492,19 @@ const requestSearch = ref<RequestSearch>({
   limit: "10",
 });
 
-const availableColumn: Column<Inventory>[] = [
-  {
-    title: "Serial Number",
-    key: "sn",
-    dataKey: "sn",
-    width: 200,
-  },
+const availableColumn: ColumnTable<Inventory>[] = [
   {
     title: "Item",
     key: "catalogue.name",
     dataKey: "catalogue.name",
+    cellRenderer: ({ rowData }: { rowData: Inventory }) => (
+      <>{rowData.catalogue?.name}</>
+    ),
+  },
+  {
+    title: "Serial Number",
+    key: "sn",
+    dataKey: "sn",
     width: 200,
   },
   {
@@ -558,11 +560,12 @@ const availableColumn: Column<Inventory>[] = [
     ),
   },
   {
-    title: "Quantity",
+    title: "QTY",
     key: "quantity",
     dataKey: "quantity",
     sortable: true,
     width: 100,
+    align: "center",
     cellRenderer: ({ rowData: row }) => (
       <>
         <p>{row.quantity}</p>
@@ -611,22 +614,11 @@ const availableColumn: Column<Inventory>[] = [
     ),
   },
   {
-    title: "Cost",
-    key: "cost",
-    dataKey: "cost",
-    sortable: true,
-    width: 100,
-    cellRenderer: ({ rowData: row }) => (
-      <>
-        <p>{currency(row.cost)}</p>
-      </>
-    ),
-  },
-  {
     title: "Traceable",
     key: "is_traceable",
     dataKey: "is_traceable",
-    width: 100,
+    align: "center",
+    width: 150,
     cellRenderer: ({ rowData: row }) =>
       row.is_traceable ? (
         <ElTag type="primary">{"Traceable"}</ElTag>

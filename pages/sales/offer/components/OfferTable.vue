@@ -1,6 +1,6 @@
 <template>
   <CustomTable
-    :column-sort="onSort"
+    @sort-change="onSort"
     :columns="availableColumn"
     :data="data?.data ?? []"
   />
@@ -18,10 +18,13 @@
 
 <script lang="tsx" setup>
 import { NuxtLink } from "#components";
-import { Filter } from "@element-plus/icons-vue";
+import { Filter, Setting } from "@element-plus/icons-vue";
 import {
   ElButton,
   ElCheckbox,
+  ElDropdown,
+  ElDropdownItem,
+  ElDropdownMenu,
   ElIcon,
   ElPopconfirm,
   ElPopover,
@@ -35,6 +38,7 @@ import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
+import type { ColumnTable } from "~/types/ColumnTable";
 
 const props = defineProps<{
   // onSubmit: (catalogue: Catalogue) => void,
@@ -42,6 +46,7 @@ const props = defineProps<{
   request_search: RequestSearch;
   refresh_trigger: number;
   key: string;
+  type: "in" | "out";
 }>();
 
 const emit = defineEmits<{
@@ -62,24 +67,15 @@ const { data } = await useFetchApi<ResponsePagination<Pricetag[]>>(
 );
 
 const paginationClick = (val: number) => {
-  const data: RequestSearch = { ...request_search.value };
-  data.offset = val.toString();
-  request_search.value = data;
+  request_search.value.offset = val.toString();
+  refreshNuxtData(props.key);
 };
 
-const availableColumn: Column<Pricetag>[] = [
-  {
-    title: "No",
-    key: "no",
-    dataKey: "no",
-    width: 80,
-    cellRenderer: ({ rowIndex }) => <span>{rowIndex + 1}</span>,
-  },
+const availableColumn: ColumnTable<Pricetag>[] = [
   {
     title: "Unique Code",
     key: "name",
     dataKey: "name",
-    width: 200,
     cellRenderer: ({ rowData }: { rowData: Pricetag }) => (
       <NuxtLink
         class={"text-blue-600"}
@@ -90,19 +86,22 @@ const availableColumn: Column<Pricetag>[] = [
     ),
   },
   {
-    title: "Kepada",
+    title: props.type == "in" ? "Vendor" : "Kepada",
     key: "",
     dataKey: "",
-    width: 200,
     cellRenderer: ({ rowData }: { rowData: Pricetag }) => (
-      <span>{rowData.to?.name || "-"}</span>
+      <span>
+        {props.type === "in"
+          ? rowData.owner?.name || "-"
+          : rowData.to?.name || "-"}
+      </span>
     ),
   },
   {
     title: "Tanggal Berlaku",
-    key: "reference",
-    dataKey: "reference",
-    width: 200,
+    key: "start_date",
+    dataKey: "start_date",
+    sortable: true,
     cellRenderer: ({ rowData: row }) => (
       <>{row.start_date ? formatLocalDate(row.start_date) : "-"}</>
     ),
@@ -110,39 +109,41 @@ const availableColumn: Column<Pricetag>[] = [
   {
     title: "Operasi",
     key: "operasi",
-    width: 250,
-    cellRenderer: ({ rowData: row }) => (
-      <>
-        <NuxtLink
-          href={`/sales/offer/${row.unique_id}`}
-          class="el-button el-button--small"
-        >
-          Detail
-        </NuxtLink>
-        <NuxtLink
-          href={`/sales/offer/add?id=${row.unique_id}&type=${row.type}`}
-          class="el-button el-button--small"
-        >
-          Edit
-        </NuxtLink>
+    width: 100,
+    align: "center",
 
-        <ElPopconfirm
-          title="Yakin ingin menghapus?"
-          confirmButtonText="Ya"
-          cancelButtonText="Tidak"
-          onConfirm={() => handleDelete([row.unique_id])}
-        >
+    cellRenderer: ({ rowData }: { rowData: Pricetag }) => {
+      const onCommand = (command: string) => {
+        if (command === "edit") {
+          window.location.href = `/sales/offer/add?id=${rowData.unique_id}&type=${rowData.type}`;
+        }
+        if (command === "delete") {
+          handleDelete([rowData.unique_id]);
+        }
+      };
+
+      return (
+        <ElDropdown onCommand={onCommand} hideOnClick={false}>
           {{
-            reference: () => (
-              <ElButton size="small" type="danger">
-                Delete
-              </ElButton>
+            default: () => (
+              <span class="cursor-pointer text-primary">
+                <ElIcon>
+                  <Setting />
+                </ElIcon>
+              </span>
+            ),
+            dropdown: () => (
+              <ElDropdownMenu>
+                <ElDropdownItem command="edit">Edit</ElDropdownItem>
+                <ElDropdownItem class={"text-red-600"} command="delete" divided>
+                  Delete
+                </ElDropdownItem>
+              </ElDropdownMenu>
             ),
           }}
-        </ElPopconfirm>
-        {/* <ElButton size="small" type="danger" onClick={() => handleDelete(row)}>Delete</ElButton> */}
-      </>
-    ),
+        </ElDropdown>
+      );
+    },
   },
 ];
 
@@ -182,16 +183,15 @@ availableColumn.unshift({
   },
 });
 
-const onSort = (sortBy: SortBy) => {
-  const data: RequestSearch = { ...request_search.value };
-  data.sort = {
-    column: sortBy.key.toString(),
+const onSort = (sortBy: { order: string; prop: string }) => {
+  request_search.value.sort = {
+    column: sortBy.prop,
     order:
-      request_search.value.sort?.order == OrderColumn.ASC
-        ? OrderColumn.DESC
-        : OrderColumn.ASC,
+      sortBy.order === OrderColumn.ASCENDING
+        ? OrderColumn.ASC
+        : OrderColumn.DESC,
   };
-  request_search.value = data;
+  refreshNuxtData("Pricetag");
 };
 
 const handleDelete = async (ids: string[]) => {
@@ -266,6 +266,8 @@ watch(
     await refreshNuxtData(props.key);
   }
 );
+
+// watch(request_search, () => refreshNuxtData(props.key), { deep: true });
 
 onMounted(() => {
   fetchLocation();

@@ -1,18 +1,19 @@
 <script lang="tsx" setup>
 import { onMounted } from "vue";
 import OrderSummery from "./components/OrderSummery.vue";
-import hutangPiutang from "./hutangPiutang.vue";
-import umurHutang from "./umurHutang.vue";
-import pengeluaran from "./pengeluaran.vue";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import { TypeInquiry } from "~/types/inquiry";
 import { CanvassingStatus } from "~/types/scm/canvasing";
 import CanvassingTable from "../sales/canvassing/components/CanvassingTable.vue";
 import { Eleme } from "@element-plus/icons-vue";
 import { refreshNuxtData } from "#app";
+import UmurPiutangLineChart from "../reports/components/hutang-piutang/UmurPiutangLineChart.vue";
+
 definePageMeta({
   middleware: ["auth", "app"],
 });
+
+const refreshTrigger = ref<Number>(0);
 
 const request_search_rab_approval = ref<RequestSearch>({
   keyword: "",
@@ -75,26 +76,13 @@ onMounted(() => {
         </el-button>
       </el-row>
       <CanvassingTable
-        ref="tableRABRef"
+        :refresh-trigger="refreshTrigger"
         :request_search="request_search_rab_approval"
         :fetchKey="'get-rab'"
+        type="RAB"
       />
     </ElCard>
 
-    <h3 class="text-lg font-semibold">Hutang & Piutang</h3>
-
-    <ElCard class="mt-2" shadow="never">
-      <hutangPiutang />
-    </ElCard>
-    <h3 class="text-lg font-semibold mt-6">Umur Hutang & Piutang</h3>
-
-    <ElCard class="mt-2" shadow="never">
-      <umurHutang />
-    </ElCard>
-    <h3 class="text-lg font-semibold mt-6">Pengeluaran</h3>
-
-    <ElCard class="mt-2" shadow="never">
-      <pengeluaran />
-    </ElCard>
+    <UmurPiutangLineChart />
   </TrumsWrapper>
 </template>

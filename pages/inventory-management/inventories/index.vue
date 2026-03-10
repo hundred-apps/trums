@@ -7,13 +7,21 @@ definePageMeta({
 import { ref, onMounted, type FunctionalComponent } from "vue";
 import type { Catalogue } from "~/types/catalogue";
 import { type Inventory } from "~/types/inventory";
-import { InfoFilled, SetUp, RefreshLeft } from "@element-plus/icons-vue";
+import {
+  InfoFilled,
+  SetUp,
+  RefreshLeft,
+  Setting,
+} from "@element-plus/icons-vue";
 
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
 import {
   ElButton,
   ElCheckbox,
+  ElDropdown,
+  ElDropdownItem,
+  ElDropdownMenu,
   ElIcon,
   ElPopconfirm,
   ElPopover,
@@ -27,6 +35,7 @@ import CustomTable from "~/components/trums/table/customTable.vue";
 import { Filter } from "@element-plus/icons-vue";
 import type { Unit } from "~/types/unit";
 import { NuxtLink } from "#components";
+import type { ColumnTable } from "~/types/ColumnTable";
 
 const column_selected = ref<string[]>([
   "selection",
@@ -199,12 +208,13 @@ const { data } = await useFetchApi<ResponsePagination<Inventory[]>>(
 const locations = ref<Catalogue[]>([]);
 const units = ref<Unit[]>([]);
 
-const availableColumn: Column<Inventory>[] = [
+const availableColumn: ColumnTable<Inventory>[] = [
   {
     title: "Unique Code",
     key: "",
     dataKey: "",
     width: 200,
+    fixed: true,
     cellRenderer: ({ rowData }: { rowData: Inventory }) => (
       <NuxtLink
         class={`text-blue-600`}
@@ -215,16 +225,12 @@ const availableColumn: Column<Inventory>[] = [
     ),
   },
   {
-    title: "Serial Number",
-    key: "sn",
-    dataKey: "sn",
-    width: 200,
-  },
-  {
     title: "Item",
     key: "catalogue.name",
     dataKey: "catalogue.name",
-    width: 200,
+    width: 500,
+    fixed: true,
+    sortable: true,
     cellRenderer: ({ rowData }: { rowData: Inventory }) => (
       <NuxtLink
         class={`text-blue-600`}
@@ -287,11 +293,18 @@ const availableColumn: Column<Inventory>[] = [
     ),
   },
   {
+    title: "Serial Number",
+    key: "sn",
+    dataKey: "sn",
+    width: 200,
+  },
+
+  {
     title: "Quantity",
     key: "quantity",
     dataKey: "quantity",
     sortable: true,
-    width: 100,
+    width: 120,
     cellRenderer: ({ rowData }: { rowData: Inventory }) => (
       <>
         <p>{rowData.quantity}</p>
@@ -303,7 +316,7 @@ const availableColumn: Column<Inventory>[] = [
     key: "available",
     dataKey: "available",
     sortable: true,
-    width: 100,
+    width: 120,
     cellRenderer: ({ rowData }: { rowData: Inventory }) => (
       <>
         <p class={"text-green-500"}>{rowData.available}</p>
@@ -315,7 +328,7 @@ const availableColumn: Column<Inventory>[] = [
     key: "booking",
     dataKey: "booking",
     sortable: true,
-    width: 100,
+    width: 120,
     cellRenderer: ({ rowData }: { rowData: Inventory }) => (
       <>
         <p class={"text-yellow-500"}>{rowData.booking}</p>
@@ -327,7 +340,7 @@ const availableColumn: Column<Inventory>[] = [
     key: "request",
     dataKey: "request",
     sortable: true,
-    width: 100,
+    width: 120,
     cellRenderer: ({ rowData }: { rowData: Inventory }) => (
       <>
         <p class={"text-red-500"}>{rowData.request}</p>
@@ -339,7 +352,7 @@ const availableColumn: Column<Inventory>[] = [
     key: "order",
     dataKey: "order",
     sortable: true,
-    width: 100,
+    width: 120,
     cellRenderer: ({ rowData }: { rowData: Inventory }) => (
       <>
         <p class={"text-blue-500"}>{rowData.order}</p>
@@ -392,7 +405,7 @@ const availableColumn: Column<Inventory>[] = [
     key: "cost",
     dataKey: "cost",
     sortable: true,
-    width: 100,
+    width: 120,
     cellRenderer: ({ rowData: row }) => (
       <>
         <p>{currency(row.cost)}</p>
@@ -446,29 +459,62 @@ const availableColumn: Column<Inventory>[] = [
   {
     title: "Operasi",
     key: "operasi",
-    width: 250,
-    cellRenderer: ({ rowData: row }) => (
-      <>
-        <ElButton size="small" onClick={() => handleEdit(row)}>
-          Edit
-        </ElButton>
-        <ElPopconfirm
-          title="Yakin ingin menghapus?"
-          confirmButtonText="Ya"
-          cancelButtonText="Tidak"
-          onConfirm={() => handleDelete(row)}
-        >
+    width: 100,
+    align: "center",
+    // cellRenderer: ({ rowData: row }) => (
+    //   <>
+    //     <ElButton size="small" onClick={() => handleEdit(row)}>
+    //       Edit
+    //     </ElButton>
+    //     <ElPopconfirm
+    //       title="Yakin ingin menghapus?"
+    //       confirmButtonText="Ya"
+    //       cancelButtonText="Tidak"
+    //       onConfirm={() => handleDelete(row)}
+    //     >
+    //       {{
+    //         reference: () => (
+    //           <ElButton size="small" type="danger">
+    //             Delete
+    //           </ElButton>
+    //         ),
+    //       }}
+    //     </ElPopconfirm>
+    //     {/* <ElButton size="small" type="danger" onClick={() => handleDelete(row)}>Delete</ElButton> */}
+    //   </>
+    // ),
+    cellRenderer: ({ rowData }: { rowData: Inventory }) => {
+      const onCommand = (command: string) => {
+        if (command === "edit") {
+          handleEdit(rowData);
+        }
+        if (command === "delete") {
+          handleDelete(rowData);
+        }
+      };
+
+      return (
+        <ElDropdown onCommand={onCommand} hideOnClick={false}>
           {{
-            reference: () => (
-              <ElButton size="small" type="danger">
-                Delete
-              </ElButton>
+            default: () => (
+              <span class="cursor-pointer text-primary">
+                <ElIcon>
+                  <Setting />
+                </ElIcon>
+              </span>
+            ),
+            dropdown: () => (
+              <ElDropdownMenu>
+                <ElDropdownItem command="edit">Edit</ElDropdownItem>
+                <ElDropdownItem class={"text-red-600"} command="delete" divided>
+                  Hapus
+                </ElDropdownItem>
+              </ElDropdownMenu>
             ),
           }}
-        </ElPopconfirm>
-        {/* <ElButton size="small" type="danger" onClick={() => handleDelete(row)}>Delete</ElButton> */}
-      </>
-    ),
+        </ElDropdown>
+      );
+    },
   },
   {
     title: "",
@@ -537,6 +583,7 @@ const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
 availableColumn.unshift({
   key: "selection",
   width: 50,
+  fixed: true,
   cellRenderer: ({ rowData }) => {
     const onChange = (value: CheckboxValueType) => (rowData.checked = value);
     return <SelectionCell value={rowData.checked} onChange={onChange} />;
@@ -606,11 +653,11 @@ const onSearch = async (value: string) => {
   request_search.value = data;
 };
 
-const onSort = (sortBy: SortBy) => {
+const onSort = (sortBy: { prop: string; order: string }) => {
   request_search.value.sort = {
-    column: sortBy.key.toString(),
+    column: sortBy.prop,
     order:
-      request_search.value.sort?.order == OrderColumn.ASC
+      sortBy.order === OrderColumn.ASCENDING
         ? OrderColumn.DESC
         : OrderColumn.ASC,
   };
@@ -626,6 +673,10 @@ watch(
 
 const paginationClick = (val: number) => {
   request_search.value.offset = val.toString();
+};
+
+const handleSizeChange = (size: number) => {
+  request_search.value.limit = `${size}`;
 };
 const bulkDelete = async () => {
   try {
@@ -674,6 +725,16 @@ const hasSelected = computed(() => {
   return data.value?.data?.some((item) => item.checked) || false;
 });
 
+const onRefresh = () => {
+  refreshNuxtData("inventories");
+};
+
+const newInventory = () => {
+  const unique_id = useCookie("unique_id");
+  unique_id.value = null;
+  $router.push("inventories/add");
+};
+
 onMounted(() => {
   fetchLocation();
   fetchUnits();
@@ -688,22 +749,8 @@ onMounted(() => {
             v-model="request_search.keyword"
             placeholder="Type to search"
         /></el-col>
-        <el-button
-          @click="
-            () => {
-              const unique_id = useCookie('unique_id');
-              unique_id.value = null;
-              $router.push('inventories/add');
-            }
-          "
-          >New Inventory</el-button
-        >
-        <el-button
-          @click="
-            () => {
-              refreshNuxtData('inventories');
-            }
-          "
+        <el-button @click="newInventory">New Inventory</el-button>
+        <el-button @click="onRefresh"
           ><el-icon class="mr-3"><RefreshLeft /></el-icon> Muat Ulang</el-button
         >
         <NuxtLink
@@ -716,18 +763,19 @@ onMounted(() => {
         </el-button>
       </el-row>
       <CustomTable
-        :column-sort="onSort"
+        @sort-change="onSort"
         :columns="filteredColumn"
         :data="data?.data ?? []"
       />
       <div class="flex justify-end mt-3">
         <el-pagination
           background
-          layout="prev, pager, next"
+          layout="prev, pager, next, sizes"
           :total="data?.total_data"
-          @next-click="paginationClick"
-          @prev-click="paginationClick"
-          @change="paginationClick"
+          :page-size="parseInt(request_search.limit)"
+          :current-page="parseInt(request_search.offset)"
+          @current-change="paginationClick"
+          @size-change="handleSizeChange"
         />
       </div>
     </div>

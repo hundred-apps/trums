@@ -3,7 +3,7 @@
     :columns="filteredColumns"
     :data="data?.data ?? []"
     :loading="loading"
-    :column-sort="onSort"
+    @sort-change="onSort"
     @selection-change="handleSelectionChange"
   />
 
@@ -23,11 +23,14 @@
 
 <script lang="tsx" setup>
 import { NuxtLink } from "#components";
-import { Filter, SetUp } from "@element-plus/icons-vue";
+import { Filter, Setting, SetUp } from "@element-plus/icons-vue";
 import {
   ElButton,
   ElCheckbox,
   ElCheckboxGroup,
+  ElDropdown,
+  ElDropdownItem,
+  ElDropdownMenu,
   ElIcon,
   ElPopover,
   TableV2FixedDir,
@@ -41,6 +44,7 @@ import type { ResponsePagination } from "~/types/response_pagination";
 import { CanvassingStatus } from "~/types/scm/canvasing";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
+import type { ColumnTable } from "~/types/ColumnTable";
 
 const props = defineProps<{
   // onSubmit: (catalogue: Catalogue) => void,
@@ -57,9 +61,12 @@ const columnsSelected = ref<string[]>([
   "selection",
   "unique_code",
   "source_document",
+  "request_to",
+  "request_by",
   "description",
   "status",
   "created_at",
+  "created_by",
   "operations",
   "setup",
 ]);
@@ -74,12 +81,13 @@ const { data, pending } = await useFetchApi<ResponsePagination<Canvassing[]>>(
 );
 
 // Columns
-const columns: Column<Canvassing>[] = [
+const columns: ColumnTable<Canvassing>[] = [
   {
     key: "unique_code",
     title: "Nomor Canvassing",
     dataKey: "unique_code",
     width: 300,
+    sortable: true,
     cellRenderer: ({ rowData: row }) =>
       props.type == "RAB" ? (
         <NuxtLink
@@ -107,6 +115,25 @@ const columns: Column<Canvassing>[] = [
     ),
   },
   {
+    key: "request_to",
+    title: "Diminta Oleh",
+    dataKey: "request_to",
+    width: 300,
+
+    cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
+      <span>{rowData.source?.request_to?.name || "N/A"}</span>
+    ),
+  },
+  {
+    key: "request_by",
+    title: "PIC",
+    dataKey: "request_by",
+    width: 200,
+    cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
+      <span>{rowData.source?.request_by?.name || "N/A"}</span>
+    ),
+  },
+  {
     key: "description",
     title: "Deskripsi",
     dataKey: "description",
@@ -116,7 +143,7 @@ const columns: Column<Canvassing>[] = [
     key: "status",
     title: "Status",
     dataKey: "status",
-    width: 150,
+    width: 200,
     cellRenderer: ({ rowData: row }) => renderStatusTag(row.status),
     headerCellRenderer: () => (
       <div class="flex items-center justify-center">
@@ -162,33 +189,76 @@ const columns: Column<Canvassing>[] = [
     key: "created_at",
     title: "Tanggal Dibuat",
     dataKey: "created_at",
-    width: 150,
+    width: 200,
     sortable: true,
     cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
       <span>{formatLocalDate(rowData.created_at!)}</span>
     ),
   },
   {
+    key: "created_by",
+    title: "Dibuat Oleh",
+    dataKey: "created_by",
+    width: 150,
+    sortable: true,
+    cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
+      <span>{rowData.people?.name ?? "N/A"}</span>
+    ),
+  },
+  {
     key: "operations",
     title: "Aksi",
-    cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
-      <>
-        <NuxtLink
-          class="el-button el-button--small"
-          href={`/supply-chain-management/canvassing/add?id=${rowData.unique_id}`}
-        >
-          Edit
-        </NuxtLink>
-        <ElButton
-          size="small"
-          type="danger"
-          onClick={() => handleSubmitDelete([rowData.unique_id!])}
-        >
-          Hapus
-        </ElButton>
-      </>
-    ),
-    width: 150,
+    // cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
+    //   <>
+    //     <NuxtLink
+    //       class="el-button el-button--small"
+    //       href={`/supply-chain-management/canvassing/add?id=${rowData.unique_id}`}
+    //     >
+    //       Edit
+    //     </NuxtLink>
+    //     <ElButton
+    //       size="small"
+    //       type="danger"
+    //       onClick={() => handleSubmitDelete([rowData.unique_id!])}
+    //     >
+    //       Hapus
+    //     </ElButton>
+    //   </>
+    // ),
+    // width: 150,
+
+    cellRenderer: ({ rowData }: { rowData: Canvassing }) => {
+      const onCommand = (command: string) => {
+        if (command === "edit") {
+          window.location.href = `/supply-chain-management/canvassing/add?id=${rowData.unique_id}`;
+        }
+        if (command === "delete") {
+          handleSubmitDelete([rowData.unique_id!]);
+        }
+      };
+
+      return (
+        <ElDropdown onCommand={onCommand} hideOnClick={false}>
+          {{
+            default: () => (
+              <span class="cursor-pointer text-primary">
+                <ElIcon>
+                  <Setting />
+                </ElIcon>
+              </span>
+            ),
+            dropdown: () => (
+              <ElDropdownMenu>
+                <ElDropdownItem command="edit">Edit</ElDropdownItem>
+                <ElDropdownItem class={"text-red-600"} command="delete" divided>
+                  Hapus
+                </ElDropdownItem>
+              </ElDropdownMenu>
+            ),
+          }}
+        </ElDropdown>
+      );
+    },
     align: "center",
   },
   {
@@ -278,6 +348,8 @@ const renderStatusTag = (status: CanvassingStatus) => {
       return <el-tag type="warning">PENDING APPROVAL</el-tag>;
     case CanvassingStatus.CANCEL:
       return <el-tag type="danger">CANCELED</el-tag>;
+    case CanvassingStatus.DONE:
+      return <el-tag type="success">DONE</el-tag>;
     default:
       return <el-tag>{status}</el-tag>;
   }
@@ -342,13 +414,13 @@ const onEdit = (canvassing: Canvassing) => {
   );
 };
 
-const onSort = (sortBy: SortBy) => {
+const onSort = (sortBy: { prop: string; order: string }) => {
   props.request_search.sort = {
-    column: sortBy.key.toString(),
+    column: sortBy.prop.toString(),
     order:
-      props.request_search.sort?.order === OrderColumn.ASC
-        ? OrderColumn.DESC
-        : OrderColumn.ASC,
+      sortBy.order === OrderColumn.ASCENDING
+        ? OrderColumn.ASC
+        : OrderColumn.DESC,
   };
 };
 

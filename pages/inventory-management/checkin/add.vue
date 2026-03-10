@@ -13,9 +13,7 @@
                 
             </el-tab-pane>
         </el-tabs> -->
-    <el-card>
-      <Sales />
-    </el-card>
+    <Sales />
   </TrumsWrapper>
 </template>
 <script lang="tsx" setup>

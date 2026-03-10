@@ -4,7 +4,9 @@
     <el-row :gutter="16">
       <el-col :span="6">
         <div class="statistic-card">
-          <el-statistic :value="(data?.data ?? []).filter((item: Brands) => item.parent_id === null).length">
+          <el-statistic
+            :value="(data?.data ?? []).filter((item: Brands) => item.parent_id === null).length"
+          >
             <template #title>
               <div style="display: inline-flex; align-items: center">
                 Brand Utama
@@ -15,7 +17,9 @@
       </el-col>
       <el-col :span="6">
         <div class="statistic-card">
-          <el-statistic :value="(data?.data ?? []).filter((item: Brands) => item.parent_id !== null).length">
+          <el-statistic
+            :value="(data?.data ?? []).filter((item: Brands) => item.parent_id !== null).length"
+          >
             <template #title>
               <div style="display: inline-flex; align-items: center">
                 Sub Brand
@@ -55,15 +59,20 @@
           v-model="request_search.keyword"
           size="default"
           placeholder="Cari brand..."
-          clearable 
+          clearable
         />
       </el-col>
-      <el-radio-group v-model="is_main_brand" class="mr-3" size="default" @change="(val) => onChangeBrandFilter(val as string)">
+      <el-radio-group
+        v-model="is_main_brand"
+        class="mr-3"
+        size="default"
+        @change="(val) => onChangeBrandFilter(val as string)"
+      >
         <el-radio-button label="Brand Utama" value="1" />
         <el-radio-button label="Sub Brand" value="0" />
       </el-radio-group>
-      <NuxtLink 
-        class="el-button el-button--primary el-button--default" 
+      <NuxtLink
+        class="el-button el-button--primary el-button--default"
         href="/catalogue/brand/add"
       >
         Tambah Brand Baru
@@ -76,30 +85,26 @@
       >
         Muat Ulang
       </el-button>
-      <el-button 
-        type="danger" 
-        :disabled="!hasSelected"
-        @click="batchDelete"
-      >
-        Hapus yang Dipilih 
+      <el-button type="danger" :disabled="!hasSelected" @click="batchDelete">
+        Hapus yang Dipilih
       </el-button>
     </el-row>
-    
+
     <!-- Table -->
     <CustomTable
-      :columns="filteredColumns"
+      :columns="columns"
       :data="data?.data ?? []"
       :loading="loading"
-      :column-sort="onSort"
+      @sort-change="onSort"
       @selection-change="handleSelectionChange"
     />
 
     <!-- Pagination -->
     <div class="flex justify-end mt-3">
-      <el-pagination 
-        background 
-        layout="prev, pager, next, sizes" 
-        :total="data?.total_data ?? 0" 
+      <el-pagination
+        background
+        layout="prev, pager, next, sizes"
+        :total="data?.total_data ?? 0"
         :page-size="parseInt(request_search.limit)"
         :current-page="parseInt(request_search.offset)"
         @current-change="handlePageChange"
@@ -110,62 +115,85 @@
 </template>
 
 <script lang="tsx" setup>
-import { Eleme, SetUp, Filter } from '@element-plus/icons-vue'
-import { type Column, type CheckboxValueType, TableV2FixedDir, ElPopover, ElCheckbox, ElIcon, type SortBy, ElCheckboxGroup, ElTag } from 'element-plus'
-import type { Pagination } from '~/types/pagination'
-import { NuxtLink } from '#components';
-import CustomTable from '~/components/trums/table/customTable.vue'
-import type { ResponsePagination } from '~/types/response_pagination'
-import { OrderColumn, type RequestSearch } from '~/types/request_search'
-import type { BaseResponse } from '~/types/response'
-import SelectionCell from '~/components/trums/table/SelectionCell.vue';
-import type { Brands } from '~/types/brand';
-
+import { Eleme, SetUp, Filter, Setting } from "@element-plus/icons-vue";
+import {
+  type Column,
+  type CheckboxValueType,
+  TableV2FixedDir,
+  ElPopover,
+  ElCheckbox,
+  ElIcon,
+  type SortBy,
+  ElCheckboxGroup,
+  ElTag,
+  ElDropdown,
+  ElDropdownMenu,
+  ElDropdownItem,
+} from "element-plus";
+import type { Pagination } from "~/types/pagination";
+import { NuxtLink } from "#components";
+import CustomTable from "~/components/trums/table/customTable.vue";
+import type { ResponsePagination } from "~/types/response_pagination";
+import { OrderColumn, type RequestSearch } from "~/types/request_search";
+import type { BaseResponse } from "~/types/response";
+import SelectionCell from "~/components/trums/table/SelectionCell.vue";
+import type { Brands } from "~/types/brand";
+import type { ColumnTable } from "~/types/ColumnTable";
+import { refreshNuxtData } from "#app";
 
 definePageMeta({
-    middleware: ["auth", "check-access"],
-    requiredPermission: "brands-read",
-    name: "List Of Brands"
-})
+  middleware: ["auth", "check-access"],
+  requiredPermission: "brands-read",
+  name: "List Of Brands",
+});
 
-const is_main_brand = ref<string>('1');
+const is_main_brand = ref<string>("1");
 
 // Search request
 const request_search = ref<RequestSearch>({
-  keyword: '',
+  keyword: "",
   column: [],
   limit: "10",
   offset: "1",
-  table: 'brands',
+  table: "brands",
   sort: {
-    column: 'created_at',
+    column: "created_at",
     order: OrderColumn.DESC,
-  }
+  },
 });
 
 // Data state
-const { data } = await useFetchApi<ResponsePagination<Brands[]>>('/search', 'get-brands', 'post', request_search.value);
+const { data } = await useFetchApi<ResponsePagination<Brands[]>>(
+  "/search",
+  "get-brands",
+  "post",
+  request_search.value
+);
 
-const selectedBrands = ref<Brands[]>([])
-const loading = ref<boolean>(false)
-const columnsSelected = ref<string[]>(['selection', 'name', 'description', 'parent', 'created_at', 'updated_at', 'operations', 'setup'])
+const selectedBrands = ref<Brands[]>([]);
+const loading = ref<boolean>(false);
 
 // Computed
 const totalSubBrands = computed(() => {
-  return (data.value?.data ?? []).reduce((total, brand) => total + (brand.children?.length || 0), 0) || 0
-})
+  return (
+    (data.value?.data ?? []).reduce(
+      (total, brand) => total + (brand.children?.length || 0),
+      0
+    ) || 0
+  );
+});
 
 const hasSelected = computed(() => {
-  return data.value?.data?.some(item => item.checked) || false
-})
+  return data.value?.data?.some((item) => item.checked) || false;
+});
 
 // Columns
-const columns: Column<Brands>[] = [
+const columns: ColumnTable<Brands>[] = [
   {
-    key: 'name',
-    title: 'Nama Brand',
-    dataKey: 'name',
-    width: 200,
+    key: "name",
+    title: "Nama Brand",
+    dataKey: "name",
+    sortable: true,
     cellRenderer: ({ rowData }: { rowData: Brands }) => (
       <div class="flex items-center">
         <span class="font-medium">{rowData.name}</span>
@@ -175,253 +203,240 @@ const columns: Column<Brands>[] = [
           </ElTag>
         )}
       </div>
-    )
+    ),
   },
   {
-    key: 'description',
-    title: 'Deskripsi',
-    dataKey: 'description',
+    key: "description",
+    title: "Deskripsi",
+    dataKey: "description",
     width: 250,
     cellRenderer: ({ rowData }: { rowData: Brands }) => (
-      <span class="text-gray-600">{rowData.description || '-'}</span>
-    )
+      <span class="text-gray-600">{rowData.description || "-"}</span>
+    ),
   },
   {
-    key: 'parent',
-    title: 'Parent Brand',
-    dataKey: 'parent',
+    key: "parent",
+    title: "Parent Brand",
+    dataKey: "parent",
+    cellRenderer: ({ rowData }: { rowData: Brands }) => (
+      <span>{rowData.parent?.name || "-"}</span>
+    ),
+  },
+  {
+    key: "created_by",
+    title: "Dibuat Oleh",
+    dataKey: "created_by",
     width: 150,
     cellRenderer: ({ rowData }: { rowData: Brands }) => (
-      <span>{rowData.parent?.name || '-'}</span>
-    )
+      <span>{rowData.people?.name ?? "N/A"}</span>
+    ),
   },
   {
-    key: 'created_at',
-    title: 'Dibuat Pada',
-    dataKey: 'created_at',
+    key: "created_at",
+    title: "Dibuat Pada",
+    dataKey: "created_at",
     width: 150,
     sortable: true,
     cellRenderer: ({ rowData }: { rowData: Brands }) => (
       <span>{formatLocalDate(rowData.created_at)}</span>
-    )
+    ),
   },
   {
-    key: 'updated_at',
-    title: 'Diupdate Pada',
-    dataKey: 'updated_at',
-    width: 150,
-    sortable: true,
-    cellRenderer: ({ rowData }: { rowData: Brands }) => (
-      <span>{formatLocalDate(rowData.updated_at)}</span>
-    )
-  },
-  {
-    key: 'version',
-    title: 'Versi',
-    dataKey: 'version',
-    width: 100,
-    align: 'center',
-    cellRenderer: ({ rowData }: { rowData: Brands }) => (
-      <ElTag size="small">{rowData.version}</ElTag>
-    )
-  },
-  {
-    key: 'operations',
-    title: 'Aksi',
+    key: "operations",
+    title: "Aksi",
+    // cellRenderer: ({ rowData }: { rowData: Brands }) => {
+    //   const _data = unref(data);
+    //   //   const hasDeletePermission = _data?.privilege?.includes('delete') || false;
+
+    //   return (
+    //     <div class="flex gap-2">
+    //       <NuxtLink
+    //         class="el-button el-button--small el-button--primary"
+    //         href={`/catalogue/brand/add?id=${rowData.unique_id}`}
+    //       >
+    //         Edit
+    //       </NuxtLink>
+    //       <el-button
+    //         size="small"
+    //         type="danger"
+    //         onClick={() => onDelete([rowData.unique_id])}
+    //       >
+    //         Hapus
+    //       </el-button>
+    //     </div>
+    //   );
+    // },
     cellRenderer: ({ rowData }: { rowData: Brands }) => {
-      const _data = unref(data);
-    //   const hasDeletePermission = _data?.privilege?.includes('delete') || false;
-      
+      const onCommand = (command: string) => {
+        if (command === "edit") {
+          window.location.href = `/catalogue/brand/add?id=${rowData.unique_id}`;
+        }
+        if (command === "delete") {
+          onDelete([rowData.unique_id]);
+        }
+      };
+
       return (
-        <div class="flex gap-2">
-          <NuxtLink 
-            class="el-button el-button--small el-button--primary" 
-            href={`/catalogue/brand/add?id=${rowData.unique_id}`}
-          >
-            Edit
-          </NuxtLink>
-          <el-button 
-              size="small" 
-              type="danger" 
-              onClick={() => onDelete([rowData.unique_id])}
-            >
-              Hapus
-            </el-button>
-        </div>
+        <ElDropdown onCommand={onCommand} hideOnClick={false}>
+          {{
+            default: () => (
+              <span class="cursor-pointer text-primary">
+                <ElIcon>
+                  <Setting />
+                </ElIcon>
+              </span>
+            ),
+            dropdown: () => (
+              <ElDropdownMenu>
+                <ElDropdownItem command="edit">Edit</ElDropdownItem>
+                <ElDropdownItem class={"text-red-600"} command="delete" divided>
+                  Hapus
+                </ElDropdownItem>
+              </ElDropdownMenu>
+            ),
+          }}
+        </ElDropdown>
       );
     },
-    width: 200,
-    align: 'center'
+    width: 100,
+    align: "center",
   },
-  {
-    title: '',
-    key: 'setup',
-    width: 50,
-    fixed: TableV2FixedDir.RIGHT,
-  }
-]
+];
 
 // Add selection column
 columns.unshift({
-  key: 'selection',
+  key: "selection",
   width: 50,
   maxWidth: 50,
-  align: 'center',
+  align: "center",
   cellRenderer: ({ rowData }) => {
-    const onChange = (value: CheckboxValueType) => (rowData.checked = value)
-    return <SelectionCell value={rowData.checked} onChange={onChange} />
+    const onChange = (value: CheckboxValueType) => (rowData.checked = value);
+    return <SelectionCell value={rowData.checked} onChange={onChange} />;
   },
   headerCellRenderer: () => {
     const _data = unref(data);
     const onChange = (value: CheckboxValueType) => {
       if (_data?.data) {
-        _data.data.forEach(item => {
-          item.checked = value as boolean
-        })
+        _data.data.forEach((item) => {
+          item.checked = value as boolean;
+        });
       }
-    }
-    const allSelected = _data?.data?.every(row => row.checked) || false;
-    const containsChecked = _data?.data?.some(row => row.checked) || false;
-    
-    return <SelectionCell 
-      value={allSelected}
-      interminate={containsChecked && !allSelected}
-      onChange={onChange} 
-    />
+    };
+    const allSelected = _data?.data?.every((row) => row.checked) || false;
+    const containsChecked = _data?.data?.some((row) => row.checked) || false;
+
+    return (
+      <SelectionCell
+        value={allSelected}
+        interminate={containsChecked && !allSelected}
+        onChange={onChange}
+      />
+    );
   },
-})
-
-// Setup column configuration
-columns[columns.length - 1].headerCellRenderer = () => {
-  return (
-    <div class="flex items-center justify-center">
-      <span class="mr-2 text-xs"></span>
-      <ElPopover trigger="click" width={200}>
-        {{
-          default: () => (
-            <div class="filter-wrapper">
-              <div class="filter-group flex flex-col">
-                <ElCheckboxGroup v-model={columnsSelected.value}>
-                  {columns.filter(col => col.key !== 'selection' && col.key !== 'setup').map(col => (
-                    <ElCheckbox 
-                      key={col.key} 
-                      value={col.key!.toString()} 
-                      label={col.title} 
-                    />
-                  ))}
-                </ElCheckboxGroup>
-              </div>
-            </div>
-          ),
-          reference: () => (
-            <ElIcon class="cursor-pointer">
-              <SetUp />
-            </ElIcon>
-          ),
-        }}
-      </ElPopover>
-    </div>
-  )
-}
-
-// Computed
-const filteredColumns = computed(() => {
-  return columns.filter(col => columnsSelected.value.includes(col.key!.toString()))
-})
+});
 
 // Methods
 const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString('id-ID', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
-}
+  return new Date(dateString).toLocaleDateString("id-ID", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
+};
 
 const handleSelectionChange = (selection: Brands[]) => {
-  selectedBrands.value = selection
-}
+  selectedBrands.value = selection;
+};
 
 const handlePageChange = (page: number) => {
-  request_search.value.offset = `${page}`
-  refreshNuxtData('get-brands')
-}
+  request_search.value.offset = `${page}`;
+  refreshNuxtData("get-brands");
+};
 
 const handleSizeChange = (size: number) => {
-  request_search.value.limit = `${size}`
-  request_search.value.offset = '1'
-  refreshNuxtData('get-brands')
-}
+  request_search.value.limit = `${size}`;
+  request_search.value.offset = "1";
+  refreshNuxtData("get-brands");
+};
 
 const onDelete = async (uniques: string[]) => {
   try {
     const confirmed = await ElMessageBox.confirm(
-      'Apakah Anda yakin ingin menghapus brand yang dipilih?',
-      'Konfirmasi Hapus',
+      "Apakah Anda yakin ingin menghapus brand yang dipilih?",
+      "Konfirmasi Hapus",
       {
-        confirmButtonText: 'Ya, Hapus',
-        cancelButtonText: 'Batal',
-        type: 'warning',
+        confirmButtonText: "Ya, Hapus",
+        cancelButtonText: "Batal",
+        type: "warning",
       }
-    )
-    
+    );
+
     if (confirmed) {
-      await useFetchApi<BaseResponse<any>>('/brands-delete', 'delete-brands', 'post', uniques);
-      
-      ElMessage.success('Brand berhasil dihapus')
-      refreshNuxtData('get-brands');
+      await useFetchApi<BaseResponse<any>>(
+        "/brands-delete",
+        "delete-brands",
+        "post",
+        uniques
+      );
+
+      ElMessage.success("Brand berhasil dihapus");
+      refreshNuxtData("get-brands");
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('Gagal menghapus brand')
+    if (error !== "cancel") {
+      ElMessage.error("Gagal menghapus brand");
     }
   }
-}
+};
 
 const batchDelete = async () => {
-  const ids = data.value?.data
-    ?.filter(item => item.checked)
-    .map(item => item.unique_id) || []
-  
-  if (ids.length > 0) {
-    await onDelete(ids)
-  }
-}
+  const ids =
+    data.value?.data
+      ?.filter((item) => item.checked)
+      .map((item) => item.unique_id) || [];
 
-const onSort = (sortBy: SortBy) => {
-  request_search.value.sort = {
-    column: sortBy.key.toString(),
-    order: request_search.value.sort?.order === OrderColumn.ASC ? OrderColumn.DESC : OrderColumn.ASC
+  if (ids.length > 0) {
+    await onDelete(ids);
   }
-  refreshNuxtData('get-brands')
-}
+};
+
+const onSort = (sortBy: { order: string; prop: string }) => {
+  console.log("sort", sortBy);
+  request_search.value.sort = {
+    column: sortBy.prop,
+    order:
+      sortBy.order === OrderColumn.ASCENDING
+        ? OrderColumn.ASC
+        : OrderColumn.DESC,
+  };
+  refreshNuxtData("get-brands");
+};
 
 const onChangeBrandFilter = (val: string) => {
-  if(val === '1'){
+  if (val === "1") {
     request_search.value.column = [
       {
-        parent_id: ['null']
-      }
-    ]
-  }else{
+        parent_id: ["null"],
+      },
+    ];
+  } else {
     request_search.value.column = [
       {
-        parent_id: ['not null']
-      }
+        parent_id: ["not null"],
+      },
     ];
   }
-  refreshNuxtData('get-brands')
-}
+  refreshNuxtData("get-brands");
+};
 
 // Watch search query
 watchDebounced(
   request_search,
   () => {
-    refreshNuxtData('get-brands')
+    refreshNuxtData("get-brands");
   },
   { debounce: 500, deep: true }
-)
-
+);
 </script>
 
 <style scoped>

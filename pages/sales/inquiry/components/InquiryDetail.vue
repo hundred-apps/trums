@@ -50,7 +50,7 @@
         </template>
         <div class="flex gap-3 my-3">
           <div class="flex-1">
-            <el-descriptions title="" :column="1" size="large" border>
+            <el-descriptions title="" :column="1" size="small" border>
               <el-descriptions-item label="Prioritas Permintaan">{{
                 inquiryData?.priority.toUpperCase()
               }}</el-descriptions-item>
@@ -61,7 +61,7 @@
             </el-descriptions>
           </div>
           <div class="flex-1">
-            <el-descriptions title="" :column="1" size="large" border>
+            <el-descriptions title="" :column="1" size="small" border>
               <el-descriptions-item label="Diminta Oleh"
                 >{{ inquiryData?.request_to?.name ?? "-" }}
               </el-descriptions-item>
@@ -72,16 +72,16 @@
           </div>
         </div>
 
-        <el-descriptions title="Alamat">
+        <el-descriptions title="Alamat" size="small">
           <el-descriptions-item label="">{{
             generateResultSearchAddress(inquiryData?.address ?? null).street
           }}</el-descriptions-item>
         </el-descriptions>
-        <el-descriptions title="Note">
+        <el-descriptions title="Note" size="small">
           <el-descriptions-item label="">
-            <div
+            <span
               v-html="`${formattedText(inquiryData?.description ?? '')}`"
-            ></div>
+            ></span>
           </el-descriptions-item>
         </el-descriptions>
         <h5 class="font-bold text-black text-1xl mt-6">Lampiran</h5>
@@ -101,9 +101,12 @@
           style="width: 100%; height: 100%"
           border
         >
-          <el-table-column prop="image" label="Image" width="75">
+          <el-table-column prop="image" label="Image" width="75" align="center">
             <template #default="scope">
-              <div class="demo-image__preview flex items-center">
+              <div
+                class="demo-image__preview flex items-center"
+                style="width: 25px; height: 25px"
+              >
                 <ItemImageUpload
                   v-if="getFile(scope.row as ItemRequest) != ''"
                   v-model="scope.row.files"
@@ -117,8 +120,13 @@
                 />
                 <el-image v-else>
                   <template #error>
-                    <div class="image-viewer-slot image-slot">
-                      <p style="font-size: 10px">No Image</p>
+                    <div
+                      class="flex items-center justify-center border rounded py-2 px-2"
+                      style="width: 25px; height: 25px; font-size: 10px"
+                    >
+                      <ElIcon>
+                        <PictureFilled />
+                      </ElIcon>
                     </div>
                   </template>
                 </el-image>
@@ -231,6 +239,7 @@ import {
   CircleCheck,
   Edit,
   Refresh,
+  PictureFilled,
 } from "@element-plus/icons-vue";
 import type { PurchaseOrder } from "~/types/scm/purchase_order";
 import type { AddressType } from "~/types/address";

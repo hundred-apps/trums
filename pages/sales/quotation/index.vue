@@ -4,12 +4,10 @@
     <el-row :gutter="16">
       <el-col :span="6">
         <div class="statistic-card">
-          <el-statistic
-            :value="(data?.data ?? []).filter((item: Canvassing) => item.status === CanvassingStatus.DRAFT).length"
-          >
+          <el-statistic :value="statistic.data.value?.data?.total_rab || 0">
             <template #title>
               <div style="display: inline-flex; align-items: center">
-                Draft Canvassing
+                Total RAB
               </div>
             </template>
           </el-statistic>
@@ -18,7 +16,7 @@
       <el-col :span="6">
         <div class="statistic-card">
           <el-statistic
-            :value="(data?.data ?? []).filter((item: Canvassing) => item.status === CanvassingStatus.PENDING_APPROVAL).length"
+            :value="statistic.data.value?.data?.total_waiting_approve || 0"
           >
             <template #title>
               <div style="display: inline-flex; align-items: center">
@@ -30,9 +28,7 @@
       </el-col>
       <el-col :span="6">
         <div class="statistic-card">
-          <el-statistic
-            :value="(data?.data ?? []).filter((item: Canvassing) => item.status === CanvassingStatus.CANCEL).length"
-          >
+          <el-statistic :value="statistic.data.value?.data?.total_cancel || 0">
             <template #title>
               <div style="display: inline-flex; align-items: center">
                 Cancelled
@@ -43,10 +39,10 @@
       </el-col>
       <el-col :span="6">
         <div class="statistic-card">
-          <el-statistic :value="data?.total_data ?? 0">
+          <el-statistic :value="statistic.data.value?.data?.total_done || 0">
             <template #title>
               <div style="display: inline-flex; align-items: center">
-                Total Canvassing
+                Total Done
               </div>
             </template>
           </el-statistic>
@@ -88,8 +84,7 @@
       :columns="filteredColumns"
       :data="data?.data ?? []"
       :loading="loading"
-      :column-sort="onSort"
-      @selection-change="handleSelectionChange"
+      @sort-change="onSort"
     />
 
     <!-- Pagination -->
@@ -108,7 +103,7 @@
 </template>
 
 <script lang="tsx" setup>
-import { Eleme, SetUp, Filter } from "@element-plus/icons-vue";
+import { Eleme, SetUp, Filter, Setting } from "@element-plus/icons-vue";
 import {
   type Column,
   type CheckboxValueType,
@@ -120,16 +115,29 @@ import {
   ElCheckboxGroup,
   ElButton,
   ElTag,
+  ElDropdown,
+  ElDropdownMenu,
+  ElDropdownItem,
 } from "element-plus";
-import { CanvassingStatus, type Canvassing } from "~/types/scm/canvasing";
+import {
+  CanvassingStatus,
+  type Canvassing,
+  type StatisticRAB,
+} from "~/types/scm/canvasing";
 import type { Pagination } from "~/types/pagination";
 import { NuxtLink } from "#components";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import type { ResponsePagination } from "~/types/response_pagination";
-import { OrderColumn, type RequestSearch } from "~/types/request_search";
+import {
+  OrderColumn,
+  StatisticTable,
+  type RequestSearch,
+  type RequestStatistic,
+} from "~/types/request_search";
 import type { BaseResponse } from "~/types/response";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import { TypeInquiry } from "~/types/inquiry";
+import type { ColumnTable } from "~/types/ColumnTable";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -162,6 +170,10 @@ const request_search = ref<RequestSearch>({
   },
 });
 
+const request_statistic = ref<RequestStatistic>({
+  table: StatisticTable.rab,
+});
+
 // Data state
 const { data, pending } = await useFetchApi<ResponsePagination<Canvassing[]>>(
   "/search",
@@ -169,12 +181,21 @@ const { data, pending } = await useFetchApi<ResponsePagination<Canvassing[]>>(
   "post",
   request_search
 );
+
+const statistic = await useFetchApi<BaseResponse<StatisticRAB>>(
+  "/statistic",
+  "statistic-rab",
+  "post",
+  request_statistic.value
+);
+
 const selectedCanvassing = ref<Canvassing[]>([]);
 const loading = ref<boolean>(false);
 const columnsSelected = ref<string[]>([
   "selection",
   "unique_code",
   "source_document",
+  "customer",
   "description",
   "status",
   "created_at",
@@ -183,12 +204,12 @@ const columnsSelected = ref<string[]>([
 ]);
 
 // Columns
-const columns: Column<Canvassing>[] = [
+const columns: ColumnTable<Canvassing>[] = [
   {
     key: "unique_code",
     title: "Nomor Canvassing",
     dataKey: "unique_code",
-    width: 300,
+    width: 200,
     cellRenderer: ({ rowData: row }) => (
       <NuxtLink
         href={`/sales/quotation/${row.unique_id}`}
@@ -202,9 +223,18 @@ const columns: Column<Canvassing>[] = [
     key: "source_document",
     title: "Dokumen Sumber",
     dataKey: "source_document",
-    width: 200,
+    width: 300,
     cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
       <span>{rowData.source_document || "-"}</span>
+    ),
+  },
+  {
+    key: "customer",
+    title: "Customer",
+    dataKey: "customer",
+    width: 300,
+    cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
+      <span>{rowData.source?.request_to?.name || "-"}</span>
     ),
   },
   {
@@ -263,33 +293,75 @@ const columns: Column<Canvassing>[] = [
     key: "created_at",
     title: "Tanggal Dibuat",
     dataKey: "created_at",
-    width: 150,
+    width: 200,
     sortable: true,
     cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
       <span>{formatDate(rowData.created_at)}</span>
     ),
   },
   {
+    key: "",
+    title: "Dibuat Oleh",
+    dataKey: "",
+    width: 200,
+    sortable: true,
+    cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
+      <span>{rowData.people?.name ?? "N/A"}</span>
+    ),
+  },
+  {
     key: "operations",
     title: "Aksi",
-    cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
-      <>
-        <NuxtLink
-          class="el-button el-button--small"
-          href={`/sales/quotation/add?id=${rowData.unique_id}`}
-        >
-          Edit
-        </NuxtLink>
-        <ElButton
-          size="small"
-          type="danger"
-          onClick={() => onDelete([rowData.unique_id!])}
-        >
-          Hapus
-        </ElButton>
-      </>
-    ),
-    width: 150,
+    // cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
+    //   <>
+    //     <NuxtLink
+    //       class="el-button el-button--small"
+    //       href={`/sales/quotation/add?id=${rowData.unique_id}`}
+    //     >
+    //       Edit
+    //     </NuxtLink>
+    //     <ElButton
+    //       size="small"
+    //       type="danger"
+    //       onClick={() => onDelete([rowData.unique_id!])}
+    //     >
+    //       Hapus
+    //     </ElButton>
+    //   </>
+    // ),
+    cellRenderer: ({ rowData }: { rowData: Canvassing }) => {
+      const onCommand = (command: string) => {
+        if (command === "edit") {
+          window.location.href = `/sales/quotation/add?id=${rowData.unique_id}`;
+        }
+        if (command === "delete") {
+          onDelete([rowData.unique_id!]);
+        }
+      };
+
+      return (
+        <ElDropdown onCommand={onCommand} hideOnClick={false}>
+          {{
+            default: () => (
+              <span class="cursor-pointer text-primary">
+                <ElIcon>
+                  <Setting />
+                </ElIcon>
+              </span>
+            ),
+            dropdown: () => (
+              <ElDropdownMenu>
+                <ElDropdownItem command="edit">Edit</ElDropdownItem>
+                <ElDropdownItem class={"text-red-600"} command="delete" divided>
+                  Delete
+                </ElDropdownItem>
+              </ElDropdownMenu>
+            ),
+          }}
+        </ElDropdown>
+      );
+    },
+    width: 70,
     align: "center",
   },
   {
@@ -338,7 +410,11 @@ columns[columns.length - 1].headerCellRenderer = () => {
                 <ElCheckboxGroup v-model={columnsSelected.value}>
                   {columns
                     .filter(
-                      (col) => col.key !== "selection" && col.key !== "setup"
+                      (col) =>
+                        col.key !== "selection" &&
+                        col.key !== "unique_code" &&
+                        col.key !== "customer" &&
+                        col.key !== "setup"
                     )
                     .map((col) => (
                       <ElCheckbox
@@ -392,6 +468,8 @@ const renderStatusTag = (status: CanvassingStatus) => {
       return <ElTag type="success">RAB</ElTag>;
     case CanvassingStatus.CANCEL:
       return <ElTag type="danger">CANCELED</ElTag>;
+    case CanvassingStatus.DONE:
+      return <ElTag type="primary">DONE</ElTag>;
     default:
       return <ElTag>{status}</ElTag>;
   }
@@ -466,13 +544,14 @@ const submitToDelete = async (ids: string[]) => {
   }
 };
 
-const onSort = (sortBy: SortBy) => {
+const onSort = (sortBy: { order: string; prop: string }) => {
+  console.log("short", sortBy);
   request_search.value.sort = {
-    column: sortBy.key.toString(),
+    column: sortBy.prop,
     order:
-      request_search.value.sort?.order === OrderColumn.ASC
-        ? OrderColumn.DESC
-        : OrderColumn.ASC,
+      sortBy.order === OrderColumn.ASCENDING
+        ? OrderColumn.ASC
+        : OrderColumn.DESC,
   };
   refreshNuxtData("get-canvassing");
 };

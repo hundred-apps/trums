@@ -23,6 +23,7 @@
     "@vueuse/nuxt": "^11.1.0",
     "apexcharts": "^4.3.0",
     "axios": "^1.7.9",
+    "echarts": "^6.0.0",
     "jspdf": "^3.0.3",
     "jspdf-autotable": "^5.0.2",
     "nuxt": "^3.13.0",
@@ -37,6 +38,7 @@
     "vee-validate": "^4.15.0",
     "vite": "^6.0.7",
     "vue": "latest",
+    "vue-echarts": "^8.0.1",
     "vue-router": "latest",
     "yup": "^1.6.1"
   },

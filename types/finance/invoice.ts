@@ -11,7 +11,14 @@ export enum FinanceReference {
   PURCHASE_ORDER = "purchase_order",
   OTHER = "other",
 }
-
+export type StatisticInvoice = {
+  total_invoices: number;
+  total_nominal: number;
+  total_draft: number;
+  total_received: number;
+  total_paid: number;
+  total_unpaid: number;
+};
 export type Invoice = {
   unique_id: string;
   source_document?: string | null;

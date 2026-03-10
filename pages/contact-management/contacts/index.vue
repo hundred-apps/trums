@@ -8,6 +8,7 @@ import { InfoFilled, Delete, Edit } from "@element-plus/icons-vue";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { Pagination } from "~/types/pagination";
 import { NuxtLink } from "#components";
+import type { Column } from "element-plus";
 const config = useRuntimeConfig();
 
 definePageMeta({
@@ -32,7 +33,7 @@ const toggleView = () => {
   showTable.value = !showTable.value;
 };
 
-const columns = [
+const columns: Column<Contact>[] = [
   {
     label: "Name",
     prop: "name",
@@ -40,10 +41,13 @@ const columns = [
     fixed: true,
     width: 200,
     cellRenderer: ({ rowData }: { rowData: Contact }) => (
-      <NuxtLink href={`/contact-management/contacts/${rowData.unique_id}`} class="text-blue-500">
+      <NuxtLink
+        href={`/contact-management/contacts/${rowData.unique_id}`}
+        class="text-blue-500"
+      >
         {rowData.name}
       </NuxtLink>
-    )
+    ),
   },
   {
     label: "Phone",
@@ -74,7 +78,6 @@ const columns = [
     label: "Personal",
     prop: `is_personal`,
     width: 100,
-    align: "center",
   },
   {
     label: "Company",
@@ -157,12 +160,12 @@ watch(
 //   }
 // };
 const handlePageChange = (page: number) => {
-  request_search.value.offset = `${page}`
-}
+  request_search.value.offset = `${page}`;
+};
 
 const handleSizeChange = (size: number) => {
-  request_search.value.limit = `${size}`
-}
+  request_search.value.limit = `${size}`;
+};
 
 // onMounted(async () => {
 //   await fetchData();
@@ -217,7 +220,12 @@ console.log("data:", data);
           <span v-if="col.prop === 'people_internal'">{{
             scope.row[col.prop]
           }}</span>
-          <NuxtLink v-if="col.prop == 'name'" :href="`/contact-management/contacts/${scope.row.unique_id}`" class="text-blue-600">{{ scope.row.name }}</NuxtLink>
+          <NuxtLink
+            v-if="col.prop == 'name'"
+            :href="`/contact-management/contacts/${scope.row.unique_id}`"
+            class="text-blue-600"
+            >{{ scope.row.name }}</NuxtLink
+          >
         </template>
       </el-table-column>
       <el-table-column fixed="right" label="Operations" width="150">
@@ -263,7 +271,7 @@ console.log("data:", data);
         layout="total, sizes, prev, pager, next"
         :total="data?.total_data"
         @current-change="handlePageChange"
-      @size-change="handleSizeChange"
+        @size-change="handleSizeChange"
       />
     </div>
   </TrumsWrapper>

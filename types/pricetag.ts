@@ -50,7 +50,13 @@ export type Pricetag = {
   pic_name?: string;
   pic_version?: number;
   payment_terms?: TermOfPayment[];
+  fileUploads?: UploadUserFile[];
   reference_transaction_adjustment?: ReferenceTransactionAdjustment[];
+};
+
+export type StatisticPricetag = {
+  total_pricetag: number;
+  total_vendor: number;
 };
 
 export type Pricetag_item = {

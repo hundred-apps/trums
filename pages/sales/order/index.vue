@@ -2,48 +2,22 @@
   <TrumsWrapper>
     <!-- Statistic Cards -->
     <el-row :gutter="16">
-      <el-col :span="6">
+      <el-col :span="12">
         <div class="statistic-card">
           <el-statistic
-            :value="(data?.data ?? []).filter((item: PurchaseOrder) => item.status === PurchaseOrderStatus.DRAFT).length"
+            :value="statistic.data.value?.data?.total_purchase_order || 0"
           >
             <template #title>
               <div style="display: inline-flex; align-items: center">
-                Draft Sales Order
+                Total Data
               </div>
             </template>
           </el-statistic>
         </div>
       </el-col>
-      <el-col :span="6">
+      <el-col :span="12">
         <div class="statistic-card">
-          <el-statistic
-            :value="(data?.data ?? []).filter((item: PurchaseOrder) => item.status === PurchaseOrderStatus.PENDING_APPROVAL).length"
-          >
-            <template #title>
-              <div style="display: inline-flex; align-items: center">
-                Pending Approval
-              </div>
-            </template>
-          </el-statistic>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="statistic-card">
-          <el-statistic
-            :value="(data?.data ?? []).filter((item: PurchaseOrder) => item.status === PurchaseOrderStatus.CANCELLED).length"
-          >
-            <template #title>
-              <div style="display: inline-flex; align-items: center">
-                Cancelled
-              </div>
-            </template>
-          </el-statistic>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="statistic-card">
-          <el-statistic :value="data?.total_data ?? 0">
+          <el-statistic :value="statistic.data.value?.data?.total_nominal || 0">
             <template #title>
               <div style="display: inline-flex; align-items: center">
                 Total Sales Order
@@ -116,14 +90,21 @@ import { ElMessage } from "element-plus";
 import {
   PurchaseOrderStatus,
   type PurchaseOrder,
+  type StatisticOrder,
 } from "~/types/scm/purchase_order";
 import { NuxtLink } from "#components";
-import { OrderColumn, type RequestSearch } from "~/types/request_search";
+import {
+  OrderColumn,
+  StatisticTable,
+  type RequestSearch,
+  type RequestStatistic,
+} from "~/types/request_search";
 import type { BaseResponse } from "~/types/response";
 import OrderTable from "./components/OrderTable.vue";
 import { refreshNuxtData } from "#app";
 import { load } from "@fingerprintjs/fingerprintjs";
 import type { ResponsePagination } from "~/types/response_pagination";
+import { currency } from "#imports";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -164,6 +145,18 @@ const request_search = ref<RequestSearch>({
     order: OrderColumn.DESC,
   },
 });
+
+const request_statistic = ref<RequestStatistic>({
+  table: StatisticTable.purchase_order,
+  type: "so",
+});
+
+const statistic = await useFetchApi<BaseResponse<StatisticOrder>>(
+  "/statistic",
+  "get-statistic-order",
+  "post",
+  request_statistic.value
+);
 
 const onDelete = async (uniques: string[]) => {
   try {

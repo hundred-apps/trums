@@ -72,7 +72,7 @@
         </template>
         <div class="flex gap-3 my-3">
           <div class="flex-1">
-            <el-descriptions title="" :column="1" size="large" border>
+            <el-descriptions title="" :column="1" size="small" border>
               <el-descriptions-item label="Prioritas Permintaan">{{
                 inquiryData?.priority.toUpperCase()
               }}</el-descriptions-item>
@@ -86,7 +86,7 @@
             </el-descriptions>
           </div>
           <div class="flex-1">
-            <el-descriptions title="" :column="1" size="large" border>
+            <el-descriptions title="" :column="1" size="small" border>
               <el-descriptions-item label="PIC">{{
                 inquiryData?.request_by?.name ?? "-"
               }}</el-descriptions-item>
@@ -122,7 +122,11 @@
           style="width: 100%"
           border
         >
-          <el-table-column prop="catalogue_name" label="Nama Item" />
+          <el-table-column
+            prop="catalogue_name"
+            label="Nama Item"
+            :fixed="true"
+          />
           <el-table-column prop="sn" label="Serial/Part Number" width="180" />
           <el-table-column prop="request_qty" label="Request QTY" width="150" />
           <el-table-column prop="stok" label="Stock" width="100" />
@@ -141,7 +145,7 @@
               />
             </template>
           </el-table-column> -->
-          <el-table-column label="Status" width="100">
+          <el-table-column label="Status" width="150">
             <template #default="scope">
               <el-tag :type="getStatusItemType(scope.row)">
                 {{ getStatusItem(scope.row) }}

@@ -2,23 +2,23 @@
   <TrumsWrapper>
     <!-- Statistic Cards -->
     <el-row :gutter="16">
-      <el-col :span="6">
+      <el-col :span="8">
         <div class="statistic-card">
           <el-statistic
-            :value="(data?.data.value?.data ?? []).filter((item: Canvassing) => item.status === CanvassingStatus.DRAFT).length"
+            :value="statistic.data.value?.data?.total_canvassing || 0"
           >
             <template #title>
               <div style="display: inline-flex; align-items: center">
-                Draft Canvassing
+                Total Canvassing
               </div>
             </template>
           </el-statistic>
         </div>
       </el-col>
-      <el-col :span="6">
+      <el-col :span="8">
         <div class="statistic-card">
           <el-statistic
-            :value="(data?.data.value?.data ?? []).filter((item: Canvassing) => item.status === CanvassingStatus.PENDING_APPROVAL).length"
+            :value="statistic.data.value?.data?.total_waiting_approve || 0"
           >
             <template #title>
               <div style="display: inline-flex; align-items: center">
@@ -28,25 +28,12 @@
           </el-statistic>
         </div>
       </el-col>
-      <el-col :span="6">
+      <el-col :span="8">
         <div class="statistic-card">
-          <el-statistic
-            :value="(data?.data.value?.data ?? []).filter((item: Canvassing) => item.status === CanvassingStatus.CANCEL).length"
-          >
+          <el-statistic :value="statistic.data.value?.data?.total_done || 0">
             <template #title>
               <div style="display: inline-flex; align-items: center">
-                Cancelled
-              </div>
-            </template>
-          </el-statistic>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="statistic-card">
-          <el-statistic :value="data?.data.value?.total_data ?? 0">
-            <template #title>
-              <div style="display: inline-flex; align-items: center">
-                Total Canvassing
+                Approved
               </div>
             </template>
           </el-statistic>
@@ -105,12 +92,21 @@ import {
   type SortBy,
   ElCheckboxGroup,
 } from "element-plus";
-import { CanvassingStatus, type Canvassing } from "~/types/scm/canvasing";
+import {
+  CanvassingStatus,
+  type Canvassing,
+  type StatisticCanvassing,
+} from "~/types/scm/canvasing";
 import type { Pagination } from "~/types/pagination";
 import { NuxtLink } from "#components";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import type { ResponsePagination } from "~/types/response_pagination";
-import { OrderColumn, type RequestSearch } from "~/types/request_search";
+import {
+  OrderColumn,
+  StatisticTable,
+  type RequestSearch,
+  type RequestStatistic,
+} from "~/types/request_search";
 import type { BaseResponse } from "~/types/response";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import { TypeInquiry } from "~/types/inquiry";
@@ -147,6 +143,11 @@ const request_search = ref<RequestSearch>({
   },
 });
 
+const request_statistic = ref<RequestStatistic>({
+  table: StatisticTable.canvassing,
+  type: "sales_inquiry",
+});
+
 const refreshTrigger = ref<number>(0);
 
 // Data state
@@ -155,6 +156,14 @@ const data = await useFetchApi<ResponsePagination<Canvassing[]>>(
   "get-canvasing",
   "post",
   request_search
+);
+
+// statistic
+const statistic = await useFetchApi<BaseResponse<StatisticCanvassing>>(
+  "/statistic",
+  "get-statistic-canvasing",
+  "post",
+  request_statistic.value
 );
 const selectedCanvassing = ref<Canvassing[]>([]);
 

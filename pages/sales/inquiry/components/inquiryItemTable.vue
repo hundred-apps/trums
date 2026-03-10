@@ -29,7 +29,7 @@
     >
   </el-row>
   <customTable
-    :column-sort="onSort"
+    @sort-change="onSort"
     :columns="filteredColumn"
     :data="data?.data ?? []"
   />
@@ -65,6 +65,7 @@ import type {
 import { Eleme, SetUp } from "@element-plus/icons-vue";
 import customTable from "~/components/trums/table/customTable.vue";
 import { canAccess } from "#imports";
+import type { ColumnTable } from "~/types/ColumnTable";
 
 const popoverRef = ref();
 
@@ -113,7 +114,7 @@ const hasSelected = computed(() => {
   return data.value?.data?.some((item) => item.checked) || false;
 });
 
-const availableColumn: Column<ItemRequest>[] = [
+const availableColumn: ColumnTable<ItemRequest>[] = [
   {
     title: "",
     dataKey: "",
@@ -157,7 +158,6 @@ const availableColumn: Column<ItemRequest>[] = [
     title: "Nomor RFQ",
     dataKey: "unique_code",
     key: "unique_code",
-    width: 200,
     fixed: true,
     cellRenderer: ({ rowData }: { rowData: ItemRequest }) => (
       <NuxtLink
@@ -172,8 +172,8 @@ const availableColumn: Column<ItemRequest>[] = [
     title: "Nama Item",
     dataKey: "catalogue_name",
     key: "catalogue_name",
-    width: 300,
     fixed: true,
+    sortable: true,
     cellRenderer: ({ rowData }: { rowData: ItemRequest }) => (
       <p>{rowData.catalogue_name ?? "Tidak Ada"}</p>
     ),
@@ -182,8 +182,7 @@ const availableColumn: Column<ItemRequest>[] = [
     title: "Ditujukan Untuk",
     dataKey: "request_to",
     key: "request_to",
-    width: 400,
-
+    sortable: true,
     cellRenderer: ({ rowData }: { rowData: ItemRequest }) => (
       <p>{`${rowData.inquiry?.request_to?.name} (${
         rowData.inquiry?.request_by?.name ?? "N/A"
@@ -195,7 +194,6 @@ const availableColumn: Column<ItemRequest>[] = [
     title: "SN/PN Number",
     dataKey: "sn",
     key: "sn",
-    width: 200,
     cellRenderer: ({ rowData }: { rowData: ItemRequest }) => (
       <p>{rowData.catalogue?.sn ?? "Tidak Ada"}</p>
     ),
@@ -205,6 +203,7 @@ const availableColumn: Column<ItemRequest>[] = [
     dataKey: "quantity",
     key: "quantity",
     width: 100,
+    sortable: true,
     cellRenderer: ({ rowData }: { rowData: ItemRequest }) => (
       <p>{rowData.request_qty ?? "0"}</p>
     ),
@@ -219,10 +218,11 @@ const availableColumn: Column<ItemRequest>[] = [
     ),
   },
   {
-    title: "Harga",
+    title: "Vendor",
     dataKey: "harga",
     key: "harga",
-    width: 50,
+    width: 100,
+    sortable: true,
     cellRenderer: ({ rowData }: { rowData: ItemRequest }) => (
       <p>{rowData.total_canvassing_vendor ?? 0}</p>
     ),
@@ -279,18 +279,14 @@ const submitToDelete = async (ids: string[]) => {
   }
 };
 
-const onSort = (sortBy: SortBy) => {
-  console.log("sort", sortBy.key);
-  console.log(request_search.value);
-  const data: RequestSearch = { ...request_search.value };
-  data.sort = {
-    column: sortBy.key.toString(),
+const onSort = (sortBy: { order: string; prop: string }) => {
+  request_search.value.sort = {
+    column: sortBy.prop,
     order:
-      request_search.value.sort?.order == OrderColumn.ASC
-        ? OrderColumn.DESC
-        : OrderColumn.ASC,
+      sortBy.order === OrderColumn.ASCENDING
+        ? OrderColumn.ASC
+        : OrderColumn.DESC,
   };
-  request_search.value = data;
 };
 
 const handlePageChange = (page: number) => {

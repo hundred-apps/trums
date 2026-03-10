@@ -56,7 +56,7 @@
 </template>
 
 <script lang="tsx" setup>
-import { Eleme, SetUp } from "@element-plus/icons-vue";
+import { Eleme, Setting, SetUp } from "@element-plus/icons-vue";
 import {
   type Column,
   type CheckboxValueType,
@@ -65,6 +65,9 @@ import {
   ElCheckbox,
   ElIcon,
   type SortBy,
+  ElDropdown,
+  ElDropdownMenu,
+  ElDropdownItem,
 } from "element-plus";
 import { NuxtLink } from "#components";
 import CustomTable from "~/components/trums/table/customTable.vue";
@@ -76,6 +79,8 @@ import { Filter } from "@element-plus/icons-vue";
 import type { BaseResponse } from "~/types/response";
 import { unique } from "element-plus/es/utils/arrays.mjs";
 import { useCookie } from "#app";
+import type { ColumnTable } from "~/types/ColumnTable";
+import type { Canvassing } from "~/types/canvassing";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -127,12 +132,13 @@ const columnsSelected = ref<string[]>([
   "operations",
   "setup",
 ]);
-const columns: Column<any>[] = [
+const columns: ColumnTable<Transaction>[] = [
   {
     key: "unique_code",
     title: "Kode Transaksi",
     dataKey: "unique_code",
-    width: 200,
+    width: 300,
+    fixed: true,
     cellRenderer: ({ rowData }: { rowData: Transaction }) => (
       <NuxtLink
         href={`/finance-management/transaction/${rowData.unique_id}`}
@@ -143,19 +149,12 @@ const columns: Column<any>[] = [
     ),
   },
   {
-    key: "date",
-    title: "Tanggal",
-    dataKey: "date",
-    width: 150,
-    cellRenderer: ({ rowData }: { rowData: Transaction }) => (
-      <span>{rowData.date ? formatLocalDate(rowData.date) : "-"}</span>
-    ),
-  },
-  {
     key: "type",
     title: "Jenis",
     dataKey: "type",
-    width: 120,
+    width: 200,
+    fixed: true,
+    align: "center",
     headerCellRenderer: () => (
       <div class="flex items-center justify-center">
         <span class="mr-2 text-xs">Status</span>
@@ -198,6 +197,16 @@ const columns: Column<any>[] = [
       renderTypeTag(rowData.type),
   },
   {
+    key: "date",
+    title: "Tanggal",
+    dataKey: "date",
+    width: 150,
+    cellRenderer: ({ rowData }: { rowData: Transaction }) => (
+      <span>{rowData.date ? formatLocalDate(rowData.date) : "-"}</span>
+    ),
+  },
+
+  {
     key: "account_name",
     title: "CoA",
     dataKey: "account_name",
@@ -223,7 +232,7 @@ const columns: Column<any>[] = [
     key: "amount",
     title: "Jumlah",
     dataKey: "amount",
-    width: 150,
+    width: 200,
     sortable: true,
     cellRenderer: ({ rowData }: { rowData: Transaction }) => (
       <span
@@ -237,26 +246,59 @@ const columns: Column<any>[] = [
     key: "description",
     title: "Deskripsi",
     dataKey: "description",
-    width: 200,
   },
   {
     key: "operations",
     title: "Aksi",
-    cellRenderer: ({ rowData }: { rowData: Transaction }) => (
-      <>
-        <el-button size="small" onClick={() => onEdit(rowData)}>
-          Edit
-        </el-button>
-        <el-button
-          size="small"
-          type="danger"
-          onClick={() => onDelete([rowData.unique_id])}
-        >
-          Hapus
-        </el-button>
-      </>
-    ),
-    width: 150,
+    // cellRenderer: ({ rowData }: { rowData: Transaction }) => (
+    //   <>
+    //     <el-button size="small" onClick={() => onEdit(rowData)}>
+    //       Edit
+    //     </el-button>
+    //     <el-button
+    //       size="small"
+    //       type="danger"
+    //       onClick={() => onDelete([rowData.unique_id])}
+    //     >
+    //       Hapus
+    //     </el-button>
+    //   </>
+    // ),
+    // width: 150,
+    // align: "center",
+    cellRenderer: ({ rowData }: { rowData: Transaction }) => {
+      const onCommand = (command: string) => {
+        if (command === "edit") {
+          onEdit(rowData);
+        }
+        if (command === "delete") {
+          onDelete([rowData.unique_id!]);
+        }
+      };
+
+      return (
+        <ElDropdown onCommand={onCommand} hideOnClick={false}>
+          {{
+            default: () => (
+              <span class="cursor-pointer text-primary">
+                <ElIcon>
+                  <Setting />
+                </ElIcon>
+              </span>
+            ),
+            dropdown: () => (
+              <ElDropdownMenu>
+                <ElDropdownItem command="edit">Edit</ElDropdownItem>
+                <ElDropdownItem class={"text-red-600"} command="delete" divided>
+                  Delete
+                </ElDropdownItem>
+              </ElDropdownMenu>
+            ),
+          }}
+        </ElDropdown>
+      );
+    },
+    width: 70,
     align: "center",
   },
   {
@@ -273,6 +315,7 @@ columns.unshift({
   width: 50,
   maxWidth: 50,
   align: "center",
+  fixed: true,
   cellRenderer: ({ rowData }) => {
     const onChange = (value: CheckboxValueType) => (rowData.checked = value);
     return <SelectionCell value={rowData.checked} onChange={onChange} />;

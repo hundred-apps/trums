@@ -5,7 +5,13 @@ definePageMeta({
   name: "List Of Inquiries",
 });
 import { ref, onMounted } from "vue";
-import { Filter, SetUp, Eleme, Refresh } from "@element-plus/icons-vue";
+import {
+  Filter,
+  SetUp,
+  Eleme,
+  Refresh,
+  Setting,
+} from "@element-plus/icons-vue";
 import { TypeInquiry, type Inquiry } from "~/types/inquiry";
 import customTable from "~/components/trums/table/customTable.vue";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
@@ -14,6 +20,9 @@ import {
   ElButton,
   ElCheckbox,
   ElCheckboxGroup,
+  ElDropdown,
+  ElDropdownItem,
+  ElDropdownMenu,
   ElIcon,
   ElMessage,
   ElPopover,
@@ -31,13 +40,18 @@ import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import DeleteButton from "~/components/trums/DeleteButton.vue";
 import { NuxtLink } from "#components";
 import { refreshNuxtData } from "#app";
+import type { ColumnTable } from "~/types/ColumnTable";
 
 const column_selected = ref<string[]>([
   "selection",
   "unique_code",
+  "request_to",
+  "request_by",
   "date",
   "reference",
   "reference_view",
+  "priority",
+  "status",
   "operation",
   "setup",
 ]);
@@ -76,7 +90,7 @@ const dialogConfirmDelete = ref<boolean>(false);
 const loading = ref<boolean>(false);
 const search = ref("");
 
-const availableColumn: Column<Inquiry>[] = [
+const availableColumn: ColumnTable<Inquiry>[] = [
   {
     title: "",
     dataKey: "",
@@ -87,7 +101,7 @@ const availableColumn: Column<Inquiry>[] = [
       return <SelectionCell value={rowData.checked} onChange={onChange} />;
     },
     maxWidth: 50,
-
+    fixed: true,
     headerCellRenderer: () => {
       const _data = unref(data);
       const onChange = (value: CheckboxValueType) =>
@@ -118,6 +132,7 @@ const availableColumn: Column<Inquiry>[] = [
     title: "Unique Code",
     dataKey: "unique_code",
     key: "unique_code",
+    fixed: true,
     width: 200,
     cellRenderer: ({ rowData: row }) => (
       <NuxtLink href={`inqueiries/${row.unique_id}`} class={"text-blue-600"}>
@@ -126,11 +141,30 @@ const availableColumn: Column<Inquiry>[] = [
     ),
   },
   {
+    title: "Diminta Oleh",
+    dataKey: "request_to",
+    key: "request_to",
+    width: 300,
+    fixed: true,
+    cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
+      <>{rowData.request_to?.name ?? "N/A"}</>
+    ),
+  },
+  {
+    title: "PIC",
+    dataKey: "request_by",
+    key: "request_by",
+    width: 300,
+    cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
+      <>{rowData.request_by?.name ?? "N/A"}</>
+    ),
+  },
+  {
     title: "Tanggal",
     dataKey: "date",
     key: "date",
-    width: 200,
     sortable: true,
+    width: 200,
     cellRenderer: ({ rowData: row }) => (
       <p>{row.date == null ? "-" : formatLocalDate(row.date)}</p>
     ),
@@ -140,6 +174,9 @@ const availableColumn: Column<Inquiry>[] = [
     dataKey: "reference",
     key: "reference",
     width: 200,
+    cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
+      <p>{rowData.reference == "so" ? "Sales Order" : "Purchase Order"}</p>
+    ),
     headerCellRenderer: () => (
       <div class="flex items-center justify-center">
         <span class="mr-2 text-xs">Reference Type</span>
@@ -151,8 +188,8 @@ const availableColumn: Column<Inquiry>[] = [
                   <ElCheckboxGroup
                     v-model={request_search.value.column[0].reference}
                   >
-                    <ElCheckbox value={"internal"}>Internal</ElCheckbox>
-                    <ElCheckbox value={"repair"}>Repair</ElCheckbox>
+                    <ElCheckbox value={"so"}>Sales Order</ElCheckbox>
+                    <ElCheckbox value={"po"}>Purchase Order</ElCheckbox>
                   </ElCheckboxGroup>
                 </div>
               </div>
@@ -178,7 +215,7 @@ const availableColumn: Column<Inquiry>[] = [
     title: "Priority",
     dataKey: "priority",
     key: "priority",
-    width: 200,
+    width: 100,
     cellRenderer: ({ rowData: row }) =>
       row.priority == "low" ? (
         <ElTag type="info">{"Low"}</ElTag>
@@ -219,13 +256,12 @@ const availableColumn: Column<Inquiry>[] = [
     title: "Status",
     dataKey: "status",
     key: "status",
-    width: 200,
-
+    width: 100,
     cellRenderer: ({ rowData: row }: CellRendererParams<Inquiry>) =>
       getStatus(row),
     headerCellRenderer: () => (
       <div class="flex items-center justify-center">
-        <span class="mr-2 text-xs">Reference Type</span>
+        <span class="mr-2 text-xs">Status</span>
         <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
           {{
             default: () => (
@@ -256,22 +292,56 @@ const availableColumn: Column<Inquiry>[] = [
   {
     title: "Operasi",
     key: "operation",
-    width: 250,
-    cellRenderer: ({ rowData: row }) => (
-      <>
-        <NuxtLink
-          href={"/inventory-management/inqueiries/add?id=" + row.unique_id}
-          class="el-button el-button--small"
-        >
-          Edit
-        </NuxtLink>
-        <DeleteButton
-          size="small"
-          onConfirm={() => handleDelete(row)}
-          onCancel={() => {}}
-        />
-      </>
-    ),
+    align: "center",
+    width: 100,
+    cellRenderer: ({ rowData }: { rowData: Inquiry }) => {
+      const onCommand = (command: string) => {
+        if (command === "edit") {
+          window.location.href =
+            "/inventory-management/inqueiries/add?id=" + rowData.unique_id;
+        }
+        if (command === "delete") {
+          handleDelete(rowData);
+        }
+      };
+
+      return (
+        <ElDropdown onCommand={onCommand} hideOnClick={false}>
+          {{
+            default: () => (
+              <span class="cursor-pointer text-primary">
+                <ElIcon>
+                  <Setting />
+                </ElIcon>
+              </span>
+            ),
+            dropdown: () => (
+              <ElDropdownMenu>
+                <ElDropdownItem command="edit">Edit</ElDropdownItem>
+                <ElDropdownItem class={"text-red-600"} command="delete" divided>
+                  Hapus
+                </ElDropdownItem>
+              </ElDropdownMenu>
+            ),
+          }}
+        </ElDropdown>
+      );
+    },
+    // cellRenderer: ({ rowData: row }) => (
+    //   <>
+    //     <NuxtLink
+    //       href={"/inventory-management/inqueiries/add?id=" + row.unique_id}
+    //       class="el-button el-button--small"
+    //     >
+    //       Edit
+    //     </NuxtLink>
+    //     <DeleteButton
+    //       size="small"
+    //       onConfirm={() => handleDelete(row)}
+    //       onCancel={() => {}}
+    //     />
+    //   </>
+    // ),
   },
   {
     title: "",
@@ -281,7 +351,7 @@ const availableColumn: Column<Inquiry>[] = [
   },
 ];
 
-availableColumn[8].headerCellRenderer = () => {
+availableColumn[availableColumn.length - 1].headerCellRenderer = () => {
   return (
     <div class="flex items-center justify-center">
       <span class="mr-2 text-xs"></span>
@@ -292,7 +362,12 @@ availableColumn[8].headerCellRenderer = () => {
               <div class="filter-group flex flex-col">
                 <ElCheckboxGroup v-model={column_selected.value}>
                   {availableColumn
-                    .filter((c) => c.key !== "selection" && c.key !== "setup")
+                    .filter(
+                      (c) =>
+                        c.key !== "selection" &&
+                        c.key !== "setup" &&
+                        c.key !== "operation"
+                    )
                     .map((c) => (
                       <ElCheckbox
                         key={c.key}
@@ -430,18 +505,14 @@ const paginationClick = (val: number) => {
   request_search.value = data;
 };
 
-const onSort = (sortBy: SortBy) => {
-  console.log("sort", sortBy.key);
-  console.log(request_search.value);
-  const data: RequestSearch = { ...request_search.value };
-  data.sort = {
-    column: sortBy.key.toString(),
+const onSort = (sortBy: { order: string; prop: string }) => {
+  request_search.value.sort = {
+    column: sortBy.prop,
     order:
-      request_search.value.sort?.order == OrderColumn.ASC
+      sortBy.order === OrderColumn.ASCENDING
         ? OrderColumn.DESC
         : OrderColumn.ASC,
   };
-  request_search.value = data;
 };
 
 watch(request_search, () => refreshNuxtData("get-inquiries"), {
@@ -455,6 +526,11 @@ watch(request_search, () => refreshNuxtData("get-inquiries"), {
 const hasSelected = computed(() => {
   return data.value?.data?.some((item) => item.checked) || false;
 });
+
+const handleSizeChange = (size: number) => {
+  request_search.value.limit = `${size}`;
+  request_search.value.offset = "1";
+};
 
 onMounted(() => {});
 </script>
@@ -490,18 +566,19 @@ onMounted(() => {});
       >
     </el-row>
     <customTable
-      :column-sort="onSort"
+      @sort-change="onSort"
       :columns="filteredColumn"
       :data="data?.data ?? []"
     />
     <div class="flex justify-end mt-3">
       <el-pagination
         background
-        layout="prev, pager, next"
+        layout="prev, pager, next, sizes"
         :total="data?.total_data"
-        @next-click="paginationClick"
-        @prev-click="paginationClick"
-        @change="paginationClick"
+        :page-size="parseInt(request_search.limit)"
+        :current-page="parseInt(request_search.offset)"
+        @current-change="paginationClick"
+        @size-change="handleSizeChange"
       />
     </div>
   </TrumsWrapper>

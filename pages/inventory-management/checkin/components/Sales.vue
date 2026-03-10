@@ -1,43 +1,51 @@
 <template>
-  <div class="">
-    <el-form
-      :inline="true"
-      ref="ruleFormRef"
-      :disabled="loading"
-      :model="formInline"
-      class="demo-form-inline"
-      :rules="rules"
-      label-width="auto"
-    >
-      <div class="flex">
-        <div class="flex flex-1">
-          <el-form-item>
-            <el-button
-              type="primary"
-              @click="() => submitForm(ruleFormRef)"
-              :disabled="
-                formInline.type == 'out' && stockStatus.hasZeroStockOnly
-              "
-              >Simpan</el-button
-            >
-          </el-form-item>
+  <el-form
+    :inline="true"
+    ref="ruleFormRef"
+    :disabled="loading"
+    :model="formInline"
+    class="demo-form-inline"
+    :rules="rules"
+    label-width="auto"
+  >
+    <el-card class="my-3">
+      <template #header>
+        <div class="card-header">
+          <div class="flex">
+            <div class="flex flex-1">
+              <el-form-item style="margin-bottom: 0px">
+                <el-button
+                  type="primary"
+                  @click="() => submitForm(ruleFormRef)"
+                  :disabled="
+                    formInline.type == 'out' && stockStatus.hasZeroStockOnly
+                  "
+                  >Simpan</el-button
+                >
+              </el-form-item>
+            </div>
+            <div class="flex flex-1">
+              <el-form-item
+                style="margin-bottom: 0px"
+                label="Status"
+                prop="status"
+              >
+                <el-radio-group
+                  v-model="formInline.status"
+                  aria-label="status"
+                  size="small"
+                >
+                  <el-radio-button value="draft">Draft</el-radio-button>
+                  <el-radio-button value="waiting">Waiting</el-radio-button>
+                  <el-radio-button value="ready">Book</el-radio-button>
+                  <el-radio-button value="delivery">Delivery</el-radio-button>
+                  <el-radio-button value="done">Done</el-radio-button>
+                </el-radio-group>
+              </el-form-item>
+            </div>
+          </div>
         </div>
-        <div class="flex flex-1">
-          <el-form-item label="Status" prop="status">
-            <el-radio-group
-              v-model="formInline.status"
-              aria-label="status"
-              size="small"
-            >
-              <el-radio-button value="draft">Draft</el-radio-button>
-              <el-radio-button value="waiting">Waiting</el-radio-button>
-              <el-radio-button value="ready">Book</el-radio-button>
-              <el-radio-button value="delivery">Delivery</el-radio-button>
-              <el-radio-button value="done">Done</el-radio-button>
-            </el-radio-group>
-          </el-form-item>
-        </div>
-      </div>
+      </template>
 
       <div class="flex">
         <div class="flex flex-col flex-1">
@@ -136,90 +144,89 @@
           </el-form-item>
         </div>
       </div>
-    </el-form>
-
-    <div class="mb-3">
-      <el-table :data="tableItem" border>
-        <el-table-column label="No" width="50" align="center">
-          <template #default="scope">
-            {{ scope.$index + 1 }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="item_name" label="item" />
-        <el-table-column prop="sn" label="Serial Number" width="180" />
-        <el-table-column prop="quantity" label="REQ QTY" width="100">
-          <template #default="scope">
-            <div class="flex items-center gap-1">
-              <span>{{ scope.row.request_qty }}</span>
-              <el-tooltip
-                v-if="
-                  scope.row.stok !== undefined &&
-                  scope.row.stok > 0 &&
-                  scope.row.stok < scope.row.request_qty &&
-                  formInline.type == 'out'
-                "
-                content="Stok tidak mencukupi"
-                placement="top"
+      <div class="mb-3">
+        <el-table :data="tableItem" border>
+          <el-table-column label="No" width="50" align="center">
+            <template #default="scope">
+              {{ scope.$index + 1 }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="item_name" label="item" />
+          <el-table-column prop="sn" label="Serial Number" width="180" />
+          <el-table-column prop="quantity" label="REQ QTY" width="100">
+            <template #default="scope">
+              <div class="flex items-center gap-1">
+                <span>{{ scope.row.request_qty }}</span>
+                <el-tooltip
+                  v-if="
+                    scope.row.stok !== undefined &&
+                    scope.row.stok > 0 &&
+                    scope.row.stok < scope.row.request_qty &&
+                    formInline.type == 'out'
+                  "
+                  content="Stok tidak mencukupi"
+                  placement="top"
+                >
+                  <el-icon class="text-yellow-500" :size="16">
+                    <Warning />
+                  </el-icon>
+                </el-tooltip>
+                <el-tooltip
+                  v-if="scope.row.stok === 0 && formInline.type == 'out'"
+                  content="Stok kosong"
+                  placement="top"
+                >
+                  <el-icon class="text-red-500" :size="16">
+                    <CircleCloseFilled />
+                  </el-icon>
+                </el-tooltip>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column
+            :label="`${formInline.type == 'in' ? 'REC QTY' : 'QTY'}`"
+            width="250"
+          >
+            <template #default="scope">
+              <el-input-number
+                v-model="scope.row.quantity"
+                :min="1"
+                :max="scope.row.pending_qty"
+              />
+            </template>
+          </el-table-column>
+          <el-table-column prop="stok" label="Stok" width="100" />
+          <el-table-column prop="unit_name" label="Unit" width="100" />
+          <el-table-column
+            v-if="formInline.type == 'out'"
+            label="Status"
+            width="150"
+            align="center"
+          >
+            <template #default="scope">
+              <el-tag
+                :type="getStockStatus(scope.row).type"
+                size="small"
+                :disable-transitions="true"
               >
-                <el-icon class="text-yellow-500" :size="16">
-                  <Warning />
-                </el-icon>
-              </el-tooltip>
-              <el-tooltip
-                v-if="scope.row.stok === 0 && formInline.type == 'out'"
-                content="Stok kosong"
-                placement="top"
-              >
-                <el-icon class="text-red-500" :size="16">
-                  <CircleCloseFilled />
-                </el-icon>
-              </el-tooltip>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column
-          :label="`${formInline.type == 'in' ? 'REC QTY' : 'QTY'}`"
-          width="250"
-        >
-          <template #default="scope">
-            <el-input-number
-              v-model="scope.row.quantity"
-              :min="1"
-              :max="scope.row.pending_qty"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column prop="stok" label="Stok" width="100" />
-        <el-table-column prop="unit_name" label="Unit" width="100" />
-        <el-table-column
-          v-if="formInline.type == 'out'"
-          label="Status"
-          width="150"
-          align="center"
-        >
-          <template #default="scope">
-            <el-tag
-              :type="getStockStatus(scope.row).type"
-              size="small"
-              :disable-transitions="true"
-            >
-              {{ getStockStatus(scope.row).text }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column label="Aksi" width="150" align="center">
-          <template #default="scope">
-            <el-button
-              type="danger"
-              @click="() => handleDeleteItem(scope.$index)"
-              :icon="Delete"
-              circle
-            />
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
-  </div>
+                {{ getStockStatus(scope.row).text }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="Aksi" width="150" align="center">
+            <template #default="scope">
+              <el-button
+                type="danger"
+                @click="() => handleDeleteItem(scope.$index)"
+                :icon="Delete"
+                circle
+              />
+            </template>
+          </el-table-column>
+        </el-table>
+      </div>
+    </el-card>
+  </el-form>
 
   <!-- Modal -->
   <el-dialog v-model="dialog" title="Cari" width="800">

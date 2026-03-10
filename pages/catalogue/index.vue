@@ -5,7 +5,14 @@ definePageMeta({
   name: "List Of Catalogues",
 });
 
-import { InfoFilled, SetUp, Filter, Refresh } from "@element-plus/icons-vue";
+import {
+  InfoFilled,
+  SetUp,
+  Filter,
+  Refresh,
+  PictureFilled,
+  Setting,
+} from "@element-plus/icons-vue";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
@@ -21,12 +28,16 @@ import {
   type SortBy,
   ElCheckboxGroup,
   ElImage,
+  ElDropdown,
+  ElDropdownMenu,
+  ElDropdownItem,
 } from "element-plus";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import DeleteButton from "~/components/trums/DeleteButton.vue";
 import { NuxtLink } from "#components";
 import type { Catalogue } from "~/types/catalogue";
 import type { AppFile } from "~/types/file";
+import type { ColumnTable } from "~/types/ColumnTable";
 
 interface FormFilter {
   date_range: string[];
@@ -46,6 +57,7 @@ const column_selected = ref<string[]>([
   "image",
   "unique_code",
   "name",
+  "sn",
   "brand_name",
   "type",
   "status",
@@ -58,10 +70,11 @@ const router = useRouter();
 const popoverRef = ref();
 
 // Columns definition
-const availableColumn: Column<Catalogue>[] = [
+const availableColumn: ColumnTable<Catalogue>[] = [
   {
     key: "selection",
     width: 50,
+    fixed: true,
     cellRenderer: ({ rowData }) => {
       const onChange = (value: CheckboxValueType) => (rowData.checked = value);
       return <SelectionCell value={rowData.checked} onChange={onChange} />;
@@ -92,12 +105,14 @@ const availableColumn: Column<Catalogue>[] = [
   {
     key: "image",
     title: "Image",
-    width: 150,
+    width: 70,
+    align: "center",
+    fixed: true,
     cellRenderer: ({ rowData }: { rowData: Catalogue }) => {
       const image = getFileFirst(rowData.files ?? []);
 
       return (
-        <div class="flex items-center py-2 px-2">
+        <div class="flex items-center justify-center">
           {image ? (
             <div
               onClick={() => {
@@ -108,7 +123,7 @@ const availableColumn: Column<Catalogue>[] = [
             >
               <ElImage
                 src={image}
-                style={{ width: "45px", height: "45px", cursor: "pointer" }}
+                style={{ width: "25px", height: "25px", cursor: "pointer" }}
                 zoomRate={1.2}
                 maxScale={7}
                 minScale={0.2}
@@ -118,9 +133,11 @@ const availableColumn: Column<Catalogue>[] = [
           ) : (
             <div
               class="flex items-center justify-center border rounded py-2 px-2"
-              style={{ width: "45px", height: "45px", fontSize: "10px" }}
+              style={{ width: "25px", height: "25px", fontSize: "10px" }}
             >
-              No Image
+              <ElIcon>
+                <PictureFilled />
+              </ElIcon>
             </div>
           )}
         </div>
@@ -131,6 +148,7 @@ const availableColumn: Column<Catalogue>[] = [
     key: "unique_code",
     title: "Kode",
     width: 150,
+    fixed: true,
     cellRenderer: ({ rowData: row }) => (
       <NuxtLink href={`/catalogue/${row.unique_id}`} class={"text-blue-600"}>
         {row.unique_code}
@@ -138,29 +156,30 @@ const availableColumn: Column<Catalogue>[] = [
     ),
   },
   {
-    dataKey: "sn",
-    key: "sn",
-    title: "SN",
-    width: 120,
-  },
-  {
     dataKey: "name",
     key: "name",
     title: "Nama",
     width: 500,
+    fixed: true,
+    sortable: true,
+  },
+  {
+    dataKey: "sn",
+    key: "sn",
+    title: "SN",
+    width: 200,
   },
   {
     dataKey: "brand_name",
     key: "brand_name",
     title: "Brand",
-    width: 150,
     cellRenderer: ({ rowData: row }) => <p>{row.brand?.name ?? "N/A"}</p>,
   },
   {
     dataKey: "type",
     key: "type",
     title: "Tipe",
-    width: 120,
+    width: 100,
     headerCellRenderer: () => (
       <div class="flex items-center justify-center">
         <span class="mr-2 text-xs">Tipe</span>
@@ -203,38 +222,81 @@ const availableColumn: Column<Catalogue>[] = [
     dataKey: "year",
     key: "year",
     title: "Tahun",
-    width: 100,
+    width: 150,
   },
   {
     dataKey: "created_at",
     key: "created_at",
-    title: "Dibuat",
-    width: 150,
+    title: "Dibuat Pada",
     sortable: true,
+    width: 150,
     cellRenderer: ({ rowData: row }) => (
       <span>{formatLocalDate(row.created_at * 1000)}</span>
+    ),
+  },
+  {
+    dataKey: "created_by",
+    key: "created_by",
+    title: "Dibuat Oleh",
+    sortable: true,
+    width: 150,
+    cellRenderer: ({ rowData: row }) => (
+      <span>{row.people?.name ?? "N/A"}</span>
     ),
   },
   {
     dataKey: "actions",
     key: "actions",
     title: "Aksi",
-    width: 150,
-    cellRenderer: ({ rowData: row }) => (
-      <>
-        <NuxtLink
-          class="el-button el-button--small"
-          href={`/catalogue/add?unique_id=${row.unique_id}`}
-        >
-          Edit
-        </NuxtLink>
-        <DeleteButton
-          size="small"
-          onConfirm={() => handleDelete([row.unique_id])}
-          onCancel={() => {}}
-        />
-      </>
-    ),
+    width: 60,
+    align: "center",
+    // cellRenderer: ({ rowData: row }) => (
+    //   <>
+    //     <NuxtLink
+    //       class="el-button el-button--small"
+    //       href={`/catalogue/add?unique_id=${row.unique_id}`}
+    //     >
+    //       Edit
+    //     </NuxtLink>
+    //     <DeleteButton
+    //       size="small"
+    //       onConfirm={() => handleDelete([row.unique_id])}
+    //       onCancel={() => {}}
+    //     />
+    //   </>
+    // ),
+    cellRenderer: ({ rowData: row }) => {
+      const onCommand = (command: string) => {
+        if (command === "edit") {
+          window.location.href = `/catalogue/add?unique_id=${row.unique_id}`;
+        }
+        if (command === "delete") {
+          handleDelete([row.unique_id]);
+        }
+      };
+
+      return (
+        <ElDropdown onCommand={onCommand} hideOnClick={false}>
+          {{
+            default: () => (
+              <span class="cursor-pointer text-primary">
+                <ElIcon>
+                  <Setting />
+                </ElIcon>
+              </span>
+            ),
+            dropdown: () => (
+              <ElDropdownMenu>
+                <ElDropdownItem command="edit">Edit</ElDropdownItem>
+                <ElDropdownItem class={"text-red-600"} command="delete" divided>
+                  Hapus
+                </ElDropdownItem>
+              </ElDropdownMenu>
+            ),
+          }}
+        </ElDropdown>
+      );
+    },
   },
   {
     dataKey: "setup",
@@ -363,6 +425,16 @@ const handleEdit = (row: Catalogue) => {
 
 const handleDelete = async (ids: string[]) => {
   try {
+    await ElMessageBox.confirm(
+      "Yakin ingin menghapus data Catalog?",
+      "Warning",
+      {
+        confirmButtonText: "Hapus",
+        cancelButtonText: "Batal",
+        type: "warning",
+      }
+    );
+
     await useFetchApi("/catalogues-delete", "delete-catalogue", "post", ids);
     ElMessage.success("Katalog berhasil dihapus");
     refreshNuxtData("get-catalogues");
@@ -381,11 +453,11 @@ const deleteBulk = async () => {
   }
 };
 
-const onSort = (sortBy: SortBy) => {
+const onSort = (sortBy: { order: string; prop: string }) => {
   request_search.value.sort = {
-    column: sortBy.key.toString(),
+    column: sortBy.prop,
     order:
-      request_search.value.sort?.order === OrderColumn.ASC
+      sortBy.order === OrderColumn.ASCENDING
         ? OrderColumn.DESC
         : OrderColumn.ASC,
   };
@@ -481,7 +553,7 @@ const handleSizeChange = (size: number) => {
       :columns="filteredColumn"
       :data="data?.data ?? []"
       :loading="loading"
-      @sort="onSort"
+      @sort-change="onSort"
     />
 
     <div class="flex justify-end mt-3">

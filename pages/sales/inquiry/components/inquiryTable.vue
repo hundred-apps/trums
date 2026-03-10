@@ -4,8 +4,8 @@ definePageMeta({
   requiredPermission: "inquiries-read",
 });
 import { ref, onMounted } from "vue";
-import { Filter, SetUp } from "@element-plus/icons-vue";
-import { TypeInquiry, type Inquiry } from "~/types/inquiry";
+import { Filter, Setting, SetUp, Eleme } from "@element-plus/icons-vue";
+import { InquiryStatus, TypeInquiry, type Inquiry } from "~/types/inquiry";
 import customTable from "~/components/trums/table/customTable.vue";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
@@ -13,6 +13,9 @@ import {
   ElButton,
   ElCheckbox,
   ElCheckboxGroup,
+  ElDropdown,
+  ElDropdownItem,
+  ElDropdownMenu,
   ElIcon,
   ElMessage,
   ElPopover,
@@ -31,6 +34,7 @@ import DeleteButton from "~/components/trums/DeleteButton.vue";
 import { NuxtLink } from "#components";
 import type { BaseResponse } from "~/types/response";
 import { canAccess } from "#imports";
+import type { ColumnTable } from "~/types/ColumnTable";
 const column_selected = ref<string[]>([
   "selection",
   "unique_code",
@@ -72,17 +76,21 @@ const { data } = await useFetchApi<ResponsePagination<Inquiry[]>>(
   "post",
   request_search.value
 );
+
+const refreshTable = () => refreshNuxtData("fetch-inquiries");
+
 const tmpInquiries = ref<Inquiry[]>([]);
 const dialogConfirmDelete = ref<boolean>(false);
 const loading = ref<boolean>(false);
 const search = ref("");
 
-const availableColumn: Column<Inquiry>[] = [
+const availableColumn: ColumnTable<Inquiry>[] = [
   {
     title: "",
     dataKey: "",
     key: "selection",
     width: 50,
+    fixed: true,
     cellRenderer: ({ rowData }) => {
       const onChange = (value: CheckboxValueType) => (rowData.checked = value);
       return <SelectionCell value={rowData.checked} onChange={onChange} />;
@@ -120,11 +128,27 @@ const availableColumn: Column<Inquiry>[] = [
     title: "Unique Code",
     dataKey: "unique_code",
     key: "unique_code",
-    width: 200,
     cellRenderer: ({ rowData: row }) => (
       <NuxtLink href={`inquiry/${row.unique_id}`} class={"text-blue-600"}>
         {row.unique_code}
       </NuxtLink>
+    ),
+  },
+  {
+    title: "Diminta Oleh",
+    dataKey: "request_to",
+    key: "request_to",
+    cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
+      <p>{rowData.request_to?.name ?? "Tidak Ada"}</p>
+    ),
+  },
+  {
+    title: "PIC",
+    dataKey: "request_by",
+    key: "request_by",
+    width: 300,
+    cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
+      <p>{rowData.request_by?.name ?? ""}</p>
     ),
   },
   {
@@ -137,29 +161,12 @@ const availableColumn: Column<Inquiry>[] = [
       <p>{row.date == null ? "-" : formatLocalDate(row.date)}</p>
     ),
   },
-  {
-    title: "Diminta oleh",
-    dataKey: "request_by",
-    key: "request_by",
-    width: 200,
-    cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
-      <p>{rowData.request_by?.name ?? ""}</p>
-    ),
-  },
-  {
-    title: "Ditujukan Untuk",
-    dataKey: "request_to",
-    key: "request_to",
-    width: 300,
-    cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
-      <p>{rowData.request_to?.name ?? "Tidak Ada"}</p>
-    ),
-  },
+
   {
     title: "Priority",
     dataKey: "priority",
     key: "priority",
-    width: 200,
+    width: 100,
     cellRenderer: ({ rowData: row }) =>
       row.priority == "low" ? (
         <ElTag type="info">{"Low"}</ElTag>
@@ -237,67 +244,100 @@ const availableColumn: Column<Inquiry>[] = [
   {
     title: "Operasi",
     key: "operation",
-    width: 250,
-    cellRenderer: ({ rowData: row }) => (
-      <>
-        <NuxtLink
-          href={"/sales/inquiry/add?id=" + row.unique_id}
-          class="el-button el-button--small"
-        >
-          Edit
-        </NuxtLink>
-        {/* {
-          can('inquiries-delete', data.value?.privilege ?? []) && ()
-        } */}
-        <DeleteButton
-          onConfirm={() => handleDelete(row)}
-          size="small"
-          onCancel={() => {}}
-        />
-      </>
-    ),
+    width: 100,
+    align: "center",
+    // cellRenderer: ({ rowData: row }) => (
+    //   <>
+    //     <NuxtLink
+    //       href={"/sales/inquiry/add?id=" + row.unique_id}
+    //       class="el-button el-button--small"
+    //     >
+    //       Edit
+    //     </NuxtLink>
+    //     {/* {
+    //       can('inquiries-delete', data.value?.privilege ?? []) && ()
+    //     } */}
+    //     <DeleteButton
+    //       onConfirm={() => handleDelete(row)}
+    //       size="small"
+    //       onCancel={() => {}}
+    //     />
+    //   </>
+    // ),
+    cellRenderer: ({ rowData }: { rowData: Inquiry }) => {
+      const onCommand = (command: string) => {
+        if (command === "edit") {
+          window.location.href = "/sales/inquiry/add?id=" + rowData.unique_id;
+        }
+        if (command === "delete") {
+          handleDelete(rowData);
+        }
+      };
+
+      return (
+        <ElDropdown onCommand={onCommand} hideOnClick={false}>
+          {{
+            default: () => (
+              <span class="cursor-pointer text-primary">
+                <ElIcon>
+                  <Setting />
+                </ElIcon>
+              </span>
+            ),
+            dropdown: () => (
+              <ElDropdownMenu>
+                <ElDropdownItem command="edit">Edit</ElDropdownItem>
+                <ElDropdownItem class={"text-red-600"} command="delete" divided>
+                  Hapus
+                </ElDropdownItem>
+              </ElDropdownMenu>
+            ),
+          }}
+        </ElDropdown>
+      );
+    },
   },
-  {
-    title: "",
-    key: "setup",
-    width: 50,
-    fixed: TableV2FixedDir.RIGHT,
-  },
+  // {
+  //   title: "",
+  //   key: "setup",
+  //   width: 50,
+  //   fixed: TableV2FixedDir.RIGHT,
+  // },
 ];
 
-availableColumn[8].headerCellRenderer = () => {
-  return (
-    <div class="flex items-center justify-center">
-      <span class="mr-2 text-xs"></span>
-      <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
-        {{
-          default: () => (
-            <div class="filter-wrapper">
-              <div class="filter-group flex flex-col">
-                <ElCheckboxGroup v-model={column_selected.value}>
-                  {availableColumn
-                    .filter((c) => c.key !== "selection" && c.key !== "setup")
-                    .map((c) => (
-                      <ElCheckbox
-                        key={c.key}
-                        value={c.key!.toString()}
-                        label={c.title}
-                      />
-                    ))}
-                </ElCheckboxGroup>
-              </div>
-            </div>
-          ),
-          reference: () => (
-            <ElIcon class="cursor-pointer">
-              <SetUp />
-            </ElIcon>
-          ),
-        }}
-      </ElPopover>
-    </div>
-  );
-};
+// availableColumn[8].headerCellRenderer = () => {
+//   return (
+//     <div class="flex items-center justify-center">
+//       <span class="mr-2 text-xs"></span>
+//       <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
+//         {{
+//           default: () => (
+//             <div class="filter-wrapper">
+//               <div class="filter-group flex flex-col">
+//                 <ElCheckboxGroup v-model={column_selected.value}>
+//                   {availableColumn
+//                     .filter((c) => c.key !== "selection" && c.key !== "setup")
+//                     .map((c) => (
+//                       <ElCheckbox
+//                         key={c.key}
+//                         value={c.key!.toString()}
+//                         label={c.title}
+//                       />
+//                     ))}
+//                 </ElCheckboxGroup>
+//               </div>
+//             </div>
+//           ),
+//           reference: () => (
+//             <ElIcon class="cursor-pointer">
+//               <SetUp />
+//             </ElIcon>
+//           ),
+//         }}
+//       </ElPopover>
+//     </div>
+//   );
+// };
 
 const filteredColumn = computed(() => {
   return availableColumn.filter((col) =>
@@ -317,13 +357,13 @@ const getReference = (data: Inquiry) => {
 const getStatus = (data: Inquiry) => {
   // 'draft','waiting','approve','done','cancelled','repair'
 
-  if (data.status == "draft") {
+  if (data.status == InquiryStatus.DRAFT) {
     return <ElTag type="info">{(data?.status ?? "").toUpperCase()}</ElTag>;
-  } else if (data.status == "waiting") {
+  } else if (data.status == InquiryStatus.CANVASSING) {
     return <ElTag type="warning">{(data?.status ?? "").toUpperCase()}</ElTag>;
-  } else if (data.status == "approve") {
+  } else if (data.status == InquiryStatus.RAB) {
     return <ElTag type="success">{(data?.status ?? "").toUpperCase()}</ElTag>;
-  } else if (data.status == "done") {
+  } else if (data.status == InquiryStatus.PENAWARAN) {
     return <ElTag type="primary">{(data?.status ?? "").toUpperCase()}</ElTag>;
   } else if (data.status == "cancelled") {
     return <ElTag type="danger">{(data?.status ?? "").toUpperCase()}</ElTag>;
@@ -420,18 +460,14 @@ const paginationClick = (val: number) => {
   request_search.value = data;
 };
 
-const onSort = (sortBy: SortBy) => {
-  console.log("sort", sortBy.key);
-  console.log(request_search.value);
-  const data: RequestSearch = { ...request_search.value };
-  data.sort = {
-    column: sortBy.key.toString(),
+const onSort = (sortBy: { order: string; prop: string }) => {
+  request_search.value.sort = {
+    column: sortBy.prop,
     order:
-      request_search.value.sort?.order == OrderColumn.ASC
-        ? OrderColumn.DESC
-        : OrderColumn.ASC,
+      sortBy.order === OrderColumn.ASCENDING
+        ? OrderColumn.ASC
+        : OrderColumn.DESC,
   };
-  request_search.value = data;
 };
 
 const handlePageChange = (page: number) => {
@@ -446,7 +482,7 @@ const hasSelected = computed(() => {
   return data.value?.data?.some((item) => item.checked) || false;
 });
 
-watch(request_search.value, () => refreshNuxtData("fetch-inquiries"), {
+watch(request_search.value, () => refreshTable(), {
   immediate: true,
 });
 </script>
@@ -465,6 +501,14 @@ watch(request_search.value, () => refreshNuxtData("fetch-inquiries"), {
       >Buat Inquiri</NuxtLink
     >
     <el-button
+      type="default"
+      :icon="Eleme"
+      :disabled="loading"
+      :loading="loading"
+      @click="refreshTable"
+      >Reload</el-button
+    >
+    <el-button
       :disabled="!hasSelected"
       @click="bulkDelete"
       size="default"
@@ -473,7 +517,7 @@ watch(request_search.value, () => refreshNuxtData("fetch-inquiries"), {
     >
   </el-row>
   <customTable
-    :column-sort="onSort"
+    @sort-change="onSort"
     :columns="filteredColumn"
     :data="data?.data ?? []"
   />

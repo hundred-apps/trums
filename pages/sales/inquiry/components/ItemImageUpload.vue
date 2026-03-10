@@ -12,7 +12,7 @@
           <el-icon class="upload-icon"><Plus /></el-icon>
           <span class="empty-text" v-if="showText">Add Image</span>
         </div>
-        
+
         <!-- Badge untuk menunjukkan jumlah gambar -->
         <div v-if="imageCount > 0" class="image-count-badge">
           {{ imageCount }}
@@ -23,47 +23,47 @@
 </template>
 
 <script lang="ts" setup>
-import { computed } from 'vue'
-import { Plus } from '@element-plus/icons-vue'
-import type { UploadUserFile } from 'element-plus'
+import { computed, type StyleValue } from "vue";
+import { Plus } from "@element-plus/icons-vue";
+import type { UploadUserFile } from "element-plus";
 
 interface Props {
-  modelValue?: UploadUserFile[]
-  imageUrl?: string
-  showText?: boolean
+  modelValue?: UploadUserFile[];
+  imageUrl?: string;
+  showText?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   modelValue: () => [],
-  imageUrl: '',
-  showText: false
-})
+  imageUrl: "",
+  showText: false,
+});
 
 const emit = defineEmits<{
-  'open-modal': [index: number]
-}>()
+  "open-modal": [index: number];
+}>();
 
 const previewImageUrl = computed(() => {
   // Prioritaskan imageUrl dari props
-  if (props.imageUrl) return props.imageUrl
-  
+  if (props.imageUrl) return props.imageUrl;
+
   // Ambil gambar pertama dari modelValue untuk preview
   if (props.modelValue && props.modelValue.length > 0) {
-    const firstFile = props.modelValue[0]
-    if (firstFile.url) return firstFile.url
-    if (firstFile.raw) return URL.createObjectURL(firstFile.raw)
+    const firstFile = props.modelValue[0];
+    if (firstFile.url) return firstFile.url;
+    if (firstFile.raw) return URL.createObjectURL(firstFile.raw);
   }
-  
-  return ''
-})
+
+  return "";
+});
 
 const imageCount = computed(() => {
-  return props.modelValue?.length || 0
-})
+  return props.modelValue?.length || 0;
+});
 
 const emitOpenModal = () => {
-  emit('open-modal', 0)
-}
+  emit("open-modal", 0);
+};
 </script>
 
 <style scoped>
@@ -72,8 +72,8 @@ const emitOpenModal = () => {
 }
 
 :deep(.image-preview-container) {
-  width: 50px;
-  height: 50px;
+  width: 25px;
+  height: 25px;
   border: 1px dashed #d9d9d9;
   border-radius: 6px;
   background-color: #fafafa;
@@ -116,13 +116,13 @@ const emitOpenModal = () => {
 
 :deep(.image-count-badge) {
   position: absolute;
-  top: 4px;
-  right: 4px;
+  top: 10px;
+  right: 2px;
   background: #f56c6c;
   color: white;
   font-size: 10px;
-  min-width: 18px;
-  height: 18px;
+  min-width: 10px;
+  height: 10px;
   border-radius: 9px;
   display: flex;
   align-items: center;

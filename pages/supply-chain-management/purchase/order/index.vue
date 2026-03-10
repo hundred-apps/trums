@@ -5,11 +5,22 @@
       <el-col :span="6">
         <div class="statistic-card">
           <el-statistic
-            :value="(data?.data ?? []).filter((item: PurchaseOrder) => item.status === PurchaseOrderStatus.DRAFT).length"
+            :value="statistic.data.value?.data?.total_purchase_order || 0"
           >
             <template #title>
               <div style="display: inline-flex; align-items: center">
-                Draft Purchase Order
+                Total Data
+              </div>
+            </template>
+          </el-statistic>
+        </div>
+      </el-col>
+      <el-col :span="6">
+        <div class="statistic-card">
+          <el-statistic :value="statistic.data.value?.data?.total_nominal || 0">
+            <template #title>
+              <div style="display: inline-flex; align-items: center">
+                Total Purchase Order
               </div>
             </template>
           </el-statistic>
@@ -18,7 +29,7 @@
       <el-col :span="6">
         <div class="statistic-card">
           <el-statistic
-            :value="(data?.data ?? []).filter((item: PurchaseOrder) => item.status === PurchaseOrderStatus.PENDING_APPROVAL).length"
+            :value="statistic.data.value?.data?.total_pending_approve || 0"
           >
             <template #title>
               <div style="display: inline-flex; align-items: center">
@@ -30,23 +41,10 @@
       </el-col>
       <el-col :span="6">
         <div class="statistic-card">
-          <el-statistic
-            :value="(data?.data ?? []).filter((item: PurchaseOrder) => item.status === PurchaseOrderStatus.CANCELLED).length"
-          >
+          <el-statistic :value="statistic.data.value?.data?.total_vendor || 0">
             <template #title>
               <div style="display: inline-flex; align-items: center">
-                Cancelled
-              </div>
-            </template>
-          </el-statistic>
-        </div>
-      </el-col>
-      <el-col :span="6">
-        <div class="statistic-card">
-          <el-statistic :value="data?.total_data ?? 0">
-            <template #title>
-              <div style="display: inline-flex; align-items: center">
-                Total Purchase Order
+                Total Vendor
               </div>
             </template>
           </el-statistic>
@@ -90,7 +88,7 @@
       :columns="filteredColumns"
       :data="data?.data ?? []"
       :loading="loading"
-      :column-sort="onSort"
+      @sort-change="onSort"
       @selection-change="handleSelectionChange"
     />
 
@@ -110,7 +108,7 @@
 </template>
 
 <script lang="tsx" setup>
-import { Eleme, SetUp, Filter } from "@element-plus/icons-vue";
+import { Eleme, SetUp, Filter, Setting } from "@element-plus/icons-vue";
 import {
   type Column,
   type CheckboxValueType,
@@ -121,18 +119,28 @@ import {
   type SortBy,
   ElCheckboxGroup,
   ElMessage,
+  ElDropdown,
+  ElDropdownMenu,
+  ElDropdownItem,
 } from "element-plus";
 import {
   PurchaseOrderStatus,
   type PurchaseOrder,
+  type PurchaseOrderStatistic,
 } from "~/types/scm/purchase_order";
 import type { Pagination } from "~/types/pagination";
 import { NuxtLink } from "#components";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import type { ResponsePagination } from "~/types/response_pagination";
-import { OrderColumn, type RequestSearch } from "~/types/request_search";
+import {
+  OrderColumn,
+  StatisticTable,
+  type RequestSearch,
+  type RequestStatistic,
+} from "~/types/request_search";
 import type { BaseResponse } from "~/types/response";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
+import type { ColumnTable } from "~/types/ColumnTable";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -156,6 +164,18 @@ const request_search = ref<RequestSearch>({
   },
 });
 
+const request_statistic = ref<RequestStatistic>({
+  table: StatisticTable.purchase_order,
+  type: "po",
+});
+
+const statistic = await useFetchApi<BaseResponse<PurchaseOrderStatistic>>(
+  "/statistic",
+  "po-statistic",
+  "post",
+  request_statistic.value
+);
+
 // Data state
 const { data } = await useFetchApi<ResponsePagination<PurchaseOrder[]>>(
   "/search",
@@ -178,12 +198,13 @@ const columnsSelected = ref<string[]>([
 ]);
 
 // Columns
-const columns: Column<PurchaseOrder>[] = [
+const columns: ColumnTable<PurchaseOrder>[] = [
   {
     key: "unique_code",
     title: "Nomor PO",
     dataKey: "unique_code",
-    width: 150,
+    width: 200,
+    fixed: true,
     cellRenderer: ({ rowData: row }) => (
       <NuxtLink
         href={`/supply-chain-management/purchase/order/${row.unique_id}`}
@@ -197,13 +218,15 @@ const columns: Column<PurchaseOrder>[] = [
     key: "vendor_name",
     title: "Vendor",
     dataKey: "vendor_name",
-    width: 200,
+    fixed: true,
+    sortable: true,
   },
   {
     key: "total_price",
     title: "Total Harga",
     dataKey: "total_price",
     width: 150,
+    sortable: true,
     cellRenderer: ({ rowData }: { rowData: PurchaseOrder }) => (
       <span>{formatCurrency(rowData.total_price)}</span>
     ),
@@ -213,6 +236,7 @@ const columns: Column<PurchaseOrder>[] = [
     title: "Estimasi Tiba",
     dataKey: "expected_arrival",
     width: 150,
+    sortable: true,
     cellRenderer: ({ rowData }: { rowData: PurchaseOrder }) => (
       <span>
         {rowData.expected_arrival ? formatDate(rowData.expected_arrival) : "-"}
@@ -224,6 +248,7 @@ const columns: Column<PurchaseOrder>[] = [
     title: "Status",
     dataKey: "status",
     width: 150,
+    align: "center",
     cellRenderer: ({ rowData: row }) => renderStatusTag(row.status),
     headerCellRenderer: () => (
       <div class="flex items-center justify-center">
@@ -279,7 +304,7 @@ const columns: Column<PurchaseOrder>[] = [
     key: "created_at",
     title: "Tanggal Dibuat",
     dataKey: "created_at",
-    width: 150,
+    width: 170,
     sortable: true,
     cellRenderer: ({ rowData }: { rowData: PurchaseOrder }) => (
       <span>{formatDate(rowData.created_at)}</span>
@@ -288,24 +313,56 @@ const columns: Column<PurchaseOrder>[] = [
   {
     key: "operations",
     title: "Aksi",
-    cellRenderer: ({ rowData }: { rowData: PurchaseOrder }) => (
-      <>
-        <NuxtLink
-          class="el-button el-button--small"
-          href={`/supply-chain-management/purchase/order/add?id=${rowData.unique_id}`}
-        >
-          Edit
-        </NuxtLink>
-        <el-button
-          size="small"
-          type="danger"
-          onClick={() => onDelete([rowData.unique_id!])}
-        >
-          Hapus
-        </el-button>
-      </>
-    ),
-    width: 150,
+    // cellRenderer: ({ rowData }: { rowData: PurchaseOrder }) => (
+    //   <>
+    //     <NuxtLink
+    //       class="el-button el-button--small"
+    //       href={`/supply-chain-management/purchase/order/add?id=${rowData.unique_id}`}
+    //     >
+    //       Edit
+    //     </NuxtLink>
+    //     <el-button
+    //       size="small"
+    //       type="danger"
+    //       onClick={() => onDelete([rowData.unique_id!])}
+    //     >
+    //       Hapus
+    //     </el-button>
+    //   </>
+    // ),
+    width: 100,
+    cellRenderer: ({ rowData }: { rowData: PurchaseOrder }) => {
+      const onCommand = (command: string) => {
+        if (command === "edit") {
+          window.location.href = `/supply-chain-management/purchase/order/add?id=${rowData.unique_id}`;
+        }
+        if (command === "delete") {
+          onDelete([rowData.unique_id!]);
+        }
+      };
+
+      return (
+        <ElDropdown onCommand={onCommand} hideOnClick={false}>
+          {{
+            default: () => (
+              <span class="cursor-pointer text-primary">
+                <ElIcon>
+                  <Setting />
+                </ElIcon>
+              </span>
+            ),
+            dropdown: () => (
+              <ElDropdownMenu>
+                <ElDropdownItem command="edit">Edit</ElDropdownItem>
+                <ElDropdownItem class={"text-red-600"} command="delete" divided>
+                  Hapus
+                </ElDropdownItem>
+              </ElDropdownMenu>
+            ),
+          }}
+        </ElDropdown>
+      );
+    },
     align: "center",
   },
   {
@@ -322,6 +379,7 @@ columns.unshift({
   width: 50,
   maxWidth: 50,
   align: "center",
+  fixed: true,
   cellRenderer: ({ rowData }) => {
     const onChange = (value: CheckboxValueType) => (rowData.checked = value);
     return <SelectionCell value={rowData.checked} onChange={onChange} />;
@@ -463,15 +521,14 @@ const batchDelete = async () => {
   }
 };
 
-const onSort = (sortBy: SortBy) => {
+const onSort = async (sortBy: { prop: string; order: string }) => {
   request_search.value.sort = {
-    column: sortBy.key.toString(),
+    column: sortBy.prop,
     order:
-      request_search.value.sort?.order === OrderColumn.ASC
+      sortBy.order == OrderColumn.DESCENDING
         ? OrderColumn.DESC
         : OrderColumn.ASC,
   };
-  fetchData();
 };
 
 // Fetch data
