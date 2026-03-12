@@ -615,7 +615,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="Harga Jual" width="400">
+        <el-table-column label="Harga Jual" width="400" align="center">
           <el-table-column label="Harga Jual" width="200">
             <template #default="{ row }">
               <div v-if="row.type === 'parent'">
@@ -4110,7 +4110,7 @@ watch(adjustmentTransactionFeeTotal, (newValue) => calcucateSummaryaData(), {
   deep: true,
 });
 watch(
-  adjustmentTransactionOngkirTotal.value,
+  () => adjustmentTransactionOngkirTotal.value,
   (newValue) => calcucateSummaryaData(),
   { deep: true }
 );
@@ -4135,6 +4135,12 @@ watch(
     };
     console.log("update", adjustmentTransactionFeeTotal.value);
   },
+  { deep: true }
+);
+
+watch(
+  () => references.value,
+  () => calcucateSummaryaData(),
   { deep: true }
 );
 

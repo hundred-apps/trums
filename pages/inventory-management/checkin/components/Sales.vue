@@ -191,7 +191,7 @@
               <el-input-number
                 v-model="scope.row.quantity"
                 :min="1"
-                :max="scope.row.pending_qty"
+                :max="scope.row.request_qty"
               />
             </template>
           </el-table-column>
@@ -238,17 +238,22 @@
           size="default"
           placeholder="Cari Lokasi"
           :suffix-icon="Search"
+          class="mb-4"
         />
         <trums-table-custom-table
           :columns="columnLocation"
           :data="locations?.data.value?.data ?? []"
+          @sort-change="onSort"
         />
         <div class="flex justify-end mt-3">
           <el-pagination
             background
-            layout="prev, pager, next"
+            layout="prev, pager, next, sizes"
             :total="locations?.data.value?.total_data"
-            @change="(val: number) => paginationClick(val, 'location')"
+            :page-size="parseInt(requestSearchLocation.limit)"
+            :current-page="parseInt(requestSearchLocation.offset)"
+            @current-change="(val: number) => paginationClick(val, 'location')"
+            @size-change="(val: number) => handleSizeChange(val, 'location')"
           />
         </div>
       </el-tab-pane>
@@ -259,6 +264,7 @@
           size="default"
           placeholder="Cari Kontak"
           :suffix-icon="Search"
+          class="mb-4"
         />
         <trums-table-custom-table
           :columns="columnContact"
@@ -267,10 +273,12 @@
         <div class="flex justify-end mt-3">
           <el-pagination
             background
-            layout="prev, pager, next"
+            layout="prev, pager, next, sizes"
             :page-size="Number(requestSearchContact.limit)"
             :total="contacts?.data.value?.total_data"
-            @change="(val: number) => paginationClick(val, 'contact')"
+            :current-page="parseInt(requestSearchContact.offset)"
+            @current-change="(val: number) => paginationClick(val, 'contact')"
+            @size-change="(val: number) => handleSizeChange(val, 'contact')"
           />
         </div>
       </el-tab-pane>
@@ -367,12 +375,12 @@ import {
 import type { Catalogue } from "~/types/catalogue";
 import type { Contact } from "~/types/contact";
 import type { ResponsePagination } from "~/types/response_pagination";
-import type { RequestSearch } from "~/types/request_search";
+import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { PurchaseOrder } from "~/types/scm/purchase_order";
 import type { AddressType } from "~/types/address";
 import FormAddress from "~/components/trums/FormAddress.vue";
 import { currency, currencyWithoutSymbol, formatLocalDate } from "#imports";
-import type { Inquiry } from "~/types/inquiry";
+import { TypeInquiry, type Inquiry } from "~/types/inquiry";
 import { ElLoading } from "element-plus";
 import type { Inventory } from "~/types/inventory";
 import {
@@ -385,6 +393,7 @@ import {
   ItemRequestTrailStatus,
   type ItemRequestTrail,
 } from "~/types/item_request";
+import type { ColumnTable } from "~/types/ColumnTable";
 interface formCheckInOut {
   unique_id: string | null;
   type: string;
@@ -420,10 +429,11 @@ const fileList = ref<UploadUserFile[]>([]);
 const route = useRoute();
 const inquiry_id = computed(() => route.query.inquiry_id as string);
 const id = computed(() => route.query.id as string);
+const type = computed(() => route.query.type || ("in" as string));
 
 let formInline = reactive<formCheckInOut>({
   unique_id: null,
-  type: useCookie("type").value ?? "in",
+  type: type.value as string,
   location: "",
   location_id: "",
   version: 0,
@@ -446,11 +456,7 @@ let formInline = reactive<formCheckInOut>({
 const requestSearchLocation = ref<RequestSearch>({
   keyword: "",
   table: "catalogues",
-  column: [
-    {
-      type: ["place"],
-    },
-  ],
+  column: [],
   sort: null,
   limit: "10",
   offset: "1",
@@ -472,6 +478,16 @@ const requestSearchInquiry = ref<RequestSearch>({
   limit: "10",
   offset: "1",
 });
+
+const onSort = (sortBy: { order: string; prop: string }) => {
+  requestSearchLocation.value.sort = {
+    column: sortBy.prop,
+    order:
+      sortBy.order === OrderColumn.ASCENDING
+        ? OrderColumn.DESC
+        : OrderColumn.ASC,
+  };
+};
 
 const locations = await useFetchApi<ResponsePagination<Catalogue[]>>(
   "/search",
@@ -622,22 +638,23 @@ const showModal = (arg: number) => {
   dialog.value = true;
 };
 
-const columnLocation: Column<Catalogue>[] = [
+const columnLocation: ColumnTable<Catalogue>[] = [
   {
     title: "Item",
     dataKey: "name",
     key: "name",
-    width: 200,
   },
   {
     title: "Operasi",
     dataKey: "",
     key: "",
-    width: 200,
+    width: 80,
+    align: "center",
     cellRenderer: ({ rowData: row }) => (
       <>
         <ElButton
           type="primary"
+          size="small"
           onClick={() =>
             selectedModal(
               "catalogue",
@@ -702,22 +719,23 @@ const insufficientItems = computed(() => {
   });
 });
 
-const columnContact: Column<Contact>[] = [
+const columnContact: ColumnTable<Contact>[] = [
   {
     title: "Item",
     dataKey: "name",
     key: "name",
-    width: 200,
   },
   {
     title: "Operasi",
     dataKey: "",
     key: "",
-    width: 200,
+    width: 80,
+    align: "center",
     cellRenderer: ({ rowData: row }) => (
       <>
         <ElButton
           type="primary"
+          size="small"
           onClick={() =>
             selectedModal("contact", row, fromOrTo.value == 0 ? setFrom : setTo)
           }
@@ -825,7 +843,7 @@ const handleSelectAddress = (record: Record<string, any>) => {
 };
 
 const onSelectReference_id = async (data: Inquiry) => {
-  console.log("reference", formInline.reference);
+  console.log("reference", data.reference_data);
   console.log("data", data.item_request);
 
   tableItem.value = [];
@@ -847,8 +865,10 @@ const onSelectReference_id = async (data: Inquiry) => {
     formInline.reference_view = data.unique_code ?? "";
     formInline.reference_id = data.unique_id ?? "";
     formInline.reference_from = "contact";
-    formInline.location = (data.reference_data as PurchaseOrder).vendor_name;
-    formInline.location_id = (data.reference_data as PurchaseOrder).vendor_id;
+    formInline.location =
+      (data.reference_data as PurchaseOrder | null)?.vendor_name ?? "";
+    formInline.location_id =
+      (data.reference_data as PurchaseOrder | null)?.vendor_id ?? "";
 
     formInline.address_id = data.address_id ?? "";
     formInline.address_version = data.address_version ?? 0;
@@ -867,6 +887,7 @@ const onSelectReference_id = async (data: Inquiry) => {
         return accumulator + (currentValue.quantity ?? 0);
       }, 0);
 
+    console.log("request", element.request_qty);
     console.log("history", history);
     tableItem.value.push({
       unique_id: "",
@@ -900,7 +921,7 @@ const onSelectReference_id = async (data: Inquiry) => {
     });
   });
 
-  console.log("table item", tableItem);
+  console.log("table item", tableItem.value);
 
   dialogInquiry.value = false;
 };
@@ -1317,6 +1338,13 @@ const fetchInquiry = async () => {
 
     if (inquiry.status.value === "success" && inquiry.data.value!.data) {
       const dataInquiry: Inquiry = inquiry.data.value!.data;
+
+      // if (dataInquiry.type == TypeInquiry.SALES_INQUIRY) {
+      //   formInline.type = "out";
+      // } else {
+      //   formInline.type = "in";
+      // }
+
       onSelectReference_id(dataInquiry);
     }
   } catch (error) {
@@ -1365,7 +1393,10 @@ const fetchDataEdit = async () => {
         reference_id: item.reference_id ?? "",
         reference_view: "",
         reference_item: "",
-        item_name: item.inventory?.catalogue?.name ?? "",
+        item_name:
+          item.inventory?.catalogue?.name ??
+          item.reference_data?.catalogue_name ??
+          "",
         inventory_id: item.inventory_id,
         quantity: item.quantity,
         cost: item.cost,

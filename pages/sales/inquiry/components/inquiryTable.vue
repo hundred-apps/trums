@@ -246,24 +246,6 @@ const availableColumn: ColumnTable<Inquiry>[] = [
     key: "operation",
     width: 100,
     align: "center",
-    // cellRenderer: ({ rowData: row }) => (
-    //   <>
-    //     <NuxtLink
-    //       href={"/sales/inquiry/add?id=" + row.unique_id}
-    //       class="el-button el-button--small"
-    //     >
-    //       Edit
-    //     </NuxtLink>
-    //     {/* {
-    //       can('inquiries-delete', data.value?.privilege ?? []) && ()
-    //     } */}
-    //     <DeleteButton
-    //       onConfirm={() => handleDelete(row)}
-    //       size="small"
-    //       onCancel={() => {}}
-    //     />
-    //   </>
-    // ),
     cellRenderer: ({ rowData }: { rowData: Inquiry }) => {
       const onCommand = (command: string) => {
         if (command === "edit") {

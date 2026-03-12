@@ -1,5 +1,3 @@
-
-
 <script lang="tsx" setup>
 import { ref, onMounted, watch } from "vue";
 import { type People } from "~/types/people";
@@ -8,16 +6,23 @@ import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import { useRouter } from "vue-router";
 import { InfoFilled, Delete, Edit } from "@element-plus/icons-vue";
 import type { ResponsePagination } from "~/types/response_pagination";
-import { ElAvatar, ElButton, ElPopconfirm, ElTooltip, type Column, type SortBy } from "element-plus";
+import {
+  ElAvatar,
+  ElButton,
+  ElPopconfirm,
+  ElTooltip,
+  type Column,
+  type SortBy,
+} from "element-plus";
 import { NuxtLink } from "#components";
 import customTable from "~/components/trums/table/customTable.vue";
-
+import type { ColumnTable } from "~/types/ColumnTable";
 
 definePageMeta({
-    middleware: ["auth", "check-access"],
-    requiredPermission: "peoples-read",
-    name: "List Of Peoples"
-})
+  middleware: ["auth", "check-access"],
+  requiredPermission: "peoples-read",
+  name: "List Of Peoples",
+});
 
 const router = useRouter();
 const token = useCookie("token");
@@ -38,21 +43,23 @@ const toggleView = () => {
   showTable.value = !showTable.value;
 };
 
-const columns: Column<People>[] = [
+const columns: ColumnTable<People>[] = [
   {
     title: "Photo",
     key: "photo",
     sortable: true,
     width: 100,
+    align: "center",
     cellRenderer: ({ rowData }: { rowData: People }) =>
       h(
-        'div',
-        { class: 'demo-basic--circle flex gap-2' },
+        "div",
+        { class: "demo-basic--circle flex items-center justify-center gap-2" },
         [
           // 🟢 Avatar utama
-          h('div', { class: 'block' }, [
-            h(ElAvatar, { size: 30, src: `${baseImageURL}/${rowData.photo?.image_path}/${rowData.photo?.filename}` }),
-          ]),
+          h(ElAvatar, {
+            size: 30,
+            src: `${baseImageURL}/${rowData.photo?.image_path}/${rowData.photo?.filename}`,
+          }),
         ]
       ),
   },
@@ -60,9 +67,11 @@ const columns: Column<People>[] = [
     title: "Name",
     key: "name",
     sortable: true,
-    width: 300,
     cellRenderer: ({ rowData: row }) => (
-      <NuxtLink href={`/human-capital-management/people/${row.unique_id}`} class={"text-blue-600"}>
+      <NuxtLink
+        href={`/human-capital-management/people/${row.unique_id}`}
+        class={"text-blue-600"}
+      >
         {row.name}
       </NuxtLink>
     ),
@@ -80,64 +89,64 @@ const columns: Column<People>[] = [
   {
     title: "Departement",
     key: "departement_name",
-    width: 100,
+    width: 150,
   },
   {
     title: "Position",
     key: "position_name",
     width: 100,
-    
   },
   {
     title: "Aksi",
     key: "action",
     width: 100,
     cellRenderer: ({ rowData }: any) =>
-      h('div', { class: 'flex justify-center gap-2' }, [
+      h("div", { class: "flex justify-center gap-2" }, [
         // 🟡 Tombol Edit dengan Tooltip
 
-        (canAccess('peoples-update', data?.value?.privilege ?? []) && h(
-          ElTooltip,
-          {
-            content: 'Edit',
-            placement: 'top'
-          },
-          {
-            default: () => 
-              h(ElButton, {
-                type: 'warning',
-                icon: Edit,
-                circle: true,
-                plain: true,
-                onClick: () => navigateToForm('update', rowData.name, rowData.unique_id),
-              })
-          }
-        ) ),
-        
-
+        canAccess("update_people", data?.value?.privilege ?? []) &&
+          h(
+            ElTooltip,
+            {
+              content: "Edit",
+              placement: "top",
+            },
+            {
+              default: () =>
+                h(ElButton, {
+                  type: "warning",
+                  icon: Edit,
+                  circle: true,
+                  plain: true,
+                  onClick: () =>
+                    navigateToForm("update", rowData.name, rowData.unique_id),
+                }),
+            }
+          ),
         // 🔴 Tombol Delete dengan Popconfirm (tanpa nested Tooltip)
-        (canAccess('peoples-delete', data?.value?.privilege ?? []) && h(
-          ElPopconfirm,
-          {
-            title: 'Are you sure to delete this?',
-            'confirm-button-text': 'Yes',
-            'cancel-button-text': 'No',
-            icon: InfoFilled,
-            'icon-color': '#626AEF',
-            onConfirm: () => handleDelete(rowData),
-          },
-          {
-            reference: () => 
-              h(ElButton, {
-                type: 'danger',
-                icon: Delete,
-                circle: true,
-                plain: true,
-              })
-          }
-        )),
+        canAccess("delete_people", data?.value?.privilege ?? []) &&
+          h(
+            ElPopconfirm,
+            {
+              title: "Are you sure to delete this?",
+              "confirm-button-text": "Yes",
+              "cancel-button-text": "No",
+              icon: InfoFilled,
+              "icon-color": "#626AEF",
+              onConfirm: () => handleDelete(rowData),
+            },
+            {
+              reference: () =>
+                h(ElButton, {
+                  type: "danger",
+                  icon: Delete,
+                  circle: true,
+                  plain: true,
+                }),
+            }
+          ),
       ]),
-  }
+  },
 ];
 
 const handleSelectionChange = (selection: any[]) => {
@@ -159,10 +168,16 @@ const request_search = ref<RequestSearch>({
   table: "people",
 });
 
-const { data } = await useFetchApi<ResponsePagination<People[]>>('/search', 'search-people', 'post', request_search.value);
+const { data } = await useFetchApi<ResponsePagination<People[]>>(
+  "/search",
+  "search-people",
+  "post",
+  request_search.value
+);
 
-
-watch(request_search.value, () => refreshNuxtData('search-people'), {immediate: true});
+watch(request_search.value, () => refreshNuxtData("search-people"), {
+  immediate: true,
+});
 
 const fetchData = async () => {
   const { data: newData } = await useFetch<ResponsePagination<People[]>>(
@@ -230,16 +245,18 @@ const handleCurrentChange = (val: number) => {
 };
 
 const onSort = (sortBy: SortBy) => {
-  console.log('sort', sortBy.key);
+  console.log("sort", sortBy.key);
   console.log(request_search.value);
-  const data:RequestSearch = {...request_search.value};
+  const data: RequestSearch = { ...request_search.value };
   data.sort = {
     column: sortBy.key.toString(),
-    order: request_search.value.sort?.order == OrderColumn.ASC ? OrderColumn.DESC : OrderColumn.ASC
+    order:
+      request_search.value.sort?.order == OrderColumn.ASC
+        ? OrderColumn.DESC
+        : OrderColumn.ASC,
   };
   request_search.value = data;
-
-}
+};
 
 // onMounted(async () => {
 //   await fetchData();
@@ -255,7 +272,7 @@ const onSort = (sortBy: SortBy) => {
           placeholder="Type to search"
       /></el-col>
       <el-button
-        v-if="canAccess('peoples-create', data?.privilege ?? [])"
+        v-if="canAccess('create_people', data?.privilege ?? [])"
         size="large"
         @click="
           () => {
@@ -271,7 +288,20 @@ const onSort = (sortBy: SortBy) => {
       :data="data?.data ?? []"
     />
     <div class="flex justify-end mt-3">
-      <el-pagination background layout="prev, pager, next" :total="data?.total_data" @next-click="handleCurrentChange" @prev-click="handleCurrentChange" @change="handleCurrentChange" />
+      <el-pagination
+        background
+        layout="prev, pager, next"
+        :total="data?.total_data"
+        @next-click="handleCurrentChange"
+        @prev-click="handleCurrentChange"
+        @change="handleCurrentChange"
+      />
     </div>
   </TrumsWrapper>
 </template>
+
+<style scoped>
+:deep(.el-table__cell) {
+  padding: 5px !important;
+}
+</style>

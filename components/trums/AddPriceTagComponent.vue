@@ -1054,11 +1054,26 @@ const handleSubmitContact = async (formData: Contact) => {
       ownership: formData.ownership,
     });
     if (contact !== null) {
-      ruleForm.owner = contact;
+      if (stateActiveTypeContat.value == "customer") {
+        ruleForm.to_id = contact.unique_id;
+        ruleForm.to_name = contact.name;
+        ruleForm.to_version = contact.version;
+        ruleForm.to = contact;
+      } else if (stateActiveTypeContat.value == "pic") {
+        ruleForm.pic_id = contact.unique_id;
+        ruleForm.pic_name = contact.name;
+        ruleForm.pic_version = contact.version;
+        ruleForm.pic = contact;
+      } else if (stateActiveTypeContat.value == "vendor") {
+        ruleForm.owner_id = contact.unique_id;
+        ruleForm.owner_name = contact.name;
+        ruleForm.owner = contact;
+      }
     }
     dialogContact.value = false;
   } catch (error) {
     console.log("eror", error);
+    ElMessage.error(`${error}`);
   }
 };
 
@@ -1085,18 +1100,21 @@ const handleResetContact = () => {
   dialogContact.value = false;
 };
 
-const getDetailPIC = async () => {
+const getDetailContact = async (
+  unique_id: string
+): Promise<Contact | undefined> => {
   loading.value = true;
   try {
     const response = await useApiFetch<BaseResponse<Contact | undefined>>(
-      `/contact-read/${ruleForm.pic_id}`,
+      `/contact-read/${unique_id}`,
       {
         method: "get",
       }
     );
 
     if (response.success) {
-      ruleForm.pic = response.data;
+      console.log("response", response.data);
+      return response.data;
     }
   } catch (error: any) {
     ElMessage.error(error?.response?.message ?? error);
@@ -1107,10 +1125,22 @@ const getDetailPIC = async () => {
 
 const openModalContact = async (type: "vendor" | "customer" | "pic") => {
   if (type == "pic") {
-    await getDetailPIC();
+    const contact = await getDetailContact(ruleForm.pic_id || "");
+    console.log("data kontak ", contact);
+    if (contact !== undefined) {
+      ruleForm.pic = contact;
+    }
+  } else if (type == "vendor") {
+    const contact = await getDetailContact(ruleForm.owner_id || "");
+    if (contact !== undefined) {
+      ruleForm.owner = contact;
+    }
+  } else if (type == "customer") {
+    const contact = await getDetailContact(ruleForm.to_id || "");
+    if (contact !== undefined) {
+      ruleForm.to = contact;
+    }
   }
-  console.log("type");
-  console.log("to", ruleForm.to);
   stateActiveTypeContat.value = type;
   dialogContact.value = true;
 };
@@ -1605,24 +1635,102 @@ const createNewVendor = async (data: any) => {
 
 const onHandleSelectVendor = (item: any, type: "to" | "vendor" | "pic") => {
   if (item.isNew) {
-    createNewVendor({ name: item.keyword }).then((customer) => {
-      if (customer) {
-        if (type == "vendor") {
-          ruleForm.owner_id = customer.unique_id;
-          ruleForm.owner_name = customer.name;
-          ruleForm.owner = customer;
-        } else if (type == "pic") {
-          ruleForm.pic_id = customer.unique_id;
-          ruleForm.pic_name = customer.name;
-          ruleForm.pic_version = customer.version;
-        } else {
-          ruleForm.to_id = customer.unique_id;
-          ruleForm.to_name = customer.name;
-          ruleForm.to_version = customer.version;
-          ruleForm.to = customer;
-        }
-      }
-    });
+    if (type == "vendor") {
+      ruleForm.owner_name = item.keyword;
+      ruleForm.owner = {
+        id: 0,
+        unique_id: "",
+        unique_code: "",
+        is_personal: false,
+        is_company: false,
+        internal_id: "",
+        name: item.keyword,
+        email: "",
+        phone: null,
+        tax_id: null,
+        website: null,
+        title: null,
+        tags: "",
+
+        created_at: 0,
+        created_by: "",
+        updated_at: 0,
+
+        version: 0,
+        address: [],
+      };
+      stateActiveTypeContat.value = "vendor";
+    } else if (type == "pic") {
+      ruleForm.pic_name = item.keyword;
+      ruleForm.pic = {
+        id: 0,
+        unique_id: "",
+        unique_code: "",
+        is_personal: false,
+        is_company: false,
+        internal_id: "",
+        name: item.keyword,
+        email: "",
+        phone: null,
+        tax_id: null,
+        website: null,
+        title: null,
+        tags: "",
+
+        created_at: 0,
+        created_by: "",
+        updated_at: 0,
+
+        version: 0,
+        address: [],
+      };
+      stateActiveTypeContat.value = "pic";
+    } else {
+      ruleForm.to_name = item.keyword;
+      ruleForm.to = {
+        id: 0,
+        unique_id: "",
+        unique_code: "",
+        is_personal: false,
+        is_company: false,
+        internal_id: "",
+        name: item.keyword,
+        email: "",
+        phone: null,
+        tax_id: null,
+        website: null,
+        title: null,
+        tags: "",
+
+        created_at: 0,
+        created_by: "",
+        updated_at: 0,
+
+        version: 0,
+        address: [],
+      };
+      stateActiveTypeContat.value = "customer";
+    }
+
+    dialogContact.value = true;
+    // createNewVendor({ name: item.keyword }).then((customer) => {
+    //   if (customer) {
+    //     if (type == "vendor") {
+    //       ruleForm.owner_id = customer.unique_id;
+    //       ruleForm.owner_name = customer.name;
+    //       ruleForm.owner = customer;
+    //     } else if (type == "pic") {
+    //       ruleForm.pic_id = customer.unique_id;
+    //       ruleForm.pic_name = customer.name;
+    //       ruleForm.pic_version = customer.version;
+    //     } else {
+    //       ruleForm.to_id = customer.unique_id;
+    //       ruleForm.to_name = customer.name;
+    //       ruleForm.to_version = customer.version;
+    //       ruleForm.to = customer;
+    //     }
+    //   }
+    // });
   } else {
     const customer = item.data as Contact;
     if (type == "vendor") {

@@ -195,6 +195,7 @@ const chartOption = computed(() => {
     autoresize
     style="height: 420px; width: 100%"
   />
+
   <ElCard shadow="never" class="my-4">
     <template #header>
       <div class="card-header">Rincian Hutang</div>

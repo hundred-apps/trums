@@ -224,7 +224,7 @@ const availableColumn: ColumnTable<InventoryMovement>[] = [
     cellRenderer: ({ rowData }: { rowData: InventoryMovement }) => {
       const onCommand = (command: string) => {
         if (command === "edit") {
-          handleEdit(rowData);
+          window.location.href = `/inventory-management/checkin/add?id=${rowData.unique_id}`;
         }
         if (command === "delete") {
           handleDelete([rowData.unique_id]);
@@ -354,17 +354,31 @@ const handleEdit = (row: any) => {
 const handleDelete = async (row: string[]) => {
   console.log("Editing:", row);
   try {
-    const response = await useFetchApi(
-      "/inventory-movement-delete",
-      "inventory_movement",
-      "post",
-      row
-    );
-    console.log("response", response.status);
-    if (response.status.value == "success") {
-      ElMessage.success(`Berhasil`);
-      await refreshNuxtData("inventory_movement");
-    }
+    ElMessageBox.confirm(
+      "Data akan dihapus secara permanen. Lanjutkan?",
+      "Warning",
+      {
+        confirmButtonText: "Hapus",
+        cancelButtonText: "Batal",
+        type: "warning",
+      }
+    )
+      .then(async () => {
+        const response = await useFetchApi(
+          "/inventory-movement-delete",
+          "inventory_movement",
+          "post",
+          row
+        );
+        console.log("response", response.status);
+        if (response.status.value == "success") {
+          ElMessage.success(`Berhasil`);
+          await refreshNuxtData("inventory_movement");
+        }
+      })
+      .catch(() => {
+        // Cancel
+      });
   } catch (e: any) {
     ElMessage.error(`${e.response?.data?.message ?? e}`);
   }
@@ -526,8 +540,16 @@ onMounted(() => {
           size="default"
           placeholder="Type to search"
       /></el-col>
-      <el-button size="default" @click="() => add('in')">CheckIn</el-button>
-      <el-button size="default" @click="() => add('out')">CheckOut</el-button>
+      <NuxtLink
+        class="el-button el-button--primary"
+        href="/inventory-management/checkin/add?type=in"
+        >CheckIn</NuxtLink
+      >
+      <NuxtLink
+        class="el-button el-button--primary"
+        href="/inventory-management/checkin/add?type=out"
+        >CheckOut</NuxtLink
+      >
       <!-- <el-button size="default" @click="consigment">Consignment</el-button> -->
       <el-form
         :model="ruleFormFilter"

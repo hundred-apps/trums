@@ -2,13 +2,22 @@
 import { ref, onMounted } from "vue";
 import { type Contact } from "~/types/contact";
 import { useApi } from "~/composables/useApi";
-import type { RequestSearch } from "~/types/request_search";
+import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import { useRouter } from "vue-router";
-import { InfoFilled, Delete, Edit } from "@element-plus/icons-vue";
+import { InfoFilled, Delete, Edit, Setting } from "@element-plus/icons-vue";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { Pagination } from "~/types/pagination";
 import { NuxtLink } from "#components";
-import type { Column } from "element-plus";
+import {
+  ElDropdown,
+  ElDropdownItem,
+  ElDropdownMenu,
+  ElIcon,
+  TableV2FixedDir,
+  type Column,
+} from "element-plus";
+import type { ColumnTable } from "~/types/ColumnTable";
+import customTable from "~/components/trums/table/customTable.vue";
 const config = useRuntimeConfig();
 
 definePageMeta({
@@ -18,7 +27,11 @@ definePageMeta({
 
 const router = useRouter();
 
-const navigateToForm = (mode = "", name = "", unique_id = null) => {
+const navigateToForm = (
+  mode: string,
+  name: string,
+  unique_id: string | null
+) => {
   const path = name
     ? `/contact-management/contacts/form/${name}`
     : "/contact-management/contacts/form/add";
@@ -33,13 +46,14 @@ const toggleView = () => {
   showTable.value = !showTable.value;
 };
 
-const columns: Column<Contact>[] = [
+const columns: ColumnTable<Contact>[] = [
   {
-    label: "Name",
-    prop: "name",
+    title: "Name",
+    dataKey: "name",
+    key: "name",
     sortable: true,
     fixed: true,
-    width: 200,
+    width: 300,
     cellRenderer: ({ rowData }: { rowData: Contact }) => (
       <NuxtLink
         href={`/contact-management/contacts/${rowData.unique_id}`}
@@ -50,50 +64,104 @@ const columns: Column<Contact>[] = [
     ),
   },
   {
-    label: "Phone",
-    prop: "phone",
-    width: 150,
+    title: "Email",
+    dataKey: "email",
+    key: "email",
+    width: 220,
+    fixed: true,
   },
   {
-    label: "Email",
-    prop: "email",
+    title: "Phone",
+    dataKey: "phone",
+    key: "phone",
     width: 150,
   },
+
   {
-    label: "NPWP",
-    prop: "tax_id",
-    width: 150,
+    title: "NPWP",
+    dataKey: "tax_id",
+    key: "tax_id",
+    width: 170,
   },
   {
-    label: "Website",
-    prop: "website",
-    width: 150,
+    title: "Website",
+    dataKey: "website",
+    key: "website",
+    width: 200,
   },
   {
-    label: "Title",
-    prop: "title",
+    title: "Title",
+    dataKey: "title",
+    key: "title",
+    width: 130,
+  },
+  {
+    title: "Personal",
+    dataKey: `is_personal`,
+    key: `is_personal`,
     width: 100,
   },
   {
-    label: "Personal",
-    prop: `is_personal`,
-    width: 100,
-  },
-  {
-    label: "Company",
-    prop: `is_company`,
+    title: "Company",
+    dataKey: `is_company`,
+    key: `is_company`,
     width: 100,
     align: "center",
   },
   {
-    label: "Tags",
-    prop: "tags",
+    title: "Tags",
+    dataKey: "tags",
+    key: "tags",
     width: 200,
   },
   {
-    label: "People Contact",
-    prop: "people_internal",
+    title: "Akun User",
+    dataKey: "people_internal",
+    key: "people_internal",
     width: 200,
+    cellRenderer: ({ rowData }: { rowData: Contact }) => (
+      <p>{rowData.people_internal?.name ?? ""}</p>
+    ),
+  },
+  {
+    title: "Aksi",
+    dataKey: "",
+    key: "",
+    width: 70,
+    align: "center",
+    fixed: TableV2FixedDir.RIGHT,
+    cellRenderer: ({ rowData }: { rowData: Contact }) => {
+      const onCommand = (command: string) => {
+        if (command === "edit") {
+          navigateToForm("update", rowData.name, rowData.unique_id);
+        }
+        if (command === "delete") {
+          handleDelete(rowData);
+        }
+      };
+
+      return (
+        <ElDropdown onCommand={onCommand} hideOnClick={false}>
+          {{
+            default: () => (
+              <span class="cursor-pointer text-primary">
+                <ElIcon>
+                  <Setting />
+                </ElIcon>
+              </span>
+            ),
+            dropdown: () => (
+              <ElDropdownMenu>
+                <ElDropdownItem command="edit">Edit</ElDropdownItem>
+                <ElDropdownItem class={"text-red-600"} command="delete" divided>
+                  Hapus
+                </ElDropdownItem>
+              </ElDropdownMenu>
+            ),
+          }}
+        </ElDropdown>
+      );
+    },
   },
 ];
 
@@ -129,15 +197,32 @@ const { data } = await useFetch<ResponsePagination<Contact[]>>(
 const handleDelete = async (row: Contact) => {
   loading.value = true;
   try {
-    const response = await useFetch(`${config.public.baseURL}/contact-delete`, {
-      method: "delete",
-      body: [row.unique_id],
-      lazy: true,
-    });
-    if (response.status.value == "success") {
-      await refreshNuxtData("contacts");
-      ElMessage.success("Data Berhasil Dihapus");
-    }
+    ElMessageBox.confirm(
+      "Apakah Anda yakin ingin mereset form? Semua perubahan akan hilang.",
+      "Konfirmasi Reset",
+      {
+        confirmButtonText: "Ya, Reset",
+        cancelButtonText: "Batal",
+        type: "warning",
+      }
+    )
+      .then(async () => {
+        const response = await useFetch(
+          `${config.public.baseURL}/contact-delete`,
+          {
+            method: "delete",
+            body: [row.unique_id],
+            lazy: true,
+          }
+        );
+        if (response.status.value == "success") {
+          await refreshNuxtData("contacts");
+          ElMessage.success("Data Berhasil Dihapus");
+        }
+      })
+      .catch(() => {
+        // User canceled
+      });
   } catch (error: any) {
     ElMessage.error(`${error.response?.data?.message}`);
   } finally {
@@ -171,6 +256,16 @@ const handleSizeChange = (size: number) => {
 //   await fetchData();
 // });
 
+const onSort = (sortBy: { order: string; prop: string }) => {
+  request_search.value.sort = {
+    column: sortBy.prop,
+    order:
+      sortBy.order === OrderColumn.ASCENDING
+        ? OrderColumn.DESC
+        : OrderColumn.ASC,
+  };
+};
+
 console.log("data:", data);
 </script>
 <template>
@@ -179,89 +274,20 @@ console.log("data:", data);
       <el-col :span="6"
         ><el-input
           v-model="request_search.keyword"
-          size="large"
+          size="default"
           placeholder="Type to search"
       /></el-col>
-      <el-button
-        size="large"
-        @click="
-          () => {
-            navigateToForm('add');
-          }
-        "
-        >New Contact</el-button
+      <NuxtLink
+        class="el-button el-button--primary"
+        href="/contact-management/contacts/form/add"
+        >Buat Kontak</NuxtLink
       >
     </el-row>
-    <el-table
-      class="w-screen"
-      @selection-change="handleSelectionChange"
-      :data="data?.data"
-      :loading="loading"
-    >
-      <el-table-column type="selection" width="55" />
-      <el-table-column
-        v-for="col in columns"
-        :key="col.prop || col.label"
-        :prop="col.prop"
-        :label="col.label"
-        :sortable="col.sortable"
-        :fixed="col.fixed"
-        :width="col.width"
-        :align="col.align"
-      >
-        <template #default="scope">
-          <Icon
-            v-if="col.prop === 'is_personal' || col.prop === 'is_company'"
-            :name="
-              scope.row[col.prop] ? 'mdi:check-circle' : 'mdi:close-circle'
-            "
-            :style="scope.row[col.prop] ? 'color: #67c23a' : 'color: #f56c6c'"
-          />
-          <span v-if="col.prop === 'people_internal'">{{
-            scope.row[col.prop]
-          }}</span>
-          <NuxtLink
-            v-if="col.prop == 'name'"
-            :href="`/contact-management/contacts/${scope.row.unique_id}`"
-            class="text-blue-600"
-            >{{ scope.row.name }}</NuxtLink
-          >
-        </template>
-      </el-table-column>
-      <el-table-column fixed="right" label="Operations" width="150">
-        <template #default="scope">
-          <el-tooltip placement="top">
-            <template #content>Edit</template>
-            <el-button
-              type="warning"
-              :icon="Edit"
-              circle
-              @click="
-                navigateToForm('update', scope.row.name, scope.row.unique_id)
-              "
-              plain
-            >
-            </el-button>
-          </el-tooltip>
-          <el-popconfirm
-            confirm-button-text="Yes"
-            cancel-button-text="No"
-            :icon="InfoFilled"
-            icon-color="#626AEF"
-            title="Are you sure to delete this?"
-            @confirm="handleDelete(scope.row)"
-            @cancel="() => {}"
-          >
-            <template #reference>
-              <el-tooltip placement="top">
-                <template #content>Delete</template>
-                <el-button type="danger" :icon="Delete" circle plain />
-              </el-tooltip>
-            </template>
-          </el-popconfirm>
-        </template>
-      </el-table-column>
-    </el-table>
+    <customTable
+      :columns="columns"
+      :data="data?.data ?? []"
+      @sort-change="onSort"
+    />
     <div class="flex justify-end">
       <el-pagination
         class="my-3"
@@ -276,3 +302,8 @@ console.log("data:", data);
     </div>
   </TrumsWrapper>
 </template>
+<style scoped>
+:deep(.el-table__cell) {
+  padding: 5px !important;
+}
+</style>

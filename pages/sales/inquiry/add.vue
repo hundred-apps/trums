@@ -80,7 +80,11 @@ import FormAddress from "~/components/trums/FormAddress.vue";
 import CatalogueAdd from "~/components/trums/CatalogueAdd.vue";
 import ItemImageUpload from "./components/ItemImageUpload.vue";
 import PhotoWallUploads from "~/components/trums/PhotoWallUploads.vue";
-import { generateAddressView, getFirstFileUrl } from "#imports";
+import {
+  generateAddressView,
+  getFirstFileUrl,
+  generateAddressViewName,
+} from "#imports";
 
 const fileList = ref<UploadUserFile[]>([]);
 
@@ -99,7 +103,10 @@ const dialogContacts = ref<boolean>(false);
 const dialogRepair = ref<boolean>(false);
 const dialogSalesOrder = ref<boolean>(false);
 const dialogContact = ref<boolean>(false);
+
 const dialogNewAddress = ref<boolean>(false);
+const addressStateForm = ref<"new" | "edit">("new");
+
 type ItemImageUploadInstance = InstanceType<typeof ItemImageUpload>;
 
 // Gunakan array dengan tipe yang tepat
@@ -241,7 +248,7 @@ const rules = reactive<FormRules<RuleForm>>({
       trigger: "change",
     },
   ],
-  address_view: [
+  address_id: [
     {
       required: true,
       message: "Permintaan akan di kirim kemana?",
@@ -352,7 +359,10 @@ const onSubmit = async () => {
     formData.append("type", `${TypeInquiry.SALES_INQUIRY}`);
     formData.append("request_to_id", `${ruleForm.to_unique_id}`);
     formData.append("request_to_version", `${ruleForm.to_version}`);
-    formData.append("address_id", `${ruleForm.address_id}`);
+    formData.append(
+      "address_id",
+      `${ruleForm.address_id == "" ? "deleted" : ruleForm.address_id}`
+    );
     formData.append("address_version", `${ruleForm.address_version}`);
 
     // Append item_request (nested)
@@ -1139,9 +1149,7 @@ const fetchInquiry = async () => {
       ruleForm.to_version = inquiryData.request_to?.version ?? 0;
       ruleForm.address_id = inquiryData.address_id ?? "";
       ruleForm.address_version = inquiryData.address_version ?? 0;
-      ruleForm.address_view = generateResultSearchAddress(
-        inquiryData.address || null
-      ).name;
+      ruleForm.address_view = "";
 
       address.value = inquiryData.address ?? null;
 
@@ -1297,7 +1305,15 @@ const querySearchAddress = (queryString: string, cb: (arg: any) => void) => {
       const resultApi: AddressType[] = response.data.value?.data!;
 
       if (resultApi.length > 0) {
-        cb(resultApi.map(generateResultSearchAddress));
+        cb([
+          ...resultApi.map(generateResultSearchAddress),
+          {
+            value: `Buat Alamat Baru`,
+            new: true,
+            name: `Buat Alamat Baru`,
+            street: "",
+          },
+        ]);
       } else {
         cb([
           {
@@ -1314,13 +1330,14 @@ const querySearchAddress = (queryString: string, cb: (arg: any) => void) => {
 
 const handleSelectAddress = (record: Record<string, any>) => {
   if (record.new) {
+    // address.value = null;
+    addressStateForm.value = "new";
     dialogNewAddress.value = true;
   } else {
-    console.log("selected", record);
     // const address: AddressType = record as AddressType;
     ruleForm.address_id = record.address_id;
     ruleForm.address_version = record.address_version;
-    ruleForm.address_view = record.name;
+    ruleForm.address_view = "";
     address.value = record.address;
   }
 };
@@ -1640,8 +1657,13 @@ const handleRemoveImageList = async (
 
 const handleEditAddress = (addressEdit: AddressType) => {
   address.value = addressEdit;
-  console.log("handle edit click", address.value);
+  addressStateForm.value = "edit";
   dialogNewAddress.value = true;
+};
+
+const handleDeleteAddress = () => {
+  address.value = null;
+  ruleForm.address_id = "";
 };
 </script>
 <template>
@@ -1661,6 +1683,7 @@ const handleEditAddress = (addressEdit: AddressType) => {
         class="demo-ruleForm"
         :size="formSize"
         status-icon
+        :disabled="loading"
       >
         <el-form-item label="Diminta oleh?" prop="to_name">
           <div class="flex items-center gap-3">
@@ -1713,7 +1736,7 @@ const handleEditAddress = (addressEdit: AddressType) => {
           <TrumsUploadFile v-model:file-list="fileList" />
         </el-form-item>
 
-        <el-form-item label="Alamat" prop="address_view">
+        <el-form-item label="Cari Alamat" prop="address_view">
           <el-autocomplete
             v-model="ruleForm.address_view"
             :fetch-suggestions="querySearchAddress"
@@ -1724,8 +1747,13 @@ const handleEditAddress = (addressEdit: AddressType) => {
             @select="(record) => handleSelectAddress(record)"
           >
             <template #default="{ item }">
-              <div class="name">{{ item.name }}</div>
-              <span class="street text-sm">{{ item.street }}</span>
+              <div v-if="!item.new">
+                <div class="name">{{ item.name }}</div>
+                <span class="street text-sm">{{ item.street }}</span>
+              </div>
+              <div v-else>
+                <div class="text-blue-600">{{ item.name }}</div>
+              </div>
             </template>
           </el-autocomplete>
         </el-form-item>
@@ -1738,6 +1766,11 @@ const handleEditAddress = (addressEdit: AddressType) => {
                 class="cursor-pointer text-blue-500 hover:text-blue-600"
                 @click="handleEditAddress(address)"
                 ><Edit
+              /></el-icon>
+              <el-icon
+                class="cursor-pointer text-read-500 hover:text-read-600"
+                @click="handleDeleteAddress"
+                ><Delete
               /></el-icon>
             </div>
             <div>
@@ -1907,8 +1940,13 @@ const handleEditAddress = (addressEdit: AddressType) => {
 
     <el-card>
       <div class="card-header flex justify-end items-center">
-        <el-button @click="resetForm(ruleFormRef)">Batal</el-button>
-        <el-button type="primary" @click="submitForm(ruleFormRef)"
+        <el-button @click="resetForm(ruleFormRef)" :loading="loading"
+          >Batal</el-button
+        >
+        <el-button
+          type="primary"
+          :loading="loading"
+          @click="submitForm(ruleFormRef)"
           >Simpan</el-button
         >
       </div>
@@ -1923,13 +1961,9 @@ const handleEditAddress = (addressEdit: AddressType) => {
         @reset="handleResetContact"
       />
     </el-dialog>
-    <el-dialog
-      v-model="dialogNewAddress"
-      title="Create New Address"
-      width="500"
-    >
+    <el-dialog v-model="dialogNewAddress" title="Form Alamat" width="500">
       <FormAddress
-        :onSetInitital="{
+        :onSetInitital="addressStateForm == 'new' ? undefined : {
           contact_id: ruleForm.to_unique_id,
           contact_name: ruleForm.to_name,
           address_name: address?.address_name,
@@ -1941,7 +1975,7 @@ const handleEditAddress = (addressEdit: AddressType) => {
           city: address?.city,
           regency: address?.regency,
           province: address?.province,
-          address_view: address != null ? generateAddressView(address!) : ''
+          address_view: address != null ? generateAddressViewName(address!) : ''
         }"
         :onSuccess="onAddNewAddress"
       />
@@ -2024,5 +2058,10 @@ const handleEditAddress = (addressEdit: AddressType) => {
 :deep(.avatar-uploader .avatar-uploader-icon) {
   width: 50px;
   height: 50px;
+}
+
+:deep(.image-preview-container) {
+  width: 50px !important;
+  height: 50px !important;
 }
 </style>

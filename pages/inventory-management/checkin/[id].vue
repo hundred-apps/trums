@@ -18,6 +18,7 @@
                 v-model="checkData!.status"
                 aria-label="status"
                 size="small"
+                @change="onChangeStatus"
               >
                 <el-radio-button value="draft">Draft</el-radio-button>
                 <el-radio-button value="waiting">Waiting</el-radio-button>
@@ -28,7 +29,7 @@
             </el-form-item>
           </div>
           <NuxtLink
-            v-if="canAccess('inventory_movement-update', privilages)"
+            v-if="canAccess('inventory-movement-update', privilages)"
             :href="`/inventory-management/checkin/add?id=${checkData?.unique_id}`"
             class="el-button el-button--defult"
           >
@@ -41,6 +42,13 @@
             @click="generatePDF"
           >
             Cetak DO
+          </el-button>
+          <el-button
+            type="danger"
+            :loading="loading || loadingPO"
+            @click="handleDelete"
+          >
+            Hapus
           </el-button>
         </div>
       </template>
@@ -115,7 +123,15 @@
         style="width: 100%"
         border
       >
-        <el-table-column prop="inventory.catalogue.name" label="Nama Item" />
+        <el-table-column prop="inventory.catalogue.name" label="Nama Item">
+          <template #default="scope">
+            {{
+              scope.row.inventory?.catalogue?.name ??
+              scope.row.reference_data?.catalogue_name ??
+              "-"
+            }}
+          </template>
+        </el-table-column>
         <el-table-column prop="sn" label="Serial/Part Number" width="180" />
         <el-table-column prop="quantity" label="QTY" width="100" />
 
@@ -206,6 +222,15 @@ watch(
   }
 );
 
+const onChangeStatus = (val: any) => {
+  const formData = new FormData();
+
+  formData.append("unique_id", `${checkData!.unique_id}`);
+  formData.append("status", val);
+
+  onSubmit(formData);
+};
+
 const inquiryData = ref<Inquiry | null>(null);
 const purchaseOrderData = ref<PurchaseOrder | null>(null);
 
@@ -215,8 +240,24 @@ const formInline = reactive({
   date: "",
 });
 
-const onSubmit = () => {
-  console.log("submit!");
+const onSubmit = async (formData: FormData) => {
+  loading.value = true;
+  try {
+    const response = await useFetchApi(
+      "/inventory-movement-create",
+      "inventory-movement-update",
+      "post",
+      formData
+    );
+
+    if (response.status.value == "success") {
+      ElMessage.success("Berhasil Mengubah Status!");
+    }
+  } catch (error: any) {
+    ElMessage.error(`${error.response?.data?.message ?? error}`);
+  } finally {
+    loading.value = false;
+  }
 };
 
 const getStatusTagType = (
@@ -470,6 +511,46 @@ const generatePDF = async () => {
   pdfUrl.value = URL.createObjectURL(blob);
   showPreviewPDF.value = true;
 };
+
+const handleDelete = () => {
+  ElMessageBox.confirm(
+    "Data akan dihapus secara permanen. Lanjutkan?",
+    "Warning",
+    {
+      confirmButtonText: "Hapus",
+      cancelButtonText: "Batal",
+      type: "warning",
+    }
+  )
+    .then(async () => {
+      handleSubmitDelete([checkData?.unique_id ?? ""]);
+    })
+    .catch(() => {
+      // Cancel
+    });
+};
+
+const handleSubmitDelete = async (data: string[]) => {
+  loading.value = true;
+  try {
+    const response = await useFetchApi(
+      "/inventory-movement-delete",
+      "inventory_movement",
+      "post",
+      data
+    );
+    console.log("response", response.status);
+    if (response.status.value == "success") {
+      ElMessage.success(`Berhasil`);
+      window.location.href = "/inventory-management/checkin";
+    }
+  } catch (error) {
+    ElMessage.error(`${error}`);
+  } finally {
+    loading.value = false;
+  }
+};
+
 const downloadPdf = () => {
   if (!pdfBlob.value) {
     ElMessage.warning("Tidak ada PDF untuk di-download");

@@ -732,7 +732,8 @@ const onRefresh = () => {
 const newInventory = () => {
   const unique_id = useCookie("unique_id");
   unique_id.value = null;
-  $router.push("inventories/add");
+  // $router.push("inventories/add");
+  window.location.href = "/inventory-management/inventories/add";
 };
 
 onMounted(() => {
