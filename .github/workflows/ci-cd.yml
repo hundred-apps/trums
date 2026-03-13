@@ -74,8 +74,5 @@ jobs:
             echo "🔄 Load NVM"
             source ~/.nvm/nvm.sh
 
-            echo "🚀 Start process baru"
-            PORT=8008 pm2 start .output/server/index.mjs --name "trums-fe_8008"
-
-            echo "💾 Save PM2"
-            pm2 save
+            echo "🔄 Restart PM2" 
+            pm2 restart "trums-fe_8008" --update-env
