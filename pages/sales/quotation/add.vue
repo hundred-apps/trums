@@ -776,21 +776,20 @@
     >
       <el-table :data="payment_terms" border style="width: 100%">
         <el-table-column label="Nama">
-          <template #default="{ row, $index }">
-            <el-input v-model="row.name" placeholder="TOP 1" />
+          <template #default="scope">
+            <el-input v-model="scope.row.name" placeholder="TOP 1" />
           </template>
         </el-table-column>
 
         <el-table-column label="Jumlah">
-          <template #default="{ row, $index }">
+          <template #default="scope">
             <el-input
-              v-model="row.value"
+              v-model="scope.row.value"
               style="max-width: 300px"
               placeholder="Jumlah"
-              ]
             >
               <template #append>
-                <el-select v-model="row.unit" style="width: 100px">
+                <el-select v-model="scope.row.unit" style="width: 100px">
                   <el-option label="%" value="percentage" />
                   <el-option label="Rp" value="nominal" />
                 </el-select>
@@ -800,9 +799,9 @@
         </el-table-column>
 
         <el-table-column label="TOP">
-          <template #default="{ row }">
+          <template #default="scope">
             <el-select
-              v-model="row.term_of_payment"
+              v-model="scope.row.term_of_payment"
               placeholder="Select"
               style="width: 240px"
             >
@@ -833,12 +832,12 @@
         </el-table-column>
 
         <el-table-column label="Aksi" width="60">
-          <template #default="{ row }">
+          <template #default="scope">
             <el-button
               type="danger"
               :icon="Delete"
               circle
-              @click="() => removePaymentTerm(row)"
+              @click="() => removePaymentTerm(scope.row)"
             />
           </template>
         </el-table-column>
@@ -1106,7 +1105,7 @@ const pricetags = ref<Pricetag[]>([]);
 const payment_terms = ref<TermOfPayment[]>([
   {
     unique_id: "",
-    name: "Cash 100%",
+    name: "Cash 100",
     value: 100,
     unit: "percentage",
     term_of_payment: PaymentTerm.CBD,
@@ -3516,7 +3515,7 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
           parent_index: index,
         })),
         selling_price: value.unit_selling_price,
-
+        tmp_child_selected: "",
         profit: 0,
         profit_unit: "percent",
         fee: 0,
@@ -3712,47 +3711,6 @@ const submit = async (formEl: FormInstance | undefined) => {
         });
       });
     });
-
-    const payload = {
-      unique_id: ruleForm.unique_id,
-      source_document: ruleForm.source_document,
-      description: ruleForm.description,
-      status: ruleForm.status,
-      canvassing_items: item_canvassing.value.map((value) => ({
-        unique_id: value.unique_id,
-        canvassing_id: value.canvassing_id,
-        quantity: value.quantity,
-        catalogue_id: value.catalogue_id,
-        catalogue_name: value.catalogue_name,
-        unit_id: value.unit_id,
-        unit_name: value.unit_name,
-        unit_selling_price: value.selling_price,
-        canvassing_vendor: value.children.map((child) => ({
-          unique_id: child.unique_id,
-          vendor_id: child.vendor_id,
-          canvassing_item_id: value.unique_id,
-          catalogue_id: child.catalogue_id,
-          catalogue_name: child.catalogue_name,
-          quantity: child.quantity,
-          unit_price: child.unit_price,
-          selling_price: child.selling_price,
-          unit_id: child.unit_id,
-          unit_name: child.unit_name,
-          total_price: Number(child.quantity) * Number(child.unit_price),
-        })),
-      })),
-      reference_transaction: referenceAdjustment.map((ref) => ({
-        unique_id: ref.unique_id,
-        adjustment_id: ref.adjustment_id,
-        value: ref.value,
-        amount: ref.amount,
-        type: ref.type,
-        party_type: ref.party_type,
-        party_id: ref.party_id,
-        reference: ReferenceAdjustment.CANVASSING,
-        reference_id: ref.reference_id,
-      })),
-    };
 
     // Membuat FormData
     const formData = new FormData();
@@ -4500,14 +4458,14 @@ const calcucateSummaryaData = () => {
 onMounted(async () => {
   if (id.value) {
     await fetchDataEdit();
-    fetchPriceTagWithItems();
+    // fetchPriceTagWithItems();
   }
 
-  if (inquiry_id.value) {
-    fetchInquiryDetail(inquiry_id.value);
-  }
-  fetchInquiry();
-  fetchContact();
+  // if (inquiry_id.value) {
+  //   fetchInquiryDetail(inquiry_id.value);
+  // }
+  // fetchInquiry();
+  // fetchContact();
 
   // remove
   // initItemCanvassing();

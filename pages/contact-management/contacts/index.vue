@@ -198,10 +198,10 @@ const handleDelete = async (row: Contact) => {
   loading.value = true;
   try {
     ElMessageBox.confirm(
-      "Apakah Anda yakin ingin mereset form? Semua perubahan akan hilang.",
-      "Konfirmasi Reset",
+      "Apakah Anda yakin ingin menghapus data secara permanen?",
+      "Konfirmasi Hapus",
       {
-        confirmButtonText: "Ya, Reset",
+        confirmButtonText: "Ya, Hapus",
         cancelButtonText: "Batal",
         type: "warning",
       }

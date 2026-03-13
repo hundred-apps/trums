@@ -267,7 +267,7 @@ const column: ColumnTable<CashFlow>[] = [
     width: 300,
     align: "right",
     cellRenderer: ({ rowData }: { rowData: CashFlow }) => (
-      <p class={"text-red-600"}>{currency(rowData.income)}</p>
+      <p class={"text-red-600"}>{currency(rowData.expense)}</p>
     ),
   },
   {

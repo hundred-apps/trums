@@ -309,7 +309,11 @@ const onCustomerSort = (sortBy: { order: string; prop: string }) => {
 
     <!-- MONTHLY CHART -->
     <el-col :span="24">
-      <el-card header="Monthly Revenue Trend" class="mb-4" v-loading="loading">
+      <el-card
+        header="Monthly Revenue Trend"
+        class="mb-4 mt-4"
+        v-loading="loading"
+      >
         <VChart :option="monthlyChart" autoresize style="height: 350px" />
       </el-card>
     </el-col>

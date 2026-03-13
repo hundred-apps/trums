@@ -113,7 +113,7 @@ const columns: Column<Canvassing>[] = [
     key: "status",
     title: "Status",
     dataKey: "status",
-    width: 150,
+    width: 170,
     cellRenderer: ({ rowData: row }) => renderStatusTag(row.status),
     headerCellRenderer: () => (
       <div class="flex items-center justify-center">
@@ -159,7 +159,7 @@ const columns: Column<Canvassing>[] = [
     key: "created_at",
     title: "Tanggal Dibuat",
     dataKey: "created_at",
-    width: 150,
+    width: 170,
     sortable: true,
     cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
       <span>{formatLocalDate(rowData.created_at!)}</span>
@@ -181,12 +181,6 @@ const columns: Column<Canvassing>[] = [
     ),
     width: 150,
     align: "center",
-  },
-  {
-    title: "",
-    key: "setup",
-    width: 50,
-    fixed: TableV2FixedDir.RIGHT,
   },
 ];
 

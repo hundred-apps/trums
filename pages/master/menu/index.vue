@@ -130,6 +130,7 @@ import {
   ElIcon,
   type SortBy,
   ElCheckboxGroup,
+  ElButton,
 } from "element-plus";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import type { ResponsePagination } from "~/types/response_pagination";
@@ -288,13 +289,13 @@ const columns: ColumnTable<Menu>[] = [
         // )),
         canAccess("menus-delete", data.value?.privilege ?? []) &&
           h(
-            <el-button
-              size="small"
-              type="danger"
-              onClick={() => onDelete([rowData.unique_id])}
-            >
-              Hapus
-            </el-button>
+            ElButton,
+            {
+              size: "small",
+              type: "danger",
+              onClick: () => onDelete([rowData.unique_id]),
+            },
+            () => "Hapus"
           ),
       ]),
 
