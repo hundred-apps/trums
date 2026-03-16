@@ -8,6 +8,7 @@ import CanvassingTable from "../sales/canvassing/components/CanvassingTable.vue"
 import { Eleme } from "@element-plus/icons-vue";
 import { refreshNuxtData } from "#app";
 import UmurPiutangLineChart from "../reports/components/hutang-piutang/UmurPiutangLineChart.vue";
+import inquiryTable from "../sales/inquiry/components/inquiryTable.vue";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -82,7 +83,14 @@ onMounted(() => {
         type="RAB"
       />
     </ElCard>
-
-    <UmurPiutangLineChart />
+    <ElCard class="mt-2 mb-5" shadow="never">
+      <template #header>
+        <div class="card-header">
+          <span>Status RFQ</span>
+        </div>
+      </template>
+      <inquiryTable />
+    </ElCard>
+    <!-- <UmurPiutangLineChart /> -->
   </TrumsWrapper>
 </template>

@@ -995,6 +995,7 @@ import {
   type FormInstance,
   type FormRules,
   type UploadUserFile,
+  valueEquals,
 } from "element-plus";
 import {
   CanvassingStatus,
@@ -2318,6 +2319,14 @@ const calculateSellingPrice = (row: CanvassingItemForm) => {
   accumulateOngkir();
 
   row.total_selling_price = Number(row.selling_price) * Number(row.quantity);
+
+  const parent = findParent(item_canvassing.value, row.index);
+
+  if (parent && parent.tmp_child_selected == row.index) {
+    parent.selling_price = row.selling_price;
+    parent.total_selling_price = row.total_selling_price;
+  }
+  console.log("parent", parent);
 };
 
 const removeItem = async (item: CanvassingItemForm) => {
@@ -3446,7 +3455,7 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
     payment_terms.value = dataCanvassing.payment_terms ?? [];
 
     dataCanvassing.canvassing_item.forEach((value, index) => {
-      item_canvassing.value.push({
+      let canvassingItemTmp = {
         type_item: value.type_item,
         index: `${value.unique_id}`,
         canvassing_id: value.canvassing_id,
@@ -3472,7 +3481,7 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
         status: CanvassingVendorStatus.SUBMITTED,
         taxes: [],
         editing: null,
-        type: "parent",
+        type: "parent" as "parent" | "child",
         children: value.canvassing_vendor.map((vendor) => ({
           type_item: vendor.type_item,
           index: `${vendor.unique_id}`,
@@ -3498,7 +3507,7 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
           status: vendor.status,
           taxes: [],
           editing: null,
-          type: "child",
+          type: "child" as "parent" | "child",
           children: [],
           selling_price: Number(vendor.selling_price || 0),
           total_selling_price: Number(vendor.total_selling_price),
@@ -3513,20 +3522,32 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
           contacts_fee: [],
           equivalent_id: vendor.equivalent_id ?? "",
           parent_index: index,
+          tmp_child_selected: "",
         })),
         selling_price: value.unit_selling_price,
         tmp_child_selected: "",
         profit: 0,
-        profit_unit: "percent",
+        profit_unit: "percent" as "amount" | "percent",
         fee: 0,
-        fee_unit: "percent",
+        fee_unit: "percent" as "amount" | "percent",
         ongkir: 0,
-        ongkir_unit: "percent",
+        ongkir_unit: "percent" as "amount" | "percent",
         pricetag_item_id: "",
         pricetag_item_version: 0,
         contacts_fee: [],
         equivalent_id: value.equivalent_id,
-      });
+      };
+
+      // if (value.canvassing_vendor.length == 1) {
+      //   canvassingItemTmp.selling_price =
+      //     value.canvassing_vendor[0].selling_price ?? 0;
+      //   canvassingItemTmp.total_selling_price =
+      //     value.canvassing_vendor[0].total_selling_price ?? 0;
+      // }
+
+      // console.log("tmp ", value.canvassing_vendor[0].selling_price);
+
+      item_canvassing.value.push(canvassingItemTmp);
     });
 
     const equivalent: CanvassingItemForm[] = item_canvassing.value.filter(

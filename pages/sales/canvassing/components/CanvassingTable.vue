@@ -346,6 +346,8 @@ const renderStatusTag = (status: CanvassingStatus) => {
       return <el-tag type="primary">ON CANVASSING</el-tag>;
     case CanvassingStatus.PENDING_APPROVAL_RAB:
       return <el-tag type="warning">PENDING APPROVAL</el-tag>;
+    case CanvassingStatus.PENDING_APPROVAL:
+      return <el-tag type="warning">PENDING APPROVAL</el-tag>;
     case CanvassingStatus.CANCEL:
       return <el-tag type="danger">CANCELED</el-tag>;
     case CanvassingStatus.DONE:

@@ -75,7 +75,21 @@
               v-model="scope.row.pic_name"
               placeholder="Input PIC"
               @select="(item: Record<string, any>) => onHandleSelectPICAutocomplete(item, scope)"
-            />
+            >
+              <template #default="{ item }">
+                <div v-if="item.isNew" class="flex items-center text-blue-500">
+                  <el-icon><Search /></el-icon>
+                  <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                </div>
+                <div v-else class="flex items-center gap-2">
+                  <el-avatar
+                    v-if="getAvatar(item.data.photo) != null"
+                    :src="getAvatar(item.data.photo)!"
+                  />
+                  <el-avatar v-else :icon="UserFilled" />
+                </div>
+              </template>
+            </el-autocomplete>
           </template>
         </el-table-column>
         <el-table-column prop="condition" label="Kondisi">
@@ -85,7 +99,7 @@
               :step="0.01"
               :min="0"
               v-model="scope.row.condition"
-              placeholder="Masukkan Kondisi"
+              placeholder="Masukan Kondisi"
             />
           </template>
         </el-table-column>
@@ -96,10 +110,10 @@
 
 <script lang="ts" setup>
 definePageMeta({
-    middleware: ["auth", "check-access"],
-    requiredPermission: "inspection-create",
-    name: "Create New Inspection"
-})
+  middleware: ["auth", "check-access"],
+  requiredPermission: "inspection-create",
+  name: "Create New Inspection",
+});
 interface RuleForm {
   inspection_name: string;
   inspection_date: number;
@@ -121,6 +135,8 @@ import type { People } from "~/types/people";
 import type { Inventory } from "~/types/inventory";
 import type { RequestSearch } from "~/types/request_search";
 import type { Inspection, InspectionItem } from "~/types/inspection";
+import type { AppFile } from "~/types/file";
+import { UserFilled } from "@element-plus/icons-vue";
 
 const router = useRouter();
 
@@ -174,33 +190,46 @@ const dataTable = ref(
 );
 
 const querySearchAsyncPic = (queryString: string, cb: (arg: any) => void) => {
-  axios
-    .get("/people-read")
-    .then((response) => {
-      if (response.status == 200) {
-        // console.log(response.data.data.q);
-        const peoples: People[] = response.data.data;
+  if (queryString != "") {
+    axios
+      .post("/people-read")
+      .then((response) => {
+        if (response.status == 200) {
+          // console.log(response.data.data.q);
+          const peoples: People[] = response.data.data;
 
-        const filters = queryString
-          ? peoples.filter(
-              (data) =>
-                data.name?.toLowerCase().includes(queryString.toLowerCase()) ||
-                data.email?.toLowerCase().includes(queryString.toLowerCase()) ||
-                data.position?.toLowerCase().includes(queryString.toLowerCase())
-            )
-          : peoples;
+          const filters = queryString
+            ? peoples.filter(
+                (data) =>
+                  data.name
+                    ?.toLowerCase()
+                    .includes(queryString.toLowerCase()) ||
+                  data.email
+                    ?.toLowerCase()
+                    .includes(queryString.toLowerCase()) ||
+                  data.position
+                    ?.toLowerCase()
+                    .includes(queryString.toLowerCase())
+              )
+            : peoples;
 
-        const results = filters.map((data: People) => {
-          return { value: `${data.name}`, id: data.unique_id };
-        });
-        cb(results);
-      } else {
-        ElMessage.error(response.data.message);
-      }
-    })
-    .catch((error: any) => {
-      ElMessage.error(error.response.data.message);
-    });
+          const results = filters.map((data: People) => {
+            return {
+              value: `${data.name} | ${data.email || data.phone}`,
+              id: data.unique_id,
+              data: data,
+              isNew: false,
+            };
+          });
+          cb([...results, { value: queryString, isNew: true }]);
+        } else {
+          ElMessage.error(response.data.message);
+        }
+      })
+      .catch((error: any) => {
+        ElMessage.error(error.response.data.message);
+      });
+  }
 };
 
 const querySearchAsyncInventories = (
@@ -229,6 +258,16 @@ const querySearchAsyncInventories = (
     .catch((error: any) => {
       ElMessage.error(error.response.data.message);
     });
+};
+
+const getAvatar = (file: AppFile | null): string | null => {
+  const config = useRuntimeConfig();
+  const imageUrl = config.public.baseImageURL;
+  if (file != null) {
+    return `${imageUrl}/${file.image_path}/${file.filename}`;
+  } else {
+    return null;
+  }
 };
 
 const onHandleSelectItemAutocomplete = (

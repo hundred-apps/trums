@@ -496,13 +496,23 @@ const onEdit = (canvassing: Canvassing) => {
 };
 
 const onDelete = async (uniques: string[]) => {
+  loading.value = true;
   try {
-  } catch (error) {
-    // User canceled or error occurred
+    await ElMessageBox.confirm("Yakin ingin menghapus data RAB?", "Warning", {
+      confirmButtonText: "Hapus",
+      cancelButtonText: "Batal",
+      type: "warning",
+    });
+
+    await submitToDelete(uniques);
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+  } finally {
+    loading.value = false;
   }
 };
 
-const onRefresh = () => refreshNuxtData("get-canvassing");
+const onRefresh = () => refreshNuxtData("get-canvasing");
 
 const bulkDelete = async () => {
   try {
@@ -534,8 +544,9 @@ const submitToDelete = async (ids: string[]) => {
       "post",
       ids
     );
+    console.log("response", response.status.value);
     if (response.status.value == "success") {
-      await refreshNuxtData("get-canvassing");
+      onRefresh();
     }
   } catch (error: any) {
     ElMessage.error(`${error.response?.data?.message}`);
