@@ -1,6 +1,5 @@
 name: Deploy Nuxt 3
 
-
 on:
   push:
     branches: ["konsinyasi"]
@@ -75,5 +74,5 @@ jobs:
             echo "🔄 Load NVM"
             source ~/.nvm/nvm.sh
 
-            echo "🔄 Restart PM2"
-            pm2 restart "trums-FE | 8008" --update-env
+            echo "🔄 Restart PM2" 
+            pm2 restart "trums-fe_8008" --update-env
