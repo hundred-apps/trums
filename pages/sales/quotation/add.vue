@@ -225,15 +225,11 @@
         <div class="card-header"><span>Items</span></div>
       </template>
 
-      <div
-        class="bulk-actions mb-4 p-4 border border-gray-200 rounded-lg bg-gray-50"
-      >
+      <div class="bulk-actions mb-4 p-4 el-card el-card__body">
         <div class="flex flex-wrap gap-4 items-end">
           <!-- Bulk Profit -->
           <div class="bulk-input-group">
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >Profit</label
-            >
+            <label class="block el-text font-bold">Profit</label>
             <div class="flex gap-2">
               <el-input
                 v-model="bulkProfit"
@@ -257,9 +253,7 @@
 
           <!-- Bulk Fee -->
           <div class="bulk-input-group">
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >Fee</label
-            >
+            <label class="block el-text font-bold">Fee</label>
             <div class="flex gap-2">
               <el-input
                 v-model="bulkFee"
@@ -284,9 +278,7 @@
 
           <!-- Bulk Ongkir -->
           <div class="bulk-input-group">
-            <label class="block text-sm font-medium text-gray-700 mb-1"
-              >Ongkir</label
-            >
+            <label class="block el-text font-bold">Ongkir</label>
             <div class="flex gap-2">
               <el-input
                 v-model="bulkOngkir"
@@ -886,9 +878,9 @@
       <el-tabs type="border-card">
         <el-tab-pane label="RFQ">
           <TableSelectionRFQ
-            :data="inquiry?.data ?? []"
+            :data="inquiry.data.value?.data ?? []"
             :search-params="request_search_inquiry"
-            :total-data="inquiry?.total_data ?? 0"
+            :total-data="inquiry.data.value?.total_data ?? 0"
             @select-request="addToForm"
           />
         </el-tab-pane>
@@ -1152,7 +1144,11 @@ const item_canvassing = ref<CanvassingItemForm[]>([]);
 
 // Search Parameters
 const request_search_inquiry = ref<RequestSearch>({
-  column: [],
+  column: [
+    {
+      type: [TypeInquiry.SALES_INQUIRY],
+    },
+  ],
   keyword: "",
   limit: "10",
   offset: "1",
@@ -1228,7 +1224,12 @@ const priceTagItem = await useFetchApi<ResponsePagination<Pricetag_item[]>>(
   request_search_pricetag_item
 );
 
-const inquiry = ref<ResponsePagination<Inquiry[]>>();
+const inquiry = await useFetchApi<ResponsePagination<Inquiry[]>>(
+  "/search",
+  "search-request-inquiry",
+  "post",
+  request_search_inquiry
+);
 const canvassing = ref<ResponsePagination<Canvassing[]>>();
 
 const querySearchAdjustmentTransaction = ref<RequestSearch>({
@@ -2059,6 +2060,7 @@ const calculateSellingPriceSelected = (
   item_canvassing.value[parentIndex].total_selling_price =
     Number(row.selling_price) * Number(row.quantity);
   item_canvassing.value[parentIndex].total_price = row.total_price;
+  item_canvassing.value[parentIndex].unit_price = row.unit_price;
 };
 
 const setProfit = (row: CanvassingItemForm) => {
@@ -3325,31 +3327,6 @@ const fetchContact = async () => {
   }
 };
 
-const fetchInquiry = async () => {
-  loading.value = true;
-  try {
-    const request_payload = { ...request_search_inquiry.value };
-    request_payload.column = [
-      {
-        type: [TypeInquiry.SALES_INQUIRY],
-      },
-    ];
-    const response = await useFetchApi<ResponsePagination<Inquiry[]>>(
-      "/search",
-      "search-request",
-      "post",
-      request_payload
-    );
-    if (response.status.value === "success") {
-      inquiry.value = response.data.value!;
-    }
-  } catch (error: any) {
-    ElMessage.error(`${error}`);
-  } finally {
-    loading.value = false;
-  }
-};
-
 const fetchInquiryDetail = async (inquiry_id: string) => {
   loading.value = true;
   try {
@@ -4052,9 +4029,13 @@ const rules: FormRules = {
   canvassing_item: [{ validator: validateChildren, trigger: "change" }],
 };
 
-watchDebounced(request_search_inquiry.value, () => fetchInquiry(), {
-  debounce: 500,
-});
+watchDebounced(
+  () => request_search_inquiry.value,
+  () => refreshNuxtData("request-search-inquiry"),
+  {
+    debounce: 500,
+  }
+);
 
 watchDebounced(
   querySearchAdjustmentTransaction.value,
@@ -4509,6 +4490,9 @@ onMounted(async () => {
 :deep(.error-card) {
   border: 1px solid #f56c6c !important;
   box-shadow: 0 0 0 2px rgba(245, 108, 108, 0.2);
+}
+:deep(.el-text) {
+  margin-bottom: 2px;
 }
 /* :deep(.el-table__cell .cell) {
   display: flex;

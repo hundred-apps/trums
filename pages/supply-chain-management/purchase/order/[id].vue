@@ -128,29 +128,7 @@
           </el-descriptions>
         </div>
       </div>
-      <h1>Informasi Pembayaran</h1>
-      <div class="flex gap-3 my-3">
-        <div class="flex-1">
-          <el-descriptions title="" :column="1" size="large" border>
-            <el-descriptions-item label="Metode Pemabayaran">
-              {{ (purchaseOrderData?.method_payment || "-").toUpperCase() }}
-            </el-descriptions-item>
-            <el-descriptions-item label="Pembayaran">
-              {{
-                (purchaseOrderData?.term_payment == "tempo"
-                  ? "Tempo " +
-                    purchaseOrderData?.term_payment_value +
-                    " " +
-                    (purchaseOrderData?.term_payment_unit == "day"
-                      ? "Hari"
-                      : purchaseOrderData?.term_payment_unit)
-                  : purchaseOrderData?.term_payment
-                )?.toUpperCase()
-              }}
-            </el-descriptions-item>
-          </el-descriptions>
-        </div>
-      </div>
+
       <h1>Informasi Pengiriman</h1>
       <div class="flex gap-3 my-3">
         <div class="flex-1">
@@ -416,7 +394,10 @@ import type { BaseResponse } from "~/types/response";
 import jsPDF from "jspdf";
 import type { AddressType } from "~/types/address";
 import autoTable from "jspdf-autotable";
-import type { ReferenceTransactionAdjustment } from "~/types/attribute_adjustment";
+import {
+  FeeType,
+  type ReferenceTransactionAdjustment,
+} from "~/types/attribute_adjustment";
 import { currency, formatLocalDate } from "#imports";
 import type { TrumDoc } from "~/types/document";
 
@@ -974,17 +955,97 @@ const downloadPdf = () => {
 
   // ElMessage.success('PDF berhasil di-download')
 };
-
-const subtotal = computed(() => purchaseOrderData.value?.total_price ?? 0);
-const grandTotal = computed(() => {
-  var grandTotalSum = subtotal.value;
-  (purchaseOrderData.value?.reference_transaction ?? []).forEach((element) => {
-    grandTotalSum += Number(displayAmount(element, subtotal.value) ?? 0);
-  });
-
-  return grandTotalSum ?? 0;
+const subtotal = computed(() => {
+  return (purchaseOrderData.value?.purchase_order_item ?? []).reduce(
+    (sum, item) => sum + item.unit_price * item.quantity,
+    0
+  );
 });
 
+const getPlus = computed(() => {
+  var plus = 0;
+
+  (purchaseOrderData.value?.reference_transaction ?? [])
+    .filter(
+      (value) =>
+        (value.adjustment ?? value.adjustments_transaction!).operator ==
+          "plus" &&
+        (value.adjustment ?? value.adjustments_transaction!).category ===
+          "adjustment"
+    )
+    .forEach((ref) => {
+      if (ref.include == false) {
+        plus += Number(ref.amount);
+      }
+    });
+
+  return plus;
+});
+const dppComponent = computed(() => {
+  return (purchaseOrderData.value?.reference_transaction ?? []).find(
+    (value) =>
+      (value.adjustment ?? value.adjustments_transaction!).category ==
+        "transform" &&
+      (value.adjustment ?? value.adjustments_transaction!).unique_code == "DPPL"
+  );
+});
+const ppnComponent = computed(() => {
+  const ppnComponentRef = (
+    purchaseOrderData.value?.reference_transaction ?? []
+  ).find(
+    (value) =>
+      (value.adjustment ?? value.adjustments_transaction!).category == "tax" &&
+      (
+        value.adjustment ?? value.adjustments_transaction!
+      ).name.toLowerCase() === "ppn"
+  );
+
+  if (ppnComponentRef) {
+    if (dppComponent.value) {
+      const dppValue = getDPPFormula(dppComponent.value, subtotal.value || 0);
+      if (ppnComponentRef.include) {
+        return 0;
+      } else {
+        return getPPNFormula(ppnComponentRef, dppValue);
+      }
+    } else {
+      if (ppnComponentRef.include) {
+        return 0;
+      } else {
+        return getPPNFormula(ppnComponentRef, subtotal.value || 0);
+      }
+    }
+  } else {
+    return 0;
+  }
+});
+
+const getMinus = computed(() => {
+  var minus = 0;
+  (purchaseOrderData.value?.reference_transaction ?? [])
+    .filter(
+      (value) =>
+        (value.adjustment ?? value.adjustments_transaction!).operator == "minus"
+    )
+    .forEach((ref) => {
+      if (ref.include == false) {
+        console.log("get minus ", ref.type);
+        minus +=
+          ref.type == FeeType.AMOUNT
+            ? Number(ref.amount)
+            : displayAmount(ref, subtotal.value);
+      }
+    });
+
+  return minus;
+});
+const grandTotal = computed(() => {
+  console.log("subtotal", subtotal.value);
+  console.log("getPlus", getPlus.value);
+  console.log("ppnComponent", ppnComponent.value);
+  console.log("getMinus", getMinus.value);
+  return subtotal.value + getPlus.value + ppnComponent.value - getMinus.value;
+});
 const summeryData = computed(() => {
   const tableData: any[] = [
     {
@@ -1006,7 +1067,7 @@ const summeryData = computed(() => {
 
   tableData.push({
     label: "Grand Total",
-    value: currency(grandTotal.value),
+    value: currency(grandTotal.value || 0),
   });
 
   return tableData;

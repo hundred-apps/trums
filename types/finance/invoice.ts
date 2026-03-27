@@ -1,6 +1,7 @@
 import type { AddressType } from "../address";
 import type { ReferenceTransactionAdjustment } from "../attribute_adjustment";
 import type { Contact } from "../contact";
+import type { TermOfPayment } from "../payment_term";
 import type { PaymentTerm } from "../scm/canvasing";
 import type { PaymentMethod, PaymentStatus } from "./bill";
 import type { TransactionBank, TransactionItem } from "./transaction";
@@ -52,6 +53,7 @@ export type Invoice = {
   payment_term: PaymentTerm;
   payment_term_value?: number | null;
   payment_term_unit: "day" | "weeks" | "months" | null;
+  payment_term_view?: string;
   payment_term_id?: string;
   payment_method: PaymentMethod;
   recipient_bank?: string | null;
@@ -65,6 +67,7 @@ export type Invoice = {
 
   subtotal?: number;
   total_amount: number;
+  paid_amount?: number;
 
   invoice_item: InvoiceItem[];
 
@@ -84,6 +87,7 @@ export type Invoice = {
   reference_transaction?: ReferenceTransactionAdjustment[];
   vendor?: Contact;
   vendor_address?: AddressType;
+  payment_terms?: TermOfPayment;
 };
 
 export type InvoiceItem = {

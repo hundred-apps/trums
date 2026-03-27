@@ -22,6 +22,7 @@ const profile = ref<UserProfile | null>(null);
 const user = localStorage.getItem("user");
 const appUserData = useCookie("userdata");
 const userToken = useCookie("token");
+const expiredToken = useCookie("expired_at");
 const router = useRouter();
 
 const oidc = useOIDC();
@@ -177,7 +178,8 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           const dataUser: People = response.data.data;
           appUserData.value = JSON.stringify(dataUser);
 
-          userToken.value = response.data.token;
+          userToken.value = response.data.token.token;
+          expiredToken.value = response.data.token.expired;
 
           console.log("user", response.data.data);
 
@@ -251,12 +253,13 @@ const checkUserExists = async () => {
       `${getDeviceName(navigator.userAgent)}`
     );
 
-    const response = await api.post("/people-read", {phone: normalizePhone(profile.value?.sub ?? "")});
+    const response = await api.post("/people-read", {
+      phone: normalizePhone(profile.value?.sub ?? ""),
+    });
     console.log(response.status);
     console.log(response.data.data);
 
     if (response.status === 200 && response.data.data) {
-
       const responseCreate = await api.post("/people-create", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -266,11 +269,14 @@ const checkUserExists = async () => {
 
         appUserData.value = JSON.stringify(dataUser);
 
-        userToken.value = responseCreate.data.token;
-        
+        console.log("token", responseCreate.data.token.token);
+
+        userToken.value = responseCreate.data.token.token;
+        expiredToken.value = responseCreate.data.token.expired_at;
+
         authStore.setUserData(dataUser);
         authStore.setMenu(dataUser.menu || []);
-        
+
         const storage = localStorage.getItem("setting");
 
         if (storage) {

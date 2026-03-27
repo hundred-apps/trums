@@ -407,7 +407,10 @@ import {
   type PurchaseOrderItem,
 } from "~/types/scm/purchase_order";
 import type { BaseResponse } from "~/types/response";
-import type { ReferenceTransactionAdjustment } from "~/types/attribute_adjustment";
+import {
+  FeeType,
+  type ReferenceTransactionAdjustment,
+} from "~/types/attribute_adjustment";
 import { formatLocalDate, currency, formattedText } from "#imports";
 import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
 
@@ -510,12 +513,17 @@ const showTransactionAdjustmentValue = (
     return 0;
   } else {
     if (
-      ref.adjustments_transaction?.category == "tax" &&
-      ref.adjustments_transaction?.name.toLowerCase() === "ppn"
+      (ref.adjustment ?? ref.adjustments_transaction!).category == "tax" &&
+      (ref.adjustment ?? ref.adjustments_transaction!).name.toLowerCase() ===
+        "ppn"
     ) {
       const dpp: ReferenceTransactionAdjustment | undefined = (
-        purchaseOrderData?.value?.reference_transaction ?? []
-      ).find((value) => value.adjustments_transaction?.unique_code == "DPPL");
+        purchaseOrderData.value?.reference_transaction ?? []
+      ).find(
+        (value) =>
+          (value.adjustment ?? value.adjustments_transaction!).unique_code ==
+          "DPPL"
+      );
       if (dpp) {
         const dppValue = getDPPFormula(dpp, subtotal.value || 0);
         return getPPNFormula(ref, dppValue || subtotal.value);
@@ -523,9 +531,20 @@ const showTransactionAdjustmentValue = (
         return getPPNFormula(ref, subtotal.value);
       }
     } else {
-      return ref.type == "amount"
-        ? ref.amount
-        : displayAmount(ref, subtotal.value || 0);
+      if (
+        (ref.adjustment ?? ref.adjustments_transaction!).operator == "minus"
+      ) {
+        console.log("");
+        return ref.type == "amount"
+          ? ref.amount
+          : displayAmount(ref, totalPrice.value || 0);
+      } else if (
+        (ref.adjustment ?? ref.adjustments_transaction!).operator == "plus"
+      ) {
+        return ref.type == "amount"
+          ? ref.amount
+          : displayAmount(ref, subtotal.value || 0);
+      }
     }
   }
 };
@@ -758,10 +777,16 @@ const deletePurchaseOrder = async () => {
 const getMinus = computed(() => {
   var minus = 0;
   (purchaseOrderData?.value?.reference_transaction ?? [])
-    .filter((value) => value.adjustment?.operator == "minus")
+    .filter(
+      (value) =>
+        (value.adjustment ?? value.adjustments_transaction!).operator == "minus"
+    )
     .forEach((ref) => {
       if (ref.include == false) {
-        minus += Number(ref.amount);
+        minus +=
+          ref.type == FeeType.AMOUNT
+            ? Number(ref.amount)
+            : displayAmount(ref, totalPrice.value);
       }
     });
 
@@ -773,12 +798,17 @@ const getPlus = computed(() => {
   (purchaseOrderData?.value?.reference_transaction ?? [])
     .filter(
       (value) =>
-        value.adjustment?.operator == "plus" &&
-        value.adjustment?.category === "adjustment"
+        (value.adjustment ?? value.adjustments_transaction!).operator ==
+          "plus" &&
+        (value.adjustment ?? value.adjustments_transaction!).category ===
+          "adjustment"
     )
     .forEach((ref) => {
       if (ref.include == false) {
-        plus += Number(ref.amount);
+        plus +=
+          ref.type == FeeType.AMOUNT
+            ? Number(ref.amount)
+            : displayAmount(ref, subtotal.value);
       }
     });
 
@@ -814,20 +844,24 @@ const ppnComponent = computed(() => {
 });
 
 const grandTotal = computed(() => {
+  console.log("subtotal", subtotal.value);
+  console.log("plus", getPlus.value);
+  console.log("ppn", ppnComponent.value);
   return subtotal.value + getPlus.value + ppnComponent.value;
 });
 
 const totalPrice = computed(() => {
-  return (purchaseOrderData?.value?.purchase_order_item ?? []).reduce(
+  return (purchaseOrderData.value?.purchase_order_item ?? []).reduce(
     (accumulator, currentValue) => {
-      return accumulator + currentValue.total_price;
+      return accumulator + currentValue.total_price * currentValue.quantity;
     },
     0
   );
 });
 const subtotal = computed(() => {
-  console.log("get minus", totalPrice.value);
-  return Number(totalPrice.value) - Number(getMinus.value);
+  const sum = totalPrice.value;
+  console.log("get minus", getMinus.value);
+  return sum - (getMinus.value || 0);
 });
 
 const summeryData = computed(() => {

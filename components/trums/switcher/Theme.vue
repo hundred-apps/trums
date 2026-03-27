@@ -25,6 +25,8 @@ const availableThemes = [
 ];
 
 const handleThemeChange = (theme: string) => {
+  // console.log("color mode", colorMode.preference);
+  // console.log("color mode selected", theme);
   colorMode.preference = theme;
 };
 </script>

@@ -84,7 +84,7 @@
 
         <el-form-item label="TOP" prop="" v-if="paymentTerms.length > 0">
           <el-select
-            v-model="ruleForm.payment_term_id"
+            v-model="ruleForm.payment_term_view"
             value-key="id"
             placeholder="Select"
             style="width: 240px"
@@ -471,29 +471,38 @@
       <div>
         <div
           class="flex justify-between items-center mb-2"
-          v-for="ref in references"
+          v-for="(ref, index) in references"
         >
           <span class="font-bold text-sm">{{
             ref.adjustment?.name ?? ""
           }}</span>
           <span class="text-sm">
-            <el-input
-              v-model="ref.amount"
-              style="max-width: 300px"
-              placeholder="Masukan Nilai"
-              @change="(value) => onInputAdjustment(ref)"
-            >
-              <template #append>
-                <el-select
-                  v-model="ref.type"
-                  :disabled="ref.changeType == false"
-                  style="width: 100px"
-                >
-                  <el-option label="%" value="percent" />
-                  <el-option label="Rp" value="amount" />
-                </el-select>
-              </template>
-            </el-input>
+            <div class="flex gap-3">
+              <el-input
+                v-model="ref.amount"
+                style="max-width: 300px"
+                placeholder="Masukan Nilai"
+                @change="(value) => onInputAdjustment(ref)"
+              >
+                <template #append>
+                  <el-select
+                    v-model="ref.type"
+                    :disabled="ref.changeType == false"
+                    style="width: 100px"
+                  >
+                    <el-option label="%" value="percent" />
+                    <el-option label="Rp" value="amount" />
+                  </el-select>
+                </template>
+              </el-input>
+              <el-button
+                type="danger"
+                :icon="Delete"
+                circle
+                :disabled="index === 0"
+                @click="removeAnotherCost(ref.adjustment_id)"
+              />
+            </div>
           </span>
         </div>
       </div>
@@ -516,7 +525,7 @@
       </template>
 
       <el-descriptions :column="1" border>
-        <el-descriptions-item :width="100" label="Subtotal">{{
+        <el-descriptions-item :width="100" label="Total Tagihan">{{
           formatCurrency(ruleForm.subtotal || 0)
         }}</el-descriptions-item>
         <el-descriptions-item
@@ -532,8 +541,14 @@
             )
           }}</el-descriptions-item
         >
-        <el-descriptions-item :width="100" label="Grand Total">{{
-          formatCurrency(ruleForm.total_amount)
+        <el-descriptions-item :width="100" :label="`Telah Dibayar`">{{
+          formatCurrency(paidHistory)
+        }}</el-descriptions-item>
+        <el-descriptions-item :width="100" :label="`Harus Dibayar`">{{
+          formatCurrency(paidAmount)
+        }}</el-descriptions-item>
+        <el-descriptions-item :width="100" label="Sisa Tagihan">{{
+          formatCurrency(remainingBill)
         }}</el-descriptions-item>
       </el-descriptions>
     </el-card>
@@ -766,6 +781,8 @@ const optionProps = {
   disabled: "disabled",
 };
 
+const invoicesHistory = ref<Invoice[]>([]);
+
 // Form data structure
 const ruleForm = reactive<Invoice>({
   unique_id: "",
@@ -776,6 +793,7 @@ const ruleForm = reactive<Invoice>({
   customer_name: "",
   customer_version: 1,
   payment_term_id: "",
+  payment_term_view: "",
   billing_address_id: "",
   billing_address_version: 1,
   billing_address_view: "",
@@ -787,7 +805,6 @@ const ruleForm = reactive<Invoice>({
   payment_term: PaymentTerm.CASH,
   payment_term_value: 30,
   payment_term_unit: "day",
-
   payment_method: PaymentMethod.BankTransfer,
   recipient_bank: "",
   account_bank_name: null,
@@ -828,6 +845,7 @@ const ruleForm = reactive<Invoice>({
   reference_number: null,
   total_amount: 0,
   subtotal: 0,
+  paid_amount: 0,
   invoice_date_view: Date.now().toString(),
   due_date_view: Date.now().toString(),
   vendor_id: null,
@@ -1023,8 +1041,8 @@ const displayPercentage = (ref: any, multiplier: number) => {
   }
 };
 
-const grandTotal = computed(() => {
-  let amount: number = ruleForm.subtotal || 0;
+const paidAmount = computed(() => {
+  let amount: number = ruleForm.paid_amount || 0;
   let referenceTotal: number = 0;
 
   references.value.forEach((element) => {
@@ -1036,6 +1054,21 @@ const grandTotal = computed(() => {
   });
 
   return amount + referenceTotal;
+});
+
+const paidHistory = computed(() => {
+  var sum = 0;
+
+  invoicesHistory.value.forEach((element) => {
+    (element.history_payment ?? []).forEach((history) => {
+      sum += history.amount;
+    });
+  });
+  return sum;
+});
+
+const remainingBill = computed(() => {
+  return ruleForm.subtotal! - paidHistory.value - paidAmount.value || 0;
 });
 
 watch(
@@ -1077,6 +1110,37 @@ const goBack = () => router.back();
 
 const onInputAdjustment = (row: ReferenceTransactionAdjustment) => {
   if (row.adjustment?.name.toLowerCase() == "ongkos kirim") {
+  }
+};
+
+const removeAnotherCost = async (adj_id: string) => {
+  const findIndex = references.value.findIndex(
+    (ref) => ref.adjustment_id === adj_id
+  );
+  const unique_id = references.value[findIndex].unique_id;
+  if (unique_id != "") {
+    await submitRemoveCost([unique_id]);
+  }
+
+  references.value.splice(findIndex, 1);
+};
+
+const submitRemoveCost = async (ids: string[]) => {
+  loading.value = true;
+  try {
+    const response = await useFetchApi(
+      "/reference-transaction-delete",
+      "remove-cost",
+      "post",
+      ids
+    );
+    if (response.status.value == "success") {
+      ElMessage.success("Biaya Lainya Berhasil Dihapus!");
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+  } finally {
+    loading.value = false;
   }
 };
 
@@ -1542,13 +1606,19 @@ const querySearchCatalogue = (query: string, cb: (arg: any) => void) => {
 };
 
 const onHandleSelectTOP = (item: TermOfPayment) => {
+  console.log("item unit", item.unit);
+  console.log("item value", item.value);
+  console.log("total amount", ruleForm.total_amount);
   // ruleForm.total_amount *
   if (item.unit == "nominal") {
-    ruleForm.total_amount = item.value;
+    ruleForm.paid_amount = item.value;
   } else {
-    ruleForm.total_amount =
+    ruleForm.paid_amount =
       (Number(ruleForm.total_amount) * Number(item.value)) / 100;
   }
+
+  ruleForm.payment_term_view = item.name;
+  ruleForm.payment_term_id = item.unique_id;
 };
 
 // Selection handlers
@@ -1673,6 +1743,45 @@ const handleResetAccount = () => {
   console.log("Form reset");
 };
 
+const getHistoryInvoices = async () => {
+  loading.value = true;
+  try {
+    const request: RequestSearch = {
+      keyword: "",
+      table: "invoices",
+      column: [
+        {
+          reference: ["sales"],
+          reference_id: [ruleForm.reference_id],
+        },
+      ],
+      sort: null,
+      offset: "1",
+      limit: "100",
+    };
+    const response = await useFetchApi<ResponsePagination<Invoice[]>>(
+      "/search",
+      "fetch-invoices-history",
+      "post",
+      request
+    );
+    if (response.status.value === "success") {
+      (response.data.value?.data ?? []).forEach((element) => {
+        if ((element.history_payment ?? []).length > 0) {
+          invoicesHistory.value.push(element);
+        }
+      });
+    }
+  } catch (error: any) {
+    ElMessage.error(
+      error?.response?.message ??
+        (error || "Gagal Mengambil History Pembayaran")
+    );
+  } finally {
+    loading.value = false;
+  }
+};
+
 const onHandleSelectReference = async (item: any) => {
   if (ruleForm.reference == "other") {
     ruleForm.reference_number = item.data;
@@ -1722,7 +1831,8 @@ const onHandleSelectReference = async (item: any) => {
 
     billing_address.value = await getAddressDetail(po.address?.unique_id ?? "");
     paymentTerms.value = po.payment_terms ?? [];
-    console.log("payment term", paymentTerms.value);
+
+    getHistoryInvoices();
 
     // ruleForm.invoice_item[index].item_id = data.unique_id;
     // ruleForm.invoice_item[index].item_name = data.name ?? '';
@@ -1825,6 +1935,11 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         //   total_amount: total.value
         // }
 
+        if (paymentTerms.value.length > 0 && ruleForm.payment_term_id == "") {
+          ElMessage.error("Pilih TOP Terlebih Dahulu!!");
+          return;
+        }
+
         const invoiceDate = new Date(ruleForm.invoice_date!);
         const billDate = new Date(ruleForm.due_date!);
         const receivedDate = new Date(ruleForm.received_date!);
@@ -1866,18 +1981,18 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         formData.append("notes", ruleForm.notes ?? "-");
         formData.append("type", "out");
 
-        formData.append(
-          "payment_term",
-          (ruleForm.payment_term ?? "").toString()
-        );
-        formData.append(
-          "payment_term_value",
-          String(ruleForm.payment_term_value)
-        );
-        formData.append(
-          "payment_term_unit",
-          ruleForm.payment_term_unit!.toString()
-        );
+        // formData.append(
+        //   "payment_term",
+        //   (ruleForm.payment_term ?? "").toString()
+        // );
+        // formData.append(
+        //   "payment_term_value",
+        //   String(ruleForm.payment_term_value)
+        // );
+        // formData.append(
+        //   "payment_term_unit",
+        //   ruleForm.payment_term_unit!.toString()
+        // );
 
         formData.append("account_id", ruleForm.account_id ?? "");
         formData.append("account_name", ruleForm.account_name ?? "");
@@ -1891,7 +2006,9 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         formData.append("status", ruleForm.status);
         formData.append("received_date", String(receivedDate.getTime() / 1000));
         formData.append("subtotal", (ruleForm.subtotal || 0).toString());
-        formData.append("total_amount", grandTotal.value.toString());
+        formData.append("total_amount", paidAmount.value.toString());
+        formData.append("paid_amount", paidAmount.value.toString());
+        formData.append("payment_term_id", `${ruleForm.payment_term_id}`);
 
         // Loop untuk invoice_items
         ruleForm.invoice_item.forEach((value, index) => {
@@ -2146,10 +2263,56 @@ const fetchDataEdit = async () => {
         references.value = (invoice.reference_transaction ?? []).map(
           (value) => ({ ...value, adjustment: value.adjustments_transaction })
         );
+
+        if (invoice.data_reference) {
+          getPaymentTerms([
+            {
+              reference: ["po"],
+              reference_id: [
+                (invoice.data_reference as PurchaseOrder).unique_id,
+              ],
+            },
+          ]);
+        }
+
+        ruleForm.payment_term_id = invoice.payment_term_id;
+        ruleForm.payment_term_view = invoice.payment_terms?.name ?? "";
       }
     }
   } catch (error: any) {
     ElMessage.error(error.response?.message ?? error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const getPaymentTerms = async (column: any[]) => {
+  loading.value = true;
+  try {
+    const search: RequestSearch = {
+      keyword: "",
+      column: column,
+      limit: "10",
+      offset: "1",
+      table: "payment_terms",
+      sort: {
+        column: "order",
+        order: "ASC",
+      },
+      filter: {},
+      flag: "list",
+    };
+    const response = await useFetchApi<ResponsePagination<TermOfPayment[]>>(
+      "/search",
+      "get-payment-term",
+      "post",
+      search
+    );
+    if (response.status.value === "success") {
+      paymentTerms.value = response.data.value?.data ?? [];
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message || "Gagal Mengambil Data TOP");
   } finally {
     loading.value = false;
   }
@@ -2191,5 +2354,8 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+:deep(.el-input-number) {
+  width: 100% !important;
 }
 </style>

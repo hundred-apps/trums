@@ -40,7 +40,7 @@ const navigateToSetting = (name = "") => {
   router.push({ path });
 };
 
-const user = useCookie("userdata");
+const auth = useAuth();
 const menus = ref<Menu[]>([]);
 const nameFront = ref("");
 const icons = ElementPlusIconsVue as Record<string, any>;
@@ -67,7 +67,7 @@ const logOut = async () => {
 
       // const url = `${issuer}/session/end?id_token_hint=${id_token}&post_logout_redirect_uri=${logoutUri}&client_id=${client_id}`;
       authStore.clearAuth();
-      user.value = null;
+      auth.clearAuth();
       window.location.href = "/";
     }
   } catch (error: any) {

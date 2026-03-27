@@ -28,6 +28,7 @@
 
     <el-table
       :data="data"
+      ref="tableRef"
       style="width: 100%"
       @selection-change="handleSelectionChange"
     >
@@ -49,6 +50,7 @@
 
 <script setup lang="ts">
 import { Plus } from "@element-plus/icons-vue";
+import type { ElTable } from "element-plus";
 import type { AdjustmentTransaction } from "~/types/attribute_adjustment";
 
 interface Props {
@@ -73,12 +75,21 @@ const visible = computed({
 
 const selectedItems = ref<AdjustmentTransaction[]>([]);
 
+const tableRef = ref<InstanceType<typeof ElTable>>();
+
 const handleSelectionChange = (val: AdjustmentTransaction[]) => {
   selectedItems.value = val;
 };
 
 const handleSelect = () => {
-  emit("select-adjustment", selectedItems.value);
+  const selected = selectedItems.value;
+
+  emit("select-adjustment", selected);
+
+  // reset selection
+  selectedItems.value = [];
+  tableRef.value?.clearSelection();
+
   visible.value = false;
 };
 </script>

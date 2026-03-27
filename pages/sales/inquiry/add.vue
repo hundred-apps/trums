@@ -1330,9 +1330,10 @@ const querySearchAddress = (queryString: string, cb: (arg: any) => void) => {
 
 const handleSelectAddress = (record: Record<string, any>) => {
   if (record.new) {
-    // address.value = null;
+    ruleForm.address_view = "";
     addressStateForm.value = "new";
     dialogNewAddress.value = true;
+    console.log(addressStateForm.value);
   } else {
     // const address: AddressType = record as AddressType;
     ruleForm.address_id = record.address_id;
@@ -1350,7 +1351,7 @@ const onAddNewAddress = (addressType: AddressType) => {
 
   console.log("address value", addressType);
 
-  dialogNewAddress.value = false;
+  // dialogNewAddress.value = false;
 };
 
 const handleSubmit = async (catalogue: Catalogue) => {
@@ -1963,7 +1964,20 @@ const handleDeleteAddress = () => {
     </el-dialog>
     <el-dialog v-model="dialogNewAddress" title="Form Alamat" width="500">
       <FormAddress
-        :onSetInitital="addressStateForm == 'new' ? undefined : {
+        :onSetInitital="addressStateForm == 'new' ? {
+          contact_id: ruleForm.to_unique_id,
+          contact_name: ruleForm.to_name,
+          address_name: '',
+          unique_id: '',
+          street: '',
+          codepos: '',
+          village: '',
+          village_id: '',
+          city: '',
+          regency: '',
+          province: '',
+          address_view: ''
+        } : {
           contact_id: ruleForm.to_unique_id,
           contact_name: ruleForm.to_name,
           address_name: address?.address_name,

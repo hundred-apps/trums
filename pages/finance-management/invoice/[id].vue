@@ -8,7 +8,8 @@
       </template>
     </el-page-header>
 
-    <el-card class="my-3" 
+    <el-card
+      class="my-3"
       v-loading="loading"
       element-loading-text="Loading..."
       :element-loading-spinner="svg"
@@ -16,21 +17,54 @@
       element-loading-background="rgba(122, 122, 122, 0.8)"
     >
       <template #header>
-        <div class="card-header flex justify-end">
-          <el-button type="danger" :icon="Delete" @click="confirmDelete">Hapus</el-button>
-          <NuxtLink :href="`/finance-management/invoice/add/`" @click="() => {
-            const cookie = useCookie('unique_id');
-            cookie.value = invoiceData?.unique_id;
-          }" class="el-button el-button--primary">
-            <el-icon class="me-2"><Edit /></el-icon> Edit
-          </NuxtLink>
-          <el-button 
-            type="success" 
-            v-if="invoiceData?.status === PaymentStatus.UNPAID"
-            @click="markAsPaid"
+        <div class="card-header flex justify-between">
+          <el-button type="danger" :icon="Delete" @click="confirmDelete"
+            >Hapus</el-button
           >
-            <el-icon class="me-2"><CircleCheck /></el-icon> Mark as Paid
-          </el-button>
+          <div class="flex justify-items-end gap-3">
+            <NuxtLink
+              :href="`/finance-management/invoice/add/`"
+              @click="
+                () => {
+                  const cookie = useCookie('unique_id');
+                  cookie.value = invoiceData?.unique_id;
+                }
+              "
+              class="el-button el-button--primary"
+            >
+              <el-icon class="me-2"><Edit /></el-icon> Edit
+            </NuxtLink>
+            <el-button
+              type="success"
+              v-if="invoiceData?.status === PaymentStatus.UNPAID"
+              @click="markAsPaid"
+            >
+              <el-icon class="me-2"><CircleCheck /></el-icon> Mark as Paid
+            </el-button>
+            <el-dropdown @command="handleStatus">
+              <el-button type="default">
+                Ubah Status<el-icon class="el-icon--right"
+                  ><arrow-down
+                /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item :command="PaymentStatus.DRAFT"
+                    >Draft</el-dropdown-item
+                  >
+                  <el-dropdown-item :command="PaymentStatus.RECEIVED"
+                    >Diterima</el-dropdown-item
+                  >
+                  <el-dropdown-item :command="PaymentStatus.PAID"
+                    >Lunas</el-dropdown-item
+                  >
+                  <el-dropdown-item :command="PaymentStatus.UNPAID"
+                    >Belum Lunas</el-dropdown-item
+                  >
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
         </div>
       </template>
 
@@ -38,66 +72,83 @@
         <div class="flex-1">
           <el-descriptions title="" :column="1" size="large" border>
             <el-descriptions-item label="Customer">
-              {{ invoiceData?.customer_name ?? '-' }}
+              {{ invoiceData?.customer_name ?? "-" }}
             </el-descriptions-item>
-            
+
             <el-descriptions-item label="Tanggal Invoice">
-              {{ invoiceData?.invoice_date == null ? '-' : formatLocalDate(invoiceData?.invoice_date) }}
+              {{
+                invoiceData?.invoice_date == null
+                  ? "-"
+                  : formatLocalDate(invoiceData?.invoice_date)
+              }}
             </el-descriptions-item>
             <el-descriptions-item label="Tenggat Waktu">
-              {{ invoiceData?.due_date == null ? '-' :formatLocalDate(invoiceData?.due_date) }}
+              {{
+                invoiceData?.due_date == null
+                  ? "-"
+                  : formatLocalDate(invoiceData?.due_date)
+              }}
             </el-descriptions-item>
             <el-descriptions-item label="Reference">
-              {{ invoiceData?.data_reference?.unique_code ?? '-' }}
+              {{ invoiceData?.data_reference?.unique_code ?? "-" }}
             </el-descriptions-item>
-            
-            
           </el-descriptions>
         </div>
         <div class="flex-1">
-          <el-descriptions title=""  :column="1" size="large" border>
+          <el-descriptions title="" :column="1" size="large" border>
             <el-descriptions-item label="Penerbit">
-              {{invoiceData?.vendor?.name ?? ''}}
+              {{ invoiceData?.vendor?.name ?? "" }}
             </el-descriptions-item>
             <el-descriptions-item label="Status">
-              {{ formatStatus(invoiceData?.status ?? null) }}
+              <el-tag
+                :type="
+                  getStatusTagType(invoiceData?.status ?? PaymentStatus.DRAFT)
+                "
+                >{{ formatStatus(invoiceData?.status ?? null) }}</el-tag
+              >
             </el-descriptions-item>
-            <el-descriptions-item label="Pembayaran">
-              <p v-if="invoiceData?.payment_term == PaymentTerm.TEMPO">{{ invoiceData?.payment_term_value ?? '-' }} ({{ invoiceData?.payment_term_unit }})</p>
-              <p v-else>{{ (invoiceData?.payment_term ?? '-').toUpperCase() }}</p>
+            <el-descriptions-item
+              label="Pembayaran"
+              v-if="invoiceData?.payment_term_id"
+            >
+              <p>{{ invoiceData?.payment_terms?.name }}</p>
             </el-descriptions-item>
             <el-descriptions-item label="Metode Pembayaran">
-              <el-tag :type="getPaymentMethodTagType(invoiceData?.payment_method ?? PaymentMethod.BankTransfer)">
-                {{ formatPaymentMethod(invoiceData?.payment_method ?? PaymentMethod.BankTransfer) }}
+              <el-tag
+                :type="
+                  getPaymentMethodTagType(
+                    invoiceData?.payment_method ?? PaymentMethod.BankTransfer
+                  )
+                "
+              >
+                {{
+                  formatPaymentMethod(
+                    invoiceData?.payment_method ?? PaymentMethod.BankTransfer
+                  )
+                }}
               </el-tag>
-            </el-descriptions-item>
-            
-            <el-descriptions-item class="text-right" label="Total Harus Dibayar">
-              <div class="flex justify-end">
-                <span class="font-bold text-end">{{ formatCurrency(invoiceData?.total_amount ?? 0) }}</span>
-              </div>
             </el-descriptions-item>
           </el-descriptions>
         </div>
       </div>
 
-      
-
-      
-
-      <el-descriptions title="Alamat Penagihan" v-if="invoiceData?.billing_address">
-        <el-descriptions-item label="">{{ invoiceData?.billing_address ? generateAddressView(invoiceData?.billing_address).name : '-' }}</el-descriptions-item>
+      <el-descriptions
+        title="Alamat Penagihan"
+        v-if="invoiceData?.billing_address"
+      >
+        <el-descriptions-item label="">{{
+          invoiceData?.billing_address
+            ? generateAddressView(invoiceData?.billing_address).name
+            : "-"
+        }}</el-descriptions-item>
       </el-descriptions>
 
       <el-descriptions title="Catatan" v-if="invoiceData?.notes">
-        <el-descriptions-item label="">{{ invoiceData.notes }}</el-descriptions-item>
+        <el-descriptions-item label="">{{
+          invoiceData.notes
+        }}</el-descriptions-item>
       </el-descriptions>
     </el-card>
-
-    
-    
-
-    
 
     <el-card class="mb-3">
       <template #header>
@@ -117,19 +168,31 @@
             {{ scope.row.unit_name }}
           </template>
         </el-table-column>
-        <el-table-column prop="price" label="Harga Satuan" width="200" align="right">
+        <el-table-column
+          prop="price"
+          label="Harga Satuan"
+          width="200"
+          align="right"
+        >
           <template #default="scope">
             {{ formatCurrency(scope.row.price) }}
           </template>
         </el-table-column>
-        <el-table-column prop="total_amount" label="Total" width="200" align="right">
+        <el-table-column
+          prop="total_amount"
+          label="Total"
+          width="200"
+          align="right"
+        >
           <template #default="scope">
-            <span class="font-medium">{{ formatCurrency(scope.row.total_amount) }}</span>
+            <span class="font-medium">{{
+              formatCurrency(scope.row.total_amount)
+            }}</span>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
-    
+
     <el-card el-card class="mb-3">
       <template #header>
         <div class="card-header">
@@ -161,11 +224,33 @@
           <span>Rincian Pembayaran</span>
         </div>
       </template>
-      
-      <el-descriptions :column="1" border >
-        <el-descriptions-item :width="100" label="Subtotal">{{ formatCurrency(invoiceData?.subtotal || 0) }}</el-descriptions-item>
-        <el-descriptions-item :width="100" v-for="ref in invoiceData?.reference_transaction ?? []" :key="ref.adjustment_id" :label="ref.adjustments_transaction?.name ?? ''">{{ formatCurrency(ref.type == "amount" ? ref.amount : displayAmount(ref, (invoiceData?.subtotal || 0)) ) }}</el-descriptions-item>
-        <el-descriptions-item :width="100" label="Grand Total">{{ formatCurrency(invoiceData?.total_amount || 0) }}</el-descriptions-item>
+
+      <el-descriptions :column="1" border>
+        <el-descriptions-item :width="100" label="Total Tagihan">{{
+          formatCurrency(invoiceData?.subtotal || 0)
+        }}</el-descriptions-item>
+        <el-descriptions-item
+          :width="100"
+          v-for="ref in invoiceData?.reference_transaction ?? []"
+          :key="ref.adjustment_id"
+          :label="ref.adjustments_transaction?.name ?? ''"
+          >{{
+            formatCurrency(
+              ref.type == "amount"
+                ? ref.amount
+                : displayAmount(ref, invoiceData?.subtotal || 0)
+            )
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item :width="100" :label="`Telah Dibayar`">{{
+          formatCurrency(paidHistory)
+        }}</el-descriptions-item>
+        <el-descriptions-item :width="100" label="Harus Dibayar">{{
+          formatCurrency(paidAmount || 0)
+        }}</el-descriptions-item>
+        <el-descriptions-item :width="100" label="Sisa Tagihan">{{
+          formatCurrency(remainingBill || 0)
+        }}</el-descriptions-item>
       </el-descriptions>
     </el-card>
 
@@ -195,22 +280,27 @@
           <template #default="scope">
             {{ scope.row.transaction.unique_code }}
           </template>
-
         </el-table-column>
-        
       </el-table>
     </el-card>
   </TrumsWrapper>
 </template>
 
 <script lang="ts" setup>
-import { Delete, Edit, CircleCheck, ArrowDown } from '@element-plus/icons-vue'
-import { twCookie } from 'nuxt-twemoji/emojis';
-import type { AddressType } from '~/types/address';
-import { PaymentStatus, PaymentMethod } from '~/types/finance/bill'
-import { FinanceReference, type Invoice, type InvoiceItem } from '~/types/finance/invoice'
-import type { BaseResponse } from '~/types/response';
-import { PaymentTerm } from '~/types/scm/canvasing';
+import { Delete, Edit, CircleCheck, ArrowDown } from "@element-plus/icons-vue";
+import { twCookie } from "nuxt-twemoji/emojis";
+import type { AddressType } from "~/types/address";
+import { PaymentStatus, PaymentMethod } from "~/types/finance/bill";
+import {
+  FinanceReference,
+  type Invoice,
+  type InvoiceItem,
+} from "~/types/finance/invoice";
+import type { BaseResponse } from "~/types/response";
+import { PaymentTerm } from "~/types/scm/canvasing";
+import { displayAmount, formatLocalDate } from "#imports";
+import type { ResponsePagination } from "~/types/response_pagination";
+import type { RequestSearch } from "~/types/request_search";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -218,9 +308,9 @@ definePageMeta({
   name: "Invoice Detail",
 });
 
-const router = useRouter()
-const route = useRoute()
-const invoiceId = ref<string>(route.params.id as string)
+const router = useRouter();
+const route = useRoute();
+const invoiceId = ref<string>(route.params.id as string);
 
 // Loading animation SVG
 const svg = `
@@ -232,186 +322,318 @@ const svg = `
     A 15 15, 0, 1, 1, 27.99 7.5
     L 15 15
   " style="stroke-width: 4px; fill: rgba(0, 0, 0, 0)"/>
-`
+`;
 
-const loading = ref(false)
-const invoiceData = ref<Invoice | null>(null)
-const payments = ref<any[]>([])
-
+const loading = ref(false);
+const invoiceData = ref<Invoice | null>(null);
+const payments = ref<any[]>([]);
+const invoicesHistory = ref<Invoice[]>([]);
 const availableStatuses = [
   PaymentStatus.DRAFT,
   PaymentStatus.UNPAID,
-  PaymentStatus.PAID
-]
+  PaymentStatus.PAID,
+];
 
-const goBack = () => router.back()
-
-
+const goBack = () => router.back();
 
 // Fetch invoice data
 const fetchInvoice = async () => {
-  loading.value = true
+  loading.value = true;
   try {
+    const response = await useFetchApi<BaseResponse<Invoice>>(
+      `/invoice-read/${route.params.id}`,
+      "detail-invoice",
+      "get",
+      null
+    );
 
-    const response = await useFetchApi<BaseResponse<Invoice>>(`/invoice-read/${route.params.id}`, 'detail-invoice', 'get', null);
-
-
-    if(response.status.value == 'success'){
+    if (response.status.value == "success") {
       invoiceData.value = response.data.value?.data ?? null;
+      getHistoryInvoices();
     }
   } catch (error) {
-    ElMessage.error('Failed to fetch invoice data')
+    ElMessage.error("Failed to fetch invoice data");
     goBack();
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 // Calculation functions
 const calculateSubtotal = () => {
-  if (!invoiceData.value?.invoice_item) return 0
-  return invoiceData.value.invoice_item.reduce((sum, item) => sum + (item.total_amount || 0), 0)
-}
+  if (!invoiceData.value?.invoice_item) return 0;
+  return invoiceData.value.invoice_item.reduce(
+    (sum, item) => sum + (item.total_amount || 0),
+    0
+  );
+};
 
 const calculateTax = () => {
-  return calculateSubtotal() * 0.1 // Example 10% tax
-}
+  return calculateSubtotal() * 0.1; // Example 10% tax
+};
 
 const calculateTotalAmount = () => {
-  return calculateSubtotal() + calculateTax()
-}
+  return calculateSubtotal() + calculateTax();
+};
 
+const handleStatus = async (command: PaymentStatus) => {
+  loading.value = true;
+  try {
+    const formData = new FormData();
+
+    formData.append("unique_id", `${invoiceData.value?.unique_id}`);
+    formData.append("status", `${command}`);
+
+    const response = await useFetchApi<BaseResponse<Invoice>>(
+      "/invoice-create",
+      "invoice-out-create",
+      "post",
+      formData
+    );
+
+    if (response.status.value == "success") {
+      const invoiceData: Invoice | null = response.data.value?.data ?? null;
+      if (invoiceData) {
+        fetchInvoice();
+      }
+    } else {
+      ElMessage.error(response.error.value ?? "Gagal Mengubah Status!");
+    }
+  } catch (error: any) {
+    ElMessage.error(
+      error?.response?.message ?? (error || "Gagal Mengubah Status!")
+    );
+  } finally {
+    loading.value = false;
+  }
+};
 
 const formatCurrency = (amount: number) => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0
-  }).format(amount)
-}
+  return new Intl.NumberFormat("id-ID", {
+    style: "currency",
+    currency: "IDR",
+    minimumFractionDigits: 0,
+  }).format(amount);
+};
 
 const generateAddressView = (address: AddressType) => {
-    const name = `${address.village}, ${address.city}, ${address.regency}, ${address.province}`;
-    const street = `${address.street}`;
-    const address_id = address.unique_id;
-    const address_version = address.version;
-    return {
-        value: name,
-        name: name,
-        street: street,
-        address_id: address_id,
-        address_version: address.version,
-    }
-}
+  const name = `${address.village}, ${address.city}, ${address.regency}, ${address.province}`;
+  const street = `${address.street}`;
+  const address_id = address.unique_id;
+  const address_version = address.version;
+  return {
+    value: name,
+    name: name,
+    street: street,
+    address_id: address_id,
+    address_version: address.version,
+  };
+};
 
 const formatPaymentMethod = (method: PaymentMethod | null) => {
-  if (!method) return '-'
-  return method.charAt(0).toUpperCase() + method.slice(1)
-}
+  if (!method) return "-";
+  return method.charAt(0).toUpperCase() + method.slice(1);
+};
+
+const paidAmount = computed(() => {
+  let amount: number = invoiceData.value?.paid_amount || 0;
+  let referenceTotal: number = 0;
+
+  (invoiceData.value?.reference_transaction ?? []).forEach((element) => {
+    if (element.type == "amount") {
+      referenceTotal += Number(element.amount);
+    } else {
+      referenceTotal += displayAmount(element, amount);
+    }
+  });
+
+  return amount + referenceTotal;
+});
+
+const paidHistory = computed(() => {
+  var sum = 0;
+
+  invoicesHistory.value.forEach((element) => {
+    (element.history_payment ?? []).forEach((history) => {
+      sum += history.amount;
+    });
+  });
+  return sum;
+});
+
+const remainingBill = computed(() => {
+  return (
+    (invoiceData.value?.subtotal || 0) -
+    (paidHistory.value || 0) -
+    (paidAmount.value || 0)
+  );
+});
+
+const getHistoryInvoices = async () => {
+  loading.value = true;
+  try {
+    const request: RequestSearch = {
+      keyword: "",
+      table: "invoices",
+      column: [
+        {
+          reference: ["sales"],
+          reference_id: [invoiceData.value?.reference_id],
+        },
+      ],
+      sort: null,
+      offset: "1",
+      limit: "100",
+    };
+    const response = await useFetchApi<ResponsePagination<Invoice[]>>(
+      "/search",
+      "fetch-invoices-history",
+      "post",
+      request
+    );
+    if (response.status.value === "success") {
+      (response.data.value?.data ?? []).forEach((element) => {
+        if ((element.history_payment ?? []).length > 0) {
+          invoicesHistory.value.push(element);
+        }
+      });
+    }
+  } catch (error: any) {
+    ElMessage.error(
+      error?.response?.message ??
+        (error || "Gagal Mengambil History Pembayaran")
+    );
+  } finally {
+    loading.value = false;
+  }
+};
 
 const formatStatus = (status: PaymentStatus | null) => {
-  if (!status) return '-'
-  return status.toUpperCase()
-}
+  if (!status) return "-";
+  return status.toUpperCase();
+};
 
-const getStatusTagType = (status: PaymentStatus | null): 'success' | 'info' | 'danger' | 'warning' | 'primary' => {
+const getStatusTagType = (
+  status: PaymentStatus | null
+): "success" | "info" | "danger" | "warning" | "primary" => {
   switch (status) {
-    case PaymentStatus.DRAFT: return 'info'
-    case PaymentStatus.UNPAID: return 'danger'
-    case PaymentStatus.PAID: return 'success'
-    default: return 'primary'
+    case PaymentStatus.DRAFT:
+      return "info";
+    case PaymentStatus.UNPAID:
+      return "danger";
+    case PaymentStatus.PAID:
+      return "success";
+    default:
+      return "primary";
   }
-}
+};
 
-const getPaymentMethodTagType = (method: PaymentMethod | null): 'success' | 'info' | 'danger' | 'warning' | 'primary' => {
+const getPaymentMethodTagType = (
+  method: PaymentMethod | null
+): "success" | "info" | "danger" | "warning" | "primary" => {
   switch (method) {
-    case PaymentMethod.Cash: return 'primary'
-    case PaymentMethod.BankTransfer: return 'success'
-    case PaymentMethod.Giro: return 'warning'
-    default: return 'info'
+    case PaymentMethod.Cash:
+      return "primary";
+    case PaymentMethod.BankTransfer:
+      return "success";
+    case PaymentMethod.Giro:
+      return "warning";
+    default:
+      return "info";
   }
-}
+};
 
 // Actions
 const updateStatus = async (status: PaymentStatus) => {
-  if (!invoiceData.value) return
-  
-  loading.value = true
+  if (!invoiceData.value) return;
+
+  loading.value = true;
   try {
-    const formData = new FormData()
+    const formData = new FormData();
 
     formData.append("unique_id", invoiceData.value.unique_id);
     formData.append("status", status);
-    const response = await useFetchApi<BaseResponse<Invoice>>('/invoice-create', 'update-status', 'post', formData);
-    if(response.status.value == 'success'){
+    const response = await useFetchApi<BaseResponse<Invoice>>(
+      "/invoice-create",
+      "update-status",
+      "post",
+      formData
+    );
+    if (response.status.value == "success") {
       invoiceData.value.status = status;
-      ElMessage.success('Invoice status updated')
-    }  
-    
+      ElMessage.success("Invoice status updated");
+    }
   } catch (error) {
-    ElMessage.error('Failed to update status')
-    console.error(error)
+    ElMessage.error("Failed to update status");
+    console.error(error);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const markAsPaid = async () => {
-  loading.value = true
+  loading.value = true;
   try {
-    const formData = new FormData()
+    const formData = new FormData();
 
     formData.append("unique_id", invoiceData.value!.unique_id);
     formData.append("status", PaymentStatus.PAID);
-    const response = await useFetchApi<BaseResponse<Invoice>>('/invoice-create', 'update-status', 'post', formData);
-    if(response.status.value == 'success'){
+    const response = await useFetchApi<BaseResponse<Invoice>>(
+      "/invoice-create",
+      "update-status",
+      "post",
+      formData
+    );
+    if (response.status.value == "success") {
       invoiceData.value!.status = PaymentStatus.PAID;
-      ElMessage.success('Invoice marked as paid')
-    }  
-    await fetchInvoice() // Refresh data
+      ElMessage.success("Invoice marked as paid");
+    }
+    await fetchInvoice(); // Refresh data
   } catch (error) {
-    ElMessage.error('Failed to mark invoice as paid')
-    console.error(error)
+    ElMessage.error("Failed to mark invoice as paid");
+    console.error(error);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 const confirmDelete = () => {
   ElMessageBox.confirm(
-    'This will permanently delete the invoice. Continue?',
-    'Warning',
+    "This will permanently delete the invoice. Continue?",
+    "Warning",
     {
-      confirmButtonText: 'Delete',
-      cancelButtonText: 'Cancel',
-      type: 'warning',
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
+      type: "warning",
     }
-  ).then(async () => {
-    await deleteInvoice()
-  }).catch(() => {
-    // Cancel
-  })
-}
+  )
+    .then(async () => {
+      await deleteInvoice();
+    })
+    .catch(() => {
+      // Cancel
+    });
+};
 
 const deleteInvoice = async () => {
-  loading.value = true
+  loading.value = true;
   try {
     // await $fetch(`/api/invoices/${invoiceId.value}`, {
     //   method: 'DELETE'
     // })
-    ElMessage.success('Invoice deleted')
-    router.push('/finance-management/invoices')
+    ElMessage.success("Invoice deleted");
+    router.push("/finance-management/invoices");
   } catch (error) {
-    ElMessage.error('Failed to delete invoice')
-    console.error(error)
+    ElMessage.error("Failed to delete invoice");
+    console.error(error);
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
+};
 
 onMounted(() => {
-  fetchInvoice()
-})
+  fetchInvoice();
+});
 </script>
 
 <style scoped>

@@ -71,10 +71,37 @@
             @select="(record) => handleSelectAddress(record)"
           >
             <template #default="{ item }">
-              <div class="name">{{ item.name }}</div>
-              <span class="street text-sm">{{ item.street }}</span>
+              <div v-if="item.new">
+                <div class="name text-blue-600">{{ item.name }}</div>
+              </div>
+              <div v-else>
+                <div class="name">{{ item.name }}</div>
+                <span class="street text-sm">{{ item.street }}</span>
+              </div>
             </template>
           </el-autocomplete>
+        </el-form-item>
+
+        <el-form-item v-if="address" label=" ">
+          <div>
+            <div class="flex items-center gap-2">
+              <p>{{ address.address_name }}</p>
+              <el-icon
+                class="cursor-pointer text-blue-500 hover:text-blue-600"
+                @click="handleEditAddress(address)"
+                ><Edit
+              /></el-icon>
+              <el-icon
+                class="cursor-pointer text-read-500 hover:text-read-600"
+                @click="handleDeleteAddress"
+                ><Delete
+              /></el-icon>
+            </div>
+            <div>
+              {{ address.street }},
+              {{ generateResultSearchAddress(address).name }}
+            </div>
+          </div>
         </el-form-item>
 
         <el-form-item label="Estimasi Tiba" prop="expected_arrival">
@@ -93,46 +120,6 @@
             placeholder="Pilih tanggal"
             style="width: 100%"
           />
-        </el-form-item>
-
-        <el-form-item label="Pembayaran" prop="payment_term">
-          <el-select
-            v-model="ruleForm.payment_term"
-            placeholder="Select"
-            style="width: 240px"
-          >
-            <el-option
-              v-for="item in [
-                { value: PaymentTerm.COD, label: 'COD' },
-                { value: PaymentTerm.CBD, label: 'CBD' },
-                { value: PaymentTerm.TEMPO, label: 'TEMPO' },
-              ]"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-form-item
-          label="Durasi Tempo (Hari)"
-          prop="tempo_value"
-          v-if="ruleForm.payment_term === PaymentTerm.TEMPO"
-        >
-          <el-input-number v-model="ruleForm.payment_term_value" :min="1" />
-        </el-form-item>
-
-        <el-form-item label="Metode Pembayaran" prop="payment_method">
-          <el-select
-            v-model="ruleForm.payment_method"
-            placeholder="Select payment method"
-          >
-            <el-option
-              v-for="method in paymentMethods"
-              :key="method.value"
-              :label="method.label"
-              :value="method.value"
-            />
-          </el-select>
         </el-form-item>
 
         <!-- Discount Section -->
@@ -410,53 +397,28 @@
       </el-button>
     </el-card>
 
-    <el-card class="mb-3">
-      <template #header>
-        <div class="card-header"><span>Biaya Lainya</span></div>
-      </template>
-      <div>
-        <div
-          class="flex justify-between items-center mb-2"
-          v-for="ref in references"
-        >
-          <span class="font-bold text-sm">{{
-            ref.adjustment?.name ?? ""
-          }}</span>
-          <span class="text-sm flex">
-            <el-input
-              v-model="ref.amount"
-              style="max-width: 300px"
-              placeholder="Masukan Nilai"
-            >
-              <template #append>
-                <el-select
-                  v-model="ref.type"
-                  :disabled="ref.changeType == false"
-                  style="width: 100px"
-                >
-                  <el-option label="%" value="percent" />
-                  <el-option label="Rp" value="amount" />
-                </el-select>
-              </template>
-            </el-input>
-            <el-button
-              link
-              type="danger"
-              @click="() => removeReferenceTransaction(ref)"
-              ><el-icon><RemoveFilled /></el-icon
-            ></el-button>
-          </span>
-        </div>
-      </div>
+    <AdjustmentTransactionComponent
+      v-if="!loadingGetEditData"
+      :references="references"
+      @update:total="
+        (value: any) => {
+          console.log('update total', value);
+        }
+      "
+    />
 
-      <el-button
-        class="mt-4"
-        style="width: 100%"
-        @click="visibleModalAdjustmentTransaction = true"
-      >
-        Tambah Item
-      </el-button>
-    </el-card>
+    <CustomPaymentTerm
+      v-if="id === undefined && !loadingGetEditData"
+      @update:term-of-payments="onUpdatePaymentTerms"
+      type="input"
+    />
+    <CustomPaymentTerm
+      v-else
+      @update:term-of-payments="onUpdatePaymentTerms"
+      :data="termOfPayments"
+      type="input"
+      v-if="!loadingGetEditData"
+    />
 
     <el-card class="mb-3" shadow="hover">
       <el-table :data="summeryData ?? []" style="width: 100%">
@@ -688,11 +650,45 @@
         </div>
       </template>
     </el-drawer>
+
+    <el-dialog v-model="dialogNewAddress" title="Buat Alamat Baru" width="500">
+      <FormAddress
+        @success="onAddressNew"
+        @back="() => (dialogNewAddress = false)"
+        :onSetInitital="stateFormAddress == 'New' ? {
+          contact_id: ruleForm.vendor_id,
+          contact_name: ruleForm.vendor_name,
+          address_name: '',
+          unique_id: '',
+          street: '',
+          codepos: '',
+          village: '',
+          village_id: '',
+          city: '',
+          regency: '',
+          province: '',
+          address_view: '',
+        } : {
+          contact_id: ruleForm.vendor_id,
+          contact_name: ruleForm.vendor_name,
+          address_name: address?.address_name,
+          unique_id: address?.unique_id,
+          street: address?.street,
+          codepos: address?.codepos,
+          village: address?.village,
+          village_id: address?.village_id,
+          city: address?.city,
+          regency: address?.regency,
+          province: address?.province,
+          address_view: address != null ? generateAddressView(address!) : ''
+        }"
+      />
+    </el-dialog>
   </TrumsWrapper>
 </template>
 
 <script lang="ts" setup>
-import { Delete, Plus, Search, Warning } from "@element-plus/icons-vue";
+import { Delete, Plus, Search, Warning, Edit } from "@element-plus/icons-vue";
 import {
   ElMessage,
   type FormInstance,
@@ -725,6 +721,7 @@ import {
   type ItemRequestTrail,
 } from "~/types/item_request";
 import {
+  FeeType,
   ReferenceAdjustment,
   type AdjustmentTransaction,
   type ReferenceTransactionAdjustment,
@@ -735,6 +732,11 @@ import type { Catalogue, ItemInterface } from "~/types/catalogue";
 import type { ItemSearch } from "~/types/item_search";
 import type { Unit } from "~/types/unit";
 import CatalogueAdd from "~/components/trums/CatalogueAdd.vue";
+import { generateAddressView } from "#imports";
+import FormAddress from "~/components/trums/FormAddress.vue";
+import AdjustmentTransactionComponent from "~/components/trums/AdjustmentTransactionComponent.vue";
+import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
+import type { TermOfPayment } from "~/types/payment_term";
 
 const fileList = ref<UploadUserFile[]>([]);
 
@@ -743,9 +745,12 @@ const route = useRoute();
 
 const ruleFormRef = ref<FormInstance>();
 const loading = ref(false);
+const loadingGetEditData = ref<boolean>(false);
 const visibleModalRequest = ref(false);
 const visibleModalAdjustmentTransaction = ref(false);
 const visibleModalNewAdjustment = ref(false);
+
+const address = ref<AddressType | null>(null);
 
 const id = computed(() => route.query.id as string);
 
@@ -805,10 +810,15 @@ const references = ref<ReferenceTransactionAdjustment[]>([]);
 
 const tmpCatalogue = ref<Catalogue | null>(null);
 const itemActive = ref<number>(-1);
+
 const drawerCatalogue = ref<boolean>(false);
+const stateFormAddress = ref<"New" | "Edit">("New");
+const dialogNewAddress = ref(false);
 
 // Sample data (replace with API calls)
 const canvassingItems = ref<CanvassingVendor[]>([]);
+
+const termOfPayments = ref<TermOfPayment[]>([]);
 
 const query_search_pricetag_item = ref<RequestSearch>({
   column: [
@@ -1009,15 +1019,76 @@ const subtotal = computed(() => {
   );
 });
 
-const grand_total = computed(() => {
-  const total = subtotal.value;
-  let other = 0;
+const getPlus = computed(() => {
+  var plus = 0;
 
-  references.value.forEach((ref) => {
-    other += Number(displayAmount(ref, total));
-  });
+  references.value
+    .filter(
+      (value) =>
+        value.adjustment?.operator == "plus" &&
+        value.adjustment?.category === "adjustment"
+    )
+    .forEach((ref) => {
+      if (ref.include == false) {
+        plus += Number(ref.amount);
+      }
+    });
 
-  return Number(total) + Number(other);
+  return plus;
+});
+const dppComponent = computed(() => {
+  return references.value.find(
+    (value) =>
+      value.adjustment?.category == "transform" &&
+      value.adjustment?.unique_code == "DPPL"
+  );
+});
+const ppnComponent = computed(() => {
+  const ppnComponentRef = references.value.find(
+    (value) =>
+      value.adjustment?.category == "tax" &&
+      value.adjustment?.name.toLowerCase() === "ppn"
+  );
+
+  if (ppnComponentRef) {
+    if (dppComponent.value) {
+      const dppValue = getDPPFormula(dppComponent.value, subtotal.value || 0);
+      if (ppnComponentRef.include) {
+        return 0;
+      } else {
+        return getPPNFormula(ppnComponentRef, dppValue);
+      }
+    } else {
+      if (ppnComponentRef.include) {
+        return 0;
+      } else {
+        return getPPNFormula(ppnComponentRef, subtotal.value || 0);
+      }
+    }
+  } else {
+    return 0;
+  }
+});
+
+const getMinus = computed(() => {
+  var minus = 0;
+  references.value
+    .filter((value) => value.adjustment?.operator == "minus")
+    .forEach((ref) => {
+      if (ref.include == false) {
+        console.log("get minus ", ref.type);
+        minus +=
+          ref.type == FeeType.AMOUNT
+            ? Number(ref.amount)
+            : displayAmount(ref, totalPrice.value);
+      }
+    });
+
+  return minus;
+});
+
+const grandTotal = computed(() => {
+  return subtotal.value + getPlus.value + ppnComponent.value - getMinus.value;
 });
 
 const paymentMethods = [
@@ -1433,6 +1504,7 @@ const querySearchAddress = (queryString: string, cb: (arg: any) => void) => {
       street: street,
       address_id: address_id,
       address_version: address.version,
+      data: address,
     };
   };
 
@@ -1446,22 +1518,78 @@ const querySearchAddress = (queryString: string, cb: (arg: any) => void) => {
       const resultApi: AddressType[] = response.data.value?.data!;
 
       if (resultApi.length > 0) {
-        cb(resultApi.map(generateResultSearchAddress));
+        cb([
+          ...resultApi.map(generateResultSearchAddress),
+          {
+            value: `Buat Alamat Baru`,
+            new: true,
+            name: `Buat Alamat Baru`,
+            street: "",
+          },
+        ]);
+      } else {
+        cb([
+          {
+            value: `Buat Alamat Baru`,
+            new: true,
+            name: `Buat Alamat Baru`,
+            street: "",
+          },
+        ]);
       }
     }
   });
 };
 
+const generateResultSearchAddress = (address: AddressType) => {
+  const name = `(${address.contact_name}) - ${address.village}, ${address.city}, ${address.regency}, ${address.province}`;
+  const street = `${address.street}`;
+  const address_id = address.unique_id;
+  const address_version = address.version;
+  return {
+    value: name,
+    name: name,
+    street: street,
+    address_id: address_id,
+    address_version: address.version,
+    data: address,
+  };
+};
+
+const onAddressNew = (value: AddressType) => {
+  const addressView = generateResultSearchAddress(value);
+  ruleForm.delivery_address_id = value.unique_id;
+  ruleForm.delivery_address_version = value.version;
+  ruleForm.delivery_address_view = addressView.name;
+  address.value = value;
+  dialogNewAddress.value = false;
+};
+
 const handleSelectAddress = (record: Record<string, any>) => {
   if (record.new) {
-    // dialogNewAddress.value = true;
+    stateFormAddress.value = "New";
+    ruleForm.delivery_address_view = "";
+    dialogNewAddress.value = true;
   } else {
-    console.log(record);
-    // const address: AddressType = record as AddressType;
+    address.value = record.data as AddressType;
     ruleForm.delivery_address_id = record.address_id;
     ruleForm.delivery_address_version = record.address_version;
-    ruleForm.delivery_address_view = record.name;
+    ruleForm.delivery_address_view = "";
   }
+};
+
+const handleEditAddress = (addressEdit: AddressType) => {
+  address.value = addressEdit;
+  stateFormAddress.value = "Edit";
+  dialogNewAddress.value = true;
+  console.log("state", stateFormAddress.value);
+};
+
+const handleDeleteAddress = () => {
+  address.value = null;
+  ruleForm.delivery_address_id = "";
+  ruleForm.delivery_address_version = 0;
+  ruleForm.delivery_address_view = "";
 };
 
 const handleSelectAdjustment = (items: AdjustmentTransaction[]) => {
@@ -1487,6 +1615,9 @@ const handleSelectAdjustment = (items: AdjustmentTransaction[]) => {
   visibleModalAdjustmentTransaction.value = false;
 };
 
+const onUpdatePaymentTerms = (data: TermOfPayment[]) => {
+  termOfPayments.value = data;
+};
 const handleAdjustmentSubmit = () => {
   visibleModalNewAdjustment.value = false;
   refreshNuxtData("search-adjustment");
@@ -1894,22 +2025,48 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           formData.append(`item[${index}][status]`, `${value.status}`);
         });
 
-        references.value.forEach((ref, i) => {
-          const refFields = {
-            unique_id: ref.unique_id,
-            adjustment_id: ref.adjustment_id,
-            value: ref.value,
-            amount: ref.amount,
-            type: ref.type,
-            party_type: ref.party_type,
-            party_id: ref.party_id,
-            reference: ref.reference,
-            reference_id: ref.reference_id,
-          };
-
-          Object.entries(refFields).forEach(([key, value]) => {
-            formData.append(`ref_trans_adj[${i}][${key}]`, `${value}`);
-          });
+        termOfPayments.value.forEach((top, indexTOP) => {
+          formData.append(
+            `payment_terms[${indexTOP}][unique_id]`,
+            `${top.unique_id}`
+          );
+          formData.append(`payment_terms[${indexTOP}][name]`, `${top.name}`);
+          formData.append(`payment_terms[${indexTOP}][value]`, `${top.value}`);
+          formData.append(`payment_terms[${indexTOP}][unit]`, `${top.unit}`);
+          formData.append(
+            `payment_terms[${indexTOP}][term_of_payment]`,
+            `${top.term_of_payment}`
+          );
+          formData.append(
+            `payment_terms[${indexTOP}][duration]`,
+            `${top.duration}`
+          );
+        });
+        references.value.forEach((ref, index) => {
+          formData.append(
+            `ref_trans_adj[${index}][unique_id]`,
+            `${ref.unique_id}`
+          );
+          formData.append(
+            `ref_trans_adj[${index}][adjustment_id]`,
+            `${ref.adjustment_id}`
+          );
+          formData.append(
+            `ref_trans_adj[${index}][adjustment_version]`,
+            `${ref.adjustment?.version}`
+          );
+          formData.append(`ref_trans_adj[${index}][value]`, `${ref.value}`);
+          formData.append(`ref_trans_adj[${index}][amount]`, `${ref.amount}`);
+          formData.append(
+            `ref_trans_adj[${index}][party_type]`,
+            `${ref.party_type}`
+          );
+          formData.append(
+            `ref_trans_adj[${index}][party_id]`,
+            `${ref.party_id}`
+          );
+          formData.append(`ref_trans_adj[${index}][type]`, `${ref.type}`);
+          formData.append(`ref_trans_adj[${index}][include]`, `${ref.include}`);
         });
 
         // Append files
@@ -1958,6 +2115,7 @@ const resetForm = (formEl: FormInstance | undefined) => {
 
 const fetchDataEdit = async () => {
   loading.value = true;
+  loadingGetEditData.value = true;
   try {
     const response = await useFetchApi<BaseResponse<PurchaseOrder>>(
       `/purchase-order-read/${id.value}`,
@@ -2013,12 +2171,22 @@ const fetchDataEdit = async () => {
             },
           },
         ];
+
+        references.value = request.reference_transaction.map((value) => ({
+          ...value,
+          adjustment: value.adjustments_transaction,
+        }));
+
+        address.value = request.address ?? null;
+
+        termOfPayments.value = request.payment_terms ?? [];
       }
     }
   } catch (error: any) {
     ElMessage.error(error.response?.message ?? error);
   } finally {
     loading.value = false;
+    loadingGetEditData.value = false;
   }
 };
 
@@ -2043,7 +2211,7 @@ const summeryData = computed(() => {
 
   tableData.push({
     label: "Grand Total",
-    value: currency(grand_total.value),
+    value: currency(grandTotal.value),
   });
 
   return tableData;

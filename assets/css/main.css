@@ -1,0 +1,11 @@
+.container-theme {
+  background-color: var(--el-bg-color);
+  color: var(--el-text-color-primary);
+}
+
+.container-card {
+  background-color: var(--el-bg-color-overlay);
+  color: var(--el-text-color-primary);
+  border-radius: 12px;
+  padding: 16px;
+}

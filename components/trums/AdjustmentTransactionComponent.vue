@@ -197,7 +197,7 @@
         }
       "
     >
-      Tambah Potongan
+      Tambah Pajak
     </el-button>
   </el-card>
 
@@ -290,28 +290,28 @@ const submitRemoveCost = async (ids: string[]) => {
 
 const handleSelectAdjustment = (items: AdjustmentTransaction[]) => {
   items.forEach(async (element) => {
-    if (
-      element.category == "tax" &&
-      element.name.toLocaleLowerCase() === "ppn"
-    ) {
-      const adj = await getDPP();
-      if (adj) {
-        props.references.push({
-          unique_id: "",
-          reference: ReferenceAdjustment.OFFER,
-          reference_id: "",
-          adjustment_id: adj.unique_id,
-          type: adj.type,
-          amount: adj.default_value,
-          created_at: 0,
-          value: adj.default_value,
-          adjustment: adj,
-          changeType: true,
-          inc_tmp: "0",
-          include: false,
-        });
-      }
-    }
+    // if (
+    //   element.category == "tax" &&
+    //   element.name.toLocaleLowerCase() === "ppn"
+    // ) {
+    //   const adj = await getDPP();
+    //   if (adj) {
+    //     props.references.push({
+    //       unique_id: "",
+    //       reference: ReferenceAdjustment.OFFER,
+    //       reference_id: "",
+    //       adjustment_id: adj.unique_id,
+    //       type: adj.type,
+    //       amount: adj.default_value,
+    //       created_at: 0,
+    //       value: adj.default_value,
+    //       adjustment: adj,
+    //       changeType: true,
+    //       inc_tmp: "0",
+    //       include: false,
+    //     });
+    //   }
+    // }
 
     props.references.push({
       unique_id: "",

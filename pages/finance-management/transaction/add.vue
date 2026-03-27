@@ -227,7 +227,13 @@
                 </div>
                 <div v-else>
                   <p style="line-height: 15px" class="font-bold">
-                    {{ suggestion.vendor_name }}
+                    {{
+                      row.reference == "invoice"
+                        ? suggestion.customer_name
+                        : row.reference == "bill"
+                        ? suggestion.vendor_name
+                        : ""
+                    }}
                   </p>
                   <p>
                     Nomor: {{ suggestion.unique_code ?? "Tidak Ada" }} | Jumlah:
@@ -525,6 +531,7 @@ const querySearchReference = (
       table: "invoices",
       column: [
         {
+          status: ["received"],
           type: ["out"],
         },
       ],
@@ -910,13 +917,15 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         );
 
         if (response.status.value === "success") {
+          ElMessage.success("Transaksi berhasil disimpan");
           const transaction: Transaction | null = response.data.value
             ?.data as Transaction;
           if (transaction) {
             ruleForm.unique_id = transaction.unique_id;
             ruleForm.transaction_items = transaction.transaction_items;
+            window.location.href =
+              "/finance-management/transaction/" + transaction.unique_id;
           }
-          ElMessage.success("Transaksi berhasil disimpan");
         }
       } catch (error: any) {
         console.error(

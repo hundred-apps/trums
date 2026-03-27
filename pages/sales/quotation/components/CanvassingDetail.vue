@@ -2661,7 +2661,7 @@ const initialCanvassing = (data: Canvassing) => {
 
   (canvassingData.value.canvassing_item ?? []).forEach((element) => {
     if (element.type_item !== "equivalent") {
-      item_canvassing.value.push({
+      const toItemCanvassing = {
         index: `${element.unique_id}`,
         canvassing_id: element.canvassing_id,
         canvaasing_version: element.canvaasing_version,
@@ -2686,7 +2686,7 @@ const initialCanvassing = (data: Canvassing) => {
         status: CanvassingVendorStatus.SUBMITTED,
         taxes: [],
         editing: null,
-        type: "parent",
+        type: "parent" as "parent" | "child",
         type_item: element.type_item,
         equivalent_id: element.equivalent_id,
         children: element.canvassing_vendor.map((child) => {
@@ -2758,15 +2758,26 @@ const initialCanvassing = (data: Canvassing) => {
         }),
         selling_price: element.unit_selling_price,
         profit: 0,
-        profit_unit: "percent",
+        profit_unit: "percent" as "amount" | "percent",
         fee: 0,
-        fee_unit: "percent",
+        fee_unit: "percent" as "amount" | "percent",
         ongkir: 0,
-        ongkir_unit: "percent",
+        ongkir_unit: "percent" as "amount" | "percent",
         pricetag_item_id: "",
         pricetag_item_version: 0,
         contacts_fee: [],
+      };
+
+      toItemCanvassing.children.forEach((element) => {
+        if (
+          element.total_selling_price == toItemCanvassing.total_selling_price
+        ) {
+          toItemCanvassing.unit_price = element.unit_price;
+          toItemCanvassing.total_price = element.total_price;
+          toItemCanvassing.selling_price = element.selling_price;
+        }
       });
+      item_canvassing.value.push(toItemCanvassing);
     }
   });
 

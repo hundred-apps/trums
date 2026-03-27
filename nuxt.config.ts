@@ -37,7 +37,7 @@ export default defineNuxtConfig({
     "@nuxtjs/device",
     "nuxt-twemoji",
     "@element-plus/nuxt",
-    'nuxt-pdfeasy'
+    "nuxt-pdfeasy",
   ],
 
   build: {
@@ -47,7 +47,11 @@ export default defineNuxtConfig({
     transpile: ["element-plus"],
   },
 
-  css: ["element-plus/theme-chalk/dark/css-vars.css", "element-plus/dist/index.css"],
+  css: [
+    "element-plus/theme-chalk/dark/css-vars.css",
+    "element-plus/dist/index.css",
+    "@/assets/css/main.css",
+  ],
 
   tailwindcss: {
     cssPath: ["~/assets/css/input.css", { injectPosition: "first" }],

@@ -71,8 +71,13 @@
             @select="(record) => handleSelectAddress(record)"
           >
             <template #default="{ item }">
-              <div class="name">{{ item.name }}</div>
-              <span class="street text-sm">{{ item.street }}</span>
+              <div v-if="item.new">
+                <div class="name text-blue-600">{{ item.name }}</div>
+              </div>
+              <div v-else>
+                <div class="name">{{ item.name }}</div>
+                <span class="street text-sm">{{ item.street }}</span>
+              </div>
             </template>
           </el-autocomplete>
         </el-form-item>
@@ -85,6 +90,11 @@
                 class="cursor-pointer text-blue-500 hover:text-blue-600"
                 @click="handleEditAddress(address)"
                 ><Edit
+              /></el-icon>
+              <el-icon
+                class="cursor-pointer text-read-500 hover:text-read-600"
+                @click="handleDeleteAddress"
+                ><Delete
               /></el-icon>
             </div>
             <div>
@@ -425,10 +435,23 @@
   </TrumsWrapper>
 
   <el-dialog v-model="dialogNewAddress" title="Buat Alamat Baru" width="500">
-    <TrumsFormAddress
+    <FormAddress
       @success="onAddressNew"
       @back="() => (dialogNewAddress = false)"
-      :onSetInitital="{
+      :onSetInitital="stateFormAddress == 'New' ? {
+          contact_id: ruleForm.vendor_id,
+          contact_name: ruleForm.vendor_name,
+          address_name: '',
+          unique_id: '',
+          street: '',
+          codepos: '',
+          village: '',
+          village_id: '',
+          city: '',
+          regency: '',
+          province: '',
+          address_view: '',
+        } : {
           contact_id: ruleForm.vendor_id,
           contact_name: ruleForm.vendor_name,
           address_name: address?.address_name,
@@ -495,9 +518,9 @@ import type { AddressType } from "~/types/address";
 import TrumsUploadFile from "~/components/trums/form/TrumsUploadFile.vue";
 import { DiscountUnit } from "~/types/scm/offers";
 import { PaymentMethod } from "~/types/finance/bill";
-import FormAddress from "~/components/trums/FormAddress.vue";
 import AddPriceTagComponent from "~/components/trums/AddPriceTagComponent.vue";
 import {
+  FeeType,
   ReferenceAdjustment,
   type AdjustmentTransaction,
   type ReferenceTransactionAdjustment,
@@ -511,6 +534,7 @@ import type { TermOfPayment } from "~/types/payment_term";
 import AdjustmentTransactionComponent from "~/components/trums/AdjustmentTransactionComponent.vue";
 import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
 import { currency } from "#imports";
+import FormAddress from "~/components/trums/FormAddress.vue";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -525,6 +549,7 @@ const router = useRouter();
 const ruleFormRef = ref<FormInstance>();
 const loading = ref(false);
 const loadingGetEditData = ref<boolean>(false);
+const stateFormAddress = ref<"New" | "Edit">("New");
 const dialogNewAddress = ref(false);
 const visibleModalPricetagNewItem = ref<boolean>(false);
 const visibleModalAdjustmentTransaction = ref(false);
@@ -671,7 +696,11 @@ const getMinus = computed(() => {
     .filter((value) => value.adjustment?.operator == "minus")
     .forEach((ref) => {
       if (ref.include == false) {
-        minus += Number(ref.amount);
+        console.log("get minus ", ref.type);
+        minus +=
+          ref.type == FeeType.AMOUNT
+            ? Number(ref.amount)
+            : displayAmount(ref, totalPrice.value);
       }
     });
 
@@ -688,7 +717,10 @@ const getPlus = computed(() => {
     )
     .forEach((ref) => {
       if (ref.include == false) {
-        plus += Number(ref.amount);
+        plus +=
+          ref.type == FeeType.AMOUNT
+            ? Number(ref.amount)
+            : displayAmount(ref, subtotal.value);
       }
     });
 
@@ -731,13 +763,14 @@ const ppnComponent = computed(() => {
 });
 
 const subtotal = computed(() => {
-  return ruleForm.items.reduce(
-    (sum, item) => sum + item.quantity * item.unit_price,
-    0
-  );
+  const sum = totalPrice.value;
+  console.log("get minus", getMinus.value);
+  return sum - (getMinus.value || 0);
 });
 const grandTotal = computed(() => {
-  console.log("PPN", ppnComponent.value);
+  console.log("subtotal", subtotal);
+  console.log("plus", getPlus.value);
+  console.log("ppn", ppnComponent.value);
   return subtotal.value + getPlus.value + ppnComponent.value;
 });
 
@@ -770,16 +803,22 @@ const showTransactionAdjustmentValue = (
         return getPPNFormula(ref, subtotal.value);
       }
     } else {
-      return ref.type == "amount"
-        ? ref.amount
-        : displayAmount(ref, subtotal.value || 0);
+      if (ref.adjustment?.operator == "minus") {
+        return ref.type == "amount"
+          ? ref.amount
+          : displayAmount(ref, totalPrice.value || 0);
+      } else if (ref.adjustment?.operator == "plus") {
+        return ref.type == "amount"
+          ? ref.amount
+          : displayAmount(ref, subtotal.value || 0);
+      }
     }
   }
 };
 
 const totalPrice = computed(() => {
   return ruleForm.items.reduce((accumulator, currentValue) => {
-    return accumulator + currentValue.total_price;
+    return accumulator + currentValue.total_price * currentValue.quantity;
   }, 0);
 });
 
@@ -958,8 +997,16 @@ const generateResultSearchAddress = (address: AddressType) => {
 
 const handleEditAddress = (addressEdit: AddressType) => {
   address.value = addressEdit;
-  console.log("handle edit click", address.value);
+  stateFormAddress.value = "Edit";
   dialogNewAddress.value = true;
+  console.log("state", stateFormAddress.value);
+};
+
+const handleDeleteAddress = () => {
+  address.value = null;
+  ruleForm.delivery_address_id = "";
+  ruleForm.delivery_address_version = 0;
+  ruleForm.delivery_address_view = "";
 };
 
 const querySearchAddress = (queryString: string, cb: (arg: any) => void) => {
@@ -986,7 +1033,15 @@ const querySearchAddress = (queryString: string, cb: (arg: any) => void) => {
       const resultApi: AddressType[] = response.data.value?.data!;
 
       if (resultApi.length > 0) {
-        cb(resultApi.map(generateResultSearchAddress));
+        cb([
+          ...resultApi.map(generateResultSearchAddress),
+          {
+            value: `Buat Alamat Baru`,
+            new: true,
+            name: `Buat Alamat Baru`,
+            street: "",
+          },
+        ]);
       } else {
         cb([
           {
@@ -1003,13 +1058,16 @@ const querySearchAddress = (queryString: string, cb: (arg: any) => void) => {
 
 const handleSelectAddress = (record: Record<string, any>) => {
   if (record.new) {
+    stateFormAddress.value = "New";
+    ruleForm.delivery_address_view = "";
     dialogNewAddress.value = true;
+    console.log("state", stateFormAddress.value);
   } else {
     console.log(record);
     const addressType: AddressType = record.data as AddressType;
     ruleForm.delivery_address_id = addressType.unique_id;
     ruleForm.delivery_address_version = addressType.version;
-    ruleForm.delivery_address_view = addressType.address_name;
+    ruleForm.delivery_address_view = "";
     address.value = addressType;
   }
 };
@@ -1020,6 +1078,7 @@ const onAddressNew = (value: AddressType) => {
   ruleForm.delivery_address_version = value.version;
   ruleForm.delivery_address_view = addressView.name;
   address.value = value;
+  dialogNewAddress.value = false;
 };
 
 watchDebounced(
@@ -1410,6 +1469,7 @@ const resetForm = (formEl: FormInstance | undefined) => {
 
 const fetchDataEdit = async () => {
   loading.value = true;
+  loadingGetEditData.value = true;
   try {
     const response = await useFetchApi<BaseResponse<PurchaseOrder>>(
       `/purchase-order-read/${id.value}`,
@@ -1454,12 +1514,15 @@ const fetchDataEdit = async () => {
           ...value,
           adjustment: value.adjustments_transaction,
         }));
+
+        termOfPayments.value = request.payment_terms ?? [];
       }
     }
   } catch (error: any) {
     ElMessage.error(error.response?.message ?? error);
   } finally {
     loading.value = false;
+    loadingGetEditData.value = false;
   }
 };
 

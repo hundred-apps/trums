@@ -16,9 +16,7 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <h4 class="text-sm font-semibold text-gray-500 mb-2">
-              Default Company
-            </h4>
+            <h4 class="el-text font-bold">Default Company</h4>
             <div class="flex items-center">
               <el-icon class="mr-2 text-blue-500"><OfficeBuilding /></el-icon>
               <span class="text-md">{{
@@ -28,21 +26,19 @@
           </div>
 
           <div>
-            <h4 class="text-sm font-semibold text-gray-500 mb-2">
-              Default Alamat
-            </h4>
+            <h4 class="el-text font-bold">Default Alamat</h4>
             <div class="flex items-start">
               <el-icon class="mr-2 text-green-500 mt-1"><Location /></el-icon>
               <div>
-                <span class="text-md block">{{
-                  currentSettings.address?.address_name || "-"
-                }}</span>
-                <span
-                  class="text-sm text-gray-500"
+                <div class="el-text el-text--large font-bold">
+                  {{ currentSettings.address?.address_name || "-" }}
+                </div>
+                <div
+                  class="el-text el-text--default"
                   v-if="currentSettings.address"
                 >
                   {{ generateAddressText(currentSettings.address!) }}
-                </span>
+                </div>
               </div>
             </div>
           </div>
@@ -51,15 +47,15 @@
 
       <div class="max-w-2xl space-y-6">
         <!-- Default Company Selection -->
-        <div class="setting-item">
+        <div class="setting-item el-card el-card__body">
           <div class="flex items-center justify-between mb-4">
-            <div>
-              <h3 class="text-md font-semibold text-gray-800">
+            <div class="">
+              <div class="el-text el-text--large font-bold">
                 Default Company
-              </h3>
-              <p class="text-sm text-gray-500 mt-1">
+              </div>
+              <div class="el-text">
                 Pilih perusahaan default yang akan digunakan dalam transaksi
-              </p>
+              </div>
             </div>
             <el-button
               type="primary"
@@ -101,13 +97,11 @@
         </div>
 
         <!-- Default Address Selection -->
-        <div class="setting-item">
+        <div class="setting-item el-card el-card__body">
           <div class="flex items-center justify-between mb-4">
             <div>
-              <h3 class="text-md font-semibold text-gray-800">
-                Default Alamat
-              </h3>
-              <p class="text-sm text-gray-500 mt-1">
+              <div class="el-text el-text--large font-bold">Default Alamat</div>
+              <p class="el-text el-text--default">
                 Pilih alamat default untuk pengiriman dan penagihan
               </p>
             </div>
@@ -623,19 +617,9 @@ onMounted(async () => {
 <style scoped>
 .setting-item {
   padding: 20px;
-  border: 1px solid #e4e7ed;
+  /* border: 1px solid #e4e7ed; */
   border-radius: 6px;
-  background-color: #fafafa;
-}
-
-.setting-item:hover {
-  background-color: #f5f7fa;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+  /* background-color: #fafafa; */
 }
 
 :deep(.el-select .el-select__tags) {

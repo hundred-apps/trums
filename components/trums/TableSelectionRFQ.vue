@@ -20,7 +20,7 @@
         </NuxtLink>
       </template>
     </el-table-column>
-    <el-table-column label="Customer">
+    <el-table-column label="Customer" width="300">
       <template #default="scope">
         <p>{{ scope.row.request_to?.name ?? "-" }}</p>
       </template>
