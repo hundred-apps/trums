@@ -302,6 +302,12 @@
       </el-table>
     </el-card>
 
+    <CustomPaymentTerm
+      type="view"
+      :data="purchaseOrderData?.payment_terms ?? []"
+      v-if="!loading"
+    />
+
     <el-card class="mb-3" shadow="hover">
       <el-table :data="summeryData ?? []" style="width: 100%">
         <el-table-column label="" prop="label" width="300">
@@ -400,6 +406,7 @@ import {
 } from "~/types/attribute_adjustment";
 import { currency, formatLocalDate } from "#imports";
 import type { TrumDoc } from "~/types/document";
+import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -451,6 +458,10 @@ const fetchPurchaseOrder = async () => {
 
     if (response.status.value === "success" && response.data.value?.data) {
       purchaseOrderData.value = response.data.value!.data;
+      console.log(
+        "purchase order payment terms",
+        purchaseOrderData.value.payment_terms
+      );
       //   await fetchPurchaseOrderItems()
       //   await fetchRelatedDocuments()
     }

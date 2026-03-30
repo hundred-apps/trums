@@ -8,6 +8,7 @@
     :before-remove="beforeRemove"
     :on-change="handleChange"
     :on-exceed="handleExceed"
+    :auto-upload="false"
   >
     <el-button type="primary">Click Untuk Mengunggah </el-button>
   </el-upload>

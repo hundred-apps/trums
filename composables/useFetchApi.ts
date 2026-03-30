@@ -48,14 +48,14 @@ export async function useFetchApi<T>(
   };
 }
 
-async function handle401<T>(
+export async function handle401<T>(
   endpoint: string,
   key: string,
   method: RequestMethod,
   body: any
 ): Promise<any> {
   const { isRefreshing, requestQueue } = useAuth();
-
+  console.log("is referesh 401", isRefreshing.value);
   // 🔥 kalau sedang refresh → tunggu
   if (isRefreshing.value) {
     return new Promise((resolve) => {
@@ -68,6 +68,8 @@ async function handle401<T>(
   isRefreshing.value = true;
 
   const newToken = await useRefreshToken();
+
+  console.log("handle 401 check token", newToken);
 
   // ❌ kalau refresh gagal → logout
   if (!newToken) {

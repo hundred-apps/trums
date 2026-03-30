@@ -247,7 +247,7 @@ const columns: ColumnTable<Invoice>[] = [
     fixed: true,
     cellRenderer: ({ rowData: row }) => (
       <NuxtLink
-        href={`/finance-management/bill/${row.unique_id}`}
+        href={`/finance-management/invoice/${row.unique_id}`}
         class="text-blue-500"
       >
         {row.unique_code}

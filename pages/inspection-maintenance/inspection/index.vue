@@ -26,12 +26,34 @@ import CustomTable from "~/components/trums/table/customTable.vue";
 import type { Pagination } from "~/types/pagination";
 import { NuxtLink } from "#components";
 import type { ColumnTable } from "~/types/ColumnTable";
+import type { ResponsePagination } from "~/types/response_pagination";
+import { OrderColumn, type RequestSearch } from "~/types/request_search";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
   requiredPermission: "inspections-read",
   name: "List Of Inspection",
 });
+
+const request_search = ref<RequestSearch>({
+  keyword: "",
+  column: [],
+  limit: "10",
+  offset: "1",
+  table: "inspections",
+  sort: {
+    column: "created_at",
+    order: OrderColumn.DESC,
+  },
+  flag: "list",
+});
+
+const { data } = await useFetchApi<ResponsePagination<Inspection[]>>(
+  `/search`,
+  "fetch-inspection",
+  "post",
+  request_search.value
+);
 
 const inspections = ref<Inspection[]>([]);
 const inspectionsPaginate = ref<Pagination<Inspection[]>>();
@@ -47,7 +69,7 @@ const column_selected = ref<string[]>([
   "inspection_date",
   "condition",
   "status",
-  "operation",
+  "action",
   "setup",
 ]);
 
@@ -80,7 +102,7 @@ const filteredColumn = computed(() => {
 const columnInspection: ColumnTable<Inspection>[] = [
   {
     key: "selection",
-    title: "Nomor",
+    title: "Unique Code",
     dataKey: "unique_code",
     cellRenderer: ({ rowData: row }) => (
       <NuxtLink href={`inspection/${row.unique_id}`} class={"text-blue-500"}>
@@ -93,6 +115,7 @@ const columnInspection: ColumnTable<Inspection>[] = [
     title: "Tanggal Inspeksi",
     dataKey: "inspection_date",
     width: 250,
+    sortable: true,
     cellRenderer: ({ rowData: row }) => (
       <ElText>{formatLocalDate(row.inspection_date)}</ElText>
     ),
@@ -138,7 +161,7 @@ const columnInspection: ColumnTable<Inspection>[] = [
     cellRenderer: ({ rowData }: { rowData: Inspection }) => {
       const onCommand = (command: string) => {
         if (command === "edit") {
-          onEdit(rowData);
+          window.location.href = "inspection/add?id=" + rowData.unique_id;
         }
         if (command === "delete") {
           onDelete(rowData);
@@ -258,6 +281,16 @@ const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
   );
 };
 
+const onSort = (sortBy: { order: string; prop: string }) => {
+  request_search.value.sort = {
+    column: sortBy.prop,
+    order:
+      sortBy.order === OrderColumn.ASCENDING
+        ? OrderColumn.ASC
+        : OrderColumn.DESC,
+  };
+};
+
 const onDelete = async (value: Inspection) => {
   console.log("deleted", value);
 };
@@ -272,25 +305,9 @@ const handleSelectionChange = (selection: any[]) => {
   console.log("Selected Rows:", selection);
 };
 
-const fetchData = async () => {
-  loading.value = true;
-  try {
-    const response = await axios.get("/inspection-read");
-    if (response.status == 200) {
-      inspectionsPaginate.value = response.data.data;
-      inspections.value = response.data.data.query;
-    } else {
-      ElMessage.warning(response.data?.message);
-    }
-  } catch (error: any) {
-    ElMessage.error(error.response?.data?.message);
-  } finally {
-    loading.value = false;
-  }
-};
-
-onMounted(() => {
-  fetchData();
+const onRefreshData = () => refreshNuxtData("fetch-inspection");
+watch(request_search.value, () => onRefreshData(), {
+  immediate: true,
 });
 </script>
 <template>
@@ -304,15 +321,16 @@ onMounted(() => {
       >
       <el-button
         size="default"
-        @click="fetchData"
+        @click="onRefreshData"
         :loading-icon="Eleme"
         :loading="loading"
         >Reload Data</el-button
       >
     </el-row>
     <CustomTable
+      @sort-change="onSort"
       :columns="filteredColumn"
-      :data="inspections"
+      :data="data?.data ?? []"
       :loading="loading"
     />
     <div class="flex justify-end mt-3">

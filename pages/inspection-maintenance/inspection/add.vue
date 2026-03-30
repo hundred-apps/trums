@@ -81,12 +81,15 @@
                   <el-icon><Search /></el-icon>
                   <span class="ml-2">Tambahkan "{{ item.value }}"</span>
                 </div>
-                <div v-else class="flex items-center gap-2">
+                <div v-else class="flex items-center gap-2 my-1">
                   <el-avatar
                     v-if="getAvatar(item.data.photo) != null"
                     :src="getAvatar(item.data.photo)!"
                   />
                   <el-avatar v-else :icon="UserFilled" />
+                  <div class="el-text el-text--default">
+                    {{ item.value || "-" }}
+                  </div>
                 </div>
               </template>
             </el-autocomplete>
@@ -103,7 +106,20 @@
             />
           </template>
         </el-table-column>
+        <el-table-column label="Hapus" width="70">
+          <template #default="scope">
+            <el-button
+              type="danger"
+              :icon="Delete"
+              circle
+              @click="() => deleteItem(scope.$index)"
+            />
+          </template>
+        </el-table-column>
       </el-table>
+      <el-button class="mt-4" style="width: 100%" @click="addNewLine">
+        Tambahkan Baris Baru
+      </el-button>
     </el-card>
   </TrumsWrapper>
 </template>
@@ -115,6 +131,7 @@ definePageMeta({
   name: "Create New Inspection",
 });
 interface RuleForm {
+  unique_id: string;
   inspection_name: string;
   inspection_date: number;
   inspection_date_display: string;
@@ -136,11 +153,16 @@ import type { Inventory } from "~/types/inventory";
 import type { RequestSearch } from "~/types/request_search";
 import type { Inspection, InspectionItem } from "~/types/inspection";
 import type { AppFile } from "~/types/file";
-import { UserFilled } from "@element-plus/icons-vue";
+import { Delete, UserFilled } from "@element-plus/icons-vue";
+import type { BaseResponse } from "~/types/response";
+import type { DefaultResponse } from "~/types/pagination";
 
 const router = useRouter();
+const route = useRoute();
 
 const goBack = () => router.back();
+
+const id = computed(() => route.query.id as string);
 
 const inspection = ref<Inspection>({
   id: 0,
@@ -169,6 +191,7 @@ const requestSearch = ref<RequestSearch>({
 const formSize = ref<ComponentSize>("default");
 const ruleFormRef = ref<FormInstance>();
 const ruleForm = reactive<RuleForm>({
+  unique_id: "",
   inspection_name: "",
   inspection_date: 0,
   condition: "",
@@ -186,9 +209,44 @@ const dataTable = ref(
     pic: "",
     pic_name: "",
     condition: "",
+    unique_id: "",
   }))
 );
 
+const addNewLine = () => {
+  dataTable.value.push({
+    id: dataTable.value.length + 1,
+    inventory_id: "",
+    name: "",
+    pic: "",
+    pic_name: "",
+    condition: "",
+    unique_id: "",
+  });
+};
+
+const deleteItem = async (index: number) => {
+  try {
+    const data = dataTable.value[index];
+    if (data.unique_id) {
+      const response = await useApiFetch<BaseResponse<any>>(
+        "/inspection-item-delete",
+        {
+          method: "POST",
+          body: [data.unique_id],
+        }
+      );
+
+      if (response.success) {
+        dataTable.value.splice(index, 1);
+      }
+    } else {
+      dataTable.value.splice(index, 1);
+    }
+  } catch (error: any) {
+    ElMessage.error(`${error?.response?.data?.message ?? error}`);
+  }
+};
 const querySearchAsyncPic = (queryString: string, cb: (arg: any) => void) => {
   if (queryString != "") {
     axios
@@ -283,9 +341,11 @@ const onHandleSelectPICAutocomplete = (
   item: Record<string, any>,
   scope: any
 ) => {
-  console.log(item);
-  dataTable.value[scope.$index].pic_name = item.value;
-  dataTable.value[scope.$index].pic = item.id;
+  if (item.data) {
+    const people = item.data as People;
+    dataTable.value[scope.$index].pic_name = people.name ?? "";
+    dataTable.value[scope.$index].pic = people.unique_id;
+  }
 };
 
 const rules = reactive<FormRules<RuleForm>>({
@@ -298,9 +358,12 @@ const rules = reactive<FormRules<RuleForm>>({
 });
 
 const submitInspection = async () => {
-  const date = new Date(ruleForm.inspection_date_display);
+  const date = new Date(ruleForm.inspection_date);
   const data = {
-    ...ruleForm,
+    unique_id: ruleForm.unique_id,
+    inspection_name: ruleForm.inspection_name,
+    condition: ruleForm.condition,
+    status: ruleForm.status,
     inspection_date: Math.floor(date.getTime() / 1000),
   };
 
@@ -309,6 +372,7 @@ const submitInspection = async () => {
     inventory_id: string;
     pic_id: string;
     pic_name: string;
+    unique_id: string;
   }[] = [];
 
   dataTable.value.forEach((element) => {
@@ -318,6 +382,7 @@ const submitInspection = async () => {
         inventory_id: element.inventory_id,
         pic_id: element.pic,
         pic_name: element.pic_name,
+        unique_id: element.unique_id,
       });
     }
   });
@@ -331,6 +396,7 @@ const submitInspection = async () => {
 
     if (response.status == 201) {
       ElMessage.success("Berhasil Membuat Data Inspeksi");
+      fetchDetail();
     }
   } catch (error: any) {
     ElMessage.error(`${error.response?.data?.message}`);
@@ -353,31 +419,42 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 const fetchDetail = async () => {
   loading.value;
   try {
-    const response = await axios.get(
-      `/inspection-read/${inspection.value.unique_id}`
+    const response = await useFetchApi<BaseResponse<Inspection>>(
+      `/inspection-read/${id.value}`,
+      "get-inspection",
+      "get",
+      null
     );
-    if (response.status == 200) {
-      const inspectionResponse: Inspection = response.data.data;
-      inspection.value = inspectionResponse;
-      ruleForm.inspection_name = inspectionResponse.inspection_name;
-      ruleForm.inspection_date = inspectionResponse.inspection_date;
-      ruleForm.condition = inspectionResponse.condition ?? "";
-      ruleForm.inspection_date_display = formatLocalDate(
-        inspectionResponse.inspection_date * 1000
-      );
-      dataTable.value = inspectionResponse.inspection_item.map(
-        (value: InspectionItem, index: number) => {
-          return {
-            id: index,
-            inventory_id: value.inventory_id ?? "",
-            name: `${value.inventories?.catalogue.name} - ${value.inventories?.location?.name}`,
-            pic: value.pic?.unique_id ?? "",
-            pic_name: value.pic?.name ?? "",
-            condition: value.condition ?? "",
-          };
-        }
-      );
-      // ruleForm. = inspectionResponse.inspection_name;
+    console.log("response", response.status.value);
+    if (response.status.value === "success") {
+      const inspectionResponse: Inspection | undefined =
+        response.data.value?.data;
+      if (inspectionResponse) {
+        inspection.value = inspectionResponse;
+        ruleForm.unique_id = inspectionResponse.unique_id;
+        ruleForm.inspection_name = inspectionResponse.inspection_name;
+        ruleForm.inspection_date =
+          inspectionResponse.inspection_date != null
+            ? inspectionResponse.inspection_date! * 1000
+            : Date.now();
+        ruleForm.condition = inspectionResponse.condition ?? "";
+        ruleForm.inspection_date_display = formatLocalDate(
+          inspectionResponse.inspection_date * 1000
+        );
+        dataTable.value = inspectionResponse.inspection_item.map(
+          (value: InspectionItem, index: number) => {
+            return {
+              unique_id: value.unique_id,
+              id: index,
+              inventory_id: value.inventory_id ?? "",
+              name: `${value.inventories?.catalogue.name} - ${value.inventories?.location?.name}`,
+              pic: value.pic?.unique_id ?? "",
+              pic_name: value.pic?.name ?? "",
+              condition: value.condition ?? "",
+            };
+          }
+        );
+      }
     }
   } catch (error: any) {
     ElMessage.error(`${error.response?.data?.message}`);
@@ -392,10 +469,7 @@ const resetForm = (formEl: FormInstance | undefined) => {
 };
 
 onMounted(() => {
-  // fetchCatalogues();
-  const unique_id = useCookie("unique_id");
-  if (unique_id.value) {
-    inspection.value.unique_id = unique_id.value;
+  if (id.value) {
     fetchDetail();
   }
 });

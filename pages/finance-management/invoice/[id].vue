@@ -278,7 +278,11 @@
         </el-table-column>
         <el-table-column prop="reference" label="Reference">
           <template #default="scope">
-            {{ scope.row.transaction.unique_code }}
+            <NuxtLink
+              :href="`/finance-management/transaction/${scope.row.transaction.unique_id}`"
+              class="text-blue-600"
+              >{{ scope.row.transaction.unique_code }}</NuxtLink
+            >
           </template>
         </el-table-column>
       </el-table>

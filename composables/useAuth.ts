@@ -4,7 +4,7 @@ export const useAuth = () => {
   const expiredAt = useCookie<string | null>("expired_at");
   const accessToken = useCookie<string | null>("token");
   const refreshToken = useCookie<string | null>("refresh_token");
-
+  const userData = ref<string | null>(localStorage.getItem("user_data"));
   const isRefreshing = useState<boolean>("isRefreshing", () => false);
   const requestQueue = useState<(() => void)[]>("requestQueue", () => []);
 
@@ -20,6 +20,10 @@ export const useAuth = () => {
     refreshToken.value = null;
   };
 
+  const getUserData = () => {
+    const data = JSON.parse(localStorage.getItem("user_data") ?? "");
+    return data;
+  };
   return {
     accessToken,
     refreshToken,
@@ -28,5 +32,6 @@ export const useAuth = () => {
     setToken,
     clearAuth,
     setExpiredAt,
+    getUserData,
   };
 };

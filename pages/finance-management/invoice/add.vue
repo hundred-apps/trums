@@ -303,22 +303,6 @@
           </div>
         </el-form-item>
 
-        <el-form-item label="Pembayaran" prop="payment_term">
-          <el-select v-model="ruleForm.payment_term" placeholder="Select">
-            <el-option
-              v-for="item in [
-                { value: PaymentTerm.CASH, label: 'CASH' },
-                { value: PaymentTerm.COD, label: 'COD' },
-                { value: PaymentTerm.CBD, label: 'CBD' },
-                { value: PaymentTerm.TEMPO, label: 'TEMPO' },
-              ]"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
-        </el-form-item>
-
         <el-form-item
           label="Durasi Tempo (Hari)"
           prop="tempo_value"
@@ -1606,10 +1590,6 @@ const querySearchCatalogue = (query: string, cb: (arg: any) => void) => {
 };
 
 const onHandleSelectTOP = (item: TermOfPayment) => {
-  console.log("item unit", item.unit);
-  console.log("item value", item.value);
-  console.log("total amount", ruleForm.total_amount);
-  // ruleForm.total_amount *
   if (item.unit == "nominal") {
     ruleForm.paid_amount = item.value;
   } else {

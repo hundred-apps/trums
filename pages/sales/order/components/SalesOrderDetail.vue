@@ -286,69 +286,15 @@
       :data="purchaseOrderData?.payment_terms ?? []"
     />
 
-    <el-card class="mb-3" shadow="never">
-      <template #header>
-        <div class="card-header">
-          <span>Summary</span>
-        </div>
-      </template>
-
-      <el-descriptions :column="1" border>
-        <el-descriptions-item :width="100" label="Total Price" align="right">{{
-          currency(totalPrice || 0)
-        }}</el-descriptions-item>
-        <el-descriptions-item
-          :width="100"
-          align="right"
-          v-for="ref in (purchaseOrderData?.reference_transaction ?? []).filter(
-            (value) => value.adjustments_transaction?.operator == 'minus'
-          )"
-          :key="ref.adjustment_id"
-          :label="ref.adjustments_transaction?.name ?? ''"
-          >{{
-            currency(showTransactionAdjustmentValue(ref))
-          }}</el-descriptions-item
-        >
-        <el-descriptions-item :width="100" label="Subtotal" align="right">{{
-          currency(subtotal)
-        }}</el-descriptions-item>
-        <el-descriptions-item
-          :width="100"
-          align="right"
-          v-for="ref in (purchaseOrderData?.reference_transaction ?? []).filter(
-            (value) =>
-              value.adjustments_transaction?.operator == 'plus' &&
-              value.adjustments_transaction?.category == 'adjustment'
-          )"
-          :key="ref.adjustment_id"
-          :label="ref.adjustments_transaction?.name ?? ''"
-          >{{
-            currency(showTransactionAdjustmentValue(ref))
-          }}</el-descriptions-item
-        >
-        <el-descriptions-item
-          :width="100"
-          align="right"
-          v-for="ref in (purchaseOrderData?.reference_transaction ?? []).filter(
-            (value) =>
-              value.adjustments_transaction?.category == 'transform' ||
-              value.adjustments_transaction?.category == 'tax'
-          )"
-          :key="ref.adjustment_id"
-          :label="ref.adjustments_transaction?.name ?? ''"
-          >{{
-            currency(showTransactionAdjustmentValue(ref))
-          }}</el-descriptions-item
-        >
-        <el-descriptions-item :width="100" align="right" class-name="font-bold">
-          <template #label>
-            <div class="cell-item font-bold">Grand Total</div> </template
-          ><span class="font-bold">{{
-            currency(grandTotal)
-          }}</span></el-descriptions-item
-        >
-        <!-- <el-descriptions-item :width="100" label="Grand Total">{{ currency(grandTotal) }}</el-descriptions-item> -->
-      </el-descriptions>
+    <el-card class="mb-3" shadow="hover">
+      <el-table :data="summeryData ?? []" style="width: 100%">
+        <el-table-column label="" prop="label" width="300">
+          <template #default="{ row }">
+            <div class="font-bold">{{ row.label }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="" prop="value" align="right" />
+      </el-table>
     </el-card>
 
     <el-dialog
@@ -885,7 +831,7 @@ const summeryData = computed(() => {
 
   tableData.push({
     label: "Grand Total",
-    value: currency(purchaseOrderData.value?.total_price || 0),
+    value: currency(grandTotal.value || 0),
   });
 
   return tableData;

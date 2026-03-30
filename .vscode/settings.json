@@ -1,4 +1,4 @@
-// {
+{} // {
 //   "tailwindCSS.experimental.classRegex": [
 //     "tw`(.*?)`",
 //     "tw\\('(.*?)'\\)",

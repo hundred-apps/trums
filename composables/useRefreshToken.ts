@@ -11,10 +11,10 @@ export const useRefreshToken = async () => {
         Authorization: `Bearer ${accessToken.value}`, // 🔥 pakai token lama
       },
     });
-    console.log("res", res);
-    // setToken(res.token);
-    // setExpiredAt(res.expired_at);
-    return res.token;
+    const response = res.refresh_token;
+    setToken(response.token);
+    setExpiredAt(response.expired_at);
+    return response.token;
   } catch (err) {
     // clearAuth();
     return null;

@@ -1,7 +1,49 @@
 <template>
   <TrumsWrapper>
+    <el-row :gutter="16">
+      <el-col :span="12">
+        <div class="statistic-card">
+          <el-statistic
+            :value="
+              (cashflow.data.value?.data ?? []).reduce(function (acc, obj) {
+                return acc + obj.income;
+              }, 0)
+            "
+          >
+            <template #title>
+              <div
+                style="display: inline-flex; align-items: center"
+                class="text-green-600"
+              >
+                Total Pemasukan
+              </div>
+            </template>
+          </el-statistic>
+        </div>
+      </el-col>
+      <el-col :span="12">
+        <div class="statistic-card">
+          <el-statistic
+            :value="
+              (cashflow.data.value?.data ?? []).reduce(function (acc, obj) {
+                return acc + obj.expense;
+              }, 0)
+            "
+          >
+            <template #title>
+              <div
+                style="display: inline-flex; align-items: center"
+                class="text-red-600"
+              >
+                Total Pengeluaran
+              </div>
+            </template>
+          </el-statistic>
+        </div>
+      </el-col>
+    </el-row>
     <el-row :gutter="20" class="mb-3">
-      <el-col :span="6">
+      <el-col :span="4">
         <el-input
           v-model="request_search.keyword"
           size="default"
@@ -9,29 +51,53 @@
           clearable
         />
       </el-col>
-      <NuxtLink
-        class="el-button el-button--primary el-button--default"
-        @click="
-          () => {
-            const unique_id = useCookie('unique_id');
-            unique_id.value = null;
-          }
-        "
-        href="/finance-management/transaction/add"
-      >
-        Tambah Transaksi
-      </NuxtLink>
-      <el-button
-        size="default"
-        :loading-icon="Eleme"
-        :loading="loading"
-        @click="fetchData"
-      >
-        Muat Ulang
-      </el-button>
-      <el-button type="danger" :disabled="!hasSelected" @click="batchDelete">
-        Hapus yang Dipilih
-      </el-button>
+      <el-col :span="3">
+        <NuxtLink
+          style="width: 100%"
+          class="el-button el-button--primary el-button--default"
+          @click="
+            () => {
+              const unique_id = useCookie('unique_id');
+              unique_id.value = null;
+            }
+          "
+          href="/finance-management/transaction/add"
+        >
+          Tambah Transaksi
+        </NuxtLink>
+      </el-col>
+      <el-col :span="3">
+        <el-button
+          size="default"
+          style="width: 100%"
+          :loading-icon="Eleme"
+          :loading="loading"
+          @click="fetchData"
+        >
+          Muat Ulang
+        </el-button>
+      </el-col>
+      <el-col :span="3">
+        <el-button
+          type="danger"
+          style="width: 100%"
+          :disabled="!hasSelected"
+          @click="batchDelete"
+        >
+          Hapus yang Dipilih
+        </el-button>
+      </el-col>
+      <el-col :span="6">
+        <el-date-picker
+          v-model="monthRange"
+          type="monthrange"
+          unlink-panels
+          range-separator="To"
+          start-placeholder="Start month"
+          end-placeholder="End month"
+          :shortcuts="shortcuts"
+        />
+      </el-col>
     </el-row>
 
     <CustomTable
@@ -87,6 +153,13 @@ definePageMeta({
   requiredPermission: "transactions-read",
 });
 
+const currentYear = new Date().getFullYear();
+
+const monthRange = ref([
+  new Date(currentYear, 0, 1),
+  new Date(currentYear, 11, 1),
+]);
+
 const request_search = ref<RequestSearch>({
   keyword: "",
   column: [
@@ -102,8 +175,33 @@ const request_search = ref<RequestSearch>({
     column: "created_at",
     order: OrderColumn.DESC,
   },
+  filter: {
+    date: {
+      min: monthRange.value[0].getTime() / 1000,
+      max: monthRange.value[1].getTime() / 1000,
+    },
+  },
   flag: "list",
 });
+
+type CashFlow = {
+  month: string;
+  income: number;
+  expense: number;
+  saldo: number;
+};
+
+const request_cashflow = ref<{ start_date: number; end_date: number }>({
+  start_date: monthRange.value[0].getTime() / 1000,
+  end_date: monthRange.value[1].getTime() / 1000,
+});
+
+const cashflow = await useFetchApi<BaseResponse<CashFlow[]>>(
+  "/laporan-pengeluaran",
+  "get-cashflow",
+  "post",
+  request_cashflow.value
+);
 
 // Data state
 const { data } = await useFetchApi<ResponsePagination<Transaction[]>>(
@@ -119,6 +217,30 @@ const search = ref("");
 const popoverRef = ref();
 const router = useRouter();
 const axios = useApi();
+
+const shortcuts = [
+  {
+    text: "This month",
+    value: [new Date(), new Date()],
+  },
+  {
+    text: "This year",
+    value: () => {
+      const end = new Date();
+      const start = new Date(new Date().getFullYear(), 0);
+      return [start, end];
+    },
+  },
+  {
+    text: "Last 6 months",
+    value: () => {
+      const end = new Date();
+      const start = new Date();
+      start.setMonth(start.getMonth() - 6);
+      return [start, end];
+    },
+  },
+];
 
 // Columns
 const columnsSelected = ref<string[]>([
@@ -508,6 +630,39 @@ watchDebounced(
   { debounce: 500 }
 );
 
+watch(
+  () => monthRange,
+  (newValue) => {
+    const start = new Date(monthRange.value[0]);
+    start.setDate(1);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(monthRange.value[1]);
+    end.setMonth(end.getMonth() + 1);
+    end.setDate(0);
+    end.setHours(23, 59, 59, 999);
+
+    const startMs = start.getTime();
+    const endMs = end.getTime();
+
+    request_cashflow.value.start_date = startMs / 1000;
+    request_cashflow.value.end_date = endMs / 1000;
+
+    request_search.value.filter = {
+      date: {
+        min: startMs / 1000,
+        max: endMs / 1000,
+      },
+    };
+    refreshData();
+  },
+  { deep: true }
+);
+
+const refreshData = () => {
+  refreshNuxtData("get-cashflow");
+  refreshNuxtData("fetch-transaction");
+};
+
 onMounted(() => {});
 </script>
 
@@ -522,5 +677,35 @@ onMounted(() => {});
 
 .text-red-500 {
   color: #ef4444;
+}
+</style>
+<style scoped>
+.statistic-card {
+  height: 100%;
+  padding: 20px;
+  border-radius: 4px;
+  background-color: var(--el-bg-color-overlay);
+}
+
+.statistic-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  margin-top: 16px;
+}
+
+.statistic-footer .footer-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.statistic-footer .footer-item span:last-child {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
 }
 </style>

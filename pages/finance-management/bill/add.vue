@@ -83,6 +83,22 @@
             </template>
           </el-input>
         </el-form-item>
+        <el-form-item label="TOP" prop="" v-if="paymentTerms.length > 0">
+          <el-select
+            v-model="ruleForm.payment_term_view"
+            value-key="id"
+            placeholder="Select"
+            style="width: 240px"
+            @change="(value) => onHandleSelectTOP(value as TermOfPayment)"
+          >
+            <el-option
+              v-for="item in paymentTerms"
+              :key="item.unique_id"
+              :label="item.name"
+              :value="item"
+            />
+          </el-select>
+        </el-form-item>
         <!-- Invoice Header Information -->
         <el-form-item label="Kepada" prop="customer_name">
           <el-autocomplete
@@ -252,21 +268,6 @@
               {{ tag.bank_account_name }}
             </el-tag>
           </div>
-        </el-form-item>
-
-        <el-form-item label="Pembayaran" prop="payment_term">
-          <el-select v-model="ruleForm.payment_term" placeholder="Select">
-            <el-option
-              v-for="item in [
-                { value: PaymentTerm.COD, label: 'COD' },
-                { value: PaymentTerm.CBD, label: 'CBD' },
-                { value: PaymentTerm.TEMPO, label: 'TEMPO' },
-              ]"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
         </el-form-item>
 
         <el-form-item
@@ -465,7 +466,7 @@
       </template>
 
       <el-descriptions :column="1" border>
-        <el-descriptions-item :width="100" label="Subtotal">{{
+        <el-descriptions-item :width="100" label="Total Tagihan">{{
           formatCurrency(ruleForm.subtotal || 0)
         }}</el-descriptions-item>
         <el-descriptions-item
@@ -481,8 +482,14 @@
             )
           }}</el-descriptions-item
         >
-        <el-descriptions-item :width="100" label="Grand Total">{{
-          formatCurrency(grandTotal)
+        <el-descriptions-item :width="100" :label="`Telah Dibayar`">{{
+          formatCurrency(paidHistory)
+        }}</el-descriptions-item>
+        <el-descriptions-item :width="100" :label="`Harus Dibayar`">{{
+          formatCurrency(paidAmount)
+        }}</el-descriptions-item>
+        <el-descriptions-item :width="100" label="Sisa Tagihan">{{
+          formatCurrency(remainingBill)
         }}</el-descriptions-item>
       </el-descriptions>
     </el-card>
@@ -675,6 +682,7 @@ import {
 } from "~/types/attribute_adjustment";
 import ModalAdjustmentTransaction from "~/components/trums/ModalAdjustmentTransaction.vue";
 import { displayAmount, currency, formatLocalDate } from "#imports";
+import type { TermOfPayment } from "~/types/payment_term";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -708,6 +716,9 @@ const rekeningBanks = ref<string[]>([]);
 const transactionBanks = ref<TransactionBank[]>([]);
 const rekeningBanksOptions = ref<BankAccount[]>([]);
 const references = ref<ReferenceTransactionAdjustment[]>([]);
+
+const paymentTerms = ref<TermOfPayment[]>([]);
+const invoicesHistory = ref<Invoice[]>([]);
 
 // Form data structure
 const ruleForm = reactive<Invoice>({
@@ -770,6 +781,7 @@ const ruleForm = reactive<Invoice>({
   reference_id: null,
   reference_number: null,
   total_amount: 0,
+  paid_amount: 0,
   subtotal: 0,
   invoice_date_view: `${Date.now()}`,
   due_date_view: `${Date.now()}`,
@@ -779,6 +791,9 @@ const ruleForm = reactive<Invoice>({
   vendor_address_id: "",
   vendor_address_version: 0,
   vendor_address_view: "",
+
+  payment_term_view: "",
+  payment_term_id: "",
 });
 
 const request_search = ref<RequestSearch>({
@@ -914,8 +929,8 @@ const rules = reactive<FormRules<Invoice>>({
 // Methods
 const goBack = () => router.back();
 
-const grandTotal = computed(() => {
-  let amount: number = ruleForm.subtotal || 0;
+const paidAmount = computed(() => {
+  let amount: number = ruleForm.paid_amount || 0;
   let referenceTotal: number = 0;
 
   references.value.forEach((element) => {
@@ -926,9 +941,22 @@ const grandTotal = computed(() => {
     }
   });
 
-  console.log("ref total", referenceTotal);
-  console.log("amount", amount);
   return amount + referenceTotal;
+});
+
+const paidHistory = computed(() => {
+  var sum = 0;
+
+  invoicesHistory.value.forEach((element) => {
+    (element.history_payment ?? []).forEach((history) => {
+      sum += history.amount;
+    });
+  });
+  return sum;
+});
+
+const remainingBill = computed(() => {
+  return ruleForm.subtotal! - paidHistory.value - paidAmount.value || 0;
 });
 
 const formatCurrency = (value: number) => {
@@ -1597,34 +1625,38 @@ const onHandleSelectReference = async (item: any) => {
     ruleForm.vendor_address_view = po.address?.address_name ?? "";
     ruleForm.vendor_address_version = po.address?.version || 1;
 
-    const reference = await findAdjustment(
-      ReferenceAdjustment.PURCHASEORDER,
-      po.unique_id
-    );
+    // const reference = await findAdjustment(
+    //   ReferenceAdjustment.PURCHASEORDER,
+    //   po.unique_id
+    // );
 
-    if (reference) {
-      reference.forEach((element) => {
-        references.value.push({
-          unique_id: "",
-          reference: ReferenceAdjustment.INVOICE,
-          reference_id: "",
-          adjustment_id:
-            (element.adjustment == null
-              ? element.adjustments_transaction
-              : element.adjustment
-            )?.unique_id ?? "",
-          type: element.type,
-          amount: element.amount,
-          created_at: 0,
-          value: element.amount,
-          adjustment:
-            element.adjustment == null
-              ? element.adjustments_transaction
-              : element.adjustment,
-          changeType: false,
-        });
-      });
-    }
+    // if (reference) {
+    //   reference.forEach((element) => {
+    //     references.value.push({
+    //       unique_id: "",
+    //       reference: ReferenceAdjustment.INVOICE,
+    //       reference_id: "",
+    //       adjustment_id:
+    //         (element.adjustment == null
+    //           ? element.adjustments_transaction
+    //           : element.adjustment
+    //         )?.unique_id ?? "",
+    //       type: element.type,
+    //       amount: element.amount,
+    //       created_at: 0,
+    //       value: element.amount,
+    //       adjustment:
+    //         element.adjustment == null
+    //           ? element.adjustments_transaction
+    //           : element.adjustment,
+    //       changeType: false,
+    //     });
+    //   });
+    // }
+
+    paymentTerms.value = po.payment_terms ?? [];
+
+    getHistoryInvoices();
 
     visibleModalPurchaseOrder.value = false;
   } else {
@@ -1635,6 +1667,75 @@ const onHandleSelectReference = async (item: any) => {
       ruleForm.source_document = po.unique_code;
       // ruleForm.order_id = po.id
     }
+  }
+};
+
+watch(
+  () => ruleForm.reference_id,
+  (newValue) => {
+    let amount: number = ruleForm.subtotal || 0;
+    let referenceTotal: number = 0;
+
+    references.value.forEach((element) => {
+      if (element.type == "amount") {
+        referenceTotal += Number(element.amount);
+      } else {
+        referenceTotal += displayAmount(element, amount);
+      }
+    });
+
+    ruleForm.total_amount = amount + referenceTotal;
+  }
+);
+
+const onHandleSelectTOP = (item: TermOfPayment) => {
+  if (item.unit == "nominal") {
+    ruleForm.paid_amount = item.value;
+  } else {
+    ruleForm.paid_amount =
+      (Number(ruleForm.total_amount) * Number(item.value)) / 100;
+  }
+
+  ruleForm.payment_term_view = item.name;
+  ruleForm.payment_term_id = item.unique_id;
+};
+
+const getHistoryInvoices = async () => {
+  loading.value = true;
+  try {
+    const request: RequestSearch = {
+      keyword: "",
+      table: "invoices",
+      column: [
+        {
+          reference: ["sales"],
+          reference_id: [ruleForm.reference_id],
+        },
+      ],
+      sort: null,
+      offset: "1",
+      limit: "100",
+    };
+    const response = await useFetchApi<ResponsePagination<Invoice[]>>(
+      "/search",
+      "fetch-invoices-history",
+      "post",
+      request
+    );
+    if (response.status.value === "success") {
+      (response.data.value?.data ?? []).forEach((element) => {
+        if ((element.history_payment ?? []).length > 0) {
+          invoicesHistory.value.push(element);
+        }
+      });
+    }
+  } catch (error: any) {
+    ElMessage.error(
+      error?.response?.message ??
+        (error || "Gagal Mengambil History Pembayaran")
+    );
+  } finally {
+    loading.value = false;
   }
 };
 
@@ -1760,18 +1861,18 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         formData.append("notes", ruleForm.notes ?? "-");
         formData.append("type", "in");
 
-        formData.append(
-          "payment_term",
-          (ruleForm.payment_term ?? "").toString()
-        );
-        formData.append(
-          "payment_term_value",
-          String(ruleForm.payment_term_value)
-        );
-        formData.append(
-          "payment_term_unit",
-          ruleForm.payment_term_unit!.toString()
-        );
+        // formData.append(
+        //   "payment_term",
+        //   (ruleForm.payment_term ?? "").toString()
+        // );
+        // formData.append(
+        //   "payment_term_value",
+        //   String(ruleForm.payment_term_value)
+        // );
+        // formData.append(
+        //   "payment_term_unit",
+        //   ruleForm.payment_term_unit!.toString()
+        // );
 
         formData.append("account_id", ruleForm.account_id ?? "");
         formData.append("account_name", ruleForm.account_name ?? "");
@@ -1785,8 +1886,10 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         formData.append("status", ruleForm.status);
         formData.append("received_date", String(receivedDate.getTime() / 1000));
 
-        formData.append("subtotal", `${ruleForm.subtotal || 0}`);
-        formData.append("total_amount", grandTotal.value.toString());
+        formData.append("subtotal", (ruleForm.subtotal || 0).toString());
+        formData.append("total_amount", paidAmount.value.toString());
+        formData.append("paid_amount", paidAmount.value.toString());
+        formData.append("payment_term_id", `${ruleForm.payment_term_id}`);
 
         // Loop untuk invoice_items
         ruleForm.invoice_item.forEach((value, index) => {

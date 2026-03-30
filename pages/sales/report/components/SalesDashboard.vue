@@ -69,6 +69,14 @@ const convertToUnix = (month: string, type: "start" | "end") => {
 const startDate = computed(() => convertToUnix(filter.month_range[0], "start"));
 const endDate = computed(() => convertToUnix(filter.month_range[1], "start"));
 
+const request_search_summery = ref<{
+  start_date: number;
+  end_date: number;
+}>({
+  start_date: startDate.value,
+  end_date: endDate.value,
+});
+
 const request_search_customer = ref<{
   start_date: number;
   end_date: number;
@@ -84,6 +92,19 @@ const request_search_customer = ref<{
     order: "asc",
   },
 });
+
+interface SummeryData {
+  total_penjualan: number;
+  total_customer: number;
+  total_barang: number;
+}
+
+const summeryData = await useFetchApi<BaseResponse<SummeryData>>(
+  "/laporan-penjualan",
+  "get-sales-report",
+  "post",
+  request_search_summery.value
+);
 
 const customerReport = await useFetchApi<BaseResponse<CustomerReport[]>>(
   "/laporan-penjualan-customer",
@@ -131,6 +152,7 @@ const refreshData = () => {
   refreshNuxtData("get-goods-report");
   refreshNuxtData("get-monthly-report");
   refreshNuxtData("get-customer-report");
+  refreshNuxtData("get-sales-report");
 };
 
 const formatCurrency = (value: number) => {
@@ -292,19 +314,65 @@ const onCustomerSort = (sortBy: { order: string; prop: string }) => {
 </script>
 
 <template>
+  <el-row :gutter="16" class="mb-3">
+    <el-col :span="8">
+      <div class="statistic-card el-card is-always-shadow">
+        <el-statistic
+          :value="summeryData.data.value?.data?.total_penjualan || 0"
+        >
+          <template #title>
+            <div
+              style="display: inline-flex; align-items: center"
+              class="text-green-600"
+            >
+              Total Penjualan
+            </div>
+          </template>
+        </el-statistic>
+      </div>
+    </el-col>
+    <el-col :span="8">
+      <div class="statistic-card el-card is-always-shadow">
+        <el-statistic
+          :value="summeryData.data.value?.data?.total_customer || 0"
+        >
+          <template #title>
+            <div
+              style="display: inline-flex; align-items: center"
+              class="text-red-600"
+            >
+              Total Pengeluaran
+            </div>
+          </template>
+        </el-statistic>
+      </div>
+    </el-col>
+    <el-col :span="8">
+      <div class="statistic-card el-card is-always-shadow">
+        <el-statistic :value="summeryData.data.value?.data?.total_barang">
+          <template #title>
+            <div
+              style="display: inline-flex; align-items: center"
+              class="text-red-600"
+            >
+              Total Product
+            </div>
+          </template>
+        </el-statistic>
+      </div>
+    </el-col>
+  </el-row>
   <el-row :gutter="20">
     <!-- FILTER -->
     <el-col :span="24">
-      <el-card>
-        <el-date-picker
-          v-model="filter.month_range"
-          type="monthrange"
-          format="MMM YYYY"
-          value-format="YYYY-MM"
-          start-placeholder="Start Month"
-          end-placeholder="End Month"
-        />
-      </el-card>
+      <el-date-picker
+        v-model="filter.month_range"
+        type="monthrange"
+        format="MMM YYYY"
+        value-format="YYYY-MM"
+        start-placeholder="Start Month"
+        end-placeholder="End Month"
+      />
     </el-col>
 
     <!-- MONTHLY CHART -->
@@ -355,6 +423,34 @@ const onCustomerSort = (sortBy: { order: string; prop: string }) => {
 </template>
 
 <style scoped>
+.statistic-card {
+  height: 100%;
+  padding: 20px;
+  border-radius: 4px;
+  background-color: var(--el-bg-color-overlay);
+}
+
+.statistic-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  margin-top: 16px;
+}
+
+.statistic-footer .footer-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.statistic-footer .footer-item span:last-child {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+}
 :deep(.el-table__cell) {
   padding: 5px !important;
 }
