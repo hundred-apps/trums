@@ -42,7 +42,7 @@ import type { ColumnTable } from "~/types/ColumnTable";
 definePageMeta({
   middleware: ["auth", "check-access"],
   requiredPermission: "maintenances-read",
-  name: "Detail Of Maintenances",
+  name: "List Of Maintenances",
 });
 
 const sortState = ref<SortState>({
@@ -109,7 +109,10 @@ const columnMaintenance: ColumnTable<any>[] = [
     dataKey: "unique_code",
     width: 300,
     cellRenderer: ({ rowData: row }) => (
-      <NuxtLink href={`maintenance/${row.unique_id}`}>
+      <NuxtLink
+        href={`/inspection-maintenance/maintenance/${row.unique_id}`}
+        class={"text-blue-600"}
+      >
         {row.unique_code}
       </NuxtLink>
     ),
@@ -344,7 +347,10 @@ const columnMaintenance: ColumnTable<any>[] = [
     cellRenderer: ({ rowData }: { rowData: Maintenance }) => {
       const onCommand = (command: string) => {
         if (command === "edit") {
-          onEdit(rowData);
+          // onEdit(rowData);
+          window.location.href =
+            "/inspection-maintenance/maintenance/add?unique_id=" +
+            rowData.unique_id;
         }
         if (command === "delete") {
           onDelete(rowData);

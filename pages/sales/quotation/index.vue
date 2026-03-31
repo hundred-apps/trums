@@ -175,11 +175,17 @@ const request_statistic = ref<RequestStatistic>({
 });
 
 // Data state
-const { data, pending } = await useFetchApi<ResponsePagination<Canvassing[]>>(
-  "/search",
+const { data, pending, refresh } = await useAsyncData(
   "get-canvasing",
-  "post",
-  request_search
+  async () => {
+    const res = await useFetchApi<ResponsePagination<Canvassing[]>>(
+      `/search`,
+      "get-canvasing",
+      "post",
+      request_search.value
+    );
+    return res.data.value;
+  }
 );
 
 const statistic = await useFetchApi<BaseResponse<StatisticRAB>>(
@@ -512,7 +518,7 @@ const onDelete = async (uniques: string[]) => {
   }
 };
 
-const onRefresh = () => refreshNuxtData("get-canvasing");
+const onRefresh = () => refresh();
 
 const bulkDelete = async () => {
   try {

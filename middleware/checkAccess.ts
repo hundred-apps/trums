@@ -13,7 +13,7 @@ export default defineNuxtRouteMiddleware(async (to, from) => {
     console.log("not permitted");
 
     // Optional: redirect ke fallback route
-    // const fallback = meta.permissionFallback || '/error/403'
-    // return navigateTo(fallback)
+    // const fallback = meta.permissionFallback || "/error/403";
+    // return navigateTo(fallback);
   }
 });

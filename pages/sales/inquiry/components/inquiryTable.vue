@@ -70,14 +70,17 @@ const request_search = ref<RequestSearch>({
   flag: "list",
 });
 
-const { data } = await useFetchApi<ResponsePagination<Inquiry[]>>(
-  `/search`,
-  "fetch-inquiries",
-  "post",
-  request_search.value
-);
+const { data, refresh } = await useAsyncData("fetch-inquiries", async () => {
+  const res = await useFetchApi<ResponsePagination<Inquiry[]>>(
+    `/search`,
+    "fetch-inquiries",
+    "post",
+    request_search.value
+  );
+  return res.data.value;
+});
 
-const refreshTable = () => refreshNuxtData("fetch-inquiries");
+const refreshTable = () => refresh();
 
 const tmpInquiries = ref<Inquiry[]>([]);
 const dialogConfirmDelete = ref<boolean>(false);
@@ -223,10 +226,9 @@ const availableColumn: ColumnTable<Inquiry>[] = [
                     v-model={request_search.value.column[0].status}
                   >
                     <ElCheckbox value={"draft"}>Draft</ElCheckbox>
-                    <ElCheckbox value={"waiting"}>Waiting</ElCheckbox>
-                    <ElCheckbox value={"approve"}>Approve</ElCheckbox>
-                    <ElCheckbox value={"done"}>Done</ElCheckbox>
-                    <ElCheckbox value={"cancelled"}>Cancelled</ElCheckbox>
+                    <ElCheckbox value={"canvassing"}>Canvassing</ElCheckbox>
+                    <ElCheckbox value={"rab"}>RAB</ElCheckbox>
+                    <ElCheckbox value={"quotation"}>QUOTATION</ElCheckbox>
                   </ElCheckboxGroup>
                 </div>
               </div>

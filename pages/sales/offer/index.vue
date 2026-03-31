@@ -67,11 +67,17 @@ const request_statistic = ref<RequestStatistic>({
   type: "out",
 });
 
-const statistic = await useFetchApi<ResponsePagination<StatisticPricetag>>(
-  `/statistic`,
+const { data, refresh } = await useAsyncData(
   "get-pricetag-statistic",
-  "post",
-  request_statistic.value
+  async () => {
+    const res = await useFetchApi<ResponsePagination<StatisticPricetag>>(
+      `/search`,
+      "get-pricetag-statistic",
+      "post",
+      request_statistic.value
+    );
+    return res.data.value;
+  }
 );
 
 const refreshTrigger = ref<number>(0);
@@ -324,7 +330,10 @@ const deleteBulk = () => {
   handleDelete(idsSelected.value);
 };
 
-const onRefreshTable = () => refreshTrigger.value++;
+const onRefreshTable = () => {
+  refreshTrigger.value++;
+  refresh();
+};
 
 const openImportModal = () => {
   importModalVisible.value = true;
@@ -398,9 +407,7 @@ onMounted(() => {
     <el-row :gutter="16">
       <el-col :span="12">
         <div class="statistic-card">
-          <el-statistic
-            :value="statistic.data.value?.data?.total_pricetag || 0"
-          >
+          <el-statistic :value="data?.data.total_pricetag || 0">
             <template #title>
               <div style="display: inline-flex; align-items: center">
                 Total Data
@@ -411,7 +418,7 @@ onMounted(() => {
       </el-col>
       <el-col :span="12">
         <div class="statistic-card">
-          <el-statistic :value="statistic.data.value?.data?.total_vendor || 0">
+          <el-statistic :value="data?.data.total_vendor || 0">
             <template #title>
               <div style="display: inline-flex; align-items: center">
                 Total Customer
@@ -483,7 +490,7 @@ onMounted(() => {
       ref="childRef"
       :request_search="request_search"
       :refresh_trigger="refreshTrigger"
-      :key="'get-offer-to-customer'"
+      :fetch-key="'get-offer-to-customer'"
       v-on:has-bulk="(value) => (idsSelected = value)"
       type="out"
     />

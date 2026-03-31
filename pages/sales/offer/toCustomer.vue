@@ -224,8 +224,9 @@ onMounted(() => {
       ref="childRef"
       :request_search="request_search"
       :refresh_trigger="refreshTrigger"
-      :key="'get-offer-to-customer'"
+      :fetch-key="'get-offer-to-customer'"
       v-on:has-bulk="(value) => (idsSelected = value)"
+      :type="'out'"
     />
   </div>
 </template>

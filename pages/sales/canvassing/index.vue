@@ -61,7 +61,7 @@
         size="default"
         :loading-icon="Eleme"
         :loading="loading"
-        @click="() => refreshNuxtData('get-canvasing')"
+        @click="onRefreshData"
       >
         Muat Ulang
       </el-button>
@@ -72,6 +72,7 @@
 
     <!-- Table -->
     <CanvassingTable
+      v-on:selection-change="(values) => handleSelectionChange(values)"
       :refresh-trigger="refreshTrigger"
       :request_search="request_search"
       :fetchKey="'get-canvassing'"
@@ -150,14 +151,6 @@ const request_statistic = ref<RequestStatistic>({
 
 const refreshTrigger = ref<number>(0);
 
-// Data state
-const data = await useFetchApi<ResponsePagination<Canvassing[]>>(
-  "/search",
-  "get-canvasing",
-  "post",
-  request_search
-);
-
 // statistic
 const statistic = await useFetchApi<BaseResponse<StatisticCanvassing>>(
   "/statistic",
@@ -169,206 +162,8 @@ const selectedCanvassing = ref<Canvassing[]>([]);
 
 const loading = ref<boolean>(false);
 
-const columnsSelected = ref<string[]>([
-  "selection",
-  "unique_code",
-  "source_document",
-  "description",
-  "status",
-  "created_at",
-  "operations",
-  "setup",
-]);
-
-// Columns
-const columns: Column<Canvassing>[] = [
-  {
-    key: "unique_code",
-    title: "Nomor Canvassing",
-    dataKey: "unique_code",
-    width: 300,
-    cellRenderer: ({ rowData: row }) => (
-      <NuxtLink
-        href={`/sales/canvassing/${row.unique_id}`}
-        class="text-blue-500"
-      >
-        {row.unique_code}
-      </NuxtLink>
-    ),
-  },
-  {
-    key: "source_document",
-    title: "Dokumen Sumber",
-    dataKey: "source_document",
-    width: 200,
-    cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
-      <span>{rowData.source_document || "-"}</span>
-    ),
-  },
-  {
-    key: "description",
-    title: "Deskripsi",
-    dataKey: "description",
-    width: 250,
-  },
-  {
-    key: "status",
-    title: "Status",
-    dataKey: "status",
-    width: 150,
-    cellRenderer: ({ rowData: row }) => renderStatusTag(row.status),
-    headerCellRenderer: () => (
-      <div class="flex items-center justify-center">
-        <span class="mr-2 text-xs">Status</span>
-        <ElPopover trigger="click" width={200}>
-          {{
-            default: () => (
-              <div class="filter-wrapper">
-                <div class="filter-group flex flex-col">
-                  <ElCheckboxGroup
-                    v-model={request_search.value.column[0].status}
-                  >
-                    <ElCheckbox
-                      key={CanvassingStatus.DRAFT}
-                      value={CanvassingStatus.DRAFT}
-                      label="Draft"
-                    />
-                    <ElCheckbox
-                      key={CanvassingStatus.PENDING_APPROVAL}
-                      value={CanvassingStatus.PENDING_APPROVAL}
-                      label="Pending Approval"
-                    />
-                    <ElCheckbox
-                      key={CanvassingStatus.CANCEL}
-                      value={CanvassingStatus.CANCEL}
-                      label="Cancel"
-                    />
-                  </ElCheckboxGroup>
-                </div>
-              </div>
-            ),
-            reference: () => (
-              <ElIcon class="cursor-pointer">
-                <Filter />
-              </ElIcon>
-            ),
-          }}
-        </ElPopover>
-      </div>
-    ),
-  },
-  {
-    key: "created_at",
-    title: "Tanggal Dibuat",
-    dataKey: "created_at",
-    width: 150,
-    sortable: true,
-    cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
-      <span>{formatDate(rowData.created_at)}</span>
-    ),
-  },
-  {
-    key: "operations",
-    title: "Aksi",
-    cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
-      <>
-        <NuxtLink
-          class="el-button el-button--small"
-          href={`/supply-chain-management/canvassing/add?id=${rowData.unique_id}`}
-        >
-          Edit
-        </NuxtLink>
-        <el-button
-          size="small"
-          type="danger"
-          onClick={() => handleSubmitDelete([rowData.unique_id!])}
-        >
-          Hapus
-        </el-button>
-      </>
-    ),
-    width: 150,
-    align: "center",
-  },
-  {
-    title: "",
-    key: "setup",
-    width: 50,
-    fixed: TableV2FixedDir.RIGHT,
-  },
-];
-
-// Add selection column
-columns.unshift({
-  key: "selection",
-  width: 50,
-  maxWidth: 50,
-  align: "center",
-  cellRenderer: ({ rowData }) => {
-    const onChange = (value: CheckboxValueType) => (rowData.checked = value);
-    return <SelectionCell value={rowData.checked} onChange={onChange} />;
-  },
-  headerCellRenderer: () => {
-    const onChange = (value: CheckboxValueType) => {
-      data.data.value?.data?.forEach((item) => {
-        item.checked = value as boolean;
-      });
-    };
-    return (
-      <SelectionCell
-        value={data.data.value?.data?.every((item) => item.checked) || false}
-        onChange={onChange}
-      />
-    );
-  },
-});
-
-// Setup column configuration
-columns[columns.length - 1].headerCellRenderer = () => {
-  return (
-    <div class="flex items-center justify-center">
-      <span class="mr-2 text-xs"></span>
-      <ElPopover trigger="click" width={200}>
-        {{
-          default: () => (
-            <div class="filter-wrapper">
-              <div class="filter-group flex flex-col">
-                <ElCheckboxGroup v-model={columnsSelected.value}>
-                  {columns
-                    .filter(
-                      (col) => col.key !== "selection" && col.key !== "setup"
-                    )
-                    .map((col) => (
-                      <ElCheckbox
-                        key={col.key}
-                        value={col.key!.toString()}
-                        label={col.title}
-                      />
-                    ))}
-                </ElCheckboxGroup>
-              </div>
-            </div>
-          ),
-          reference: () => (
-            <ElIcon class="cursor-pointer">
-              <SetUp />
-            </ElIcon>
-          ),
-        }}
-      </ElPopover>
-    </div>
-  );
-};
-
-// Computed
-const filteredColumns = computed(() => {
-  return columns.filter((col) =>
-    columnsSelected.value.includes(col.key!.toString())
-  );
-});
-
 const hasSelected = computed(() => {
-  return data.data.value?.data?.some((item) => item.checked) || false;
+  return selectedCanvassing.value.length > 0;
 });
 
 // Methods
@@ -406,7 +201,7 @@ const bulkDelete = async () => {
     );
 
     const ids =
-      data.data.value?.data
+      selectedCanvassing.value
         ?.filter((item) => item.checked)
         .map((item) => item.unique_id!) || [];
 
@@ -436,6 +231,7 @@ const handleSubmitDelete = async (values: string[]) => {
 };
 
 const handleSelectionChange = (selection: Canvassing[]) => {
+  console.log("selection data", selectedCanvassing.value);
   selectedCanvassing.value = selection;
 };
 
@@ -463,14 +259,7 @@ const onSort = (sortBy: SortBy) => {
   };
 };
 
-// // Watch search query
-// watchDebounced(
-//   request_search,
-//   () => {
-//     refreshNuxtData('get-canvassing');
-//   },
-//   { debounce: 500, deep: true }
-// )
+const onRefreshData = () => refreshTrigger.value++;
 
 onMounted(() => {});
 </script>

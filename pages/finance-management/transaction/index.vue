@@ -72,7 +72,7 @@
           style="width: 100%"
           :loading-icon="Eleme"
           :loading="loading"
-          @click="fetchData"
+          @click="refreshData"
         >
           Muat Ulang
         </el-button>
@@ -196,20 +196,26 @@ const request_cashflow = ref<{ start_date: number; end_date: number }>({
   end_date: monthRange.value[1].getTime() / 1000,
 });
 
-const cashflow = await useFetchApi<BaseResponse<CashFlow[]>>(
-  "/laporan-pengeluaran",
-  "get-cashflow",
-  "post",
-  request_cashflow.value
-);
+const cashflow = await useAsyncData("get-cashflow", async () => {
+  const res = await useFetchApi<ResponsePagination<CashFlow[]>>(
+    `/laporan-pengeluaran`,
+    "get-cashflow",
+    "post",
+    request_search.value
+  );
+  return res.data.value;
+});
 
 // Data state
-const { data } = await useFetchApi<ResponsePagination<Transaction[]>>(
-  `/search`,
-  "fetch-transaction",
-  "post",
-  request_search.value
-);
+const { data, refresh } = await useAsyncData("fetch-transaction", async () => {
+  const res = await useFetchApi<ResponsePagination<Transaction[]>>(
+    `/search`,
+    "fetch-transaction",
+    "post",
+    request_search.value
+  );
+  return res.data.value;
+});
 
 const selectedTransactions = ref<any[]>([]);
 const loading = ref(false);
@@ -593,39 +599,11 @@ const batchDelete = async () => {
   onDelete(ids);
 };
 
-// Fetch data from API
-const fetchData = async () => {
-  loading.value = true;
-  try {
-    // const response = await axios.get('/transactions', {
-    //   params: {
-    //     page: transactions.value.currentPage,
-    //     search: search.value
-    //   }
-    // })
-    // if (response.status === 200) {
-    //   transactions.value = {
-    //     ...response.data,
-    //     data: response.data.data.map((transaction: any) => ({
-    //       ...transaction,
-    //       checked: false
-    //     }))
-    //   }
-    // }
-  } catch (error: any) {
-    ElMessage.error(
-      error.response?.data?.message || "Gagal memuat data transaksi"
-    );
-  } finally {
-    loading.value = false;
-  }
-};
-
 // Watch search query
 watchDebounced(
   request_search.value,
   () => {
-    refreshNuxtData("fetch-transaction");
+    refresh();
   },
   { debounce: 500 }
 );
@@ -659,8 +637,8 @@ watch(
 );
 
 const refreshData = () => {
-  refreshNuxtData("get-cashflow");
-  refreshNuxtData("fetch-transaction");
+  cashflow.refresh();
+  refresh();
 };
 
 onMounted(() => {});

@@ -90,12 +90,15 @@ const request_search = ref<RequestSearch>({
   flag: "list",
 });
 
-const { data } = await useFetchApi<ResponsePagination<ItemRequest[]>>(
-  `/search`,
-  "fetch-item-request",
-  "post",
-  request_search.value
-);
+const { data, refresh } = await useAsyncData("fetch-item-request", async () => {
+  const res = await useFetchApi<ResponsePagination<ItemRequest[]>>(
+    `/search`,
+    "fetch-item-request",
+    "post",
+    request_search.value
+  );
+  return res.data.value;
+});
 
 const column_selected = ref<string[]>([
   "selection",
@@ -297,5 +300,5 @@ const handleSizeChange = (size: number) => {
   request_search.value.limit = `${size}`;
 };
 
-const onRefresh = () => refreshNuxtData("fetch-item-request");
+const onRefresh = () => refresh();
 </script>

@@ -31,6 +31,7 @@ export enum StatisticTable {
   purchase_request = "purchase_request",
   invoices = "invoices",
   transactions = "transactions",
+  penjualan = "penjualan",
 }
 
 export type RequestStatistic = {

@@ -65,6 +65,7 @@
             :request_search="canvassing_search"
             :fetch-key="'get-canvassing-inquiry'"
             :type="'CANASSING'"
+            @selection-change="(value) => {}"
           />
         </div>
 
@@ -119,6 +120,7 @@
             :request_search="rab_search"
             :fetch-key="'get-rab-inquiry'"
             :type="'RAB'"
+            @selection-change="(value) => {}"
           />
         </div>
         <el-result
@@ -138,8 +140,9 @@
           <OfferTable
             :refresh_trigger="refreshTrigger"
             :request_search="offer_search"
-            :key="'get-offer-to-customer'"
+            :fetch-key="'get-offer-to-customer'"
             v-on:has-bulk="(value) => {}"
+            :type="'out'"
           />
         </div>
         <el-result

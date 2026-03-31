@@ -156,6 +156,7 @@ import type { AppFile } from "~/types/file";
 import { Delete, UserFilled } from "@element-plus/icons-vue";
 import type { BaseResponse } from "~/types/response";
 import type { DefaultResponse } from "~/types/pagination";
+import type { ResponsePagination } from "~/types/response_pagination";
 
 const router = useRouter();
 const route = useRoute();
@@ -294,28 +295,43 @@ const querySearchAsyncInventories = (
   queryString: string,
   cb: (arg: any) => void
 ) => {
-  requestSearch.value.keyword = queryString;
-  axios
-    .post("/search", requestSearch.value)
-    .then((response) => {
-      if (response.status == 200) {
-        // console.log(response.data.data.q);
-        const inventories: Inventory[] = response.data.data;
+  try {
+    requestSearch.value.keyword = queryString;
+    useFetchApi<ResponsePagination<Inventory[]>>(
+      "/search",
+      "search-inspection-item",
+      "post",
+      requestSearch.value
+    )
+      .then((response) => {
+        if (response.status.value === "success") {
+          // console.log(response.data.data.q);
+          const inventories: Inventory[] = response.data.value?.data ?? [];
 
-        const results = inventories.map((data: Inventory) => {
-          return {
-            value: `${data.catalogue.name}-${data.location?.name}`,
-            unique_id: data.unique_id,
-          };
-        });
-        cb(results);
-      } else {
-        ElMessage.error(response.data.message);
-      }
-    })
-    .catch((error: any) => {
-      ElMessage.error(error.response.data.message);
-    });
+          const results = inventories.map((data: Inventory) => {
+            return {
+              value: `${data.catalogue.name}-${data.location?.name}`,
+              unique_id: data.unique_id,
+            };
+          });
+          cb(results);
+        } else {
+          ElMessage.error(
+            response.data.value?.message || "Gagal Mendapatkan Hasil Pencarian"
+          );
+        }
+      })
+      .catch((error: any) => {
+        ElMessage.error(
+          error.response?.message ??
+            (error || "Gagal Mendapatkan Hasil Pencarian")
+        );
+      });
+  } catch (error: any) {
+    ElMessage.error(
+      error.response?.message ?? (error || "Gagal Mendapatkan Hasil Pencarian")
+    );
+  }
 };
 
 const getAvatar = (file: AppFile | null): string | null => {

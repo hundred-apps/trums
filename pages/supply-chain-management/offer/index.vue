@@ -633,7 +633,7 @@ onMounted(() => {
       ref="childRef"
       :request_search="request_search"
       :refresh_trigger="refereshTrigger"
-      :key="'get-offer-from-vendor'"
+      :fetch-key="'get-offer-from-vendor'"
       v-on:has-bulk="(value) => (idsSelected = value)"
       type="in"
     />

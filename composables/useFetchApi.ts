@@ -26,7 +26,7 @@ export async function useFetchApi<T>(
   });
 
   const statusCode = response.error.value?.statusCode;
-  // console.log('status code')
+  console.log("status code", statusCode);
   // ✅ HANDLE 401
   if (statusCode === 401 && retry) {
     return await handle401<T>(endpoint, key, request_method, body);
@@ -34,9 +34,7 @@ export async function useFetchApi<T>(
 
   // ❌ HANDLE 403
   if (statusCode === 403) {
-    ElMessage.error(
-      response.error.value?.data?.message ?? "Action Not Permitted"
-    );
+    window.location.href = "/error/403";
   }
 
   return {

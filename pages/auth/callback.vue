@@ -21,8 +21,18 @@ const api = useApi();
 const profile = ref<UserProfile | null>(null);
 const user = localStorage.getItem("user");
 const appUserData = useCookie("userdata");
-const userToken = useCookie("token");
-const expiredToken = useCookie("expired_at");
+const userToken = useCookie("token", {
+  maxAge: 60 * 60 * 24 * 30,
+  path: "/",
+  sameSite: "lax",
+  secure: true,
+});
+const expiredToken = useCookie("expired_at", {
+  maxAge: 60 * 60 * 24 * 30,
+  path: "/",
+  sameSite: "lax",
+  secure: true,
+});
 const router = useRouter();
 
 const oidc = useOIDC();

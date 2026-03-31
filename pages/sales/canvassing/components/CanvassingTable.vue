@@ -48,7 +48,7 @@ import type { ColumnTable } from "~/types/ColumnTable";
 
 const props = defineProps<{
   // onSubmit: (catalogue: Catalogue) => void,
-  // onCancel: () => void,
+  onSelectionChange: (data: Canvassing[]) => void;
   request_search: RequestSearch;
   fetchKey: string;
   type: "RAB" | "CANASSING";
@@ -73,11 +73,17 @@ const columnsSelected = ref<string[]>([
 
 const request_search = ref<RequestSearch>(props.request_search);
 
-const { data, pending } = await useFetchApi<ResponsePagination<Canvassing[]>>(
-  "/search",
+const { data, pending, refresh } = await useAsyncData(
   props.fetchKey,
-  "post",
-  request_search.value
+  async () => {
+    const res = await useFetchApi<ResponsePagination<Canvassing[]>>(
+      "/search",
+      props.fetchKey,
+      "post",
+      request_search.value
+    );
+    return res.data.value;
+  }
 );
 
 // Columns
@@ -312,7 +318,21 @@ columns.unshift({
   maxWidth: 50,
   align: "center",
   cellRenderer: ({ rowData }) => {
-    const onChange = (value: CheckboxValueType) => (rowData.checked = value);
+    const onChange = (value: CheckboxValueType) => {
+      data.value?.data?.forEach((item) => {
+        if (item.unique_id == rowData.unique_id) {
+          item.checked = value as boolean;
+        }
+      });
+
+      const checkeds = (data.value?.data ?? []).filter(
+        (filter) => filter.checked
+      );
+
+      console.log("selection", checkeds);
+      // rowData.checked = value;
+      props.onSelectionChange(checkeds);
+    };
     return <SelectionCell value={rowData.checked} onChange={onChange} />;
   },
   headerCellRenderer: () => {
@@ -320,6 +340,9 @@ columns.unshift({
       data.value?.data?.forEach((item) => {
         item.checked = value as boolean;
       });
+      props.onSelectionChange(
+        data.value?.data?.filter((filter) => filter.checked) || []
+      );
     };
     return (
       <SelectionCell
@@ -430,14 +453,15 @@ watch(
   request_search.value,
   () => {
     console.log("watch");
-    refreshNuxtData(props.fetchKey);
+    refresh();
   },
   { immediate: true }
 );
 watch(
   () => props.refreshTrigger,
   () => {
-    refreshNuxtData(props.fetchKey);
+    console.log("masuk refresh");
+    refresh();
   },
   { immediate: true }
 );

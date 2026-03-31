@@ -12,7 +12,7 @@ export function useApiFetch<T>(url: string, options: any = {}): Promise<T> {
     },
     async onResponseError({ request, response, options }) {
       if (response.status === 401) {
-        console.log("token expired, try refresh", !isRefreshing.value);
+        console.log("token expired, try refresh", isRefreshing.value);
 
         try {
           // 🚨 Hindari multiple refresh

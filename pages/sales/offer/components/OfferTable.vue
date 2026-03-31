@@ -45,7 +45,7 @@ const props = defineProps<{
   // onCancel: () => void,
   request_search: RequestSearch;
   refresh_trigger: number;
-  key: string;
+  fetchKey: string;
   type: "in" | "out";
 }>();
 
@@ -59,16 +59,18 @@ const request_search = ref<RequestSearch>(props.request_search);
 const locations = ref<Catalogue[]>([]);
 const selected = ref<string[]>([]);
 
-const { data } = await useFetchApi<ResponsePagination<Pricetag[]>>(
-  `/search`,
-  props.key,
-  "post",
-  request_search.value
-);
-
+const { data, refresh } = await useAsyncData(props.fetchKey, async () => {
+  const res = await useFetchApi<ResponsePagination<Pricetag[]>>(
+    `/search`,
+    props.fetchKey,
+    "post",
+    request_search.value
+  );
+  return res.data.value;
+});
 const paginationClick = (val: number) => {
   request_search.value.offset = val.toString();
-  refreshNuxtData(props.key);
+  refresh();
 };
 
 const availableColumn: ColumnTable<Pricetag>[] = [
@@ -191,7 +193,7 @@ const onSort = (sortBy: { order: string; prop: string }) => {
         ? OrderColumn.ASC
         : OrderColumn.DESC,
   };
-  refreshNuxtData("Pricetag");
+  refresh();
 };
 
 const handleDelete = async (ids: string[]) => {
@@ -204,7 +206,7 @@ const handleDelete = async (ids: string[]) => {
       ids
     );
     if (response.status.value == "success") {
-      await refreshNuxtData("Pricetag");
+      await refresh();
       ElMessage.success("Data Berhasil Dihapus");
     }
   } catch (error: any) {
@@ -263,7 +265,7 @@ watch(
   () => props.refresh_trigger,
   async () => {
     selected.value = [];
-    await refreshNuxtData(props.key);
+    refresh();
   }
 );
 

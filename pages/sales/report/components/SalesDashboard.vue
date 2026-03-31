@@ -17,7 +17,11 @@ import {
 import { CanvasRenderer } from "echarts/renderers";
 import type { ColumnTable } from "~/types/ColumnTable";
 import customTable from "~/components/trums/table/customTable.vue";
-import { OrderColumn } from "~/types/request_search";
+import {
+  OrderColumn,
+  StatisticTable,
+  type RequestStatistic,
+} from "~/types/request_search";
 
 echarts.use([
   LineChart,
@@ -69,14 +73,6 @@ const convertToUnix = (month: string, type: "start" | "end") => {
 const startDate = computed(() => convertToUnix(filter.month_range[0], "start"));
 const endDate = computed(() => convertToUnix(filter.month_range[1], "start"));
 
-const request_search_summery = ref<{
-  start_date: number;
-  end_date: number;
-}>({
-  start_date: startDate.value,
-  end_date: endDate.value,
-});
-
 const request_search_customer = ref<{
   start_date: number;
   end_date: number;
@@ -99,11 +95,17 @@ interface SummeryData {
   total_barang: number;
 }
 
-const summeryData = await useFetchApi<BaseResponse<SummeryData>>(
-  "/laporan-penjualan",
+const request_statistic_sales = ref<RequestStatistic>({
+  table: StatisticTable.penjualan,
+  start_date: startDate.value,
+  end_date: endDate.value,
+});
+
+const statistic = await useFetchApi<BaseResponse<SummeryData>>(
+  "/statistic",
   "get-sales-report",
   "post",
-  request_search_summery.value
+  request_statistic_sales.value
 );
 
 const customerReport = await useFetchApi<BaseResponse<CustomerReport[]>>(
@@ -317,9 +319,7 @@ const onCustomerSort = (sortBy: { order: string; prop: string }) => {
   <el-row :gutter="16" class="mb-3">
     <el-col :span="8">
       <div class="statistic-card el-card is-always-shadow">
-        <el-statistic
-          :value="summeryData.data.value?.data?.total_penjualan || 0"
-        >
+        <el-statistic :value="statistic.data.value?.data?.total_penjualan || 0">
           <template #title>
             <div
               style="display: inline-flex; align-items: center"
@@ -333,15 +333,13 @@ const onCustomerSort = (sortBy: { order: string; prop: string }) => {
     </el-col>
     <el-col :span="8">
       <div class="statistic-card el-card is-always-shadow">
-        <el-statistic
-          :value="summeryData.data.value?.data?.total_customer || 0"
-        >
+        <el-statistic :value="statistic.data.value?.data?.total_customer || 0">
           <template #title>
             <div
               style="display: inline-flex; align-items: center"
-              class="text-red-600"
+              class="text-blue-600"
             >
-              Total Pengeluaran
+              Total Customer
             </div>
           </template>
         </el-statistic>
@@ -349,11 +347,11 @@ const onCustomerSort = (sortBy: { order: string; prop: string }) => {
     </el-col>
     <el-col :span="8">
       <div class="statistic-card el-card is-always-shadow">
-        <el-statistic :value="summeryData.data.value?.data?.total_barang">
+        <el-statistic :value="statistic.data.value?.data?.total_barang">
           <template #title>
             <div
               style="display: inline-flex; align-items: center"
-              class="text-red-600"
+              class="text-yellow-600"
             >
               Total Product
             </div>
@@ -451,6 +449,12 @@ const onCustomerSort = (sortBy: { order: string; prop: string }) => {
   align-items: center;
   margin-left: 4px;
 }
+
+:deep(.el-statistic__number) {
+  font-size: 30px;
+  font-weight: bold;
+}
+
 :deep(.el-table__cell) {
   padding: 5px !important;
 }

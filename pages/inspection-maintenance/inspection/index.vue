@@ -28,6 +28,7 @@ import { NuxtLink } from "#components";
 import type { ColumnTable } from "~/types/ColumnTable";
 import type { ResponsePagination } from "~/types/response_pagination";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
+import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -101,7 +102,46 @@ const filteredColumn = computed(() => {
 
 const columnInspection: ColumnTable<Inspection>[] = [
   {
+    title: "",
+    dataKey: "",
     key: "selection",
+    width: 50,
+    fixed: true,
+    cellRenderer: ({ rowData }) => {
+      const onChange = (value: CheckboxValueType) => (rowData.checked = value);
+      return <SelectionCell value={rowData.checked} onChange={onChange} />;
+    },
+    maxWidth: 50,
+
+    headerCellRenderer: () => {
+      const _data = unref(data);
+      const onChange = (value: CheckboxValueType) =>
+        (data.value = {
+          success: true,
+          currentPage: _data?.currentPage ?? 0,
+          total_data: _data?.total_data ?? 0,
+          total_page: _data?.total_data ?? 0,
+          data: _data?.data?.map((row: any) => {
+            row.checked = value;
+            return row;
+          })!,
+          privilege: _data?.privilege ?? [],
+        });
+      const allSelected = _data!.data.every((row) => row.checked);
+      const containsChecked = _data?.data.some((row) => row.checked);
+
+      return (
+        <SelectionCell
+          style={{ width: 50 }}
+          value={allSelected}
+          interminate={containsChecked && !allSelected}
+          onChange={onChange}
+        />
+      );
+    },
+  },
+  {
+    key: "unique_code",
     title: "Unique Code",
     dataKey: "unique_code",
     cellRenderer: ({ rowData: row }) => (
@@ -200,34 +240,34 @@ const columnInspection: ColumnTable<Inspection>[] = [
   },
 ];
 
-columnInspection.unshift({
-  key: "selection",
-  width: 50,
-  maxWidth: 50,
-  align: "center",
-  cellRenderer: ({ rowData }) => {
-    const onChange = (value: CheckboxValueType) => (rowData.checked = value);
-    return <SelectionCell value={rowData.checked} onChange={onChange} />;
-  },
-  headerCellRenderer: () => {
-    const _data = unref(inspections);
-    const onChange = (value: CheckboxValueType) =>
-      (inspections.value = _data.map((row: any) => {
-        row.checked = value;
-        return row;
-      }));
-    const allSelected = _data.every((row: any) => row.checked);
-    const containsChecked = _data.some((row: any) => row.checked);
+// columnInspection.unshift({
+//   key: "selection",
+//   width: 50,
+//   maxWidth: 50,
+//   align: "center",
+//   cellRenderer: ({ rowData }) => {
+//     const onChange = (value: CheckboxValueType) => (rowData.checked = value);
+//     return <SelectionCell value={rowData.checked} onChange={onChange} />;
+//   },
+//   headerCellRenderer: () => {
+//     const _data = unref(inspections);
+//     const onChange = (value: CheckboxValueType) =>
+//       (inspections.value = _data.map((row: any) => {
+//         row.checked = value;
+//         return row;
+//       }));
+//     const allSelected = _data.every((row: any) => row.checked);
+//     const containsChecked = _data.some((row: any) => row.checked);
 
-    return (
-      <SelectionCell
-        value={allSelected}
-        intermediate={containsChecked && !allSelected}
-        onChange={onChange}
-      />
-    );
-  },
-});
+//     return (
+//       <SelectionCell
+//         value={allSelected}
+//         intermediate={containsChecked && !allSelected}
+//         onChange={onChange}
+//       />
+//     );
+//   },
+// });
 
 columnInspection[columnInspection.length - 1].headerCellRenderer = () => {
   return (
@@ -265,20 +305,6 @@ columnInspection[columnInspection.length - 1].headerCellRenderer = () => {
 
 const onSelection = (event: CheckboxValueType) => {
   console.log(event);
-};
-
-const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
-  value,
-  intermediate = false,
-  onChange,
-}) => {
-  return (
-    <ElCheckbox
-      onChange={onChange}
-      modelValue={value}
-      indeterminate={intermediate}
-    />
-  );
 };
 
 const onSort = (sortBy: { order: string; prop: string }) => {
