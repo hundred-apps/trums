@@ -22,6 +22,7 @@ import {
   StatisticTable,
   type RequestStatistic,
 } from "~/types/request_search";
+import { CaretTop, CaretBottom } from "@element-plus/icons-vue";
 
 echarts.use([
   LineChart,
@@ -34,9 +35,14 @@ echarts.use([
 ]);
 
 const loading = ref(false);
+const isCompare = ref<boolean>(false);
 
 const filter = reactive({
   month_range: [
+    dayjs().startOf("year").format("YYYY-MM"),
+    dayjs().endOf("year").format("YYYY-MM"),
+  ],
+  compare_range: [
     dayjs().startOf("year").format("YYYY-MM"),
     dayjs().endOf("year").format("YYYY-MM"),
   ],
@@ -71,7 +77,7 @@ const convertToUnix = (month: string, type: "start" | "end") => {
 };
 
 const startDate = computed(() => convertToUnix(filter.month_range[0], "start"));
-const endDate = computed(() => convertToUnix(filter.month_range[1], "start"));
+const endDate = computed(() => convertToUnix(filter.month_range[1], "end"));
 
 const request_search_customer = ref<{
   start_date: number;
@@ -89,10 +95,28 @@ const request_search_customer = ref<{
   },
 });
 
+enum SummeryDataState {
+  NAIK = "naik",
+  TURUN = "turun",
+  STABIL = "stabil",
+}
+
 interface SummeryData {
-  total_penjualan: number;
-  total_customer: number;
-  total_barang: number;
+  total_penjualan: {
+    total: number;
+    growth: SummeryDataState;
+    percent: number;
+  };
+  total_customer: {
+    total: number;
+    growth: SummeryDataState;
+    percent: number;
+  };
+  total_barang: {
+    total: number;
+    growth: SummeryDataState;
+    percent: number;
+  };
 }
 
 const request_statistic_sales = ref<RequestStatistic>({
@@ -119,12 +143,25 @@ const request_search_monthly = ref<{ start_date: number; end_date: number }>({
   start_date: startDate.value,
   end_date: endDate.value,
 });
+const request_search_monthly_compare = ref<{
+  start_date: number;
+  end_date: number;
+}>({
+  start_date: startDate.value,
+  end_date: endDate.value,
+});
 
 const monthlyReport = await useFetchApi<BaseResponse<MonthlyReport[]>>(
   "/laporan-penjualan-bulanan",
   "get-monthly-report",
   "post",
   request_search_monthly.value
+);
+const monthlyReportCompare = await useFetchApi<BaseResponse<MonthlyReport[]>>(
+  "/laporan-penjualan-bulanan",
+  "get-monthly-report-compare",
+  "post",
+  request_search_monthly_compare.value
 );
 
 const request_search_goods_report = ref<{
@@ -151,6 +188,55 @@ const goodsReport = await useFetchApi<BaseResponse<GoodsSalesReport[]>>(
 );
 
 const refreshData = () => {
+  console.log(filter.month_range[0]);
+  request_search_goods_report.value.start_date = convertToUnix(
+    filter.month_range[0],
+    "start"
+  );
+  request_search_goods_report.value.end_date = convertToUnix(
+    filter.month_range[1],
+    "end"
+  );
+
+  request_search_monthly.value.start_date = convertToUnix(
+    filter.month_range[0],
+    "start"
+  );
+  request_search_monthly.value.end_date = convertToUnix(
+    filter.month_range[1],
+    "end"
+  );
+
+  request_search_customer.value.start_date = convertToUnix(
+    filter.month_range[0],
+    "start"
+  );
+  request_search_customer.value.end_date = convertToUnix(
+    filter.month_range[1],
+    "end"
+  );
+
+  request_statistic_sales.value.start_date = convertToUnix(
+    filter.month_range[0],
+    "start"
+  );
+  request_statistic_sales.value.end_date = convertToUnix(
+    filter.month_range[1],
+    "end"
+  );
+
+  if (isCompare.value) {
+    request_search_monthly_compare.value.start_date = convertToUnix(
+      filter.compare_range[0],
+      "start"
+    );
+    request_search_monthly_compare.value.end_date = convertToUnix(
+      filter.compare_range[1],
+      "end"
+    );
+    refreshNuxtData("get-monthly-report-compare");
+  }
+
   refreshNuxtData("get-goods-report");
   refreshNuxtData("get-monthly-report");
   refreshNuxtData("get-customer-report");
@@ -176,14 +262,31 @@ const monthlyChart = computed(() => ({
 
   yAxis: { type: "value" },
 
-  series: [
-    {
-      name: "Revenue",
-      type: "line",
-      smooth: true,
-      data: (monthlyReport.data.value?.data ?? []).map((i) => i.total),
-    },
-  ],
+  series: isCompare.value
+    ? [
+        {
+          name: "Revenue",
+          type: "line",
+          smooth: true,
+          data: (monthlyReport.data.value?.data ?? []).map((i) => i.total),
+        },
+        {
+          name: "Revenue Compare",
+          type: "line",
+          smooth: true,
+          data: (monthlyReportCompare.data.value?.data ?? []).map(
+            (i) => i.total
+          ),
+        },
+      ]
+    : [
+        {
+          name: "Revenue",
+          type: "line",
+          smooth: true,
+          data: (monthlyReport.data.value?.data ?? []).map((i) => i.total),
+        },
+      ],
 }));
 
 const customerChart = computed(() => ({
@@ -319,7 +422,9 @@ const onCustomerSort = (sortBy: { order: string; prop: string }) => {
   <el-row :gutter="16" class="mb-3">
     <el-col :span="8">
       <div class="statistic-card el-card is-always-shadow">
-        <el-statistic :value="statistic.data.value?.data?.total_penjualan || 0">
+        <el-statistic
+          :value="statistic.data.value?.data?.total_penjualan.total || 0"
+        >
           <template #title>
             <div
               style="display: inline-flex; align-items: center"
@@ -329,11 +434,45 @@ const onCustomerSort = (sortBy: { order: string; prop: string }) => {
             </div>
           </template>
         </el-statistic>
+        <div class="statistic-footer">
+          <div class="footer-item">
+            <span>Dari Periode Sebelumnya</span>
+            <span
+              :class="`${
+                statistic.data.value?.data?.total_penjualan.growth ==
+                SummeryDataState.NAIK
+                  ? 'green'
+                  : statistic.data.value?.data?.total_penjualan.growth ==
+                    SummeryDataState.TURUN
+                  ? 'red'
+                  : ''
+              }`"
+            >
+              {{ statistic.data.value?.data?.total_penjualan.percent }}%
+              <el-icon>
+                <CaretTop
+                  v-if="
+                    statistic.data.value?.data?.total_penjualan.growth ==
+                    SummeryDataState.NAIK
+                  "
+                />
+                <CaretBottom
+                  v-if="
+                    statistic.data.value?.data?.total_penjualan.growth ==
+                    SummeryDataState.TURUN
+                  "
+                />
+              </el-icon>
+            </span>
+          </div>
+        </div>
       </div>
     </el-col>
     <el-col :span="8">
       <div class="statistic-card el-card is-always-shadow">
-        <el-statistic :value="statistic.data.value?.data?.total_customer || 0">
+        <el-statistic
+          :value="statistic.data.value?.data?.total_customer.total || 0"
+        >
           <template #title>
             <div
               style="display: inline-flex; align-items: center"
@@ -343,11 +482,45 @@ const onCustomerSort = (sortBy: { order: string; prop: string }) => {
             </div>
           </template>
         </el-statistic>
+        <div class="statistic-footer">
+          <div class="footer-item">
+            <span>Dari Periode Sebelumnya</span>
+            <span
+              :class="`${
+                statistic.data.value?.data?.total_customer.growth ==
+                SummeryDataState.NAIK
+                  ? 'green'
+                  : statistic.data.value?.data?.total_customer.growth ==
+                    SummeryDataState.TURUN
+                  ? 'red'
+                  : ''
+              }`"
+            >
+              {{ statistic.data.value?.data?.total_customer.percent }}%
+              <el-icon>
+                <CaretTop
+                  v-if="
+                    statistic.data.value?.data?.total_customer.growth ==
+                    SummeryDataState.NAIK
+                  "
+                />
+                <CaretBottom
+                  v-if="
+                    statistic.data.value?.data?.total_customer.growth ==
+                    SummeryDataState.TURUN
+                  "
+                />
+              </el-icon>
+            </span>
+          </div>
+        </div>
       </div>
     </el-col>
     <el-col :span="8">
       <div class="statistic-card el-card is-always-shadow">
-        <el-statistic :value="statistic.data.value?.data?.total_barang">
+        <el-statistic
+          :value="statistic.data.value?.data?.total_barang.total || 0"
+        >
           <template #title>
             <div
               style="display: inline-flex; align-items: center"
@@ -357,12 +530,44 @@ const onCustomerSort = (sortBy: { order: string; prop: string }) => {
             </div>
           </template>
         </el-statistic>
+        <div class="statistic-footer">
+          <div class="footer-item">
+            <span>Dari Periode Sebelumnya</span>
+            <span
+              :class="`${
+                statistic.data.value?.data?.total_barang.growth ==
+                SummeryDataState.NAIK
+                  ? 'green'
+                  : statistic.data.value?.data?.total_barang.growth ==
+                    SummeryDataState.TURUN
+                  ? 'red'
+                  : ''
+              }`"
+            >
+              {{ statistic.data.value?.data?.total_barang.percent }}%
+              <el-icon>
+                <CaretTop
+                  v-if="
+                    statistic.data.value?.data?.total_barang.growth ==
+                    SummeryDataState.NAIK
+                  "
+                />
+                <CaretBottom
+                  v-if="
+                    statistic.data.value?.data?.total_barang.growth ==
+                    SummeryDataState.TURUN
+                  "
+                />
+              </el-icon>
+            </span>
+          </div>
+        </div>
       </div>
     </el-col>
   </el-row>
   <el-row :gutter="20">
     <!-- FILTER -->
-    <el-col :span="24">
+    <el-col :span="5">
       <el-date-picker
         v-model="filter.month_range"
         type="monthrange"
@@ -371,6 +576,26 @@ const onCustomerSort = (sortBy: { order: string; prop: string }) => {
         start-placeholder="Start Month"
         end-placeholder="End Month"
       />
+    </el-col>
+    <el-col :span="3">
+      <el-button type="default" @click="() => (isCompare = true)"
+        >Bandingkan Dengan</el-button
+      >
+    </el-col>
+    <el-col :span="5" v-if="isCompare">
+      <el-date-picker
+        v-model="filter.compare_range"
+        type="monthrange"
+        format="MMM YYYY"
+        value-format="YYYY-MM"
+        start-placeholder="Start Month"
+        end-placeholder="End Month"
+      />
+    </el-col>
+    <el-col :span="4" v-if="isCompare">
+      <el-button type="danger" @click="() => (isCompare = false)"
+        >Batalkan Komparasi</el-button
+      >
     </el-col>
 
     <!-- MONTHLY CHART -->
@@ -457,5 +682,34 @@ const onCustomerSort = (sortBy: { order: string; prop: string }) => {
 
 :deep(.el-table__cell) {
   padding: 5px !important;
+}
+
+.statistic-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  margin-top: 16px;
+}
+
+.statistic-footer .footer-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.statistic-footer .footer-item span:last-child {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+}
+
+.green {
+  color: var(--el-color-success);
+}
+.red {
+  color: var(--el-color-error);
 }
 </style>

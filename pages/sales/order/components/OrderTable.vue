@@ -57,6 +57,7 @@ const columnsSelected = ref<string[]>([
   "unique_code",
   "vendor_name",
   "total_price",
+  "date",
   "expected_arrival",
   "status",
   "created_at",
@@ -116,6 +117,16 @@ const columns: ColumnTable<PurchaseOrder>[] = [
     sortable: true,
     cellRenderer: ({ rowData }: { rowData: PurchaseOrder }) => (
       <span>{currency(rowData.total_price)}</span>
+    ),
+  },
+  {
+    key: "date",
+    title: "Tanggal PO",
+    dataKey: "date",
+    width: 150,
+    sortable: true,
+    cellRenderer: ({ rowData }: { rowData: PurchaseOrder }) => (
+      <span>{rowData.date ? formatLocalDate(rowData.date) : "-"}</span>
     ),
   },
   {

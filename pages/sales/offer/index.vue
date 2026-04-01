@@ -71,7 +71,7 @@ const { data, refresh } = await useAsyncData(
   "get-pricetag-statistic",
   async () => {
     const res = await useFetchApi<ResponsePagination<StatisticPricetag>>(
-      `/search`,
+      `/statistic`,
       "get-pricetag-statistic",
       "post",
       request_statistic.value
