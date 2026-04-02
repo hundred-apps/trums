@@ -13,22 +13,22 @@
           <el-button
             type="default"
             :icon="Eleme"
-            :disabled="pending"
-            :loading="pending"
+            :disabled="status === 'pending'"
+            :loading="status === 'pending'"
             @click="refreshData"
             >Reload</el-button
           >
           <el-button
             type="danger"
-            :disabled="pending"
-            :loading="pending"
+            :disabled="status === 'pending'"
+            :loading="status === 'pending'"
             :icon="Delete"
             @click="confirmDelete"
             >Hapus</el-button
           >
           <NuxtLink
-            :disabled="pending"
-            :loading="pending"
+            :disabled="status === 'pending'"
+            :loading="status === 'pending'"
             :to="`/inspection-maintenance/inspection/add?id=${data?.data.unique_id}`"
             class="el-button el-button--warning"
           >
@@ -36,20 +36,28 @@
           </NuxtLink>
         </div>
       </template>
-      <div class="flex gap-3 my-3">
+      <div class="flex gap-3 my-3" v-if="status !== 'pending'">
         <div class="flex-1">
           <el-descriptions title="" :column="1" size="large" border>
             <el-descriptions-item label="Nomor Inspeksi">{{
               data?.data.unique_code
             }}</el-descriptions-item>
-            <el-descriptions-item
-              label="Tanggal Inspeksi"
-              >{{ formatLocalDate(data?.data.inspection_date!) }}</el-descriptions-item
-            >
+            <el-descriptions-item label="Unit Inspeksi">{{
+              data?.data.inventory?.name ??
+              data?.data.inventory?.catalogue?.name ??
+              ""
+            }}</el-descriptions-item>
+            <el-descriptions-item label="Penanggung Jawab">{{
+              data?.data.responsible?.name || ""
+            }}</el-descriptions-item>
           </el-descriptions>
         </div>
         <div class="flex-1">
           <el-descriptions title="" :column="1" size="large" border>
+            <el-descriptions-item
+              label="Tanggal Inspeksi"
+              >{{ formatLocalDate(data?.data.inspection_date!) }}</el-descriptions-item
+            >
             <el-descriptions-item label="Kondisi">{{
               data?.data.condition
             }}</el-descriptions-item>
@@ -122,14 +130,20 @@ const id = ref<string>((router.currentRoute.value.params.id as string) ?? "");
 
 const config = useRuntimeConfig();
 
-const { data, pending } = await useFetchApi<DefaultResponse<Inspection>>(
-  `/inspection-read/${id.value}`,
+const { data, status, refresh } = await useAsyncData(
   "get-inspection-detail",
-  "get",
-  null
+  async () => {
+    const res = await useFetchApi<DefaultResponse<Inspection>>(
+      `/inspection-read/${id.value}`,
+      "get-inspection-detail",
+      "get",
+      null
+    );
+    return res.data.value;
+  }
 );
 
-const refreshData = () => refreshNuxtData("get-inspection-detail");
+const refreshData = () => refresh();
 
 const confirmDelete = () => {
   ElMessageBox.confirm(

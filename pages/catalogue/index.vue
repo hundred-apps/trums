@@ -12,6 +12,7 @@ import {
   Refresh,
   PictureFilled,
   Setting,
+  Eleme,
 } from "@element-plus/icons-vue";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
@@ -408,11 +409,17 @@ const request_search = ref<RequestSearch>({
   },
 });
 
-const { data } = await useFetchApi<ResponsePagination<Catalogue[]>>(
-  "/search",
+const { data, refresh, status } = await useAsyncData(
   "get-catalogues",
-  "post",
-  request_search.value
+  async () => {
+    const res = await useFetchApi<ResponsePagination<Catalogue[]>>(
+      `/search`,
+      "get-catalogues",
+      "post",
+      request_search.value
+    );
+    return res.data.value;
+  }
 );
 
 const checkSelect = () => data.value?.data.some((row) => row.checked);
@@ -437,7 +444,7 @@ const handleDelete = async (ids: string[]) => {
 
     await useFetchApi("/catalogues-delete", "delete-catalogue", "post", ids);
     ElMessage.success("Katalog berhasil dihapus");
-    refreshNuxtData("get-catalogues");
+    refresh();
   } catch (error: any) {
     ElMessage.error(error.response?.data?.message || "Gagal menghapus katalog");
   }
@@ -471,7 +478,7 @@ const formatLocalDate = (timestamp: number | null) => {
 const fetchData = async () => {
   loading.value = true;
   try {
-    await refreshNuxtData("get-catalogues");
+    await refresh();
   } catch (error) {
     ElMessage.error("Gagal memuat data katalog");
   } finally {
@@ -502,7 +509,7 @@ const shortcutsDate = [
   },
 ];
 
-const refreshTable = () => refreshNuxtData("get-catalogues");
+const refreshTable = () => refresh();
 
 const handlePageChange = (page: number) => {
   request_search.value.offset = `${page}`;
@@ -531,7 +538,8 @@ const handleSizeChange = (size: number) => {
       </NuxtLink>
 
       <el-button
-        :icon="Refresh"
+        :icon="Eleme"
+        :loading="status === 'pending'"
         size="default"
         type="default"
         @click="refreshTable"
@@ -552,7 +560,7 @@ const handleSizeChange = (size: number) => {
     <CustomTable
       :columns="filteredColumn"
       :data="data?.data ?? []"
-      :loading="loading"
+      :loading="status === 'pending'"
       @sort-change="onSort"
     />
 

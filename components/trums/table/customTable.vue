@@ -1,5 +1,11 @@
 <template>
-  <el-table :data="data" border style="width: 100%" @sort-change="onSortChange">
+  <el-table
+    v-loading="loading ?? false"
+    :data="data"
+    border
+    style="width: 100%"
+    @sort-change="onSortChange"
+  >
     <el-table-column
       v-for="col in columns"
       :key="col.key"
@@ -30,6 +36,7 @@ import { h } from "vue";
 defineProps<{
   columns: any[];
   data: any[];
+  loading?: boolean;
 }>();
 
 const renderCell = (col: any, scope: any) => {

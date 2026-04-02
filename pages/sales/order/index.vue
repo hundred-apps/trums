@@ -49,7 +49,7 @@
           size="default"
           :loading-icon="Eleme"
           :loading="loading"
-          @click="() => refreshNuxtData(refreshKey)"
+          @click="onRefresh"
         >
           Muat Ulang
         </el-button>
@@ -65,7 +65,8 @@
 
     <OrderTable
       :request_search="request_search"
-      :key="refreshKey"
+      :refresh-key="refreshKey"
+      :refresh-trigger="refreshTrigger"
       @has-bulk="(value) => (selected = value)"
       v-on:on-pending="(value) => (loading = value)"
       @on-success="
@@ -112,6 +113,7 @@ definePageMeta({
 });
 
 const refreshKey = "get-sales-order";
+const refreshTrigger = ref<number>(0);
 
 const selected = ref<string[]>([]);
 const loading = ref<boolean>(false);
@@ -151,12 +153,15 @@ const request_statistic = ref<RequestStatistic>({
   type: "so",
 });
 
-const statistic = await useFetchApi<BaseResponse<StatisticOrder>>(
-  "/statistic",
-  "get-statistic-order",
-  "post",
-  request_statistic.value
-);
+const statistic = await useAsyncData("get-statistic-order", async () => {
+  const res = await useFetchApi<ResponsePagination<StatisticOrder>>(
+    `/statistic`,
+    "get-statistic-order",
+    "post",
+    request_statistic.value
+  );
+  return res.data.value;
+});
 
 const onDelete = async (uniques: string[]) => {
   try {
@@ -179,6 +184,11 @@ const batchDelete = async () => {
   if (selected.value.length > 0) {
     await onDelete(selected.value);
   }
+};
+
+const onRefresh = () => {
+  statistic.refresh();
+  refreshTrigger.value++;
 };
 
 onMounted(() => {});

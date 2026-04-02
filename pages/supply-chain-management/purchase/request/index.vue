@@ -69,7 +69,7 @@
         size="default"
         :loading-icon="Eleme"
         :loading="loading"
-        @click="fetchData"
+        @click="onRefresh"
       >
         Muat Ulang
       </el-button>
@@ -122,7 +122,7 @@
     <CustomTable
       :columns="filteredColumns"
       :data="data?.data ?? []"
-      :loading="loading"
+      :loading="status === 'pending'"
       @sort-change="onSort"
       @selection-change="handleSelectionChange"
     />
@@ -287,20 +287,30 @@ const request_search_statistic = ref<RequestStatistic>({
   table: StatisticTable.purchase_request,
 });
 
-const statistic = await useFetchApi<BaseResponse<PurchaseRequestStatistic>>(
-  "/statistic",
-  "get-pr-statistic",
-  "post",
-  request_search_statistic.value
-);
+const statistic = await useAsyncData("get-pr-statistic", async () => {
+  const res = await useFetchApi<ResponsePagination<PurchaseRequestStatistic>>(
+    `/statistic`,
+    "get-pr-statistic",
+    "post",
+    request_search.value
+  );
+  return res.data.value;
+});
 
 // Data state
-const { data } = await useFetchApi<ResponsePagination<PurchaseRequest[]>>(
-  `/search`,
+const { data, refresh, status } = await useAsyncData(
   "purchase-requests",
-  "post",
-  request_search.value
+  async () => {
+    const res = await useFetchApi<ResponsePagination<PurchaseRequest[]>>(
+      `/search`,
+      "purchase-requests",
+      "post",
+      request_search.value
+    );
+    return res.data.value;
+  }
 );
+
 const selectedPurchaseRequests = ref<PurchaseRequest[]>([]);
 const loading = ref<boolean>(false);
 const loadingFilter = ref<boolean>(false);
@@ -386,7 +396,7 @@ const handleClose = (tag: string, type: string) => {
       request_search.value.column[index][tag] = [];
     }
   } else {
-    request_search.value.filter[tag] = null;
+    delete request_search.value.filter[tag];
   }
 };
 
@@ -668,13 +678,13 @@ const handleSelectionChange = (selection: PurchaseRequest[]) => {
 // Handle page change
 const handlePageChange = (page: number) => {
   request_search.value.offset = `${page}`;
-  refreshNuxtData("purchase-requests");
+  onRefresh();
 };
 
 // Handle page size change
 const handleSizeChange = (size: number) => {
   request_search.value.limit = `${size}`;
-  refreshNuxtData("purchase-requests");
+  onRefresh();
 };
 
 // Edit purchase request
@@ -701,7 +711,7 @@ const onDelete = async (uniques: string[]) => {
     );
     if (response.status.value == "success") {
       ElMessage.success("Purchase request berhasil dihapus");
-      refreshNuxtData("purchase-requests");
+      onRefresh();
     }
   } catch (error) {
     // User canceled or error occurred
@@ -767,28 +777,14 @@ const onSort = async (sortBy: { prop: string; order: string }) => {
 watchDebounced(
   request_search.value,
   () => {
-    refreshNuxtData("purchase-requests");
+    onRefresh();
   },
   { debounce: 500 }
 );
 
-const fetchData = async () => {
-  loading.value = true;
-  try {
-    const response = await useFetchApi<ResponsePagination<PurchaseRequest[]>>(
-      `/search`,
-      "purchase-requests",
-      "post",
-      request_search.value
-    );
-    if (response.status.value == "success") {
-      data.value = response.data.value!;
-    }
-  } catch (error: any) {
-    ElMessage.error(`${error.response?.message ?? error}`);
-  } finally {
-    loading.value = false;
-  }
+const onRefresh = () => {
+  statistic.refresh();
+  refresh();
 };
 
 const onFilter = () => {
@@ -811,7 +807,7 @@ const onFilter = () => {
       },
     ];
 
-    refreshNuxtData("purchase-requests");
+    onRefresh();
   } catch (error: any) {
     ElMessage.error(`${error.response?.message ?? error}`);
   } finally {

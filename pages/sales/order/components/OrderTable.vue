@@ -22,10 +22,13 @@
 </template>
 <script lang="tsx" setup>
 import { NuxtLink } from "#components";
-import { Filter, SetUp } from "@element-plus/icons-vue";
+import { Filter, Setting, SetUp } from "@element-plus/icons-vue";
 import {
   ElCheckbox,
   ElCheckboxGroup,
+  ElDropdown,
+  ElDropdownItem,
+  ElDropdownMenu,
   ElIcon,
   ElPopover,
   TableV2FixedDir,
@@ -46,7 +49,8 @@ import type { ColumnTable } from "~/types/ColumnTable";
 
 const props = defineProps<{
   request_search: RequestSearch;
-  key: string;
+  refreshKey: string;
+  refreshTrigger: number;
 }>();
 
 const selectedIds = ref<string[]>([]);
@@ -74,9 +78,18 @@ const emit = defineEmits<{
 // var data;
 
 // Data state
-const { data, pending } = await useFetchApi<
-  ResponsePagination<PurchaseOrder[]>
->("/search", props.key, "post", request_search.value);
+const { data, pending, refresh } = await useAsyncData(
+  props.refreshKey,
+  async () => {
+    const res = await useFetchApi<ResponsePagination<PurchaseOrder[]>>(
+      `/search`,
+      props.refreshKey,
+      "post",
+      request_search.value
+    );
+    return res.data.value;
+  }
+);
 
 const onSort = (sortBy: { order: string; prop: string }) => {
   request_search.value.sort = {
@@ -86,7 +99,7 @@ const onSort = (sortBy: { order: string; prop: string }) => {
         ? OrderColumn.ASC
         : OrderColumn.DESC,
   };
-  refreshNuxtData(props.key);
+  refresh();
 };
 
 const columns: ColumnTable<PurchaseOrder>[] = [
@@ -143,62 +156,6 @@ const columns: ColumnTable<PurchaseOrder>[] = [
       </span>
     ),
   },
-  // {
-  //   key: "status",
-  //   title: "Status",
-  //   dataKey: "status",
-  //   width: 150,
-  //   cellRenderer: ({ rowData: row }) => renderStatusTag(row.status),
-  //   headerCellRenderer: () => (
-  //     <div class="flex items-center justify-center">
-  //       <span class="mr-2 text-xs">Status</span>
-  //       <ElPopover trigger="click" width={200}>
-  //         {{
-  //           default: () => (
-  //             <div class="filter-wrapper">
-  //               <div class="filter-group flex flex-col">
-  //                 <ElCheckboxGroup
-  //                   v-model={request_search.value.column[0].status}
-  //                 >
-  //                   <ElCheckbox
-  //                     key={PurchaseOrderStatus.DRAFT}
-  //                     value={PurchaseOrderStatus.DRAFT}
-  //                     label="Draft"
-  //                   />
-  //                   <ElCheckbox
-  //                     key={PurchaseOrderStatus.PENDING_APPROVAL}
-  //                     value={PurchaseOrderStatus.PENDING_APPROVAL}
-  //                     label="Pending Approval"
-  //                   />
-  //                   <ElCheckbox
-  //                     key={PurchaseOrderStatus.APPROVED}
-  //                     value={PurchaseOrderStatus.APPROVED}
-  //                     label="Approved"
-  //                   />
-  //                   <ElCheckbox
-  //                     key={PurchaseOrderStatus.CANCELLED}
-  //                     value={PurchaseOrderStatus.CANCELLED}
-  //                     label="Cancelled"
-  //                   />
-  //                   <ElCheckbox
-  //                     key={PurchaseOrderStatus.COMPLETED}
-  //                     value={PurchaseOrderStatus.COMPLETED}
-  //                     label="Completed"
-  //                   />
-  //                 </ElCheckboxGroup>
-  //               </div>
-  //             </div>
-  //           ),
-  //           reference: () => (
-  //             <ElIcon class="cursor-pointer">
-  //               <Filter />
-  //             </ElIcon>
-  //           ),
-  //         }}
-  //       </ElPopover>
-  //     </div>
-  //   ),
-  // },
   {
     key: "created_at",
     title: "Tanggal Dibuat",
@@ -212,25 +169,57 @@ const columns: ColumnTable<PurchaseOrder>[] = [
   {
     key: "operations",
     title: "Aksi",
-    cellRenderer: ({ rowData }: { rowData: PurchaseOrder }) => (
-      <>
-        <NuxtLink
-          class="el-button el-button--small"
-          href={`/sales/order/add?id=${rowData.unique_id}`}
-        >
-          Edit
-        </NuxtLink>
-        <el-button
-          size="small"
-          type="danger"
-          onClick={() => onDelete([rowData.unique_id!])}
-        >
-          Hapus
-        </el-button>
-      </>
-    ),
-    width: 150,
+    // cellRenderer: ({ rowData }: { rowData: PurchaseOrder }) => (
+    //   <>
+    //     <NuxtLink
+    //       class="el-button el-button--small"
+    //       href={`/sales/order/add?id=${rowData.unique_id}`}
+    //     >
+    //       Edit
+    //     </NuxtLink>
+    //     <el-button
+    //       size="small"
+    //       type="danger"
+    //       onClick={() => onDelete([rowData.unique_id!])}
+    //     >
+    //       Hapus
+    //     </el-button>
+    //   </>
+    // ),
+    width: 100,
     align: "center",
+    cellRenderer: ({ rowData }: { rowData: PurchaseOrder }) => {
+      const onCommand = (command: string) => {
+        if (command === "edit") {
+          window.location.href = `/sales/order/add?id=${rowData.unique_id}`;
+        }
+        if (command === "delete") {
+          onDelete([rowData.unique_id!]);
+        }
+      };
+
+      return (
+        <ElDropdown onCommand={onCommand} hideOnClick={false}>
+          {{
+            default: () => (
+              <span class="cursor-pointer text-primary">
+                <ElIcon>
+                  <Setting />
+                </ElIcon>
+              </span>
+            ),
+            dropdown: () => (
+              <ElDropdownMenu>
+                <ElDropdownItem command="edit">Edit</ElDropdownItem>
+                <ElDropdownItem class={"text-red-600"} command="delete" divided>
+                  Hapus
+                </ElDropdownItem>
+              </ElDropdownMenu>
+            ),
+          }}
+        </ElDropdown>
+      );
+    },
   },
   {
     title: "",
@@ -346,7 +335,7 @@ const onDelete = async (uniques: string[]) => {
       uniques
     );
     if (response.status.value === "success") {
-      await refreshNuxtData(props.key);
+      await refresh();
     }
   } catch (error) {
     ElMessage.error("Gagal menghapus purchase order");
@@ -355,12 +344,12 @@ const onDelete = async (uniques: string[]) => {
 
 const handlePageChange = (page: number) => {
   request_search.value.offset = `${page}`;
-  refreshNuxtData(props.key);
+  refresh();
 };
 
 const handleSizeChange = (size: number) => {
   request_search.value.limit = `${size}`;
-  refreshNuxtData(props.key);
+  refresh();
 };
 
 watch(
@@ -375,6 +364,13 @@ watch(
   (val) => {
     emit("on-success", data.value);
     emit("on-pending", val);
+  },
+  { immediate: true }
+);
+watch(
+  () => props.refreshTrigger,
+  (val) => {
+    refresh();
   },
   { immediate: true }
 );

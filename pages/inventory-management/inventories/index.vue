@@ -12,6 +12,7 @@ import {
   SetUp,
   RefreshLeft,
   Setting,
+  Eleme,
 } from "@element-plus/icons-vue";
 
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
@@ -199,12 +200,19 @@ const router = useRouter();
 // )
 
 // const { data } = await useAsyncData('inventories', fetchData);
-const { data } = await useFetchApi<ResponsePagination<Inventory[]>>(
-  `/search`,
+const { data, refresh, status } = await useAsyncData(
   "inventories",
-  "post",
-  request_search.value
+  async () => {
+    const res = await useFetchApi<ResponsePagination<Inventory[]>>(
+      `/search`,
+      "inventories",
+      "post",
+      request_search.value
+    );
+    return res.data.value;
+  }
 );
+
 const locations = ref<Catalogue[]>([]);
 const units = ref<Unit[]>([]);
 
@@ -632,7 +640,7 @@ const handleDelete = async (row: Inventory) => {
       [row.unique_id]
     );
     if (response.status.value == "success") {
-      await refreshNuxtData("inventories");
+      await refresh();
       ElMessage.success("Data Berhasil Dihapus");
     }
   } catch (error: any) {
@@ -666,7 +674,7 @@ const onSort = (sortBy: { prop: string; order: string }) => {
 watch(
   request_search,
   () => {
-    refreshNuxtData("inventories");
+    refresh();
   },
   { immediate: true }
 );
@@ -712,7 +720,7 @@ const submitToDelete = async (ids: string[]) => {
       ids
     );
     if (response.status.value == "success") {
-      await refreshNuxtData("inventories");
+      await refresh();
     }
   } catch (error: any) {
     ElMessage.error(`${error.response?.data?.message}`);
@@ -726,7 +734,7 @@ const hasSelected = computed(() => {
 });
 
 const onRefresh = () => {
-  refreshNuxtData("inventories");
+  refresh();
 };
 
 const newInventory = () => {
@@ -751,8 +759,12 @@ onMounted(() => {
             placeholder="Type to search"
         /></el-col>
         <el-button @click="newInventory">New Inventory</el-button>
-        <el-button @click="onRefresh"
-          ><el-icon class="mr-3"><RefreshLeft /></el-icon> Muat Ulang</el-button
+        <el-button
+          @click="onRefresh"
+          :icon="Eleme"
+          :loading="status === 'pending'"
+        >
+          Muat Ulang</el-button
         >
         <NuxtLink
           class="el-button el-button--default"
@@ -767,6 +779,7 @@ onMounted(() => {
         @sort-change="onSort"
         :columns="filteredColumn"
         :data="data?.data ?? []"
+        :loading="status === 'pending'"
       />
       <div class="flex justify-end mt-3">
         <el-pagination

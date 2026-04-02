@@ -5,7 +5,7 @@ definePageMeta({
   name: "List Of Inventory Movement",
 });
 import { ref, onMounted } from "vue";
-import { InfoFilled, Setting, SetUp } from "@element-plus/icons-vue";
+import { InfoFilled, Setting, SetUp, Eleme } from "@element-plus/icons-vue";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
@@ -319,11 +319,17 @@ const request_search = ref<RequestSearch>({
   },
 });
 
-const { data } = await useFetchApi<ResponsePagination<InventoryMovement[]>>(
-  `/search`,
+const { data, status, refresh } = await useAsyncData(
   "inventory_movement",
-  "post",
-  request_search.value
+  async () => {
+    const res = await useFetchApi<ResponsePagination<InventoryMovement[]>>(
+      `/search`,
+      "inventory_movement",
+      "post",
+      request_search.value
+    );
+    return res.data.value;
+  }
 );
 
 const checkSelect = () =>
@@ -523,6 +529,8 @@ const consigment = () => {
   router.push("consigment");
 };
 
+const onRefresh = () => refresh();
+
 onMounted(() => {
   // loading.value = true;
   // setTimeout(() => {
@@ -540,6 +548,15 @@ onMounted(() => {
           size="default"
           placeholder="Type to search"
       /></el-col>
+      <el-button
+        size="default"
+        type="default"
+        :loading="status === 'pending'"
+        :icon="Eleme"
+        @click="onRefresh"
+        >Reload</el-button
+      >
+
       <NuxtLink
         class="el-button el-button--primary"
         href="/inventory-management/checkin/add?type=in"
@@ -595,6 +612,7 @@ onMounted(() => {
       @sort-change="onSort"
       :columns="filteredColumn"
       :data="data?.data ?? []"
+      :loading="status === 'pending'"
     />
     <div class="flex justify-end mt-3">
       <el-pagination

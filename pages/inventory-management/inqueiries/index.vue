@@ -79,12 +79,19 @@ const request_search = ref<RequestSearch>({
   },
 });
 
-const { data, pending } = await useFetchApi<ResponsePagination<Inquiry[]>>(
-  `/search`,
+const { data, status, refresh } = await useAsyncData(
   "get-inquiries",
-  "post",
-  request_search.value
+  async () => {
+    const res = await useFetchApi<ResponsePagination<Inquiry[]>>(
+      `/search`,
+      "get-inquiries",
+      "post",
+      request_search.value
+    );
+    return res.data.value;
+  }
 );
+
 const tmpInquiries = ref<Inquiry[]>([]);
 const dialogConfirmDelete = ref<boolean>(false);
 const loading = ref<boolean>(false);
@@ -527,6 +534,8 @@ const hasSelected = computed(() => {
   return data.value?.data?.some((item) => item.checked) || false;
 });
 
+const onRefresh = () => refresh();
+
 const handleSizeChange = (size: number) => {
   request_search.value.limit = `${size}`;
   request_search.value.offset = "1";
@@ -551,10 +560,10 @@ onMounted(() => {});
       <el-button
         size="default"
         type="default"
-        :loading="pending"
+        :loading="status === 'pending'"
         :loading-icon="Eleme"
         :icon="Refresh"
-        @click="() => refreshNuxtData('get-inquiries')"
+        @click="onRefresh"
         >Reload</el-button
       >
       <el-button
@@ -569,6 +578,7 @@ onMounted(() => {});
       @sort-change="onSort"
       :columns="filteredColumn"
       :data="data?.data ?? []"
+      :loading="status === 'pending'"
     />
     <div class="flex justify-end mt-3">
       <el-pagination

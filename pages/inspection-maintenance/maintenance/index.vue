@@ -73,14 +73,20 @@ const request_search = ref<RequestSearch>({
 
 const axios = useApi();
 
-const { data, pending } = await useFetchApi<ResponsePagination<Maintenance[]>>(
-  `/search`,
-  "maintenances",
-  "post",
-  request_search.value
+const { data, status, refresh } = await useAsyncData(
+  "get-maintenance",
+  async () => {
+    const res = await useFetchApi<ResponsePagination<Maintenance[]>>(
+      `/search`,
+      "get-maintenance",
+      "post",
+      request_search.value
+    );
+    return res.data.value;
+  }
 );
 
-const onRefresh = () => refreshNuxtData("maintenances");
+const onRefresh = () => refresh();
 
 const column_selected = ref<string[]>([
   "selection",
@@ -122,6 +128,7 @@ const columnMaintenance: ColumnTable<any>[] = [
     title: "Item",
     dataKey: "inventory",
     width: 300,
+    sortable: true,
     cellRenderer: ({ rowData: row }) => (
       <p>{row.inventory?.catalogue?.name ?? "-"}</p>
     ),
@@ -131,6 +138,7 @@ const columnMaintenance: ColumnTable<any>[] = [
     title: "Penanggung Jawab",
     dataKey: "responsible.name",
     width: 250,
+    sortable: true,
   },
   {
     key: "maintenance_date",
@@ -184,9 +192,11 @@ const columnMaintenance: ColumnTable<any>[] = [
   },
   {
     key: "start_date",
+    dataKey: "start_date",
     title: "Tgl Mulai",
     width: 200,
     align: "center",
+    sortable: true,
     cellRenderer: ({ rowData: row }) => (
       <ElText>
         {row.start_date == null ? "-" : formatLocalDate(row.start_date)}
@@ -195,9 +205,11 @@ const columnMaintenance: ColumnTable<any>[] = [
   },
   {
     key: "end_date",
+    dataKey: "end_date",
     title: "Tgl Selesai",
     width: 200,
     align: "center",
+    sortable: true,
     cellRenderer: ({ rowData: row }) => (
       <ElText>
         {row.end_date == null ? "-" : formatLocalDate(row.end_date)}
@@ -207,6 +219,7 @@ const columnMaintenance: ColumnTable<any>[] = [
 
   {
     key: "is_repeate",
+    dataKey: "is_repeate",
     title: "Rutin",
     width: 70,
     cellRenderer: ({ rowData: row }) =>
@@ -222,6 +235,7 @@ const columnMaintenance: ColumnTable<any>[] = [
   },
   {
     key: "type",
+    dataKey: "type",
     title: "Type Maintenance",
     width: 200,
     align: "center",
@@ -482,12 +496,15 @@ const onEdit = async (value: Maintenance) => {
   window.location.href = "maintenance/add?unique_id=" + value.unique_id;
 };
 
-const onSort = ({ key, order }: SortBy) => {
-  sortState.value[key] = order;
-
-  const sort: Pagination<Maintenance[]> = paginations.value!;
-  sort.query.reverse();
-  paginations.value = sort;
+const onSort = (sortBy: { order: string; prop: string }) => {
+  console.log(sortBy);
+  request_search.value.sort = {
+    column: sortBy.prop,
+    order:
+      sortBy.order === OrderColumn.ASCENDING
+        ? OrderColumn.DESC
+        : OrderColumn.ASC,
+  };
 };
 
 const hasSelected = computed(() => {
@@ -539,6 +556,16 @@ const submitToDelete = async (ids: string[]) => {
   }
 };
 
+const handlePageChange = (page: number) => {
+  request_search.value.offset = `${page}`;
+};
+
+const handleSizeChange = (size: number) => {
+  request_search.value.limit = `${size}`;
+};
+
+watch(request_search, () => onRefresh(), { immediate: true });
+
 onMounted(() => {
   // fetchMaintenances();
 });
@@ -555,8 +582,8 @@ onMounted(() => {
       <el-button
         size="default"
         @click="onRefresh"
-        :loading-icon="Eleme"
-        :loading="pending"
+        :icon="Eleme"
+        :loading="status === 'pending'"
         >Reload Data</el-button
       >
       <el-button type="danger" :disabled="!hasSelected" @click="bulkDelete">
@@ -566,14 +593,19 @@ onMounted(() => {
     <CustomTable
       :columns="filteredColumn"
       :data="data?.data ?? []"
-      :column-sort="onSort"
+      @sort-change="onSort"
       :sort-state="sortState"
+      :loading="status === 'pending'"
     />
     <div class="flex justify-end mt-3">
       <el-pagination
         background
-        layout="prev, pager, next"
-        :total="paginations?.total_page"
+        layout="prev, pager, next, sizes"
+        :total="data?.total_data"
+        :page-size="parseInt(request_search.limit)"
+        :current-page="parseInt(request_search.offset)"
+        @current-change="handlePageChange"
+        @size-change="handleSizeChange"
       />
     </div>
   </TrumsWrapper>

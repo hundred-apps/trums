@@ -80,8 +80,8 @@
       <el-button
         size="default"
         :loading-icon="Eleme"
-        :loading="loading"
-        @click="() => refreshNuxtData('get-brands')"
+        :loading="status === 'pending'"
+        @click="() => refresh()"
       >
         Muat Ulang
       </el-button>
@@ -94,7 +94,7 @@
     <CustomTable
       :columns="columns"
       :data="data?.data ?? []"
-      :loading="loading"
+      :loading="status === 'pending'"
       @sort-change="onSort"
       @selection-change="handleSelectionChange"
     />
@@ -163,13 +163,15 @@ const request_search = ref<RequestSearch>({
 });
 
 // Data state
-const { data } = await useFetchApi<ResponsePagination<Brands[]>>(
-  "/search",
-  "get-brands",
-  "post",
-  request_search.value
-);
-
+const { data, refresh, status } = await useAsyncData("get-brands", async () => {
+  const res = await useFetchApi<ResponsePagination<Brands[]>>(
+    `/search`,
+    "get-brands",
+    "post",
+    request_search.value
+  );
+  return res.data.value;
+});
 const selectedBrands = ref<Brands[]>([]);
 const loading = ref<boolean>(false);
 
@@ -350,13 +352,13 @@ const handleSelectionChange = (selection: Brands[]) => {
 
 const handlePageChange = (page: number) => {
   request_search.value.offset = `${page}`;
-  refreshNuxtData("get-brands");
+  refresh();
 };
 
 const handleSizeChange = (size: number) => {
   request_search.value.limit = `${size}`;
   request_search.value.offset = "1";
-  refreshNuxtData("get-brands");
+  refresh();
 };
 
 const onDelete = async (uniques: string[]) => {
@@ -380,7 +382,7 @@ const onDelete = async (uniques: string[]) => {
       );
 
       ElMessage.success("Brand berhasil dihapus");
-      refreshNuxtData("get-brands");
+      refresh();
     }
   } catch (error) {
     if (error !== "cancel") {
@@ -409,7 +411,7 @@ const onSort = (sortBy: { order: string; prop: string }) => {
         ? OrderColumn.ASC
         : OrderColumn.DESC,
   };
-  refreshNuxtData("get-brands");
+  refresh();
 };
 
 const onChangeBrandFilter = (val: string) => {
@@ -426,14 +428,14 @@ const onChangeBrandFilter = (val: string) => {
       },
     ];
   }
-  refreshNuxtData("get-brands");
+  refresh();
 };
 
 // Watch search query
 watchDebounced(
   request_search,
   () => {
-    refreshNuxtData("get-brands");
+    refresh();
   },
   { debounce: 500, deep: true }
 );

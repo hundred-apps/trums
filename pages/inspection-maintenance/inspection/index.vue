@@ -49,11 +49,17 @@ const request_search = ref<RequestSearch>({
   flag: "list",
 });
 
-const { data } = await useFetchApi<ResponsePagination<Inspection[]>>(
-  `/search`,
+const { data, status, refresh } = await useAsyncData(
   "fetch-inspection",
-  "post",
-  request_search.value
+  async () => {
+    const res = await useFetchApi<ResponsePagination<Inspection[]>>(
+      `/search`,
+      "fetch-inspection",
+      "post",
+      request_search.value
+    );
+    return res.data.value;
+  }
 );
 
 const inspections = ref<Inspection[]>([]);
@@ -331,7 +337,16 @@ const handleSelectionChange = (selection: any[]) => {
   console.log("Selected Rows:", selection);
 };
 
-const onRefreshData = () => refreshNuxtData("fetch-inspection");
+const onRefreshData = () => refresh();
+
+const handlePageChange = (page: number) => {
+  request_search.value.offset = `${page}`;
+};
+
+const handleSizeChange = (size: number) => {
+  request_search.value.limit = `${size}`;
+};
+
 watch(request_search.value, () => onRefreshData(), {
   immediate: true,
 });
@@ -340,7 +355,10 @@ watch(request_search.value, () => onRefreshData(), {
   <TrumsWrapper>
     <el-row :gutter="20" class="mb-3">
       <el-col :span="6"
-        ><el-input v-model="search" size="default" placeholder="Type to search"
+        ><el-input
+          v-model="request_search.keyword"
+          size="default"
+          placeholder="Type to search"
       /></el-col>
       <NuxtLink class="el-button el-button--primary" href="inspection/add"
         >New Inspection</NuxtLink
@@ -348,22 +366,26 @@ watch(request_search.value, () => onRefreshData(), {
       <el-button
         size="default"
         @click="onRefreshData"
-        :loading-icon="Eleme"
-        :loading="loading"
-        >Reload Data</el-button
+        :icon="Eleme"
+        :loading="status === 'pending'"
+        >Reload</el-button
       >
     </el-row>
     <CustomTable
       @sort-change="onSort"
       :columns="filteredColumn"
       :data="data?.data ?? []"
-      :loading="loading"
+      :loading="status === 'pending'"
     />
     <div class="flex justify-end mt-3">
       <el-pagination
         background
-        layout="prev, pager, next"
-        :total="inspectionsPaginate?.total_page"
+        layout="prev, pager, next, sizes"
+        :total="data?.total_data"
+        :page-size="parseInt(request_search.limit)"
+        :current-page="parseInt(request_search.offset)"
+        @current-change="handlePageChange"
+        @size-change="handleSizeChange"
       />
     </div>
   </TrumsWrapper>
