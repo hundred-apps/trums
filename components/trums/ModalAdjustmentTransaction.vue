@@ -20,7 +20,7 @@
         type="default"
         size="default"
         :icon="Plus"
-        @click="$emit('create-new')"
+        @click="onCreateNew"
       >
         Buat Baru
       </el-button>
@@ -81,6 +81,11 @@ const handleSelectionChange = (val: AdjustmentTransaction[]) => {
   selectedItems.value = val;
 };
 
+const onCreateNew = () => {
+  console.log("emit");
+  emit("create-new");
+};
+
 const handleSelect = () => {
   const selected = selectedItems.value;
 
@@ -92,4 +97,8 @@ const handleSelect = () => {
 
   visible.value = false;
 };
+
+onMounted(() => {
+  console.log("properties", props.data);
+});
 </script>

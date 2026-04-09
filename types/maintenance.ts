@@ -1,3 +1,4 @@
+import type { UploadUserFile } from "element-plus";
 import type { Catalogue } from "./catalogue";
 import type { InspectionItem } from "./inspection";
 import type { Inventory } from "./inventory";
@@ -59,6 +60,8 @@ export type Maintenance_item = {
   created_at: number;
   created_by: string;
   updated_at: number;
+  files_upload?: UploadUserFile[];
+  image?: string;
 };
 
 export type Maintenance_job = {

@@ -168,6 +168,7 @@
           label-width="auto"
           :model="tmpEditBulk"
         >
+          <p class="font-bold my-3">Edit Sekaligus</p>
           <div
             class="flex mb-3 p-4 gap-3 border items-end border-gray-200 rounded-lg w-full bg-gray-50"
           >
@@ -240,7 +241,12 @@
               />
             </template>
           </el-table-column>
-          <el-table-column prop="item_name" label="item" class="my-0">
+          <el-table-column
+            prop="item_name"
+            label="item"
+            class="my-0"
+            width="300"
+          >
             <template #default="scope">
               <el-autocomplete
                 :disabled="loading"
@@ -293,7 +299,7 @@
               </el-autocomplete>
             </template>
           </el-table-column>
-          <el-table-column prop="sn" label="Serial Number" width="300" />
+          <el-table-column prop="sn" label="Serial Number" />
           <el-table-column prop="quantity" label="QTY" class="mb-0" width="200">
             <template #default="scope">
               <el-input-number v-model="scope.row.quantity" />
@@ -534,20 +540,20 @@
       </template>
     </el-drawer>
 
-    <ModalAdjustmentTransaction
+    <!-- <ModalAdjustmentTransaction
       v-model:visible="visibleModalAdjustmentTransaction"
       @select-adjustment="handleSelectAdjustment"
-      @create-new="visibleModalNewAdjustment = true"
+      @create-new="() => console.log('create new')"
       :data="adjustmentTransactions.data?.value?.data ?? []"
       :search-params="querySearchAdjustmentTransaction"
-    />
-    <el-dialog
+    /> -->
+    <!-- <el-dialog
       v-model="visibleModalNewAdjustment"
       title="Buat Biaya Lain"
       width="1000"
     >
       <AddAdjustment @submit="handleAdjustmentSubmit" />
-    </el-dialog>
+    </el-dialog> -->
     <el-dialog v-model="dialogContact" title="Detail Kontak">
       <AddContact
         ref="formFieldsRefContact"
@@ -891,9 +897,19 @@ const querySearchAdjustmentTransaction = ref<RequestSearch>({
   flag: "form",
 });
 
-const adjustmentTransactions = await useFetchApi<
-  ResponsePagination<AdjustmentTransaction[]>
->("/search", "search-adjustment", "post", querySearchAdjustmentTransaction);
+const adjustmentTransactions = await useAsyncData(
+  "search-adjustment",
+  async () => {
+    const res = await useFetchApi<ResponsePagination<AdjustmentTransaction[]>>(
+      "/search",
+      "search-adjustment",
+      "post",
+      querySearchAdjustmentTransaction.value
+    );
+
+    return res.data.value;
+  }
+);
 
 const units = ref<Unit[]>([]);
 const termOfPayments = ref<TermOfPayment[]>([]);
@@ -970,6 +986,15 @@ const hasBulkInput = computed(() => {
     tmpEditBulk.value.unit_id != ""
   );
 });
+
+watch(
+  () => querySearchAdjustmentTransaction.value,
+  () => {
+    console.log("berubah");
+    refreshNuxtData("search-adjustment");
+  },
+  { immediate: true }
+);
 
 const showTransactionAdjustmentValue = (
   ref: ReferenceTransactionAdjustment
@@ -1304,7 +1329,8 @@ const handleSubmit = async (catalogue: Catalogue) => {
     const catalogueInsert = (await create_catalogue(catalogue)) ?? undefined;
 
     if (catalogueInsert != undefined) {
-      // dataTable.value[itemActive.value].item = catalogueInsert?.name ?? '';
+      ruleForm.pricetag_item[itemActive.value].item_name =
+        catalogueInsert?.name ?? "";
       // dataTable.value[itemActive.value].item_id = catalogueInsert?.unique_id ?? '';
       ruleForm.pricetag_item[itemActive.value].sn = catalogueInsert?.sn ?? "";
       ruleForm.pricetag_item[itemActive.value].catalogue = catalogueInsert;
@@ -1482,13 +1508,18 @@ const querySearchVendors = (query: string, cb: (arg: any) => void) => {
         const contacts: Contact[] = (response.data.value?.data ??
           []) as Contact[];
         if (contacts.length > 0) {
-          cb(
-            contacts.map((value) => ({
+          cb([
+            ...contacts.map((value) => ({
               value: value.name,
               unique_id: value.unique_id,
               data: value,
-            }))
-          );
+            })),
+            {
+              value: query,
+              isNew: true,
+              keyword: query,
+            },
+          ]);
         } else {
           cb([
             {
@@ -1510,7 +1541,8 @@ const querySearchPIC = (query: string, cb: (arg: any) => void) => {
     const request_search: RequestSearch = {
       column: [
         {
-          parent_id: ruleForm.to_id,
+          parent_id:
+            ruleForm.type == "in" ? [ruleForm.owner_id] : [ruleForm.to_id],
         },
       ],
       keyword: query,
@@ -1534,13 +1566,18 @@ const querySearchPIC = (query: string, cb: (arg: any) => void) => {
         const contacts: Contact[] = (response.data.value?.data ??
           []) as Contact[];
         if (contacts.length > 0) {
-          cb(
-            contacts.map((value) => ({
+          cb([
+            ...contacts.map((value) => ({
               value: value.name,
               unique_id: value.unique_id,
               data: value,
-            }))
-          );
+            })),
+            {
+              value: query,
+              isNew: true,
+              keyword: query,
+            },
+          ]);
         } else {
           cb([
             {
@@ -1863,7 +1900,14 @@ const querySearchAsyncInventories = (
           const results = inventories.map((data: ItemSearch) => {
             return { isNew: false, value: `${data.catalogue_name}`, ...data };
           });
-          cb(results);
+          cb([
+            ...results,
+            {
+              isNew: true,
+              value: `${queryString}`,
+              name: `Tambahkan ${queryString}`,
+            },
+          ]);
         } else {
           cb([
             {

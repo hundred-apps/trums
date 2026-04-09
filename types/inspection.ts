@@ -1,4 +1,5 @@
 import type { Contact } from "./contact";
+import type { AppFile } from "./file";
 import type { Inventory } from "./inventory";
 import type { People } from "./people";
 
@@ -34,4 +35,5 @@ export type InspectionItem = {
   created_at: number | null;
   created_by: string | null;
   updated_at: number | null;
+  files?: AppFile[];
 };

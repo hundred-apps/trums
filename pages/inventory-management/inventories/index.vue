@@ -242,7 +242,7 @@ const availableColumn: ColumnTable<Inventory>[] = [
     cellRenderer: ({ rowData }: { rowData: Inventory }) => (
       <NuxtLink
         class={`text-blue-600`}
-        href={`/catalogue/${rowData.catalogue_id}`}
+        href={`/inventory-management/inventories/${rowData.unique_id}`}
       >
         {rowData.catalogue?.name ?? "N/A"}
       </NuxtLink>
@@ -494,7 +494,8 @@ const availableColumn: ColumnTable<Inventory>[] = [
     cellRenderer: ({ rowData }: { rowData: Inventory }) => {
       const onCommand = (command: string) => {
         if (command === "edit") {
-          handleEdit(rowData);
+          window.location.href =
+            "/inventory-movement/inventories/add?id=" + rowData.unique_id;
         }
         if (command === "delete") {
           handleDelete(rowData);

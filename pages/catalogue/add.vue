@@ -376,9 +376,9 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       }
 
       // Tambahkan file foto
-      ruleForm.file_catalogues.forEach((file) => {
+      ruleForm.file_catalogues.forEach((file, i) => {
         if (file.raw) {
-          formData.append("files[]", file.raw);
+          formData.append(`files[${i}]`, file.raw);
         }
       });
 

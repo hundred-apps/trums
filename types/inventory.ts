@@ -1,33 +1,42 @@
-import type { Catalogue } from "./catalogue"
+import type { Catalogue } from "./catalogue";
+import type { AppFile } from "./file";
+import type { InventoryMovementItem } from "./inventory_movement";
+import type { People } from "./people";
 import type { Pricelist_item } from "./pricelist";
-import type { Unit } from "./unit"
+import type { Unit } from "./unit";
 
 export type Inventory = {
-    id: number,
-    name?: string,
-    unique_id: string,
-    unique_code: string,
-    catalogue_id: string,
-    catalogue: Catalogue,
-    location_id: string,
-    is_traceable: boolean,
-    traceable?: number,
-    sn: string,
-    unit_id: string,
-    unit_name: string,
-    quantity: number,
-    cost: number,
-    selling_price?: number,
-    contact_id?: string,
-    contact_name?: string,
-    contact_version?: number,
-    location: Catalogue|null
-    checked?: boolean,
-    unit: Unit|null;
-    version: number,
-    pricelist_item?: Pricelist_item,
-    order: number;
-    request: number;
-    booking: number;
-    available: number;
-}
+  id: number;
+  name?: string;
+  unique_id: string;
+  unique_code: string;
+  catalogue_id: string;
+  catalogue: Catalogue;
+  location_id: string;
+  is_traceable: boolean;
+  traceable?: number;
+  sn: string;
+  unit_id: string;
+  unit_name: string;
+  quantity: number;
+  cost: number;
+  selling_price?: number;
+  contact_id?: string;
+  contact_name?: string;
+  contact_version?: number;
+  location: Catalogue | null;
+  checked?: boolean;
+  unit: Unit | null;
+  version: number;
+  pricelist_item?: Pricelist_item;
+  order: number;
+  request: number;
+  booking: number;
+  available: number;
+  inventory_movement_item: InventoryMovementItem[];
+  created_at: number;
+  updated_at: number;
+  created_by: string;
+  people: People;
+  files: AppFile[];
+};

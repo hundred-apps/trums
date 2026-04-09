@@ -9,7 +9,7 @@
     </el-page-header>
     <el-card class="my-3">
       <template #header>
-        <div class="flex justify-end">
+        <div class="flex justify-end gap-3">
           <el-button
             type="default"
             :icon="Eleme"
@@ -18,6 +18,22 @@
             @click="refreshData"
             >Reload</el-button
           >
+          <el-dropdown @command="handleUpdateStatus">
+            <el-button type="primary">
+              Ubah Status<el-icon class="el-icon--right"
+                ><arrow-down
+              /></el-icon>
+            </el-button>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="draft">DRAFT</el-dropdown-item>
+                <el-dropdown-item command="progress">PROGRESS</el-dropdown-item>
+                <el-dropdown-item command="repair">REPAIR</el-dropdown-item>
+                <el-dropdown-item command="done">DONE</el-dropdown-item>
+                <el-dropdown-item command="cancel">CANCEL</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
           <el-button
             type="danger"
             :disabled="status === 'pending'"
@@ -30,7 +46,7 @@
             :disabled="status === 'pending'"
             :loading="status === 'pending'"
             :to="`/inspection-maintenance/inspection/add?id=${data?.data.unique_id}`"
-            class="el-button el-button--warning"
+            class="el-button el-button--warning m-0"
           >
             <el-icon class="me-2"><Edit /></el-icon> Edit
           </NuxtLink>
@@ -99,23 +115,81 @@
         border
         style="width: 100%"
       >
+        <el-table-column prop="image" label="Image" width="75" align="center">
+          <template #default="scope">
+            <div
+              class="demo-image__preview flex items-center"
+              style="width: 25px; height: 25px"
+            >
+              <ItemImageUpload
+                v-if="getFile(scope.row as InspectionItem) != ''"
+                v-model="scope.row.files"
+                :image-url="getFirstFileUrl((scope.row as InspectionItem).files ?? [])"
+                :show-text="false"
+                @open-modal="() => {
+                    fileList = getFilesUrl(scope.row as InspectionItem);
+                    initialIndexImage = 0;
+                    previewImage = true;
+                  }"
+              />
+              <el-image v-else>
+                <template #error>
+                  <div
+                    class="flex items-center justify-center border rounded py-2 px-2"
+                    style="width: 25px; height: 25px; font-size: 10px"
+                  >
+                    <ElIcon>
+                      <PictureFilled />
+                    </ElIcon>
+                  </div>
+                </template>
+              </el-image>
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column prop="inventories.catalogue.name" label="Nama" />
         <el-table-column prop="inventories.location.name" label="Lokasi" />
         <el-table-column prop="pic.name" label="PIC" />
         <el-table-column prop="condition" label="Kondisi" />
       </el-table>
     </el-card>
+
+    <el-image-viewer
+      v-if="previewImage"
+      show-progress
+      :url-list="fileList"
+      @close="previewImage = false"
+    >
+      <template #viewer-error="{ activeIndex, src }">
+        <div class="image-slot viewer-error">
+          <el-icon><icon-picture /></el-icon>
+          <span>
+            this is viewer-error slot. current index: {{ activeIndex }}. src:
+            {{ src }}
+          </span>
+        </div>
+      </template>
+    </el-image-viewer>
   </TrumsWrapper>
 </template>
 
 <script lang="tsx" setup>
 import { ref, onMounted } from "vue";
-import type { Inspection } from "~/types/inspection";
+import type { Inspection, InspectionItem } from "~/types/inspection";
 import type { DefaultResponse } from "~/types/pagination";
 import ListNameAndValue from "~/components/trums/ListNameAndValue.vue";
 import { formatDate } from "@vueuse/core";
-import { Delete, Eleme, Edit } from "@element-plus/icons-vue";
+import {
+  Delete,
+  Eleme,
+  Edit,
+  PictureFilled,
+  ArrowDown,
+} from "@element-plus/icons-vue";
 import { formatLocalDate } from "#imports";
+import { getFirstFileUrl } from "#imports";
+import ItemImageUpload from "~/pages/sales/inquiry/components/ItemImageUpload.vue";
+import type { BaseResponse } from "~/types/response";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -129,6 +203,11 @@ const goBack = () => router.back();
 const id = ref<string>((router.currentRoute.value.params.id as string) ?? "");
 
 const config = useRuntimeConfig();
+const imageUrl = config.public.baseImageURL;
+
+const fileList = ref<string[]>([]);
+const initialIndexImage = ref<number>(0);
+const previewImage = ref<boolean>(false);
 
 const { data, status, refresh } = await useAsyncData(
   "get-inspection-detail",
@@ -163,6 +242,35 @@ const confirmDelete = () => {
     });
 };
 
+const handleUpdateStatus = (command: string) => {
+  const formData = new FormData();
+
+  formData.append("unique_id", `${data.value?.data.unique_id}`);
+  formData.append("status", command);
+
+  updateData(formData);
+};
+
+const updateData = async (formData: FormData) => {
+  status.value = "pending";
+  try {
+    const response = await useFetchApi<BaseResponse<Inspection>>(
+      "/inspection-create",
+      "inspection-create",
+      "post",
+      formData
+    );
+
+    if (response.status.value === "success") {
+      refreshData();
+    }
+  } catch (error: any) {
+    ElMessage.error(error.response?.message ?? error);
+  } finally {
+    status.value = "success";
+  }
+};
+
 const handleSubmitDelete = async (values: string[]) => {
   try {
     const response = await useFetchApi(
@@ -176,6 +284,25 @@ const handleSubmitDelete = async (values: string[]) => {
     }
   } catch (error: any) {
     ElMessage.error(`${error?.response?.data?.message ?? error}`);
+  }
+};
+
+const getFile = (inspectionItem: InspectionItem) => {
+  if (inspectionItem.files != null && inspectionItem.files!.length > 0) {
+    return `${imageUrl}/${inspectionItem.files![0].image_path}/${
+      inspectionItem.files![0].filename
+    }`;
+  } else {
+    return "";
+  }
+};
+const getFilesUrl = (inspectionItem: InspectionItem): string[] => {
+  if (inspectionItem.files != null && inspectionItem.files!.length > 0) {
+    return inspectionItem.files.map(
+      (file) => `${imageUrl}/${file.image_path}/${file.filename}`
+    );
+  } else {
+    return [""];
   }
 };
 

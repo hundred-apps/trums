@@ -39,8 +39,8 @@ const column_selected = ref<string[]>([
   "selection",
   "unique_code",
   "date",
-  "request_by",
-  "request_to",
+  "request_by.name",
+  "request_to.name",
   "status",
   "operation",
   "setup",
@@ -139,17 +139,19 @@ const availableColumn: ColumnTable<Inquiry>[] = [
   },
   {
     title: "Diminta Oleh",
-    dataKey: "request_to",
-    key: "request_to",
+    dataKey: "request_to.name",
+    key: "request_to.name",
+    sortable: true,
     cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
       <p>{rowData.request_to?.name ?? "Tidak Ada"}</p>
     ),
   },
   {
     title: "PIC",
-    dataKey: "request_by",
-    key: "request_by",
+    dataKey: "request_by.name",
+    key: "request_by.name",
     width: 300,
+    sortable: true,
     cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
       <p>{rowData.request_by?.name ?? ""}</p>
     ),

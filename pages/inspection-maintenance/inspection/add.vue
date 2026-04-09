@@ -44,28 +44,49 @@
             @select="(record) => handleSelectInventoryInspection(record)"
           >
             <template #default="{ item }">
-              <div
-                class="name el-text el-text--primary"
-                style="line-height: normal"
-              >
-                {{
-                  (item.data as Inventory).name ??
-                  (item.data as Inventory).catalogue?.name ??
-                  ""
-                }}
+              <div v-if="item.isNew" class="flex items-center text-blue-500">
+                <el-icon><Plus /></el-icon>
+                <span class="ml-2"
+                  >Tambahkan "{{ item.data.catalogue.name }}"</span
+                >
               </div>
-              <span class="text-sm"
-                >Lokasi:
-                {{ (item.data as Inventory).location?.name ?? "-" }}</span
-              >
-              <span class="text-sm" style="line-height: normal"
-                >SN:
-                {{
-                  (item.data as Inventory).sn ??
-                  (item.data as Inventory).catalogue?.sn ??
-                  "N/A"
-                }}</span
-              >
+              <div v-else class="flex items-center gap-2">
+                <!-- Thumbnail file pertama -->
+                <div class="flex-shrink-0 mt-1">
+                  <div
+                    v-if="
+                      item.data.catalogue.files &&
+                      item.data.catalogue.files.length > 0
+                    "
+                    class="w-10 h-10 rounded overflow-hidden border"
+                  >
+                    <img
+                      :src="getFirstFileUrl(item.data.catalogue.files)"
+                      :alt="item.data.catalogue.name"
+                      class="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div
+                    v-else
+                    class="w-10 h-10 rounded border flex items-center justify-center text-gray-400"
+                  >
+                    <el-icon><Picture /></el-icon>
+                  </div>
+                </div>
+
+                <!-- Informasi produk -->
+                <div class="flex-1 min-w-0">
+                  <p style="line-height: 15px" class="font-bold truncate">
+                    {{ item.data.catalogue.name }}
+                  </p>
+                  <p class="text-sm text-gray-500 truncate">
+                    PN/SN:
+                    {{ item.data.catalogue.sn || item.data.sn || "Tidak Ada" }}
+                    | Brand:
+                    {{ item.data.catalogue.brand_name || "N/A" }}
+                  </p>
+                </div>
+              </div>
             </template>
           </el-autocomplete>
         </el-form-item>
@@ -126,6 +147,16 @@
     </el-card>
     <el-card class="mb-3">
       <el-table :data="dataTable" border>
+        <el-table-column label="Image" width="75">
+          <template #default="scope">
+            <ItemImageUpload
+              v-model="scope.row.files"
+              :image-url="scope.row.image"
+              :show-text="false"
+              @open-modal="() => openImageModal(scope.$index, scope.row)"
+            />
+          </template>
+        </el-table-column>
         <el-table-column prop="name" label="item">
           <template #default="scope">
             <el-autocomplete
@@ -134,7 +165,55 @@
               v-model="scope.row.name"
               placeholder="Please input"
               @select="(item: Record<string, any>) => onHandleSelectItemAutocomplete(item, scope)"
-            />
+            >
+              <template #default="{ item }">
+                <div v-if="item.isNew" class="flex items-center text-blue-500">
+                  <el-icon><Plus /></el-icon>
+                  <span class="ml-2"
+                    >Tambahkan "{{ item.data.catalogue.name }}"</span
+                  >
+                </div>
+                <div v-else class="flex items-center gap-2">
+                  <!-- Thumbnail file pertama -->
+                  <div class="flex-shrink-0 mt-1">
+                    <div
+                      v-if="
+                        item.data.catalogue.files &&
+                        item.data.catalogue.files.length > 0
+                      "
+                      class="w-10 h-10 rounded overflow-hidden border"
+                    >
+                      <img
+                        :src="getFirstFileUrl(item.data.catalogue.files)"
+                        :alt="item.data.catalogue.name"
+                        class="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div
+                      v-else
+                      class="w-10 h-10 rounded border flex items-center justify-center text-gray-400"
+                    >
+                      <el-icon><Picture /></el-icon>
+                    </div>
+                  </div>
+
+                  <!-- Informasi produk -->
+                  <div class="flex-1 min-w-0">
+                    <p style="line-height: 15px" class="font-bold truncate">
+                      {{ item.data.catalogue.name }}
+                    </p>
+                    <p class="text-sm text-gray-500 truncate">
+                      PN/SN:
+                      {{
+                        item.data.catalogue.sn || item.data.sn || "Tidak Ada"
+                      }}
+                      | Brand:
+                      {{ item.data.catalogue.brand_name || "N/A" }}
+                    </p>
+                  </div>
+                </div>
+              </template></el-autocomplete
+            >
           </template>
         </el-table-column>
         <el-table-column prop="pic" label="PIC">
@@ -223,6 +302,55 @@
         @reset="handleResetContact"
       />
     </el-dialog>
+
+    <el-dialog
+      v-model="showImageModal"
+      :title="`Upload Gambar untuk Item ${activeItemIndex + 1}`"
+      width="900px"
+      :close-on-click-modal="false"
+      @close="handleImageModalClose"
+    >
+      <div class="image-upload-modal">
+        <!-- Photo Wall Upload -->
+        <PhotoWallUploads
+          ref="photoWallRef"
+          v-model="modalImageFiles"
+          :action="uploadAction"
+          :multiple="true"
+          :limit="10"
+          :max-size="5"
+          accept="image/*"
+          @change="handleModalImagesChange"
+          @remove="handleRemoveImageList"
+        />
+
+        <!-- Preview Section -->
+        <div v-if="modalImageFiles.length > 0" class="preview-section"></div>
+
+        <!-- Empty State -->
+        <div v-else class="empty-state-modal">
+          <el-empty description="Belum ada gambar" :image-size="100">
+            <template #description>
+              <p>Upload gambar untuk item ini</p>
+              <p class="hint">Gambar pertama akan ditampilkan di tabel</p>
+            </template>
+          </el-empty>
+        </div>
+      </div>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="cancelImageUpload">Batal</el-button>
+          <el-button
+            type="primary"
+            @click="saveItemImages"
+            :disabled="modalImageFiles.length === 0"
+          >
+            Simpan ({{ modalImageFiles.length }} gambar)
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </TrumsWrapper>
 </template>
 
@@ -263,20 +391,35 @@ import type { Inventory } from "~/types/inventory";
 import type { RequestSearch } from "~/types/request_search";
 import type { Inspection, InspectionItem } from "~/types/inspection";
 import type { AppFile } from "~/types/file";
-import { Delete, UserFilled, Edit, User } from "@element-plus/icons-vue";
+import {
+  Delete,
+  UserFilled,
+  Edit,
+  User,
+  Picture,
+} from "@element-plus/icons-vue";
 import type { BaseResponse } from "~/types/response";
 import type { DefaultResponse } from "~/types/pagination";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { Contact } from "~/types/contact";
 import TrumsUploadFile from "~/components/trums/form/TrumsUploadFile.vue";
 import AddContact from "~/components/trums/AddContact.vue";
+import { getFirstFileUrl } from "#imports";
+import PhotoWallUploads from "~/components/trums/PhotoWallUploads.vue";
+import ItemImageUpload from "~/pages/sales/inquiry/components/ItemImageUpload.vue";
 
 const router = useRouter();
 const route = useRoute();
+const config = useRuntimeConfig();
+const imageUrl = config.public.baseImageURL;
 
 const goBack = () => router.back();
 
 const id = computed(() => route.query.id as string);
+
+const uploadAction = computed(
+  () => `${config.public.apiBaseURL}/upload-item-image`
+);
 
 const inspection = ref<Inspection>({
   id: 0,
@@ -338,18 +481,20 @@ const ruleForm = reactive<RuleForm>({
 
 const fileList = ref<UploadUserFile[]>([]);
 
-const dataTable = ref<
-  {
-    id: number;
-    inventory_id: string;
-    name: string;
-    pic_id: string;
-    pic: Contact | null;
-    pic_name: string;
-    condition: string;
-    unique_id: string;
-  }[]
->(
+interface DataTableInterface {
+  id: number;
+  image?: string;
+  inventory_id: string;
+  name: string;
+  pic_id: string;
+  pic: Contact | null;
+  pic_name: string;
+  condition: string;
+  unique_id: string;
+  files?: UploadUserFile[];
+}
+
+const dataTable = ref<DataTableInterface[]>(
   Array.from({ length: 5 }, (_, i) => ({
     id: i + 1,
     inventory_id: "",
@@ -361,6 +506,12 @@ const dataTable = ref<
     pic: null,
   }))
 );
+
+const showImageModal = ref(false);
+const activeItemIndex = ref(-1);
+const activeItemData = ref<DataTableInterface | null>(null);
+const modalImageFiles = ref<UploadUserFile[]>([]);
+const photoWallRef = ref<InstanceType<typeof PhotoWallUploads>>();
 
 const addNewLine = () => {
   dataTable.value.push({
@@ -434,6 +585,33 @@ const querySearchAsyncPic = (queryString: string, cb: (arg: any) => void) => {
       }
     });
   }
+};
+
+const openImageModal = (index: number, itemData: DataTableInterface) => {
+  activeItemIndex.value = index;
+  activeItemData.value = itemData;
+
+  // Reset photoWallRef jika perlu (clear selection)
+  if (photoWallRef.value) {
+    photoWallRef.value.clearFiles?.();
+  }
+
+  // Load files dengan memastikan URL valid
+  modalImageFiles.value = (itemData.files || []).map((file) => {
+    // Clone file object
+    const fileCopy = { ...file };
+
+    // Jika file punya raw tapi URL invalid/expired, buat URL baru
+    if (fileCopy.raw && (!fileCopy.url || !isValidUrl(fileCopy.url))) {
+      fileCopy.url = URL.createObjectURL(fileCopy.raw);
+    }
+
+    return fileCopy;
+  });
+
+  console.log("modal file ", modalImageFiles.value);
+
+  showImageModal.value = true;
 };
 
 const querySearchAsyncInventories = (
@@ -562,8 +740,11 @@ const onHandleSelectItemAutocomplete = (
   scope: any
 ) => {
   console.log(item);
-  dataTable.value[scope.$index].name = item.value;
-  dataTable.value[scope.$index].inventory_id = item.unique_id;
+  if (item.data) {
+    const data: Inventory = item.data as Inventory;
+    dataTable.value[scope.$index].name = data.catalogue?.name ?? "";
+    dataTable.value[scope.$index].inventory_id = data.unique_id;
+  }
 };
 
 const handleSelectInventoryInspection = (item: Record<string, any>) => {
@@ -723,6 +904,17 @@ const submitInspection = async () => {
         `inspection_item[${index}][unique_id]`,
         element.unique_id
       );
+
+      if (element.files) {
+        (element.files ?? []).forEach((file, indexFile) => {
+          if (file.raw) {
+            formData.append(
+              `inspection_item[${index}][files]`,
+              file.raw as Blob
+            );
+          }
+        });
+      }
     }
   });
 
@@ -744,7 +936,8 @@ const submitInspection = async () => {
     if (response.status.value === "success") {
       ElMessage.success("Berhasil Membuat Data Inspeksi");
       window.location.href =
-        "/inspection-maintenance/" + response.data.value?.data?.unique_id;
+        "/inspection-maintenance/inspection/" +
+        response.data.value?.data?.unique_id;
     }
   } catch (error: any) {
     ElMessage.error(`${error.response?.data?.message}`);
@@ -817,9 +1010,102 @@ const resetForm = (formEl: FormInstance | undefined) => {
   formEl.resetFields();
 };
 
+const handleImageModalClose = () => {
+  // Optional: Clear temporary blob URLs
+  modalImageFiles.value.forEach((file) => {
+    if (file.url?.startsWith("blob:")) {
+      URL.revokeObjectURL(file.url);
+    }
+  });
+  modalImageFiles.value = [];
+  activeItemIndex.value = -1;
+  activeItemData.value = null;
+};
+
+const handleModalImagesChange = (files: UploadUserFile[]) => {
+  console.log("images", files);
+  modalImageFiles.value = files;
+};
+
+const handleRemoveImageList = async (
+  file: UploadUserFile,
+  files: UploadUserFile[]
+) => {
+  if (file.raw) {
+    console.log("file baru upload");
+  } else {
+    console.log("file lama", file.uid);
+    try {
+      const response = await useApiFetch<BaseResponse<any>>("/file-delete", {
+        method: "POST",
+        body: [file.uid],
+      });
+
+      if (response.success) {
+        ElMessage.success(`Image Berhasil Di Hapus!`);
+      }
+    } catch (error: any) {
+      ElMessage.error(`${error?.response?.message ?? error}`);
+    }
+  }
+};
+
+// Fungsi untuk cancel upload
+const cancelImageUpload = () => {
+  showImageModal.value = false;
+};
+
+// Fungsi untuk menyimpan gambar
+const saveItemImages = () => {
+  if (activeItemIndex.value >= 0) {
+    // Update dataTable dengan files baru
+    dataTable.value[activeItemIndex.value].files = [...modalImageFiles.value];
+
+    // Set image URL untuk preview di tabel (mengambil gambar pertama)
+    if (modalImageFiles.value.length > 0) {
+      const firstFile = modalImageFiles.value[0];
+      if (firstFile.url) {
+        dataTable.value[activeItemIndex.value].image = firstFile.url;
+      } else if (firstFile.raw) {
+        dataTable.value[activeItemIndex.value].image = URL.createObjectURL(
+          firstFile.raw
+        );
+      }
+    } else {
+      dataTable.value[activeItemIndex.value].image = "";
+    }
+
+    ElMessage.success(
+      `Gambar untuk item ${activeItemIndex.value + 1} disimpan`
+    );
+  }
+
+  showImageModal.value = false;
+};
+
 onMounted(() => {
   if (id.value) {
     fetchDetail();
   }
 });
 </script>
+
+<style scoped>
+:deep(.avatar-uploader) {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 75px;
+  height: 75px;
+}
+
+:deep(.avatar-uploader .avatar-uploader-icon) {
+  width: 50px;
+  height: 50px;
+}
+
+:deep(.image-preview-container) {
+  width: 50px !important;
+  height: 50px !important;
+}
+</style>

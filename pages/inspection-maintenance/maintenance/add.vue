@@ -40,7 +40,55 @@
             v-model="ruleForm.inventory_name"
             placeholder="Search Item"
             @select="onHandleSelectItemAutocomplete"
-          />
+          >
+            <template #default="{ item }">
+              <div v-if="item.isNew" class="flex items-center text-blue-500">
+                <el-icon><Plus /></el-icon>
+                <span class="ml-2"
+                  >Tambahkan "{{ item.object.catalogue.name }}"</span
+                >
+              </div>
+              <div v-else class="flex items-center gap-2">
+                <!-- Thumbnail file pertama -->
+                <div class="flex-shrink-0 mt-1">
+                  <div
+                    v-if="
+                      item.object.catalogue.files &&
+                      item.object.catalogue.files.length > 0
+                    "
+                    class="w-10 h-10 rounded overflow-hidden border"
+                  >
+                    <img
+                      :src="getFirstFileUrl(item.object.catalogue.files)"
+                      :alt="item.object.catalogue.name"
+                      class="w-full h-full object-cover"
+                    />
+                  </div>
+                  <div
+                    v-else
+                    class="w-10 h-10 rounded border flex items-center justify-center text-gray-400"
+                  >
+                    <el-icon><Picture /></el-icon>
+                  </div>
+                </div>
+
+                <!-- Informasi produk -->
+                <div class="flex-1 min-w-0">
+                  <p style="line-height: 15px" class="font-bold truncate">
+                    {{ item.object.catalogue.name }}
+                  </p>
+                  <p class="text-sm text-gray-500 truncate">
+                    PN/SN:
+                    {{
+                      item.object.catalogue.sn || item.object.sn || "Tidak Ada"
+                    }}
+                    | Brand:
+                    {{ item.object.catalogue.brand_name || "N/A" }}
+                  </p>
+                </div>
+              </div>
+            </template>
+          </el-autocomplete>
         </el-form-item>
         <el-form-item label="Penganggung Jawab" prop="responsible_name">
           <el-autocomplete
@@ -97,7 +145,7 @@
           <el-radio-group v-model="ruleForm.priority" aria-label="Prioritas">
             <el-radio-button value="low">Low</el-radio-button>
             <el-radio-button value="medium">Medium</el-radio-button>
-            <el-radio-button value="high">Hight</el-radio-button>
+            <el-radio-button value="high">High</el-radio-button>
           </el-radio-group>
         </el-form-item>
         <el-form-item label="Type Maintenance" label-position="right">
@@ -190,6 +238,16 @@
         </div>
       </template>
       <el-table :data="ruleForm.items">
+        <el-table-column label="Image" width="75">
+          <template #default="scope">
+            <ItemImageUpload
+              v-model="scope.row.files"
+              :image-url="scope.row.image"
+              :show-text="false"
+              @open-modal="() => openImageModal(scope.$index, scope.row)"
+            />
+          </template>
+        </el-table-column>
         <el-table-column prop="catalogue_name" label="item">
           <template #default="scope">
             <el-autocomplete
@@ -204,6 +262,55 @@
                   @click="() => openDrawerDetailInventory(scope.$index)"
                   :icon="Operation"
                 />
+              </template>
+              <template #default="{ item }">
+                <div v-if="item.isNew" class="flex items-center text-blue-500">
+                  <el-icon><Plus /></el-icon>
+                  <span class="ml-2"
+                    >Tambahkan "{{ item.object?.catalogue?.name ?? "" }}"</span
+                  >
+                </div>
+                <div v-else class="flex items-center gap-2">
+                  <!-- Thumbnail file pertama -->
+                  <div class="flex-shrink-0 mt-1">
+                    <div
+                      v-if="
+                        item.object?.catalogue?.files &&
+                        item.object?.catalogue?.files?.length > 0
+                      "
+                      class="w-10 h-10 rounded overflow-hidden border"
+                    >
+                      <img
+                        :src="getFirstFileUrl(item.object.catalogue.files)"
+                        :alt="item.object?.catalogue?.name"
+                        class="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div
+                      v-else
+                      class="w-10 h-10 rounded border flex items-center justify-center text-gray-400"
+                    >
+                      <el-icon><Picture /></el-icon>
+                    </div>
+                  </div>
+
+                  <!-- Informasi produk -->
+                  <div class="flex-1 min-w-0">
+                    <p style="line-height: 15px" class="font-bold truncate">
+                      {{ item.object?.catalogue?.name }}
+                    </p>
+                    <p class="text-sm text-gray-500 truncate">
+                      PN/SN:
+                      {{
+                        item.object?.catalogue?.sn ||
+                        item.object?.sn ||
+                        "Tidak Ada"
+                      }}
+                      | Brand:
+                      {{ item.object?.catalogue?.brand_name || "N/A" }}
+                    </p>
+                  </div>
+                </div>
               </template>
             </el-autocomplete>
           </template>
@@ -273,6 +380,55 @@
         </div>
       </template>
     </el-drawer>
+
+    <el-dialog
+      v-model="showImageModal"
+      :title="`Upload Gambar untuk Item ${activeItemIndex + 1}`"
+      width="900px"
+      :close-on-click-modal="false"
+      @close="handleImageModalClose"
+    >
+      <div class="image-upload-modal">
+        <!-- Photo Wall Upload -->
+        <PhotoWallUploads
+          ref="photoWallRef"
+          v-model="modalImageFiles"
+          :action="uploadAction"
+          :multiple="true"
+          :limit="10"
+          :max-size="5"
+          accept="image/*"
+          @change="handleModalImagesChange"
+          @remove="handleRemoveImageList"
+        />
+
+        <!-- Preview Section -->
+        <div v-if="modalImageFiles.length > 0" class="preview-section"></div>
+
+        <!-- Empty State -->
+        <div v-else class="empty-state-modal">
+          <el-empty description="Belum ada gambar" :image-size="100">
+            <template #description>
+              <p>Upload gambar untuk item ini</p>
+              <p class="hint">Gambar pertama akan ditampilkan di tabel</p>
+            </template>
+          </el-empty>
+        </div>
+      </div>
+
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="cancelImageUpload">Batal</el-button>
+          <el-button
+            type="primary"
+            @click="saveItemImages"
+            :disabled="modalImageFiles.length === 0"
+          >
+            Simpan ({{ modalImageFiles.length }} gambar)
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </TrumsWrapper>
 </template>
 <script lang="tsx" setup>
@@ -281,6 +437,7 @@ import {
   type DrawerProps,
   type FormInstance,
   type FormRules,
+  type UploadUserFile,
 } from "element-plus";
 import type { Catalogue } from "~/types/catalogue";
 import type { Inventory } from "~/types/inventory";
@@ -296,8 +453,12 @@ import type { BaseResponse } from "~/types/response";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { Unit } from "~/types/unit";
 
-import { Operation, Delete, View } from "@element-plus/icons-vue";
+import { Operation, Delete, View, Picture } from "@element-plus/icons-vue";
 import InventoryAdd from "~/components/trums/InventoryAdd.vue";
+
+import { getFirstFileUrl } from "#imports";
+import PhotoWallUploads from "~/components/trums/PhotoWallUploads.vue";
+import ItemImageUpload from "~/pages/sales/inquiry/components/ItemImageUpload.vue";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -339,14 +500,28 @@ definePageMeta({
 
 const router = useRouter();
 const route = useRoute();
+
 const id = computed(() => route.query.unique_id as string);
 const goBack = () => router.back();
+
+const config = useRuntimeConfig();
+const imageUrl = config.public.baseImageURL;
+
 const axios = useApi();
 const loading = ref<boolean>(false);
 const dialog_detail_form_catalogue = ref<boolean>(false);
 const form_catalogue_direction = ref<DrawerProps["direction"]>("rtl");
 const inventoryCreate = ref<Inventory>();
 const inventoryCreateIndexed = ref<number>(0);
+
+const showImageModal = ref(false);
+const activeItemIndex = ref(-1);
+const activeItemData = ref<Maintenance_item | null>(null);
+const modalImageFiles = ref<UploadUserFile[]>([]);
+const photoWallRef = ref<InstanceType<typeof PhotoWallUploads>>();
+const uploadAction = computed(
+  () => `${config.public.apiBaseURL}/upload-item-image`
+);
 
 const ruleFormRef = ref<FormInstance>();
 const ruleForm = reactive<RuleForm>({
@@ -517,19 +692,14 @@ const rules = reactive<FormRules<RuleForm>>({
 });
 
 const submit = async (formEl: FormInstance | undefined) => {
-  // loading.value = true;
-  // try {
+  const formData = new FormData();
 
-  // } catch (error: any) {
-  //   ElMessage.error(`${error.response?.data?.message}`);
-  // } finally {
-  //   loading.value = false;
-  // }
-
-  console.log(ruleForm);
+  // ===== DATE PARSE =====
   const maintenanceDate = new Date(ruleForm.maintenance_date);
-  var startDate = null;
-  var endDate = null;
+
+  let startDate: Date | null = null;
+  let endDate: Date | null = null;
+
   if (ruleForm.start_date) {
     startDate = new Date(ruleForm.start_date);
   }
@@ -538,59 +708,109 @@ const submit = async (formEl: FormInstance | undefined) => {
     endDate = new Date(ruleForm.end_date);
   }
 
-  const data = {
-    unique_id: "",
-    location_id: ruleForm.location_id,
-    location_version: ruleForm.location_version,
-    inspection_item_id: ruleForm.inspection_item_id,
-    maintenance_date: maintenanceDate.getTime() / 1000,
-    team_id: ruleForm.team_id,
-    responsible_id: ruleForm.responsible_id,
-    duration: null,
-    start_date: startDate != null ? startDate.getTime() / 1000 : startDate,
-    end_date: startDate != null ? startDate.getTime() / 1000 : endDate,
-    is_repeate: ruleForm.is_repeate,
-    repeate_unit: ruleForm.repeate_unit,
-    repeate_value: ruleForm.repeate_value,
-    priority: ruleForm.priority,
-    status: ruleForm.status,
-    type: ruleForm.type,
-    inventory_id: ruleForm.inventory_id,
-    inventory_version: ruleForm.inventory_version,
-    note: ruleForm.note,
-    maintenance_items: ruleForm.items.map((item) => ({
-      inventory_id: item.inventory_id,
-      inventory_name: item.inventory?.catalogue?.name ?? "-",
-      inventory_version: item.inventory_version,
-      catalogue_id: item.inventory?.catalogue_id,
-      catalogue_name: item.inventory?.catalogue?.name,
-      catalogue_version: 0,
-      quantity: parseInt(item.quantity.toString() ?? "0"),
-      unit_id: item.unit_id,
-      unit_name: item.unit_name,
-      unit_version: 0,
-      status: "draft",
-    })),
-    maintenance_jobs: ruleForm.jobs.map((job) => ({
-      name: job.name,
-      status: job.status,
-      pic_id: job.pic_id,
-      is_team: job.is_team,
-      team_id: job.team_id,
-    })),
-  };
+  // ===== BASIC FIELD =====
+  formData.append("unique_id", "");
 
   const id = useCookie("maintenance_id");
   if (id.value) {
-    data.unique_id = id.value!;
+    formData.set("unique_id", id.value);
   }
-  console.log(data);
 
-  const response = await useFetchApi<BaseResponse<any>>(
+  formData.append("location_id", ruleForm.location_id);
+  formData.append("location_version", String(ruleForm.location_version));
+  formData.append("inspection_item_id", `${ruleForm.inspection_item_id}`);
+  formData.append(
+    "maintenance_date",
+    String(Math.floor(maintenanceDate.getTime() / 1000))
+  );
+  formData.append("team_id", ruleForm.team_id);
+  formData.append("responsible_id", ruleForm.responsible_id);
+
+  formData.append("duration", "");
+
+  // DATE OPTIONAL
+  formData.append(
+    "start_date",
+    startDate ? String(Math.floor(startDate.getTime() / 1000)) : ""
+  );
+
+  formData.append(
+    "end_date",
+    endDate ? String(Math.floor(endDate.getTime() / 1000)) : ""
+  );
+
+  // OTHER FIELD
+  formData.append("is_repeate", String(ruleForm.is_repeate));
+  formData.append("repeate_unit", ruleForm.repeate_unit ?? "");
+  formData.append("repeate_value", String(ruleForm.repeate_value ?? ""));
+  formData.append("priority", ruleForm.priority);
+  formData.append("status", ruleForm.status);
+  formData.append("type", ruleForm.type);
+  formData.append("inventory_id", ruleForm.inventory_id);
+  formData.append("inventory_version", String(ruleForm.inventory_version));
+  formData.append("note", ruleForm.note ?? "");
+
+  // ===== MAINTENANCE ITEMS =====
+  ruleForm.items.forEach((item, index) => {
+    formData.append(
+      `maintenance_items[${index}][inventory_id]`,
+      `${item.inventory_id}`
+    );
+    formData.append(
+      `maintenance_items[${index}][inventory_name]`,
+      item.inventory?.catalogue?.name ?? "-"
+    );
+    formData.append(
+      `maintenance_items[${index}][inventory_version]`,
+      String(item.inventory_version)
+    );
+    formData.append(
+      `maintenance_items[${index}][catalogue_id]`,
+      item.inventory?.catalogue_id ?? ""
+    );
+    formData.append(
+      `maintenance_items[${index}][catalogue_name]`,
+      item.inventory?.catalogue?.name ?? ""
+    );
+    formData.append(`maintenance_items[${index}][catalogue_version]`, "0");
+    formData.append(
+      `maintenance_items[${index}][quantity]`,
+      String(parseInt(item.quantity?.toString() ?? "0"))
+    );
+    formData.append(`maintenance_items[${index}][unit_id]`, item.unit_id ?? "");
+    formData.append(
+      `maintenance_items[${index}][unit_name]`,
+      item.unit_name ?? ""
+    );
+    formData.append(`maintenance_items[${index}][unit_version]`, "0");
+    formData.append(`maintenance_items[${index}][status]`, "draft");
+
+    if (item.files_upload) {
+      (item.files_upload ?? []).forEach((file, indexFile) => {
+        if (file.raw) {
+          formData.append(
+            `maintenance_items[${index}][files]`,
+            file.raw as Blob
+          );
+        }
+      });
+    }
+  });
+
+  // ===== MAINTENANCE JOBS =====
+  ruleForm.jobs.forEach((job, index) => {
+    formData.append(`maintenance_jobs[${index}][name]`, `${job.name}`);
+    formData.append(`maintenance_jobs[${index}][status]`, job.status);
+    formData.append(`maintenance_jobs[${index}][pic_id]`, job.pic_id ?? "");
+    formData.append(`maintenance_jobs[${index}][is_team]`, String(job.is_team));
+    formData.append(`maintenance_jobs[${index}][team_id]`, job.team_id ?? "");
+  });
+
+  const response = await useFetchApi<BaseResponse<Maintenance>>(
     "/maintenances-create",
     "create-maintenance",
     "post",
-    data
+    formData
   );
 
   if (response.status.value == "success") {
@@ -763,6 +983,33 @@ const querySearchAsyncItem = (queryString: string, cb: (arg: any) => void) => {
     });
 };
 
+const openImageModal = (index: number, itemData: Maintenance_item) => {
+  activeItemIndex.value = index;
+  activeItemData.value = itemData;
+
+  // Reset photoWallRef jika perlu (clear selection)
+  if (photoWallRef.value) {
+    photoWallRef.value.clearFiles?.();
+  }
+
+  // Load files dengan memastikan URL valid
+  modalImageFiles.value = (itemData.files_upload || []).map((file) => {
+    // Clone file object
+    const fileCopy = { ...file };
+
+    // Jika file punya raw tapi URL invalid/expired, buat URL baru
+    if (fileCopy.raw && (!fileCopy.url || !isValidUrl(fileCopy.url))) {
+      fileCopy.url = URL.createObjectURL(fileCopy.raw);
+    }
+
+    return fileCopy;
+  });
+
+  console.log("modal file ", modalImageFiles.value);
+
+  showImageModal.value = true;
+};
+
 const openDrawerDetailInventory = (index: number) => {
   inventoryCreateIndexed.value = index;
   inventoryCreate.value = ruleForm.items[index].inventory!;
@@ -924,40 +1171,52 @@ const querySearchAsyncInventories = (
   };
 
   var endpoint = "/search";
+  console.log("query", queryString);
+  if (queryString != null) {
+    useFetchApi<ResponsePagination<Inventory[]>>(
+      endpoint,
+      "inventories",
+      "post",
+      data
+    )
+      .then((response) => {
+        if (response.status.value == "success") {
+          const inventories: Inventory[] = response.data?.value?.data ?? [];
 
-  useFetchApi<ResponsePagination<Inventory[]>>(
-    endpoint,
-    "inventories",
-    "post",
-    data
-  )
-    .then((response) => {
-      if (response.status.value == "success") {
-        const inventories: Inventory[] = response.data?.value?.data ?? [];
-
-        if (inventories.length > 0) {
-          const results = inventories.map((data: Inventory) => {
-            return {
-              value: `(${data.sn || data.catalogue.sn})-${data.catalogue.name}`,
-              unique_id: data.unique_id,
-              object: data,
-            };
-          });
-          cb(results);
-        } else {
-          cb([
-            {
-              value: `Tambahkan ${queryString}`,
-              is_new: true,
-              object: { name: queryString },
-            },
-          ]);
+          if (inventories.length > 0) {
+            const results = inventories.map((data: Inventory) => {
+              return {
+                value: `(${data.sn || data.catalogue.sn})-${
+                  data.catalogue.name
+                }`,
+                unique_id: data.unique_id,
+                object: data,
+              };
+            });
+            cb(results);
+          } else {
+            cb([
+              {
+                value: `Tambahkan ${queryString}`,
+                is_new: true,
+                object: { name: queryString },
+              },
+            ]);
+          }
         }
-      }
-    })
-    .catch((error: any) => {
-      ElMessage.error(`${error.response?.data?.message ?? error}`);
-    });
+      })
+      .catch((error: any) => {
+        ElMessage.error(`${error.response?.data?.message ?? error}`);
+      });
+  } else {
+    cb([
+      {
+        value: `Tambah Baru`,
+        is_new: true,
+        object: { name: queryString },
+      },
+    ]);
+  }
 };
 
 const querySearchLocation = (queryString: string, cb: (arg: any) => void) => {
@@ -1090,8 +1349,10 @@ const create_catalogue = async (catalogue: Catalogue) => {
       formData
     );
     if (response.status.value == "success") {
-      const catalogue_result: Catalogue = response.data.value!.data;
-      return catalogue_result;
+      if (response.data.value?.data) {
+        const catalogue_result: Catalogue = response.data.value!.data;
+        return catalogue_result;
+      }
     }
   } catch (error: any) {
     ElMessage.error(error?.response?.message ?? error);
@@ -1300,9 +1561,102 @@ const fetchDataEdit = async (id: string) => {
   }
 };
 
+const handleImageModalClose = () => {
+  // Optional: Clear temporary blob URLs
+  modalImageFiles.value.forEach((file) => {
+    if (file.url?.startsWith("blob:")) {
+      URL.revokeObjectURL(file.url);
+    }
+  });
+  modalImageFiles.value = [];
+  activeItemIndex.value = -1;
+  activeItemData.value = null;
+};
+
+const handleRemoveImageList = async (
+  file: UploadUserFile,
+  files: UploadUserFile[]
+) => {
+  if (file.raw) {
+    console.log("file baru upload");
+  } else {
+    console.log("file lama", file.uid);
+    try {
+      const response = await useApiFetch<BaseResponse<any>>("/file-delete", {
+        method: "POST",
+        body: [file.uid],
+      });
+
+      if (response.success) {
+        ElMessage.success(`Image Berhasil Di Hapus!`);
+      }
+    } catch (error: any) {
+      ElMessage.error(`${error?.response?.message ?? error}`);
+    }
+  }
+};
+
+const handleModalImagesChange = (files: UploadUserFile[]) => {
+  console.log("images", files);
+  modalImageFiles.value = files;
+};
+
+const cancelImageUpload = () => {
+  showImageModal.value = false;
+};
+
+const saveItemImages = () => {
+  if (activeItemIndex.value >= 0) {
+    // Update dataTable dengan files baru
+    ruleForm.items[activeItemIndex.value].files_upload = [
+      ...modalImageFiles.value,
+    ];
+
+    // Set image URL untuk preview di tabel (mengambil gambar pertama)
+    if (modalImageFiles.value.length > 0) {
+      const firstFile = modalImageFiles.value[0];
+      if (firstFile.url) {
+        ruleForm.items[activeItemIndex.value].image = firstFile.url;
+      } else if (firstFile.raw) {
+        ruleForm.items[activeItemIndex.value].image = URL.createObjectURL(
+          firstFile.raw
+        );
+      }
+    } else {
+      ruleForm.items[activeItemIndex.value].image = "";
+    }
+
+    ElMessage.success(
+      `Gambar untuk item ${activeItemIndex.value + 1} disimpan`
+    );
+  }
+
+  showImageModal.value = false;
+};
+
 onMounted(() => {
   if (id.value) {
     fetchDataEdit(id.value);
   }
 });
 </script>
+
+<style scoped>
+:deep(.avatar-uploader) {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 75px;
+  height: 75px;
+}
+
+:deep(.avatar-uploader .avatar-uploader-icon) {
+  width: 50px;
+  height: 50px;
+}
+
+:deep(.image-preview-container) {
+  width: 50px !important;
+  height: 50px !important;
+}
+</style>

@@ -208,6 +208,14 @@
     :data="adjustmentTransactions.data?.value?.data ?? []"
     :search-params="querySearchAdjustmentTransaction"
   />
+
+  <el-dialog
+    v-model="visibleModalNewAdjustment"
+    title="Buat Biaya Lain"
+    width="1000"
+  >
+    <AddAdjustment @submit="handleAdjustmentSubmit" />
+  </el-dialog>
 </template>
 <script lang="tsx" setup>
 import { Delete } from "@element-plus/icons-vue";
@@ -219,6 +227,7 @@ import {
 import type { RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
 import ModalAdjustmentTransaction from "./ModalAdjustmentTransaction.vue";
+import AddAdjustment from "./AddAdjustment.vue";
 
 const props = defineProps<{
   references: ReferenceTransactionAdjustment[];
@@ -237,6 +246,7 @@ const emit = defineEmits<{
 
 const visibleModalAdjustmentTransaction = ref(false);
 const visibleModalNewAdjustment = ref(false);
+
 const loading = ref<boolean>(false);
 
 const querySearchAdjustmentTransaction = ref<RequestSearch>({
@@ -253,9 +263,23 @@ const querySearchAdjustmentTransaction = ref<RequestSearch>({
   flag: "form",
 });
 
-const adjustmentTransactions = await useFetchApi<
-  ResponsePagination<AdjustmentTransaction[]>
->("/search", "search-adjustment", "post", querySearchAdjustmentTransaction);
+const adjustmentTransactions = await useAsyncData(
+  "search-adjustment",
+  async () => {
+    const res = await useFetchApi<ResponsePagination<AdjustmentTransaction[]>>(
+      `/search`,
+      "search-adjustment",
+      "post",
+      querySearchAdjustmentTransaction.value
+    );
+    return res.data.value;
+  }
+);
+
+const handleAdjustmentSubmit = () => {
+  visibleModalNewAdjustment.value = false;
+  adjustmentTransactions.refresh();
+};
 
 const removeAnotherCost = async (adj_id: string) => {
   const findIndex = props.references.findIndex(
@@ -404,6 +428,12 @@ const onIncExcChange = (
     }
   });
 };
+
+watch(
+  () => querySearchAdjustmentTransaction.value,
+  () => adjustmentTransactions.refresh(),
+  { deep: true }
+);
 
 watch(
   props.references,

@@ -410,7 +410,7 @@
     <el-dialog
       v-model="visibleModalPricetagNewItem"
       title="Buat Penawaran Baru"
-      width="1000"
+      width="1200"
     >
       <AddPriceTagComponent @submit="handlePriceTagSubmit" />
     </el-dialog>

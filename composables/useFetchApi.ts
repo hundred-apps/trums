@@ -1,5 +1,5 @@
 type RequestMethod = "post" | "put" | "get" | "delete";
-
+type RequestStatus = "idle" | "pending" | "success" | "error";
 export async function useFetchApi<T>(
   endpoint: string,
   key: string,
@@ -15,34 +15,79 @@ export async function useFetchApi<T>(
 }> {
   const config = useRuntimeConfig();
   const { accessToken, isRefreshing, requestQueue } = useAuth();
-  console.log("access token", accessToken.value);
-  const response = await useFetch<T>(`${config.public.baseURL}${endpoint}`, {
-    key,
-    method: request_method,
-    body,
-    headers: {
-      Authorization: `Bearer ${accessToken.value}`,
-    },
-  });
 
-  const statusCode = response.error.value?.statusCode;
-  console.log("status code", statusCode);
-  // ✅ HANDLE 401
-  if (statusCode === 401 && retry) {
-    return await handle401<T>(endpoint, key, request_method, body);
+  const data = ref<T | null>(null);
+  const error = ref<any>(null);
+  const pending = ref<boolean>(true);
+  const status = ref<string>("pending");
+  let code: number | undefined = undefined;
+
+  try {
+    const res = await $fetch<T>(`${config.public.baseURL}${endpoint}`, {
+      method: request_method,
+      body,
+      headers: {
+        Authorization: `Bearer ${accessToken.value}`,
+      },
+    });
+
+    data.value = res;
+    status.value = "success";
+    code = 200;
+  } catch (err: any) {
+    error.value = err;
+    status.value = "error";
+    code = err?.statusCode;
+
+    // HANDLE 401
+    if (code === 401 && retry) {
+      return await handle401<T>(endpoint, key, request_method, body);
+    }
+
+    // HANDLE 403
+    if (code === 403) {
+      window.location.href = "/error/403";
+    }
+  } finally {
+    pending.value = false;
   }
 
-  // ❌ HANDLE 403
-  if (statusCode === 403) {
-    window.location.href = "/error/403";
-  }
+  // const response = await $fetch<T>(`${config.public.baseURL}${endpoint}`, {
+  //   method: request_method,
+  //   body,
+  //   headers: {
+  //     Authorization: `Bearer ${accessToken.value}`,
+  //   },
+  // });
+
+  // console.log("status code", response);
+
+  // const statusCode = response.error.value?.statusCode;
+
+  // // ✅ HANDLE 401
+  // if (statusCode === 401 && retry) {
+  //   return await handle401<T>(endpoint, key, request_method, body);
+  // }
+
+  // // ❌ HANDLE 403
+  // if (statusCode === 403) {
+  //   window.location.href = "/error/403";
+  // }
+
+  // return {
+  //   data: response.data as Ref<T>,
+  //   error: response.error,
+  //   code: statusCode,
+  //   pending: response.pending,
+  //   status: response.status,
+  // };
 
   return {
-    data: response.data as Ref<T>,
-    error: response.error,
-    code: statusCode,
-    pending: response.pending,
-    status: response.status,
+    data,
+    error,
+    pending,
+    status,
+    code,
   };
 }
 

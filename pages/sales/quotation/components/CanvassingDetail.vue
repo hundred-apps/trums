@@ -2493,11 +2493,12 @@ const tableRowClassName = ({
   row: CanvassingItemForm;
   rowIndex: number;
 }) => {
+  console.log("status", row.status);
   if (row.type_item != "request" && row.type_item != "equivalent") {
     if (row.status === CanvassingVendorStatus.SELECTED) {
       return "success-row";
     } else if (row.status === CanvassingVendorStatus.SUBMITTED) {
-      return "primary-row";
+      return "";
     }
   }
   return "";
@@ -3325,14 +3326,33 @@ const submitApproveRab = async (status: CanvassingStatus) => {
           `${vendor.ongkir_unit}`
         );
 
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
-          `${
-            vendor.checked
-              ? CanvassingVendorStatus.SELECTED
-              : CanvassingVendorStatus.REJECTED
-          }`
-        );
+        // formData.append(
+        //   `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
+        //   `${
+        //     vendor.checked && vendor.status == CanvassingVendorStatus.SELECTED
+        //       ? CanvassingVendorStatus.SELECTED
+        //       : vendor.checked
+        //       ? CanvassingVendorStatus.SUBMITTED
+        //       : CanvassingVendorStatus.REJECTED
+        //   }`
+        // );
+
+        if (vendor.status == CanvassingVendorStatus.SELECTED) {
+          formData.append(
+            `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
+            `${CanvassingVendorStatus.SELECTED}`
+          );
+        } else if (vendor.checked) {
+          formData.append(
+            `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
+            `${CanvassingVendorStatus.SUBMITTED}`
+          );
+        } else {
+          formData.append(
+            `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
+            `${CanvassingVendorStatus.REJECTED}`
+          );
+        }
 
         let referenceCanvassingVendor: ReferenceTransactionAdjustment[] =
           vendor.contacts_fee;

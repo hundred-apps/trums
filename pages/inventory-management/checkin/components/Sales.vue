@@ -302,7 +302,7 @@
       <el-table-column label="Unique Code" width="300">
         <template #default="scope">
           <NuxtLink
-            :href="`/sales/order/${scope.row.unique_code}`"
+            :href="`/sales/inquiry/${scope.row.unique_id}`"
             class="text-blue-600"
             >{{ scope.row.unique_code }}</NuxtLink
           >
@@ -851,10 +851,8 @@ const onSelectReference_id = async (data: Inquiry) => {
     formInline.reference_view = data.unique_code ?? "";
     formInline.reference_id = data.unique_id ?? "";
     formInline.reference_to = "contact";
-    formInline.to =
-      (data.reference_data as PurchaseOrder | null)?.vendor_id ?? "";
-    formInline.to_name =
-      (data.reference_data as PurchaseOrder | null)?.vendor_name ?? "";
+    formInline.to = data.request_to?.unique_id ?? "";
+    formInline.to_name = data.request_to?.name ?? "";
     formInline.version = data.version ?? 0;
 
     formInline.address_id = data.address_id ?? "";

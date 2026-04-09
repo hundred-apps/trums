@@ -487,12 +487,12 @@ const handleSelectionChange = (selection: Canvassing[]) => {
 
 const handlePageChange = (page: number) => {
   request_search.value.offset = `${page}`;
-  refreshNuxtData("get-canvassing");
+  refresh();
 };
 
 const handleSizeChange = (size: number) => {
   request_search.value.limit = `${size}`;
-  refreshNuxtData("get-canvassing");
+  refresh();
 };
 
 const onEdit = (canvassing: Canvassing) => {
@@ -570,20 +570,19 @@ const onSort = (sortBy: { order: string; prop: string }) => {
         ? OrderColumn.ASC
         : OrderColumn.DESC,
   };
-  refreshNuxtData("get-canvassing");
 };
 
 // Watch search query
 watchDebounced(
   request_search,
   () => {
-    refreshNuxtData("get-canvassing");
+    refresh();
   },
   { debounce: 500, deep: true }
 );
 
 onMounted(() => {
-  refreshNuxtData("get-canvassing");
+  refresh();
 });
 </script>
 

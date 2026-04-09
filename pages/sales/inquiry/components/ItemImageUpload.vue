@@ -1,6 +1,6 @@
 <template>
   <div class="item-image-cell" @click="emitOpenModal">
-    <el-tooltip content="Klik untuk upload/tambah gambar" placement="top">
+    <el-tooltip content="Klik untuk melihat gambar" placement="top">
       <div class="image-preview-container">
         <img
           v-if="previewImageUrl"

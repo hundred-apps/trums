@@ -42,15 +42,166 @@
       @size-change="handleSizeChange"
     />
   </div>
+  <!-- <el-dialog v-model="modalAddVendor" title="Tambah Vendor" width="1000">
+    <el-form
+      ref="ruleFormRef"
+      :model="ruleFormVendor"
+      style="max-width: 600px"
+      :rules="rules"
+      label-width="auto"
+      class="demo-ruleForm"
+      :size="formSize"
+      status-icon
+      :disabled="loading"
+    >
+      <el-form-item label="Diminta oleh?" prop="to_name">
+        <div class="flex items-center gap-3">
+          <el-autocomplete
+            :fetch-suggestions="(queryString: string, cb: (arg: any) => void) => querySearchContact(queryString, cb, 'to')"
+            v-model="ruleForm.to_name"
+            placeholder="Cari Kontak"
+            @select="(item: Record<string, any>) => onHandleSelectContact(item, 'to')"
+          >
+            <template #default="{ item }">
+              <div v-if="!item.isNew">{{ item.name }}</div>
+              <div v-else class="text-blue-600">{{ item.value }}</div>
+            </template>
+          </el-autocomplete>
+          <el-button
+            type="primary"
+            v-if="toContact"
+            @click="openDialogTo"
+            :icon="User"
+          />
+        </div>
+      </el-form-item>
+      <el-form-item
+        v-if="toContact && toContact.is_company"
+        label="PIC"
+        prop="request_by_name"
+      >
+        <div class="flex items-center gap-3">
+          <el-autocomplete
+            :fetch-suggestions="(queryString: string, cb: (arg: any) => void) => querySearchContact(queryString, cb, 'pic')"
+            v-model="ruleForm.request_by_name"
+            placeholder="Cari Kontak"
+            @select="(item: Record<string, any>) => onHandleSelectContact(item, 'pic')"
+          >
+            <template #default="{ item }">
+              <div v-if="!item.isNew">{{ item.name }}</div>
+              <div v-else class="text-blue-600">{{ item.value }}</div>
+            </template>
+          </el-autocomplete>
+          <el-button
+            type="primary"
+            v-if="picContact"
+            @click="openDialogPIC"
+            :icon="User"
+          />
+        </div>
+      </el-form-item>
+
+      <el-form-item label="File Lampiran" prop="files">
+        <TrumsUploadFile v-model:file-list="fileList" />
+      </el-form-item>
+
+      <el-form-item label="Cari Alamat" prop="address_view">
+        <el-autocomplete
+          v-model="ruleForm.address_view"
+          :fetch-suggestions="querySearchAddress"
+          :trigger-on-focus="false"
+          clearable
+          class="inline-input w-50"
+          placeholder="Cari Alamat/Buat Baru"
+          @select="(record) => handleSelectAddress(record)"
+        >
+          <template #default="{ item }">
+            <div v-if="!item.new">
+              <div class="name">{{ item.name }}</div>
+              <span class="street text-sm">{{ item.street }}</span>
+            </div>
+            <div v-else>
+              <div class="text-blue-600">{{ item.name }}</div>
+            </div>
+          </template>
+        </el-autocomplete>
+      </el-form-item>
+
+      <el-form-item v-if="address" label=" ">
+        <div>
+          <div class="flex items-center gap-2">
+            <p>{{ address.address_name }}</p>
+            <el-icon
+              class="cursor-pointer text-blue-500 hover:text-blue-600"
+              @click="handleEditAddress(address)"
+              ><Edit
+            /></el-icon>
+            <el-icon
+              class="cursor-pointer text-read-500 hover:text-read-600"
+              @click="handleDeleteAddress"
+              ><Delete
+            /></el-icon>
+          </div>
+          <div>
+            {{ address.street }},
+            {{ generateResultSearchAddress(address).name }}
+          </div>
+        </div>
+      </el-form-item>
+
+      <el-form-item label="Tanggal Permintaan" prop="date">
+        <el-date-picker
+          v-model="ruleForm.date!"
+          type="date"
+          placeholder="Tanggal Inquiri"
+        />
+      </el-form-item>
+
+      <el-form-item label="Prioritas" label-position="right">
+        <el-radio-group v-model="ruleForm.priority" aria-label="Prioritas">
+          <el-radio-button value="low">Low</el-radio-button>
+          <el-radio-button value="medium">Medium</el-radio-button>
+          <el-radio-button value="high">Hight</el-radio-button>
+        </el-radio-group>
+      </el-form-item>
+      <el-form-item label="Note">
+        <el-input v-model="ruleForm.description" type="textarea" />
+      </el-form-item>
+    </el-form>
+
+    <el-table
+      :data="data"
+      ref="tableRef"
+      style="width: 100%"
+      @selection-change="handleSelectionChange"
+    >
+      <el-table-column type="selection" width="55" />
+      <el-table-column label="Nama Biaya" prop="name">
+        <template #default="scope">
+          <p>{{ scope.row.name ?? "-" }}</p>
+        </template>
+      </el-table-column>
+      <el-table-column label="Nilai Default" prop="default_value" />
+      <el-table-column label="Type" prop="type">
+        <template #default="scope">
+          {{ scope.row.type == "percent" ? "%" : "Rp" }}
+        </template>
+      </el-table-column>
+    </el-table>
+  </el-dialog> -->
 </template>
 <script lang="tsx" setup>
 import {
+  ElButton,
   ElCheckbox,
   ElCheckboxGroup,
   ElIcon,
   ElPopover,
   type CheckboxValueType,
   type Column,
+  type ComponentSize,
+  type FormInstance,
+  type FormRules,
 } from "element-plus";
 import type { ItemRequest } from "~/types/item_request";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
@@ -62,14 +213,59 @@ import type {
   CellRendererParams,
   SortBy,
 } from "element-plus/es/components/table-v2/src/types.mjs";
-import { Eleme, SetUp } from "@element-plus/icons-vue";
+import { Eleme, SetUp, Plus } from "@element-plus/icons-vue";
 import customTable from "~/components/trums/table/customTable.vue";
 import { canAccess } from "#imports";
 import type { ColumnTable } from "~/types/ColumnTable";
+import type { CanvassingItem } from "~/types/scm/canvasing";
 
 const popoverRef = ref();
 
 const loading = ref<boolean>(false);
+const modalAddVendor = ref<boolean>(false);
+const canvassingItem = ref<CanvassingItem | null>(null);
+
+const formSize = ref<ComponentSize>("default");
+const ruleFormRef = ref<FormInstance>();
+
+const ruleFormVendor = reactive<CanvassingItem>({
+  unique_id: "",
+  canvassing_id: "",
+  canvaasing_version: 0,
+  item_request_trail_id: "",
+  item_request_trail_version: 0,
+  canvassing_vendor: [],
+  unit_id: null,
+  unit_name: null,
+  unit_version: null,
+  catalogue_id: "",
+  catalogue_name: "",
+  quantity: 0,
+  unit_selling_price: 0,
+  created_at: 0,
+  created_by: 0,
+  updated_at: 0,
+  type_item: "request",
+  equivalent_id: null,
+});
+
+const rules = reactive<FormRules<CanvassingItem>>({
+  canvassing_vendor: [
+    {
+      type: "array",
+      required: true,
+      message: "Items wajib ada",
+      trigger: "change",
+    },
+  ],
+  "items.*.price": [
+    {
+      required: true,
+      message: "Harga wajib diisi",
+      trigger: "blur",
+    },
+  ],
+});
 
 const request_search = ref<RequestSearch>({
   keyword: "",
@@ -90,15 +286,18 @@ const request_search = ref<RequestSearch>({
   flag: "list",
 });
 
-const { data, refresh } = await useAsyncData("fetch-item-request", async () => {
-  const res = await useFetchApi<ResponsePagination<ItemRequest[]>>(
-    `/search`,
-    "fetch-item-request",
-    "post",
-    request_search.value
-  );
-  return res.data.value;
-});
+const { data, refresh, status } = await useAsyncData(
+  "fetch-item-request",
+  async () => {
+    const res = await useFetchApi<ResponsePagination<ItemRequest[]>>(
+      `/search`,
+      "fetch-item-request",
+      "post",
+      request_search.value
+    );
+    return res.data.value;
+  }
+);
 
 const column_selected = ref<string[]>([
   "selection",
@@ -225,6 +424,7 @@ const availableColumn: ColumnTable<ItemRequest>[] = [
     dataKey: "harga",
     key: "harga",
     width: 100,
+    align: "center",
     sortable: true,
     cellRenderer: ({ rowData }: { rowData: ItemRequest }) => (
       <p>{rowData.total_canvassing_vendor ?? 0}</p>
@@ -260,6 +460,53 @@ const bulkDelete = async () => {
   } catch (error) {
     // User klik Cancel atau close dialog
     console.log("Delete cancelled");
+  }
+};
+
+const findCanvassingItem = async (
+  catalogue_id: string
+): Promise<CanvassingItem | null> => {
+  status.value = "pending";
+  try {
+    const requestFindCanvassingItem: RequestSearch = {
+      keyword: "",
+      table: "canvassing_item",
+      column: [
+        {
+          catalogue_id: [catalogue_id],
+        },
+      ],
+      sort: null,
+      offset: "1",
+      limit: "1",
+    };
+    const response = await useFetchApi<ResponsePagination<CanvassingItem[]>>(
+      "/search",
+      "fetch-canvassing-item",
+      "post",
+      requestFindCanvassingItem
+    );
+
+    if (
+      response.status.value == "success" &&
+      (response.data.value?.data ?? []).length > 0
+    ) {
+      return response.data.value!.data[0];
+    }
+  } catch (error: any) {
+    ElMessage.error(error.response?.message ?? error);
+    return null;
+  } finally {
+    status.value = "success";
+    return null;
+  }
+};
+
+const onNewVendor = async (item: ItemRequest) => {
+  const canvassingItem: CanvassingItem | null = await findCanvassingItem(
+    item.catalogue_id || ""
+  );
+  if (canvassingItem) {
   }
 };
 

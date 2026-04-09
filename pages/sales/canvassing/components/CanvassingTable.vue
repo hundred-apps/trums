@@ -61,19 +61,19 @@ const columnsSelected = ref<string[]>([
   "selection",
   "unique_code",
   "source_document",
-  "request_to",
-  "request_by",
+  "source.request_to.name",
+  "source.request_by.name",
   "description",
   "status",
   "created_at",
-  "created_by",
+  "people.name",
   "operations",
   "setup",
 ]);
 
 const request_search = ref<RequestSearch>(props.request_search);
 
-const { data, pending, refresh } = await useAsyncData(
+const { data, pending, refresh, status } = await useAsyncData(
   props.fetchKey,
   async () => {
     const res = await useFetchApi<ResponsePagination<Canvassing[]>>(
@@ -121,20 +121,21 @@ const columns: ColumnTable<Canvassing>[] = [
     ),
   },
   {
-    key: "request_to",
+    key: "source.request_to.name",
     title: "Diminta Oleh",
-    dataKey: "request_to",
+    dataKey: "source.request_to.name",
     width: 300,
-
+    sortable: true,
     cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
       <span>{rowData.source?.request_to?.name || "N/A"}</span>
     ),
   },
   {
-    key: "request_by",
+    key: "source.request_by.name",
     title: "PIC",
-    dataKey: "request_by",
+    dataKey: "source.request_by.name",
     width: 200,
+    sortable: true,
     cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
       <span>{rowData.source?.request_by?.name || "N/A"}</span>
     ),
@@ -150,6 +151,7 @@ const columns: ColumnTable<Canvassing>[] = [
     title: "Status",
     dataKey: "status",
     width: 200,
+
     cellRenderer: ({ rowData: row }) => renderStatusTag(row.status),
     headerCellRenderer: () => (
       <div class="flex items-center justify-center">
@@ -202,9 +204,9 @@ const columns: ColumnTable<Canvassing>[] = [
     ),
   },
   {
-    key: "created_by",
+    key: "people.name",
     title: "Dibuat Oleh",
-    dataKey: "created_by",
+    dataKey: "people.name",
     width: 150,
     sortable: true,
     cellRenderer: ({ rowData }: { rowData: Canvassing }) => (

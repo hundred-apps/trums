@@ -1221,14 +1221,14 @@ const priceTagItem = await useFetchApi<ResponsePagination<Pricetag_item[]>>(
   `/pricetag-item-read`,
   "pricetag-search-items",
   "post",
-  request_search_pricetag_item
+  request_search_pricetag_item.value
 );
 
 const inquiry = await useFetchApi<ResponsePagination<Inquiry[]>>(
   "/search",
   "search-request-inquiry",
   "post",
-  request_search_inquiry
+  request_search_inquiry.value
 );
 const canvassing = ref<ResponsePagination<Canvassing[]>>();
 
@@ -1244,7 +1244,12 @@ const querySearchAdjustmentTransaction = ref<RequestSearch>({
 
 const adjustmentTransactions = await useFetchApi<
   ResponsePagination<AdjustmentTransaction[]>
->("/search", "search-adjustment", "post", querySearchAdjustmentTransaction);
+>(
+  "/search",
+  "search-adjustment",
+  "post",
+  querySearchAdjustmentTransaction.value
+);
 
 const adjustmentContact = computed(() => {
   const data = adjustmentTransactions.data.value?.data || [];
@@ -3011,7 +3016,7 @@ const querySearchCatalogue = (queryString: string, cb: (arg: any) => void) => {
     `/pricetag-item-read`,
     "pricetag-search-items",
     "post",
-    request_search_pricetag_item
+    request_search_pricetag_item.value
   ).then((response) => {
     if (response.status.value == "success") {
       const resultApi: Pricetag_item[] = response.data.value?.data ?? [];
@@ -3759,6 +3764,18 @@ const submit = async (formEl: FormInstance | undefined) => {
       // Append canvassing_vendor
       // Append canvassing_vendor fields satu per satu
       item.children.forEach((vendor: CanvassingItemForm, j: any) => {
+        if (vendor.index == item.tmp_child_selected) {
+          formData.append(
+            `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
+            CanvassingVendorStatus.SELECTED
+          );
+        } else {
+          formData.append(
+            `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
+            CanvassingVendorStatus.SUBMITTED
+          );
+        }
+
         formData.append(
           `canvassing_items[${i}][canvassing_vendor][${j}][unique_id]`,
           `${vendor.unique_id}`
@@ -3939,7 +3956,7 @@ const submit = async (formEl: FormInstance | undefined) => {
     // Untuk debugging: lihat semua entries FormData
     console.log("=== FORM DATA ENTRIES ===");
     for (let [key, value] of formData.entries()) {
-      console.log(`${key}:`, value);
+      // console.log(`${key}:`, value);
     }
 
     // Append files

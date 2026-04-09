@@ -43,6 +43,7 @@ export interface InventoryMovementItem {
   unit_version: number;
   reference_data?: ItemRequest;
   item_request_trail?: ItemRequestTrail;
+  inventory_movement?: InventoryMovement;
 }
 
 export interface InventoryMovement {

@@ -307,7 +307,12 @@ const querySearchAdjustmentTransaction = ref<RequestSearch>({
 
 const adjustmentTransactions = await useFetchApi<
   ResponsePagination<AdjustmentTransaction[]>
->("/search", "search-adjustment", "post", querySearchAdjustmentTransaction);
+>(
+  "/search",
+  "search-adjustment",
+  "post",
+  querySearchAdjustmentTransaction.value
+);
 
 const units = ref<Unit[]>([]);
 const termOfPayments = ref<TermOfPayment[]>([]);

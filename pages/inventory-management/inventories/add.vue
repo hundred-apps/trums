@@ -17,16 +17,83 @@
         status-icon
         :disabled="loading"
       >
+        <el-form-item label="Foto Inventory" prop="photos">
+          <div class="flex flex-col">
+            <el-upload
+              v-model:file-list="ruleForm.files"
+              action="#"
+              list-type="picture-card"
+              :auto-upload="false"
+              :on-change="handleFileChange"
+              :on-remove="handleFileRemove"
+              :on-preview="handlePictureCardPreview"
+              :limit="5"
+              multiple
+            >
+              <el-icon><Plus /></el-icon>
+            </el-upload>
+            <div class="el-upload__tip">
+              Upload foto item (max 5 file, format: jpg/png)
+            </div>
+          </div>
+        </el-form-item>
         <el-form-item label="Nama Item" prop="catalogue">
-          <el-autocomplete
-            v-model="ruleForm.catalogue"
-            :fetch-suggestions="querySearchAsync"
-            :trigger-on-focus="false"
-            clearable
-            class="inline-input w-50"
-            placeholder="Masukan Nama Item"
-            @select="handleSelect"
-          />
+          <div class="flex items-center justify-center gap-2">
+            <el-autocomplete
+              v-model="ruleForm.catalogue"
+              :fetch-suggestions="querySearchAsync"
+              :trigger-on-focus="false"
+              clearable
+              class="inline-input w-50"
+              placeholder="Masukan Nama Item"
+              @select="handleSelect"
+            >
+              <template #default="{ item }">
+                <div v-if="item.isNew" class="flex items-center text-blue-500">
+                  <el-icon><Plus /></el-icon>
+                  <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                </div>
+                <div v-else class="flex items-center gap-2">
+                  <!-- Thumbnail file pertama -->
+                  <div class="flex-shrink-0 mt-1">
+                    <div
+                      v-if="item.files && item.files.length > 0"
+                      class="w-10 h-10 rounded overflow-hidden border"
+                    >
+                      <img
+                        :src="getFirstFileUrl(item.files)"
+                        :alt="item.catalogue_name"
+                        class="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div
+                      v-else
+                      class="w-10 h-10 rounded border flex items-center justify-center text-gray-400"
+                    >
+                      <el-icon><Picture /></el-icon>
+                    </div>
+                  </div>
+
+                  <!-- Informasi produk -->
+                  <div class="flex-1 min-w-0">
+                    <p style="line-height: 15px" class="font-bold truncate">
+                      {{ item.catalogue_name || item.value }}
+                    </p>
+                    <p class="text-sm text-gray-500 truncate">
+                      PN/SN: {{ item.sn_number || "Tidak Ada" }} | Brand:
+                      {{ item.brand_name || "N/A" }}
+                    </p>
+                  </div>
+                </div>
+              </template></el-autocomplete
+            >
+            <el-button
+              v-if="ruleForm.catalogue_id"
+              type="primary"
+              :icon="View"
+              @click="() => openCatalogueDetail('')"
+            />
+          </div>
         </el-form-item>
         <el-form-item label="Lokasi Inventory" prop="location_name">
           <el-autocomplete
@@ -94,15 +161,36 @@
         </div>
       </template>
     </el-card>
+
+    <el-drawer
+      v-model="drawerCatalogue"
+      title="Detail Item"
+      :with-header="true"
+    >
+      <CatalogueAdd
+        :catalogue_form="ruleForm.catalogue_data!"
+        :loading="loading"
+      />
+      <template #footer>
+        <div style="flex: auto">
+          <el-button @click="handleCancel">Batal</el-button>
+          <el-button
+            type="primary"
+            @click="() => handleSubmit(ruleForm.catalogue_data!)"
+            >Simpan</el-button
+          >
+        </div>
+      </template>
+    </el-drawer>
   </TrumsWrapper>
 </template>
 
 <script lang="ts" setup>
-  definePageMeta({
-    middleware: ["auth", "check-access"],
-    requiredPermission: "inventories-create",
-    name: "Add New Inventory"
-  })
+definePageMeta({
+  middleware: ["auth", "check-access"],
+  requiredPermission: "inventories-create",
+  name: "Add New Inventory",
+});
 
 interface RuleForm {
   id: number;
@@ -113,13 +201,15 @@ interface RuleForm {
   is_traceable: boolean;
   traceable: string;
   sn: string;
-  unit_id: number | null;
+  unit_id: string | null;
   unit_name: string;
   qty: string;
   quantity: number;
   cost: number;
   tmp_cost: string;
   unique_id?: string;
+  catalogue_data?: Catalogue;
+  files?: UploadUserFile[];
 }
 
 import { reactive, ref, onMounted } from "vue";
@@ -128,6 +218,9 @@ import {
   type ComponentSize,
   type FormInstance,
   type FormRules,
+  type UploadFile,
+  type UploadProps,
+  type UploadUserFile,
   ElMessage,
 } from "element-plus";
 import { useApi } from "#imports";
@@ -136,13 +229,26 @@ import type { RequestSearch } from "~/types/request_search";
 import type { Unit } from "~/types/unit";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { Inventory } from "~/types/inventory";
+import { View, Plus, Picture } from "@element-plus/icons-vue";
+import { getFirstFileUrl } from "#imports";
+import type { BaseResponse } from "~/types/response";
+import CatalogueAdd from "~/components/trums/CatalogueAdd.vue";
 
 const router = useRouter();
+const route = useRoute();
+
+const id = computed(() => route.query.id as string);
 
 const goBack = () => router.back();
 
 const loading = ref<boolean>(false);
+const drawerCatalogue = ref<boolean>(false);
+const dialogVisible = ref(false);
+
 const catalogues = ref<Catalogue[]>([]);
+
+const dialogImageUrl = ref("");
+
 const requestSearch = ref<RequestSearch>({
   keyword: "",
   table: "",
@@ -187,7 +293,7 @@ const ruleForm = reactive<RuleForm>({
   location_id: "",
   is_traceable: false,
   sn: "",
-  unit_id: 0,
+  unit_id: "",
   unit_name: "",
   quantity: 0,
   cost: 0,
@@ -211,25 +317,77 @@ const rules = reactive<FormRules<RuleForm>>({
   sn: [{ required: true, message: "Masukan Serial Number", trigger: "blur" }],
 });
 
+const handleFileChange: UploadProps["onChange"] = (uploadFile, uploadFiles) => {
+  ruleForm.files = uploadFiles;
+};
+
+const handlePictureCardPreview: UploadProps["onPreview"] = (uploadFile) => {
+  dialogImageUrl.value = uploadFile.url!;
+  dialogVisible.value = true;
+};
+
+const handleFileRemove: UploadProps["onRemove"] = async (
+  uploadFile,
+  uploadFiles
+) => {
+  try {
+    const response = await useApiFetch<BaseResponse<any>>("/file-delete", {
+      method: "POST",
+      body: [uploadFile.uid],
+    });
+
+    if (response.success) {
+      ruleForm.files = uploadFiles;
+    }
+  } catch (error: any) {
+    ElMessage.error(`${error?.response?.message ?? error}`);
+  }
+};
+
 const querySearchAsync = (queryString: string, cb: (arg: any) => void) => {
   requestSearch.value.keyword = queryString;
   requestSearch.value.table = "catalogues";
   requestSearch.value.column = [{ type: ["item"] }];
   requestSearch.value.flag = "form";
-  api
-    .post("/search", requestSearch.value)
+  useFetchApi<ResponsePagination<Catalogue[]>>(
+    "/search",
+    "search-catalogue",
+    "post",
+    requestSearch.value
+  )
     .then((response) => {
-      if (response.status == 200) {
-        const resultApi: Catalogue[] = response.data.data;
+      console.log("response", response);
+      if (response.status.value == "success") {
+        const resultApi: Catalogue[] = response.data.value?.data ?? [];
         if (resultApi.length > 0) {
-          cb(resultApi.map((value) => ({ ...value, value: value.name })));
+          const result = resultApi.map((value) => ({
+            data: value,
+            isNew: false,
+            value: value.name,
+          }));
+          cb([
+            ...result,
+            {
+              value: `${queryString}`,
+              id: `${queryString}`,
+              isNew: true,
+            },
+          ]);
         } else {
-          cb([{ value: `Tambahkan ${queryString}`, id: `${queryString}` }]);
+          cb([
+            {
+              value: `${queryString}`,
+              id: `${queryString}`,
+              isNew: true,
+            },
+          ]);
         }
       }
     })
     .catch((error: any) => {
-      ElMessage.error(error.response?.data?.message);
+      ElMessage.error(
+        error.response?.message || error || "Gagal Mencari Data Catalogue"
+      );
     });
 };
 
@@ -285,14 +443,16 @@ const querySearchUnit = (queryString: string, cb: (arg: any) => void) => {
 };
 
 const handleSelect = (item: Record<string, any>) => {
-  console.log(item);
-
-  if (item.unique_id == undefined) {
-    ruleForm.catalogue = item.id;
-    ruleForm.catalogue_id = null;
+  if (item.isNew) {
+    openCatalogueDetail(item.value);
   } else {
-    ruleForm.catalogue = item.value;
-    ruleForm.catalogue_id = item.unique_id;
+    const data: Catalogue = item.data as Catalogue;
+    ruleForm.catalogue = data.name ?? "";
+    ruleForm.catalogue_id = data.unique_id;
+    ruleForm.catalogue_data = data;
+    ruleForm.catalogue_data.file_catalogues = mapApiFilesView(data.files ?? []);
+
+    console.log("catalogue", data);
   }
 };
 const handleSelectUnit = (item: Record<string, any>) => {
@@ -318,34 +478,152 @@ const handleSelectLocation = (item: Record<string, any>) => {
   }
 };
 
+const openCatalogueDetail = (name?: string) => {
+  if (!ruleForm.catalogue_data) {
+    ruleForm.catalogue_data = {
+      name: name || "",
+      id: null,
+      unique_id: null,
+      unique_code: null,
+      brand_id: null,
+      brand_name: null,
+      year: null,
+      sn: null,
+      description: null,
+      berat: null,
+      volume: null,
+      length: null,
+      width: null,
+      height: null,
+      is_asset: null,
+      tmp_asset: null,
+      version: null,
+      type: "item",
+      created_at: null,
+      created_by: null,
+      updated_at: null,
+      file_catalogues: [],
+    };
+  }
+  drawerCatalogue.value = true;
+};
+
+const create_catalogue = async (catalogue: Catalogue) => {
+  loading.value = true;
+  try {
+    console.log("catalogue", catalogue);
+    const formData = new FormData();
+
+    formData.append("unique_id", catalogue.unique_id ?? "");
+    formData.append("name", catalogue.name ?? "");
+    formData.append("brand_id", catalogue.brand_id ?? "");
+    formData.append("year", catalogue.year ?? "");
+    formData.append("sn", catalogue.sn ?? "");
+    formData.append("description", catalogue.description ?? "");
+    formData.append("berat", (catalogue.berat ?? 0).toString());
+    formData.append(
+      "volume",
+      `${catalogue.length}x${catalogue.width}x${catalogue.height}`
+    );
+    formData.append(
+      "is_asset",
+      (catalogue.tmp_asset == "1" ? true : false).toString()
+    );
+    formData.append("type", catalogue.type);
+
+    catalogue.file_catalogues.forEach((file) => {
+      if (file.raw) {
+        formData.append("files[]", file.raw);
+      }
+    });
+
+    const response = await useFetchApi<BaseResponse<Catalogue>>(
+      "/catalogues-create",
+      "catalogue-create",
+      "post",
+      formData
+    );
+
+    console.log(response.status);
+    if (response.status.value == "success") {
+      const catalogue_result: Catalogue | undefined = response.data.value?.data;
+      return catalogue_result;
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const handleSubmit = async (catalogue: Catalogue) => {
+  loading.value = true;
+
+  try {
+    const catalogueInsert = (await create_catalogue(catalogue)) ?? undefined;
+    if (catalogueInsert != undefined) {
+      ruleForm.catalogue_data = catalogueInsert;
+      ruleForm.catalogue = catalogueInsert.name || "";
+      ruleForm.catalogue_id = catalogueInsert.unique_id || "";
+    } else {
+      ElMessage.error("Kesalahan saat menyimpan data catalogue!");
+    }
+  } catch (error: any) {
+    console.log(error);
+    ElMessage.error(`Gagal menyimpan catalogue`);
+  } finally {
+    loading.value = false;
+    drawerCatalogue.value = false;
+  }
+};
+
+// Handle cancel
+const handleCancel = () => {
+  drawerCatalogue.value = false;
+};
+
 const submit = async (formEl: FormInstance | undefined) => {
   loading.value = true;
   try {
-    ruleForm.is_traceable = ruleForm.traceable == "0" ? false : true;
-    ruleForm.cost = parseInt(ruleForm.tmp_cost);
-    ruleForm.quantity = parseInt(ruleForm.qty);
+    const formData = new FormData();
 
-    const response = await api.post("/inventories-create", {
-      catalogue_id: ruleForm.catalogue_id,
-      catalogue_name: ruleForm.catalogue,
-      location_id: ruleForm.location_id,
-      location_name: ruleForm.location_name,
-      is_traceable: ruleForm.is_traceable,
-      sn: ruleForm.sn,
-      unit_id: ruleForm.unit_id,
-      unit_name: ruleForm.unit_name,
-      quantity: ruleForm.quantity,
-      cost: ruleForm.cost,
-      unique_id: ruleForm.unique_id ?? null,
+    // transform dulu
+    const isTraceable = ruleForm.traceable == "0" ? false : true;
+    const cost = parseInt(ruleForm.tmp_cost);
+    const quantity = parseInt(ruleForm.qty);
+
+    // append ke formData
+    formData.append("catalogue_id", `${ruleForm.catalogue_id}`);
+    formData.append("catalogue_name", ruleForm.catalogue);
+    formData.append("location_id", `${ruleForm.location_id}`);
+    formData.append("location_name", ruleForm.location_name);
+    formData.append("is_traceable", String(isTraceable));
+    formData.append("sn", ruleForm.sn);
+    formData.append("unit_id", `${ruleForm.unit_id}`);
+    formData.append("unit_name", ruleForm.unit_name);
+    formData.append("quantity", String(quantity));
+    formData.append("cost", String(cost));
+    formData.append("unique_id", ruleForm.unique_id ?? "");
+    (ruleForm.files ?? []).forEach((file, index) => {
+      if (file.raw) {
+        formData.append(`files[${index}]`, file.raw);
+      }
     });
 
-    if (response.status == 201) {
+    const response = await useFetchApi<BaseResponse<Inventory>>(
+      "/inventories-create",
+      "create-inventory",
+      "post",
+      formData
+    );
+
+    if (response.status.value == "success") {
       ElMessage.success(`Berhasil Menambahkan Inventori`);
-      const unique_id = useCookie("unique_id");
-      if (unique_id.value == null) {
-        resetForm(formEl);
+
+      if (response.data.value?.data?.unique_id) {
+        goBack();
       } else {
-        detail();
+        window.location.href = `/inventory-management/inventories/${response.data.value?.data?.unique_id}`;
       }
     }
   } catch (error: any) {
@@ -387,8 +665,7 @@ const resetForm = (formEl: FormInstance | undefined) => {
 const detail = async () => {
   loading.value = true;
   try {
-    const unique_id = useCookie("unique_id");
-    const response = await api.get(`/inventories-read/${unique_id.value}`);
+    const response = await api.get(`/inventories-read/${id.value}`);
     if (response.status == 200) {
       const inventory: Inventory = response.data.data;
       ruleForm.catalogue = inventory.catalogue?.name ?? "";
@@ -403,6 +680,9 @@ const detail = async () => {
       ruleForm.sn = inventory.sn;
       ruleForm.tmp_cost = (inventory.cost ?? "").toString();
       ruleForm.unique_id = inventory.unique_id;
+      ruleForm.files = mapApiFilesView(inventory.files || []);
+      ruleForm.unit_id = inventory.unit_id || "";
+      ruleForm.unit_name = inventory.unit_name;
     }
   } catch (error: any) {
     ElMessage.error(`${error.response?.data?.message}`);
@@ -411,11 +691,5 @@ const detail = async () => {
   }
 };
 
-onMounted(() => {
-  const unique_id = useCookie("unique_id");
-
-  if (unique_id.value != null) {
-    detail();
-  }
-});
+onMounted(() => detail());
 </script>

@@ -410,7 +410,10 @@ const subtotal = computed(() => {
 const getMinus = computed(() => {
   var minus = 0;
   (props.dataInterface.data?.reference_transaction_adjustment ?? [])
-    .filter((value) => value.adjustment?.operator == "minus")
+    .filter(
+      (value) =>
+        (value.adjustment ?? value.adjustments_transaction)?.operator == "minus"
+    )
     .forEach((ref) => {
       if (ref.include == false) {
         minus += Number(ref.amount);
@@ -425,8 +428,10 @@ const getPlus = computed(() => {
   (props.dataInterface.data?.reference_transaction_adjustment ?? [])
     .filter(
       (value) =>
-        value.adjustment?.operator == "plus" &&
-        value.adjustment?.category === "adjustment"
+        (value.adjustment ?? value.adjustments_transaction)?.operator ==
+          "plus" &&
+        (value.adjustment ?? value.adjustments_transaction)?.category ===
+          "adjustment"
     )
     .forEach((ref) => {
       if (ref.include == false) {
@@ -933,7 +938,7 @@ const generateQuotationPdf = async () => {
   if (props.dataInterface?.data?.note) {
     const splits = `${props.dataInterface?.data?.note}`.split("\n");
 
-    let yFinal = Number(finalY) + Number(20);
+    let yFinal = Number(finalY) + Number(10);
     splits.forEach((value) => {
       yFinal = yFinal + Number(5);
       console.log("final Y", yFinal);
@@ -987,6 +992,9 @@ const ppnComponent = computed(() => {
 });
 
 const grandTotal = computed(() => {
+  console.log("subtotal", subtotal.value);
+  console.log("getplus", getPlus.value);
+  console.log("ppn componen", ppnComponent.value);
   return subtotal.value + getPlus.value + ppnComponent.value;
 });
 const showTransactionAdjustmentValue = (

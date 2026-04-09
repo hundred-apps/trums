@@ -73,7 +73,9 @@ const router = useRouter();
 const column_selected = ref<string[]>([
   "selection",
   "unique_code",
+  "inventory.catalogue.name",
   "inspection_date",
+  "responsible.name",
   "condition",
   "status",
   "action",
@@ -157,6 +159,16 @@ const columnInspection: ColumnTable<Inspection>[] = [
     ),
   },
   {
+    key: "inventory.catalogue.name",
+    title: "Item",
+    dataKey: "inventory.catalogue.name",
+    width: 250,
+    sortable: true,
+    cellRenderer: ({ rowData }: { rowData: Inspection }) => (
+      <ElText>{rowData.inventory?.catalogue.name || ""}</ElText>
+    ),
+  },
+  {
     key: "inspection_date",
     title: "Tanggal Inspeksi",
     dataKey: "inspection_date",
@@ -164,6 +176,16 @@ const columnInspection: ColumnTable<Inspection>[] = [
     sortable: true,
     cellRenderer: ({ rowData: row }) => (
       <ElText>{formatLocalDate(row.inspection_date)}</ElText>
+    ),
+  },
+  {
+    key: "responsible.name",
+    title: "Penanggung Jawab",
+    dataKey: "responsible.name",
+    width: 250,
+    sortable: true,
+    cellRenderer: ({ rowData }: { rowData: Inspection }) => (
+      <ElText>{rowData.responsible?.name || "N/A"}</ElText>
     ),
   },
   {
