@@ -23,13 +23,7 @@
           >
           <div class="flex justify-items-end gap-3">
             <NuxtLink
-              :href="`/finance-management/invoice/add/`"
-              @click="
-                () => {
-                  const cookie = useCookie('unique_id');
-                  cookie.value = invoiceData?.unique_id;
-                }
-              "
+              :href="`/finance-management/invoice/add/id=${invoiceData?.unique_id}`"
               class="el-button el-button--primary"
             >
               <el-icon class="me-2"><Edit /></el-icon> Edit
@@ -1008,9 +1002,7 @@ const generatePDF = async () => {
   // Table
   autoTable(doc, {
     startY: 110,
-    head: [
-      ["No", "Item", "Qty", "UoM", "Price exc. PPN", "Total Price exc. PPN"],
-    ],
+    head: [["No", "Item", "Qty", "UoM", "Price", "Total Price"]],
     body: rowData,
     styles: {
       fontSize: 9,

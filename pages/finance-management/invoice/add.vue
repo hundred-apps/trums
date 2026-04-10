@@ -751,6 +751,9 @@ definePageMeta({
 });
 
 const router = useRouter();
+const route = useRoute();
+const id = computed(() => route.query.id as string);
+
 const ruleFormRef = ref<FormInstance>();
 const dialogNewAddress = ref(false);
 const loading = ref(false);
@@ -2371,9 +2374,8 @@ const resetForm = (formEl: FormInstance | undefined) => {
 const fetchDataEdit = async () => {
   loading.value = true;
   try {
-    const unique_id = useCookie("unique_id");
     const response = await useFetchApi<BaseResponse<Invoice>>(
-      `/invoice-read/${unique_id.value}`,
+      `/invoice-read/${id.value}`,
       "detail-invoice",
       "get",
       null
@@ -2395,7 +2397,7 @@ const fetchDataEdit = async () => {
         ruleForm.vendor_address_view =
           invoice.vendor_address?.address_name ?? "";
         ruleForm.vendor_address_version = invoice.vendor_address?.version ?? 0;
-
+        ruleForm.unique_id = id.value;
         transactionBanks.value = invoice.purchase_order_bank ?? [];
         references.value = (invoice.reference_transaction ?? []).map(
           (value) => ({ ...value, adjustment: value.adjustments_transaction })
@@ -2477,8 +2479,7 @@ const initialSetting = () => {
 };
 
 onMounted(() => {
-  const unique_id = useCookie("unique_id");
-  if (unique_id.value != null && unique_id.value != undefined) {
+  if (id.value != null && id.value != undefined) {
     fetchDataEdit();
   } else {
     initialSetting();
