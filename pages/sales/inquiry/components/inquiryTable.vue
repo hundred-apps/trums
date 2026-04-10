@@ -457,10 +457,12 @@ const onSort = (sortBy: { order: string; prop: string }) => {
 };
 
 const handlePageChange = (page: number) => {
+  console.log("harusnya referesh");
   request_search.value.offset = `${page}`;
 };
 
 const handleSizeChange = (size: number) => {
+  console.log("harusnya referesh");
   request_search.value.limit = `${size}`;
 };
 
@@ -468,9 +470,16 @@ const hasSelected = computed(() => {
   return data.value?.data?.some((item) => item.checked) || false;
 });
 
-watch(request_search.value, () => refreshTable(), {
-  immediate: true,
-});
+watch(
+  () => request_search.value,
+  () => {
+    console.log("harusnya referesh");
+    refreshTable();
+  },
+  {
+    deep: true,
+  }
+);
 </script>
 <template>
   <el-row :gutter="20" class="mb-3">

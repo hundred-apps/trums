@@ -557,6 +557,12 @@ const handleSizeChange = (size: number) => {
   request_search.value.limit = `${size}`;
 };
 
+watch(
+  () => request_search.value,
+  () => onRefresh(),
+  { deep: true }
+);
+
 const onRefresh = () => refresh();
 </script>
 
