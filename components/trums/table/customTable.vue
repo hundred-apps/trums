@@ -5,6 +5,7 @@
     border
     style="width: 100%"
     @sort-change="onSortChange"
+    v-bind="tableProps"
   >
     <el-table-column
       v-for="col in columns"
@@ -37,6 +38,7 @@ defineProps<{
   columns: any[];
   data: any[];
   loading?: boolean;
+  tableProps?: Record<string, any>;
 }>();
 
 const renderCell = (col: any, scope: any) => {

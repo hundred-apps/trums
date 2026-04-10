@@ -20,18 +20,20 @@
       :icon="Eleme"
       >Refresh</el-button
     >
-    <el-button
-      :disabled="!hasSelected"
-      @click="bulkDelete"
-      size="default"
-      type="danger"
-      >Hapus</el-button
-    >
   </el-row>
   <customTable
     @sort-change="onSort"
     :columns="filteredColumn"
     :data="data?.data ?? []"
+    :table-props="{
+      lazy: true,
+      load: onLoadVendors,
+      rowKey: 'item_request_id',
+      treeProps: {
+        children: 'children',
+        hasChildren: 'hasChildren',
+      },
+    }"
   />
   <div class="flex justify-end mt-3">
     <el-pagination
@@ -217,7 +219,8 @@ import { Eleme, SetUp, Plus } from "@element-plus/icons-vue";
 import customTable from "~/components/trums/table/customTable.vue";
 import { canAccess } from "#imports";
 import type { ColumnTable } from "~/types/ColumnTable";
-import type { CanvassingItem } from "~/types/scm/canvasing";
+import type { CanvassingItem, CanvassingVendor } from "~/types/scm/canvasing";
+import type { BaseResponse } from "~/types/response";
 
 const popoverRef = ref();
 
@@ -248,6 +251,27 @@ const ruleFormVendor = reactive<CanvassingItem>({
   type_item: "request",
   equivalent_id: null,
 });
+
+interface CanvassingVendorFetch {
+  total_canvassing_vendor: number;
+  data_canvassing_vendor: CanvassingVendor[];
+}
+
+interface DataRequestItem {
+  item_request_id: string;
+  inquiry_id: string;
+  inquiry_code: string;
+  item_name: string;
+  request_by: string;
+  pic: string;
+  sn: string;
+  qty: number;
+  unit_name: string;
+  vendor: string;
+  children: DataRequestItem[];
+  checked?: boolean;
+  hasChildren?: boolean;
+}
 
 const rules = reactive<FormRules<CanvassingItem>>({
   canvassing_vendor: [
@@ -286,18 +310,48 @@ const request_search = ref<RequestSearch>({
   flag: "list",
 });
 
-const { data, refresh, status } = await useAsyncData(
-  "fetch-item-request",
-  async () => {
-    const res = await useFetchApi<ResponsePagination<ItemRequest[]>>(
-      `/search`,
-      "fetch-item-request",
-      "post",
-      request_search.value
-    );
-    return res.data.value;
-  }
-);
+const items = ref<ResponsePagination<DataRequestItem[]>>({
+  success: true,
+  currentPage: 1,
+  total_page: 1,
+  total_data: 0,
+  data: [],
+  privilege: [],
+  message: "",
+});
+
+const { data, refresh, status } = await useAsyncData<
+  ResponsePagination<DataRequestItem[]>
+>("fetch-item-request", async () => {
+  const res = await useFetchApi<ResponsePagination<ItemRequest[]>>(
+    `/search`,
+    "fetch-item-request",
+    "post",
+    request_search.value
+  );
+  return {
+    success: res.data.value?.success ?? false,
+    currentPage: res.data.value?.currentPage ?? 0,
+    total_page: res.data.value?.total_page ?? 0,
+    total_data: res.data.value?.total_data ?? 0,
+    data: (res.data.value?.data ?? []).map((value) => ({
+      item_request_id: value.unique_id ?? "",
+      inquiry_id: value.inquiry_id ?? "",
+      inquiry_code: value.inquiry?.unique_code ?? "N/A",
+      item_name: value.catalogue?.name ?? "",
+      request_by: value.inquiry?.request_by?.name ?? "",
+      pic: value.inquiry?.request_to?.name ?? "",
+      sn: value.catalogue?.sn ?? "N/A",
+      qty: value.request_qty ?? 0,
+      unit_name: value.unit_name ?? "",
+      vendor: `${value.total_canvassing_vendor ?? 0}`,
+      hasChildren: (value.total_canvassing_vendor || 0) > 0 ? true : false,
+      children: [],
+    })),
+    privilege: res.data.value?.privilege ?? [],
+    message: res.data.value?.message ?? "",
+  };
+});
 
 const column_selected = ref<string[]>([
   "selection",
@@ -316,57 +370,15 @@ const hasSelected = computed(() => {
   return data.value?.data?.some((item) => item.checked) || false;
 });
 
-const availableColumn: ColumnTable<ItemRequest>[] = [
-  {
-    title: "",
-    dataKey: "",
-    key: "selection",
-    width: 50,
-    fixed: true,
-    cellRenderer: ({ rowData }) => {
-      const onChange = (value: CheckboxValueType) => (rowData.checked = value);
-      return <SelectionCell value={rowData.checked} onChange={onChange} />;
-    },
-    maxWidth: 50,
-
-    headerCellRenderer: () => {
-      const _data = unref(data);
-      const onChange = (value: CheckboxValueType) =>
-        (data.value = {
-          success: true,
-          currentPage: _data?.currentPage ?? 0,
-          total_data: _data?.total_data ?? 0,
-          total_page: _data?.total_data ?? 0,
-          data: _data?.data?.map((row: any) => {
-            row.checked = value;
-            return row;
-          })!,
-          privilege: _data?.privilege ?? [],
-        });
-      const allSelected = _data!.data.every((row) => row.checked);
-      const containsChecked = _data?.data.some((row) => row.checked);
-
-      return (
-        <SelectionCell
-          style={{ width: 50 }}
-          value={allSelected}
-          interminate={containsChecked && !allSelected}
-          onChange={onChange}
-        />
-      );
-    },
-  },
+const availableColumn: ColumnTable<DataRequestItem>[] = [
   {
     title: "Nomor RFQ",
     dataKey: "unique_code",
     key: "unique_code",
     fixed: true,
-    cellRenderer: ({ rowData }: { rowData: ItemRequest }) => (
-      <NuxtLink
-        href={`inquiry/${rowData.inquiry?.unique_id}`}
-        class={"text-blue-600"}
-      >
-        {rowData.inquiry?.unique_code}
+    cellRenderer: ({ rowData }: { rowData: DataRequestItem }) => (
+      <NuxtLink href={`inquiry/${rowData.inquiry_id}`} class={"text-blue-600"}>
+        {rowData.inquiry_code}
       </NuxtLink>
     ),
   },
@@ -376,28 +388,17 @@ const availableColumn: ColumnTable<ItemRequest>[] = [
     key: "catalogue_name",
     fixed: true,
     sortable: true,
-    cellRenderer: ({ rowData }: { rowData: ItemRequest }) => (
-      <p>{rowData.catalogue_name ?? "Tidak Ada"}</p>
+    cellRenderer: ({ rowData }: { rowData: DataRequestItem }) => (
+      <p>{rowData.item_name ?? "Tidak Ada"}</p>
     ),
   },
   {
-    title: "Ditujukan Untuk",
+    title: "Kontak",
     dataKey: "request_to",
     key: "request_to",
     sortable: true,
-    cellRenderer: ({ rowData }: { rowData: ItemRequest }) => (
-      <p>{`${rowData.inquiry?.request_to?.name} (${
-        rowData.inquiry?.request_by?.name ?? "N/A"
-      })`}</p>
-    ),
-  },
-
-  {
-    title: "SN/PN Number",
-    dataKey: "sn",
-    key: "sn",
-    cellRenderer: ({ rowData }: { rowData: ItemRequest }) => (
-      <p>{rowData.catalogue?.sn ?? "Tidak Ada"}</p>
+    cellRenderer: ({ rowData }: { rowData: DataRequestItem }) => (
+      <p>{`${rowData.request_by} (${rowData.pic ?? "N/A"})`}</p>
     ),
   },
   {
@@ -406,8 +407,8 @@ const availableColumn: ColumnTable<ItemRequest>[] = [
     key: "quantity",
     width: 100,
     sortable: true,
-    cellRenderer: ({ rowData }: { rowData: ItemRequest }) => (
-      <p>{rowData.request_qty ?? "0"}</p>
+    cellRenderer: ({ rowData }: { rowData: DataRequestItem }) => (
+      <p>{rowData.qty ?? "0"}</p>
     ),
   },
   {
@@ -415,7 +416,7 @@ const availableColumn: ColumnTable<ItemRequest>[] = [
     dataKey: "uom",
     key: "uom",
     width: 100,
-    cellRenderer: ({ rowData }: { rowData: ItemRequest }) => (
+    cellRenderer: ({ rowData }: { rowData: DataRequestItem }) => (
       <p>{rowData.unit_name ?? "-"}</p>
     ),
   },
@@ -423,45 +424,54 @@ const availableColumn: ColumnTable<ItemRequest>[] = [
     title: "Vendor",
     dataKey: "harga",
     key: "harga",
-    width: 100,
     align: "center",
     sortable: true,
-    cellRenderer: ({ rowData }: { rowData: ItemRequest }) => (
-      <p>{rowData.total_canvassing_vendor ?? 0}</p>
+    cellRenderer: ({ rowData }: { rowData: DataRequestItem }) => (
+      <p>{rowData.vendor ?? 0}</p>
     ),
   },
 ];
+
+const onLoadVendors = async (
+  row: DataRequestItem,
+  treeNode: unknown,
+  resolve: (data: DataRequestItem[]) => void
+) => {
+  try {
+    const response = await useFetchApi<BaseResponse<CanvassingVendorFetch>>(
+      `/canvassing-vendor/${row.item_request_id}`,
+      "fetch-vendor-list",
+      "get",
+      null
+    );
+    if (response.status.value == "success") {
+      const data: DataRequestItem[] = (
+        response.data.value?.data?.data_canvassing_vendor ?? []
+      ).map((value) => ({
+        item_request_id: "",
+        inquiry_id: "",
+        inquiry_code: "",
+        item_name: value.catalogue?.name ?? "",
+        request_by: value.vendor?.name ?? "",
+        pic: "",
+        sn: "",
+        qty: value.quantity ?? 0,
+        unit_name: value.unit_name ?? "",
+        vendor: currency(value.total_price),
+        children: [],
+      }));
+      resolve(data);
+    }
+  } catch (error: any) {
+    ElMessage.error(error.response?.message ?? error);
+  }
+};
 
 const filteredColumn = computed(() => {
   return availableColumn.filter((col) =>
     column_selected.value.includes(col.key!.toString())
   );
 });
-
-const bulkDelete = async () => {
-  try {
-    await ElMessageBox.confirm(
-      "Yakin ingin menghapus data Inquiry?",
-      "Warning",
-      {
-        confirmButtonText: "Hapus",
-        cancelButtonText: "Batal",
-        type: "warning",
-      }
-    );
-
-    const ids =
-      (data.value?.data ?? [])
-        .filter((item) => item.checked)
-        .map((item) => item.unique_id!) || [];
-
-    // Jika sampai sini, user klik Delete
-    await submitToDelete(ids);
-  } catch (error) {
-    // User klik Cancel atau close dialog
-    console.log("Delete cancelled");
-  }
-};
 
 const findCanvassingItem = async (
   catalogue_id: string
@@ -549,3 +559,13 @@ const handleSizeChange = (size: number) => {
 
 const onRefresh = () => refresh();
 </script>
+
+<style scoped>
+.el-table th .cell {
+  font-weight: 700 !important;
+}
+
+:deep(.el-table__cell) {
+  padding: 5px !important;
+}
+</style>

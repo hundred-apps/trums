@@ -88,6 +88,12 @@ export type Invoice = {
   vendor?: Contact;
   vendor_address?: AddressType;
   payment_terms?: TermOfPayment;
+
+  subject?: string;
+  type: "in" | "out";
+  pic_id?: string;
+  pic_name?: string;
+  pic_version?: number;
 };
 
 export type InvoiceItem = {

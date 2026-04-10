@@ -64,6 +64,9 @@
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
+            <el-button type="primary" @click="generateInvoicePDF">
+              Cetak Invoice
+            </el-button>
           </div>
         </div>
       </template>
@@ -221,35 +224,78 @@
     <el-card class="mb-3">
       <template #header>
         <div class="card-header">
-          <span>Rincian Pembayaran</span>
+          <span>Summary</span>
         </div>
       </template>
 
       <el-descriptions :column="1" border>
-        <el-descriptions-item :width="100" label="Total Tagihan">{{
-          formatCurrency(invoiceData?.subtotal || 0)
+        <el-descriptions-item
+          :width="100"
+          label="Total Tagihan"
+          align="right"
+          >{{
+            formatCurrency(invoiceData?.subtotal || 0)
+          }}</el-descriptions-item
+        >
+
+        <el-descriptions-item
+          :width="100"
+          :label="`Telah Dibayar`"
+          align="right"
+          >{{ formatCurrency(paidHistory) }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :width="100"
+          :label="`Harus Dibayar`"
+          align="right"
+          >{{ formatCurrency(paidAmount) }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :width="100"
+          align="right"
+          v-for="ref in (invoiceData?.reference_transaction ?? []).filter(
+            (value) => value.adjustments_transaction?.operator == 'minus'
+          )"
+          :key="ref.adjustment_id"
+          :label="ref.adjustment?.name ?? ''"
+          >{{
+            formatCurrency(showTransactionAdjustmentValue(ref))
+          }}</el-descriptions-item
+        >
+
+        <el-descriptions-item :width="100" label="Subtotal" align="right">{{
+          formatCurrency(subtotal)
         }}</el-descriptions-item>
         <el-descriptions-item
           :width="100"
-          v-for="ref in invoiceData?.reference_transaction ?? []"
+          align="right"
+          v-for="ref in (invoiceData?.reference_transaction ?? []).filter(
+            (value) =>
+              value.adjustments_transaction?.operator == 'plus' &&
+              value.adjustments_transaction?.category == 'adjustment'
+          )"
           :key="ref.adjustment_id"
           :label="ref.adjustments_transaction?.name ?? ''"
           >{{
-            formatCurrency(
-              ref.type == "amount"
-                ? ref.amount
-                : displayAmount(ref, invoiceData?.subtotal || 0)
-            )
+            formatCurrency(showTransactionAdjustmentValue(ref))
           }}</el-descriptions-item
         >
-        <el-descriptions-item :width="100" :label="`Telah Dibayar`">{{
-          formatCurrency(paidHistory)
-        }}</el-descriptions-item>
-        <el-descriptions-item :width="100" label="Harus Dibayar">{{
-          formatCurrency(paidAmount || 0)
-        }}</el-descriptions-item>
-        <el-descriptions-item :width="100" label="Sisa Tagihan">{{
-          formatCurrency(remainingBill || 0)
+        <el-descriptions-item
+          :width="100"
+          align="right"
+          v-for="ref in (invoiceData?.reference_transaction ?? []).filter(
+            (value) =>
+              value.adjustments_transaction?.category == 'transform' ||
+              value.adjustments_transaction?.category == 'tax'
+          )"
+          :key="ref.adjustment_id"
+          :label="ref.adjustments_transaction?.name ?? ''"
+          >{{
+            formatCurrency(showTransactionAdjustmentValue(ref))
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item :width="100" label="Grand Total" align="right">{{
+          formatCurrency(grandTotal)
         }}</el-descriptions-item>
       </el-descriptions>
     </el-card>
@@ -287,6 +333,26 @@
         </el-table-column>
       </el-table>
     </el-card>
+
+    <el-dialog
+      v-model="showPrevInvoice"
+      title="Preview PDF"
+      width="80%"
+      destroy-on-close
+    >
+      <iframe
+        v-if="pdfUrl"
+        :src="pdfUrl"
+        width="100%"
+        height="600px"
+        style="border: none"
+      ></iframe>
+
+      <template #footer>
+        <el-button @click="showPrevInvoice = false">Tutup</el-button>
+        <el-button type="success" @click="downloadPdf">Download PDF</el-button>
+      </template>
+    </el-dialog>
   </TrumsWrapper>
 </template>
 
@@ -305,6 +371,10 @@ import { PaymentTerm } from "~/types/scm/canvasing";
 import { displayAmount, formatLocalDate } from "#imports";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { RequestSearch } from "~/types/request_search";
+import jsPDF from "jspdf";
+import type { PurchaseOrder } from "~/types/scm/purchase_order";
+import { autoTable, type RowInput } from "jspdf-autotable";
+import type { ReferenceTransactionAdjustment } from "~/types/attribute_adjustment";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -337,6 +407,10 @@ const availableStatuses = [
   PaymentStatus.UNPAID,
   PaymentStatus.PAID,
 ];
+
+const pdfUrl = ref<string | null>(null);
+const pdfBlob = ref<Blob | null>(null);
+const showPrevInvoice = ref(false);
 
 const goBack = () => router.back();
 
@@ -634,6 +708,539 @@ const deleteInvoice = async () => {
     loading.value = false;
   }
 };
+
+async function getBase64ImageFromUrl(imageUrl: string): Promise<string> {
+  const res = await fetch(imageUrl);
+  const blob = await res.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+const generatePDF = async () => {
+  const doc = new jsPDF();
+  const today = new Date();
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const marginX = 10;
+
+  const formatted = today.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  // Logo
+  const imgLogo = await getBase64ImageFromUrl("/images/trumecs-logo.png"); // path logo (public/logo.png)
+  const tmsLogo = await getBase64ImageFromUrl("/images/tms-logo.png"); // path logo (public/logo.png)
+  const headerTop = 10;
+  const headerHeight = 25;
+  const headerCenterY = headerTop + headerHeight / 2;
+
+  const leftLogoWidth = 40;
+  const leftLogoHeight = 25;
+
+  const rightLogoWidth = 40;
+  const rightLogoHeight = 15;
+
+  // Logo kiri
+  doc.addImage(
+    tmsLogo,
+    "PNG",
+    marginX,
+    headerCenterY - leftLogoHeight / 2,
+    leftLogoWidth,
+    leftLogoHeight
+  );
+
+  // Logo kanan
+  doc.addImage(
+    imgLogo,
+    "PNG",
+    pageWidth - marginX - rightLogoWidth,
+    headerCenterY - rightLogoHeight / 2,
+    rightLogoWidth,
+    rightLogoHeight
+  );
+
+  // ================= TITLE =================
+  doc.setFontSize(18);
+  doc.text("INVOICE", pageWidth / 2, 50, { align: "center" });
+
+  // ================= INFO =================
+
+  const labelX = marginX;
+  const colonX = marginX + 28;
+  const valueX = marginX + 32;
+
+  doc.setFontSize(9);
+  doc.text("Number", labelX, 60);
+  doc.text(":", colonX, 60);
+  doc.text(`${invoiceData.value?.unique_code}`, valueX, 60);
+  doc.text(`Jakarta, ${formatted}`, pageWidth - marginX, 60, {
+    align: "right",
+  });
+
+  doc.text("Subject", labelX, 66);
+  doc.text(":", colonX, 66);
+  doc.text(`${invoiceData.value?.subject ?? "-"}`, valueX, 66);
+  doc.text("Quotation", labelX, 72);
+  doc.text(":", colonX, 72);
+  doc.text(`${"-"}`, valueX, 72);
+  doc.text("PO Number", labelX, 78);
+  doc.text(":", colonX, 78);
+  doc.text(
+    `${
+      ((invoiceData.value?.data_reference as PurchaseOrder) || null)
+        ?.unique_code ?? "-"
+    }`,
+    valueX,
+    78
+  );
+
+  doc.text("To", labelX, 87);
+  doc.text(":", colonX, 87);
+  doc.text(
+    `${
+      invoiceData.value?.type == "in"
+        ? invoiceData.value?.vendor_name
+        : invoiceData?.value?.customer_name ?? "-"
+    }`,
+    valueX,
+    87
+  );
+  doc.text("PIC", labelX, 93);
+  doc.text(":", colonX, 93);
+  doc.text(`${invoiceData?.value?.pic_name ?? "-"}`, valueX, 93);
+  doc.text("Address", labelX, 99);
+  doc.text(":", colonX, 99);
+  doc.text(
+    `${generateAddressView(invoiceData.value!.billing_address!).name}`,
+    valueX,
+    99
+  );
+
+  let rowData: RowInput[] = (invoiceData.value?.invoice_item ?? []).map(
+    (item: InvoiceItem, i: number) => [
+      {
+        content: `${i + 1}`,
+        styles: {
+          halign: "center",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${item.item_name}`,
+        styles: {
+          halign: "left",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${item.quantity}`,
+        styles: {
+          halign: "center",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${item.unit_name}`,
+        styles: {
+          halign: "center",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${currencyWithoutSymbol(item.price)}`,
+        styles: {
+          halign: "right",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${currencyWithoutSymbol(item.quantity * (item.price || 0))}`,
+        styles: {
+          halign: "right",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+    ]
+  );
+
+  // console.log(rowData);
+  // rowData.push(['','','','','Total Price',grandTotal])
+  // rowData.push(['','','','','PPN','11%'])
+
+  let summeryNumber = (invoiceData.value?.invoice_item ?? []).length + 1;
+
+  summeryNumber++;
+  rowData.push([
+    {
+      content: `Subtotal`,
+      colSpan: 5,
+      styles: {
+        halign: "right",
+        fontStyle: "bold",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${currencyWithoutSymbol(subtotal.value)}`,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+  ]);
+
+  (invoiceData.value?.reference_transaction ?? []).forEach((element) => {});
+
+  const dppComp = getDppComponent(
+    invoiceData?.value?.reference_transaction ?? []
+  );
+  const ppnComp = getPPNComponent(
+    invoiceData?.value?.reference_transaction ?? []
+  );
+
+  if (dppComp) {
+    const dppValue = getDPPFormula(dppComp, subtotal.value || 0);
+    const ppnValue = getPPNFormula(dppComp, dppValue);
+    summeryNumber++;
+    rowData.push([
+      {
+        content: `${dppComp.adjustments_transaction?.name}`,
+        colSpan: 5,
+        styles: {
+          halign: "right",
+          fontStyle: "bold",
+          cellWidth: 0.0,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${currencyWithoutSymbol(dppValue || 0)}`,
+        styles: {
+          halign: "right",
+          cellWidth: 0.0,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+    ]);
+    if (ppnComp) {
+      summeryNumber++;
+      rowData.push([
+        {
+          content: `${ppnComp.adjustments_transaction?.name}`,
+          colSpan: 5,
+          styles: {
+            halign: "right",
+            fontStyle: "bold",
+            cellWidth: 0.0,
+            lineWidth: 0.1,
+            lineColor: [0, 0, 0],
+            fillColor: [255, 255, 255],
+          },
+        },
+        {
+          content: `${currencyWithoutSymbol(ppnValue || 0)}`,
+          styles: {
+            halign: "right",
+            cellWidth: 0.0,
+            lineWidth: 0.1,
+            lineColor: [0, 0, 0],
+            fillColor: [255, 255, 255],
+          },
+        },
+      ]);
+    }
+  }
+  summeryNumber++;
+  rowData.push([
+    {
+      content: `Grand Total`,
+      colSpan: 5,
+      styles: {
+        halign: "right",
+        fontStyle: "bold",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${currencyWithoutSymbol(grandTotal.value || 0)}`,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+  ]);
+
+  // Table
+  autoTable(doc, {
+    startY: 110,
+    head: [
+      ["No", "Item", "Qty", "UoM", "Price exc. PPN", "Total Price exc. PPN"],
+    ],
+    body: rowData,
+    styles: {
+      fontSize: 9,
+    },
+    margin: { left: marginX, right: marginX },
+    headStyles: {
+      fillColor: [248, 248, 248], // background
+      textColor: [0, 0, 0], // warna text
+      fontStyle: "bold", // bold
+      halign: "center", // center text
+      valign: "middle", // vertical align
+      lineWidth: 0.1, // border
+      lineColor: [0, 0, 0], // warna border
+    },
+  });
+
+  // // Summary
+  let finalY = (doc as any).lastAutoTable.finalY + 10;
+  // doc.text(`Total Price: Rp ${currency(grandTotal)}`, 140, finalY)
+  // doc.text(`PPN: Rp ${currency(grandTotal)}`, 140, finalY + 10)
+
+  // finalY += 10
+  // doc.text(`Grand Total: Rp ${currency(grandTotal.value)}`, 140, finalY)
+
+  // const canvassing: Canvassing | undefined =
+  //   props.dataInterface?.data?.reference_data;
+
+  // Notes
+  doc.text("Notes:", 10, finalY + 5);
+
+  // if (canvassing) {
+  //   let currentY = finalY + 15;
+  //   doc.setFontSize(9);
+  //   const writeWrappedText = (text: string) => {
+  //     const lines = doc.splitTextToSize(text, pageWidth - 30);
+  //     doc.text(lines, 20, currentY);
+  //     currentY += lines.length * 5;
+  //   };
+
+  //   if (canvassing) {
+  //     writeWrappedText(
+  //       `\u2022 Dikirim ke ${
+  //         generateResultSearchAddress(canvassing?.address ?? null).name
+  //       }`
+  //     );
+
+  //     // writeWrappedText(
+  //     //   `\u2022 ${
+  //     //     canvassing.payment_term == PaymentTerm.TEMPO
+  //     //       ? `${paymentTermView(canvassing.payment_term)} ${
+  //     //           canvassing.tempo_value
+  //     //         } Hari`
+  //     //       : paymentTermView(canvassing.payment_term)
+  //     //   }`
+  //     // );
+
+  //     (props.dataInterface.data?.payment_terms ?? []).forEach((element) => {
+  //       writeWrappedText(
+  //         `\u2022 ${element.name} ${
+  //           element.term_of_payment == PaymentTerm.TEMPO
+  //             ? `${element.duration}D`
+  //             : ""
+  //         }`
+  //       );
+  //     });
+  //   }
+
+  //   doc.setFontSize(11);
+  // }
+
+  if (invoiceData?.value?.notes) {
+    const splits = `${invoiceData?.value?.notes}`.split("\n");
+
+    let yFinal = Number(finalY) + Number(10);
+    splits.forEach((value) => {
+      yFinal = yFinal + Number(5);
+      console.log("final Y", yFinal);
+      doc.text(`\u2022 ${value ?? "-"}`, 20, yFinal);
+    });
+  }
+
+  // Signature
+  doc.text("Best Regards,", 10, finalY + 80);
+
+  if (invoiceData?.value?.type === "in") {
+    doc.text(invoiceData?.value?.vendor_name ?? "", 10, finalY + 110);
+  } else {
+    doc.text("Stanislaus Adrian Pratama,", 10, finalY + 110);
+    doc.text("Operation Manager", 10, finalY + 120);
+  }
+
+  const blob = doc.output("blob");
+  pdfBlob.value = blob;
+  pdfUrl.value = URL.createObjectURL(blob);
+
+  return { doc, blob };
+};
+
+const downloadPdf = () => {
+  if (!pdfBlob.value) {
+    ElMessage.warning("Tidak ada PDF untuk di-download");
+    return;
+  }
+
+  const filename = `INV-${invoiceData?.value?.unique_code || "document"}.pdf`;
+
+  // Buat URL object untuk blob
+  const url = URL.createObjectURL(pdfBlob.value);
+
+  // Buat anchor element untuk download
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+
+  // Cleanup
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  // ElMessage.success('PDF berhasil di-download')
+};
+
+const generateInvoicePDF = async () => {
+  const { doc } = await generatePDF();
+  const blob = doc.output("blob");
+  pdfUrl.value = URL.createObjectURL(blob);
+  showPrevInvoice.value = true;
+};
+
+const showTransactionAdjustmentValue = (
+  ref: ReferenceTransactionAdjustment
+) => {
+  if (ref.include) {
+    return 0;
+  } else {
+    if (
+      ref.adjustments_transaction?.category == "tax" &&
+      ref.adjustments_transaction.name.toLowerCase() === "ppn"
+    ) {
+      const dpp: ReferenceTransactionAdjustment | undefined = (
+        invoiceData.value?.reference_transaction ?? []
+      ).find((value) => value.adjustments_transaction?.unique_code == "DPPL");
+      if (dpp) {
+        const dppValue = getDPPFormula(dpp, paidAmount.value || 0);
+        return getPPNFormula(ref, dppValue || paidAmount.value);
+      } else {
+        return getPPNFormula(ref, paidAmount.value);
+      }
+    } else {
+      return ref.type == "amount"
+        ? ref.amount
+        : displayAmount(ref, paidAmount.value || 0);
+    }
+  }
+};
+
+const getPlus = computed(() => {
+  var plus = 0;
+
+  (invoiceData.value?.reference_transaction ?? [])
+    .filter(
+      (value) =>
+        value.adjustments_transaction?.operator == "plus" &&
+        value.adjustments_transaction?.category === "adjustment"
+    )
+    .forEach((ref) => {
+      if (ref.include == false) {
+        plus += Number(ref.amount);
+      }
+    });
+
+  return plus;
+});
+
+const dppComponent = computed(() => {
+  return (invoiceData.value?.reference_transaction ?? []).find(
+    (value) =>
+      value.adjustments_transaction?.category == "transform" &&
+      value.adjustments_transaction?.unique_code == "DPPL"
+  );
+});
+
+const ppnComponent = computed(() => {
+  const ppnComponentRef = (invoiceData.value?.reference_transaction ?? []).find(
+    (value) =>
+      value.adjustments_transaction?.category == "tax" &&
+      value.adjustments_transaction?.name.toLowerCase() === "ppn"
+  );
+
+  if (ppnComponentRef) {
+    if (dppComponent.value) {
+      const dppValue = getDPPFormula(dppComponent.value, subtotal.value || 0);
+      if (ppnComponentRef.include) {
+        return 0;
+      } else {
+        return getPPNFormula(ppnComponentRef, dppValue);
+      }
+    } else {
+      if (ppnComponentRef.include) {
+        return 0;
+      } else {
+        return getPPNFormula(ppnComponentRef, subtotal.value || 0);
+      }
+    }
+  } else {
+    return 0;
+  }
+});
+
+const grandTotal = computed(() => {
+  return subtotal.value + getPlus.value + ppnComponent.value;
+});
+
+const getMinus = computed(() => {
+  var minus = 0;
+  (invoiceData.value?.reference_transaction ?? [])
+    .filter((value) => value.adjustments_transaction?.operator == "minus")
+    .forEach((ref) => {
+      if (ref.include == false) {
+        minus += Number(ref.amount);
+      }
+    });
+
+  return minus;
+});
+
+const subtotal = computed(() => {
+  return Number(paidAmount.value) - Number(getMinus.value);
+});
 
 onMounted(() => {
   fetchInvoice();

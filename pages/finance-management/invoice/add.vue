@@ -81,7 +81,9 @@
             </template>
           </el-input>
         </el-form-item>
-
+        <el-form-item label="Subject" prop="subject">
+          <el-input v-model="ruleForm.subject" />
+        </el-form-item>
         <el-form-item label="TOP" prop="" v-if="paymentTerms.length > 0">
           <el-select
             v-model="ruleForm.payment_term_view"
@@ -105,6 +107,27 @@
             v-model="ruleForm.customer_name"
             placeholder="Search Customer"
             @select="onHandleSelectCustomer"
+          >
+            <template #default="{ item }">
+              <div v-if="item.isNew" class="flex items-center text-blue-500">
+                <el-icon><Plus /></el-icon>
+                <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+              </div>
+              <div v-else>
+                {{ item.value }}
+                <span class="text-gray-400 ml-2">{{
+                  item.additionalInfo
+                }}</span>
+              </div>
+            </template>
+          </el-autocomplete>
+        </el-form-item>
+        <el-form-item label="PIC" prop="pic_name">
+          <el-autocomplete
+            :fetch-suggestions="querySearchCustomer"
+            v-model="ruleForm.pic_name"
+            placeholder="Search Customer"
+            @select="onHandleSelectPIC"
           >
             <template #default="{ item }">
               <div v-if="item.isNew" class="flex items-center text-blue-500">
@@ -448,57 +471,15 @@
       </el-button>
     </el-card>
 
-    <el-card class="mb-3">
-      <template #header>
-        <div class="card-header"><span>Biaya Lainya</span></div>
-      </template>
-      <div>
-        <div
-          class="flex justify-between items-center mb-2"
-          v-for="(ref, index) in references"
-        >
-          <span class="font-bold text-sm">{{
-            ref.adjustment?.name ?? ""
-          }}</span>
-          <span class="text-sm">
-            <div class="flex gap-3">
-              <el-input
-                v-model="ref.amount"
-                style="max-width: 300px"
-                placeholder="Masukan Nilai"
-                @change="(value) => onInputAdjustment(ref)"
-              >
-                <template #append>
-                  <el-select
-                    v-model="ref.type"
-                    :disabled="ref.changeType == false"
-                    style="width: 100px"
-                  >
-                    <el-option label="%" value="percent" />
-                    <el-option label="Rp" value="amount" />
-                  </el-select>
-                </template>
-              </el-input>
-              <el-button
-                type="danger"
-                :icon="Delete"
-                circle
-                :disabled="index === 0"
-                @click="removeAnotherCost(ref.adjustment_id)"
-              />
-            </div>
-          </span>
-        </div>
-      </div>
-
-      <el-button
-        class="mt-4"
-        style="width: 100%"
-        @click="visibleModalAdjustmentTransaction = true"
-      >
-        Tambah Item
-      </el-button>
-    </el-card>
+    <AdjustmentTransactionComponent
+      v-if="!loading"
+      :references="references"
+      @update:total="
+        (value) => {
+          console.log('update total', value);
+        }
+      "
+    />
 
     <!-- Summary Section -->
     <el-card class="mb-3">
@@ -509,30 +490,71 @@
       </template>
 
       <el-descriptions :column="1" border>
-        <el-descriptions-item :width="100" label="Total Tagihan">{{
-          formatCurrency(ruleForm.subtotal || 0)
-        }}</el-descriptions-item>
         <el-descriptions-item
           :width="100"
-          v-for="ref in references"
+          label="Total Tagihan"
+          align="right"
+          >{{ formatCurrency(ruleForm.subtotal || 0) }}</el-descriptions-item
+        >
+
+        <el-descriptions-item
+          :width="100"
+          :label="`Telah Dibayar`"
+          align="right"
+          >{{ formatCurrency(paidHistory) }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :width="100"
+          :label="`Harus Dibayar`"
+          align="right"
+          >{{ formatCurrency(paidAmount) }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :width="100"
+          align="right"
+          v-for="ref in references.filter(
+            (value) => value.adjustment?.operator == 'minus'
+          )"
           :key="ref.adjustment_id"
           :label="ref.adjustment?.name ?? ''"
           >{{
-            formatCurrency(
-              ref.type == "amount"
-                ? ref.amount
-                : displayAmount(ref, ruleForm.subtotal || 0)
-            )
+            currency(showTransactionAdjustmentValue(ref))
           }}</el-descriptions-item
         >
-        <el-descriptions-item :width="100" :label="`Telah Dibayar`">{{
-          formatCurrency(paidHistory)
+
+        <el-descriptions-item :width="100" label="Subtotal" align="right">{{
+          currency(subtotal)
         }}</el-descriptions-item>
-        <el-descriptions-item :width="100" :label="`Harus Dibayar`">{{
-          formatCurrency(paidAmount)
-        }}</el-descriptions-item>
-        <el-descriptions-item :width="100" label="Sisa Tagihan">{{
-          formatCurrency(remainingBill)
+        <el-descriptions-item
+          :width="100"
+          align="right"
+          v-for="ref in references.filter(
+            (value) =>
+              value.adjustment?.operator == 'plus' &&
+              value.adjustment?.category == 'adjustment'
+          )"
+          :key="ref.adjustment_id"
+          :label="ref.adjustment?.name ?? ''"
+          >{{
+            currency(showTransactionAdjustmentValue(ref))
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :width="100"
+          align="right"
+          v-for="ref in references.filter(
+            (value) =>
+              value.adjustment?.category == 'transform' ||
+              value.adjustment?.category == 'tax'
+          )"
+          :key="ref.adjustment_id"
+          :label="ref.adjustment?.name ?? ''"
+          >{{
+            currency(showTransactionAdjustmentValue(ref))
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item :width="100" label="Grand Total" align="right">{{
+          formatCurrency(grandTotal)
         }}</el-descriptions-item>
       </el-descriptions>
     </el-card>
@@ -720,6 +742,7 @@ import {
 import ModalAdjustmentTransaction from "~/components/trums/ModalAdjustmentTransaction.vue";
 import { formatLocalDate, currency, generateAddressView } from "#imports";
 import type { TermOfPayment } from "~/types/payment_term";
+import AdjustmentTransactionComponent from "~/components/trums/AdjustmentTransactionComponent.vue";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -793,7 +816,11 @@ const ruleForm = reactive<Invoice>({
   recipient_bank: "",
   account_bank_name: null,
   account_bank_number: null,
-
+  subject: "",
+  pic_id: "",
+  pic_name: "",
+  pic_version: 0,
+  type: "out",
   status: PaymentStatus.DRAFT,
 
   invoice_item: [
@@ -864,7 +891,12 @@ const querySearchAdjustmentTransaction = ref<RequestSearch>({
 
 const adjustmentTransactions = await useFetchApi<
   ResponsePagination<AdjustmentTransaction[]>
->("/search", "search-adjustment", "post", querySearchAdjustmentTransaction);
+>(
+  "/search",
+  "search-adjustment",
+  "post",
+  querySearchAdjustmentTransaction.value
+);
 
 // Form validation rules
 const rules = reactive({
@@ -873,6 +905,9 @@ const rules = reactive({
   ],
   vendor_name: [
     { required: true, message: "Please select a publisher", trigger: "blur" },
+  ],
+  pic_name: [
+    { required: true, message: "Please select a PIC", trigger: "blur" },
   ],
   payment_term_id: [
     { required: true, message: "Please select a TOP", trigger: "blur" },
@@ -959,7 +994,7 @@ const purchase_order = await useFetchApi<ResponsePagination<PurchaseOrder[]>>(
   "/search",
   "search-reference-purchase-order",
   "post",
-  request_search_purchase_order
+  request_search_purchase_order.value
 );
 
 const paginationClick = (page: number) => {
@@ -1053,6 +1088,108 @@ const paidHistory = computed(() => {
 
 const remainingBill = computed(() => {
   return ruleForm.subtotal! - paidHistory.value - paidAmount.value || 0;
+});
+
+const showTransactionAdjustmentValue = (
+  ref: ReferenceTransactionAdjustment
+) => {
+  if (ref.include) {
+    return 0;
+  } else {
+    if (
+      ref.adjustment?.category == "tax" &&
+      ref.adjustment.name.toLowerCase() === "ppn"
+    ) {
+      const dpp: ReferenceTransactionAdjustment | undefined =
+        references.value.find(
+          (value) => value.adjustment?.unique_code == "DPPL"
+        );
+      if (dpp) {
+        const dppValue = getDPPFormula(dpp, paidAmount.value || 0);
+        return getPPNFormula(ref, dppValue || paidAmount.value);
+      } else {
+        return getPPNFormula(ref, paidAmount.value);
+      }
+    } else {
+      return ref.type == "amount"
+        ? ref.amount
+        : displayAmount(ref, paidAmount.value || 0);
+    }
+  }
+};
+
+const getPlus = computed(() => {
+  var plus = 0;
+
+  references.value
+    .filter(
+      (value) =>
+        value.adjustment?.operator == "plus" &&
+        value.adjustment?.category === "adjustment"
+    )
+    .forEach((ref) => {
+      if (ref.include == false) {
+        plus += Number(ref.amount);
+      }
+    });
+
+  return plus;
+});
+
+const dppComponent = computed(() => {
+  return references.value.find(
+    (value) =>
+      value.adjustment?.category == "transform" &&
+      value.adjustment?.unique_code == "DPPL"
+  );
+});
+
+const ppnComponent = computed(() => {
+  const ppnComponentRef = references.value.find(
+    (value) =>
+      value.adjustment?.category == "tax" &&
+      value.adjustment?.name.toLowerCase() === "ppn"
+  );
+
+  if (ppnComponentRef) {
+    if (dppComponent.value) {
+      const dppValue = getDPPFormula(dppComponent.value, subtotal.value || 0);
+      if (ppnComponentRef.include) {
+        return 0;
+      } else {
+        return getPPNFormula(ppnComponentRef, dppValue);
+      }
+    } else {
+      if (ppnComponentRef.include) {
+        return 0;
+      } else {
+        return getPPNFormula(ppnComponentRef, subtotal.value || 0);
+      }
+    }
+  } else {
+    return 0;
+  }
+});
+
+const grandTotal = computed(() => {
+  return subtotal.value + getPlus.value + ppnComponent.value;
+});
+
+const getMinus = computed(() => {
+  var minus = 0;
+  references.value
+    .filter((value) => value.adjustment?.operator == "minus")
+    .forEach((ref) => {
+      if (ref.include == false) {
+        minus += Number(ref.amount);
+      }
+    });
+
+  return minus;
+});
+
+const subtotal = computed(() => {
+  return Number(paidAmount.value) - Number(getMinus.value);
 });
 
 watch(
@@ -1618,6 +1755,22 @@ const onHandleSelectCustomer = (item: any) => {
     ruleForm.customer_version = customer.version || 1;
   }
 };
+const onHandleSelectPIC = (item: any) => {
+  if (item.isNew) {
+    createNewCustomer(item.query).then((customer) => {
+      if (customer) {
+        ruleForm.pic_id = customer.unique_id;
+        ruleForm.pic_name = customer.name;
+        ruleForm.pic_version = 1;
+      }
+    });
+  } else {
+    const customer = item.data as Contact;
+    ruleForm.pic_id = customer.unique_id;
+    ruleForm.pic_name = customer.name;
+    ruleForm.pic_version = customer.version || 1;
+  }
+};
 
 const onHandleSelectPublisher = (item: any) => {
   if (item.isNew) {
@@ -1960,6 +2113,10 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         );
         formData.append("notes", ruleForm.notes ?? "-");
         formData.append("type", "out");
+        formData.append("subject", `${ruleForm.subject}`);
+        formData.append("pic_id", `${ruleForm.pic_id}`);
+        formData.append("pic_name", `${ruleForm.pic_name}`);
+        formData.append("pic_version", `${ruleForm.pic_version}`);
 
         // formData.append(
         //   "payment_term",
