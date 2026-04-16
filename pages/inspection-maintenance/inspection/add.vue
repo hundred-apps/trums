@@ -555,7 +555,7 @@ const querySearchAsyncPic = (queryString: string, cb: (arg: any) => void) => {
       "/search",
       "search-contact",
       "post",
-      requestSearchContact
+      requestSearchContact.value
     ).then((response) => {
       if (response.status.value === "success") {
         const resultApi: Contact[] = response.data.value?.data ?? [];

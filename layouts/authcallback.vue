@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import type { People } from '~/types/people';
-import type { BaseResponse } from '~/types/response';
+import type { People } from "~/types/people";
+import type { BaseResponse } from "~/types/response";
 
 const route = useRequestURL();
 const base_url = route.origin;
@@ -10,29 +10,23 @@ const user = useCookie("userdata");
 const visibleDialogLogOut = ref<boolean>(false);
 
 const logOut = async () => {
-
   try {
-    const response = await useApiFetch<BaseResponse<any>>('/people-logout', {
-      method: 'GET',
-    })
+    const response = await useApiFetch<BaseResponse<any>>("/people-logout", {
+      method: "GET",
+    });
 
-    if(response.success){
+    if (response.success) {
       // const id_token = authStore.idToken;
 
-
-    // const url = `${issuer}/session/end?id_token_hint=${id_token}&post_logout_redirect_uri=${logoutUri}&client_id=${client_id}`;
+      // const url = `${issuer}/session/end?id_token_hint=${id_token}&post_logout_redirect_uri=${logoutUri}&client_id=${client_id}`;
       authStore.clearAuth();
       user.value = null;
-      window.location.href = '/';
+      window.location.href = "/";
     }
   } catch (error: any) {
     ElMessage.error(error.response?.message ?? error);
   }
-  
-
-  
-
-}
+};
 </script>
 
 <template>
@@ -84,15 +78,11 @@ const logOut = async () => {
   </div>
 
   <el-dialog v-model="visibleDialogLogOut" title="Warning" width="500" center>
-    <span class="text-center">
-      Anda Yakin Ingin Keluar Dari Aplikasi?
-    </span>
+    <span class="text-center"> Anda Yakin Ingin Keluar Dari Aplikasi? </span>
     <template #footer>
       <div class="dialog-footer">
         <el-button @click="visibleDialogLogOut = false">Cancel</el-button>
-        <el-button type="danger" @click="logOut">
-          Log Out
-        </el-button>
+        <el-button type="danger" @click="logOut"> Log Out </el-button>
       </div>
     </template>
   </el-dialog>

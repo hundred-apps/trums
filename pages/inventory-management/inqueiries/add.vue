@@ -142,13 +142,13 @@ const maintenances = await useFetchApi<ResponsePagination<Maintenance[]>>(
   "/search",
   "get-maintenance",
   "post",
-  request_search_maintenance
+  request_search_maintenance.value
 );
 const sales_order = await useFetchApi<ResponsePagination<Maintenance[]>>(
   "/search",
   "get-sales-order",
   "post",
-  request_search_sales_order
+  request_search_sales_order.value
 );
 
 const dataTable = ref<

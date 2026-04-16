@@ -1,4 +1,98 @@
 <template>
+  <el-row :gutter="16">
+    <el-col :xs="24" :sm="12" :md="12" class="mb-4">
+      <div class="statistic-card">
+        <el-statistic :value="statistic.data.value?.data.total_nominal ?? 0">
+          <template #title>
+            <div
+              style="display: inline-flex; align-items: center"
+              class="text-green-500"
+            >
+              Total Invoice
+              <el-tooltip
+                effect="dark"
+                content="Number of users who logged into the product in one day"
+                placement="top"
+              >
+                <el-icon style="margin-left: 4px" :size="12">
+                  <Warning />
+                </el-icon>
+              </el-tooltip>
+            </div>
+          </template>
+        </el-statistic>
+      </div>
+    </el-col>
+    <el-col :xs="24" :sm="12" :md="12" class="mb-4">
+      <div class="statistic-card">
+        <el-statistic :value="statistic.data.value?.data.total_received ?? 0">
+          <template #title>
+            <div
+              style="display: inline-flex; align-items: center"
+              class="text-red-500"
+            >
+              Total Harus Di Bayar
+              <el-tooltip
+                effect="dark"
+                content="Number of users who logged into the product in one month"
+                placement="top"
+              >
+                <el-icon style="margin-left: 4px" :size="12">
+                  <Warning />
+                </el-icon>
+              </el-tooltip>
+            </div>
+          </template>
+        </el-statistic>
+      </div>
+    </el-col>
+    <el-col :xs="24" :sm="12" :md="12" class="mb-4">
+      <div class="statistic-card">
+        <el-statistic :value="statistic.data.value?.data.total_paid ?? 0">
+          <template #title>
+            <div
+              style="display: inline-flex; align-items: center"
+              class="text-blue-500"
+            >
+              Telah Di Bayar
+              <el-tooltip
+                effect="dark"
+                content="Number of users who logged into the product in one month"
+                placement="top"
+              >
+                <el-icon style="margin-left: 4px" :size="12">
+                  <Warning />
+                </el-icon>
+              </el-tooltip>
+            </div>
+          </template>
+        </el-statistic>
+      </div>
+    </el-col>
+    <el-col :xs="24" :sm="12" :md="12" class="mb-4">
+      <div class="statistic-card">
+        <el-statistic :value="statistic.data.value?.data.total_invoices ?? 0">
+          <template #title>
+            <div
+              style="display: inline-flex; align-items: center"
+              class="text-black-500"
+            >
+              Total Data Invoice
+              <el-tooltip
+                effect="dark"
+                content="Number of users who logged into the product in one month"
+                placement="top"
+              >
+                <el-icon style="margin-left: 4px" :size="12">
+                  <Warning />
+                </el-icon>
+              </el-tooltip>
+            </div>
+          </template>
+        </el-statistic>
+      </div>
+    </el-col>
+  </el-row>
   <div class="flex items-center gap-3 my-3">
     <el-input
       v-model="request_search.keyword"
@@ -10,14 +104,17 @@
     <NuxtLink
       v-if="canAccess('invoices-create', data?.privilege ?? [])"
       class="el-button el-button--primary el-button--default"
-      href="/finance-management/invoice/add"
+      :href="
+        type == 'finance' ? '/finance-management/invoice/add' : '/invoicing/add'
+      "
     >
       Buat Invoice Baru
     </NuxtLink>
     <el-button
       size="default"
       :loading-icon="Eleme"
-      :loading="loading"
+      :icon="Eleme"
+      :loading="status === 'pending'"
       @click="refreshData"
     >
       Muat Ulang
@@ -209,7 +306,14 @@
 
 <script lang="tsx" setup>
 import { ElIcon, ElPopover, NuxtLink } from "#components";
-import { Filter, Plus, Setting, SetUp, Eleme } from "@element-plus/icons-vue";
+import {
+  Filter,
+  Plus,
+  Setting,
+  SetUp,
+  Eleme,
+  CircleCloseFilled,
+} from "@element-plus/icons-vue";
 import {
   ElCheckbox,
   ElCheckboxGroup,
@@ -223,14 +327,27 @@ import {
 } from "element-plus";
 import type { ColumnTable } from "~/types/ColumnTable";
 import { PaymentMethod, PaymentStatus } from "~/types/finance/bill";
-import type { Invoice } from "~/types/finance/invoice";
-import { OrderColumn, type RequestSearch } from "~/types/request_search";
+import type { Invoice, StatisticInvoice } from "~/types/finance/invoice";
+import {
+  OrderColumn,
+  StatisticTable,
+  type RequestSearch,
+  type RequestStatistic,
+} from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import type { BaseResponse } from "~/types/response";
 import type { Contact } from "~/types/contact";
 import { canAccess } from "#imports";
 import customTable from "~/components/trums/table/customTable.vue";
+
+interface Props {
+  type?: "finance" | "invoicing";
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  type: "finance",
+});
 
 interface formFilter {
   dateInvoice: string;
@@ -361,6 +478,18 @@ const { data, refresh, status } = await useAsyncData(
   }
 );
 
+const request_statistic = ref<RequestStatistic>({
+  table: StatisticTable.invoices,
+  type: "out",
+});
+
+const statistic = await useFetchApi<ResponsePagination<StatisticInvoice>>(
+  `/statistic`,
+  "invoice-statistic",
+  "post",
+  request_statistic.value
+);
+
 const handleClose = (tag: string, type: string) => {
   console.log(tag);
   if (type == "column") {
@@ -398,6 +527,7 @@ const columnsSelected = ref<string[]>([
   "operations",
   "setup",
 ]);
+
 const columns: ColumnTable<Invoice>[] = [
   {
     key: "unique_code",
@@ -407,7 +537,11 @@ const columns: ColumnTable<Invoice>[] = [
     fixed: true,
     cellRenderer: ({ rowData: row }) => (
       <NuxtLink
-        href={`/finance-management/invoice/${row.unique_id}`}
+        href={
+          props.type === "invoicing"
+            ? `/invoicing/${row.unique_id}`
+            : `/finance-management/invoice/${row.unique_id}`
+        }
         class="text-blue-500"
       >
         {row.unique_code}
@@ -785,7 +919,12 @@ const onEdit = (invoice: Invoice) => {
   //   const uniqueId = useCookie("unique_id");
   //   uniqueId.value = invoice.unique_id;
   //   router.push(`/finance-management/invoice/add`);
-  window.location.href = `/finance-management/invoice/add/id=${invoice.unique_id}`;
+  if (props.type == "finance") {
+    window.location.href = `/finance-management/invoice/add?id=${invoice.unique_id}`;
+  }
+  {
+    window.location.href = `/invoicing/add?id=${invoice.unique_id}`;
+  }
 };
 
 const onSort = (sortBy: { order: string; prop: string }) => {
@@ -864,6 +1003,8 @@ const onFilter = () => {
           max: new Date(ruleFormFilter.dateInvoice[1]).getTime() / 1000,
         },
       };
+
+      // request_statistic.value.start_date =
     }
     if (ruleFormFilter.dueDateInvoice != "") {
       request_search.value.filter = {
@@ -901,3 +1042,56 @@ const onFilter = () => {
 
 const refreshData = () => refresh();
 </script>
+
+<style scoped>
+:deep(.el-row) {
+  margin-bottom: 20px;
+}
+:global(h2#card-usage ~ .example .example-showcase) {
+  background-color: var(--el-fill-color) !important;
+}
+
+:deep(.el-statistic) {
+  --el-statistic-content-font-size: 28px;
+}
+
+:deep(.statistic-card) {
+  height: 100%;
+  padding: 20px;
+  border-radius: 4px;
+  background-color: var(--el-bg-color-overlay);
+}
+
+:deep(.statistic-footer) {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+  margin-top: 16px;
+}
+
+:deep(.statistic-footer .footer-item) {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+:deep(.statistic-footer .footer-item span:last-child) {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+}
+
+:deep(.is-guttered) {
+  padding-top: 10px;
+}
+
+:deep(.green) {
+  color: var(--el-color-success);
+}
+:deep(.red) {
+  color: var(--el-color-error);
+}
+</style>

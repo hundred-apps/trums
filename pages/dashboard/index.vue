@@ -9,6 +9,9 @@ import { Eleme } from "@element-plus/icons-vue";
 import { refreshNuxtData } from "#app";
 import UmurPiutangLineChart from "../reports/components/hutang-piutang/UmurPiutangLineChart.vue";
 import inquiryTable from "../sales/inquiry/components/inquiryTable.vue";
+import InvoiceSummery from "../finance-management/invoice/components/InvoiceSummery.vue";
+import BillSummery from "../finance-management/bill/components/BillSummery.vue";
+import InvoiceTable from "../finance-management/invoice/components/InvoiceTable.vue";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -92,5 +95,9 @@ onMounted(() => {
       <inquiryTable />
     </ElCard>
     <!-- <UmurPiutangLineChart /> -->
+    <p class="font-bold text-xl mb-3">INVOICE</p>
+    <InvoiceTable />
+    <p class="font-bold text-xl mb-5">TAGIHAN</p>
+    <BillSummery />
   </TrumsWrapper>
 </template>

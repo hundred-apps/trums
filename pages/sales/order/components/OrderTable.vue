@@ -117,7 +117,7 @@ const columns: ColumnTable<PurchaseOrder>[] = [
   },
   {
     key: "vendor_name",
-    title: "Vendor",
+    title: "Contact",
     dataKey: "vendor_name",
     fixed: true,
     sortable: true,

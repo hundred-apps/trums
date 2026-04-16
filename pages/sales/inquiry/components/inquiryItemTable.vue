@@ -223,6 +223,7 @@ import type { CanvassingItem, CanvassingVendor } from "~/types/scm/canvasing";
 import type { BaseResponse } from "~/types/response";
 
 const popoverRef = ref();
+const tableKey = ref(0);
 
 const loading = ref<boolean>(false);
 const modalAddVendor = ref<boolean>(false);
@@ -263,6 +264,7 @@ interface DataRequestItem {
   inquiry_code: string;
   item_name: string;
   request_by: string;
+  contact: string;
   pic: string;
   sn: string;
   qty: number;
@@ -335,11 +337,16 @@ const { data, refresh, status } = await useAsyncData<
     total_page: res.data.value?.total_page ?? 0,
     total_data: res.data.value?.total_data ?? 0,
     data: (res.data.value?.data ?? []).map((value) => ({
-      item_request_id: value.unique_id ?? "",
+      item_request_id: `${value.unique_id}___${tableKey.value}`,
       inquiry_id: value.inquiry_id ?? "",
       inquiry_code: value.inquiry?.unique_code ?? "N/A",
       item_name: value.catalogue?.name ?? "",
       request_by: value.inquiry?.request_by?.name ?? "",
+      contact: `${value.inquiry?.request_to?.name} ${
+        value.inquiry?.request_by?.name
+          ? "(" + value.inquiry?.request_by?.name + ")"
+          : ""
+      }`,
       pic: value.inquiry?.request_to?.name ?? "",
       sn: value.catalogue?.sn ?? "N/A",
       qty: value.request_qty ?? 0,
@@ -363,7 +370,7 @@ const column_selected = ref<string[]>([
   "sn",
   "quantity",
   "uom",
-  "harga",
+  "total_canvassing_vendor",
 ]);
 
 const hasSelected = computed(() => {
@@ -398,7 +405,7 @@ const availableColumn: ColumnTable<DataRequestItem>[] = [
     key: "request_to",
     sortable: true,
     cellRenderer: ({ rowData }: { rowData: DataRequestItem }) => (
-      <p>{`${rowData.request_by} (${rowData.pic ?? "N/A"})`}</p>
+      <p>{rowData.contact}</p>
     ),
   },
   {
@@ -422,8 +429,8 @@ const availableColumn: ColumnTable<DataRequestItem>[] = [
   },
   {
     title: "Vendor",
-    dataKey: "harga",
-    key: "harga",
+    dataKey: "total_canvassing_vendor",
+    key: "total_canvassing_vendor",
     align: "center",
     sortable: true,
     cellRenderer: ({ rowData }: { rowData: DataRequestItem }) => (
@@ -438,11 +445,21 @@ const onLoadVendors = async (
   resolve: (data: DataRequestItem[]) => void
 ) => {
   try {
+    console.log();
+    const item_request_id = row.item_request_id.split("___")[0];
+
     const response = await useFetchApi<BaseResponse<CanvassingVendorFetch>>(
-      `/canvassing-vendor/${row.item_request_id}`,
+      `/canvassing-vendor/${item_request_id}`,
       "fetch-vendor-list",
-      "get",
-      null
+      "post",
+      {
+        sort: {
+          column: "total_price",
+          order: (
+            request_search.value.sort?.order || "DESC"
+          ).toLocaleLowerCase(),
+        },
+      }
     );
     if (response.status.value == "success") {
       const data: DataRequestItem[] = (
@@ -453,6 +470,7 @@ const onLoadVendors = async (
         inquiry_code: "",
         item_name: value.catalogue?.name ?? "",
         request_by: value.vendor?.name ?? "",
+        contact: value.vendor?.name ?? "N/A",
         pic: "",
         sn: "",
         qty: value.quantity ?? 0,
@@ -465,6 +483,25 @@ const onLoadVendors = async (
   } catch (error: any) {
     ElMessage.error(error.response?.message ?? error);
   }
+};
+const sortChildrenRecursive = (items: DataRequestItem[]) => {
+  // const sort = request_search.value.sort;
+  // if (!sort?.column || !sort?.order) return;
+  // items.forEach((item) => {
+  //   if (item.children && item.children.length > 0) {
+  //     item.children.sort((a, b) => {
+  //       const valA = a[sort.column];
+  //       const valB = b[sort.column];
+  //       if (sort.order === "asc") {
+  //         return valA > valB ? 1 : -1;
+  //       } else {
+  //         return valA < valB ? 1 : -1;
+  //       }
+  //     });
+  //     // recursion (kalau ada nested lagi)
+  //     sortChildrenRecursive(item.children);
+  //   }
+  // });
 };
 
 const filteredColumn = computed(() => {
@@ -544,8 +581,8 @@ const onSort = (sortBy: { order: string; prop: string }) => {
     column: sortBy.prop,
     order:
       sortBy.order === OrderColumn.ASCENDING
-        ? OrderColumn.ASC
-        : OrderColumn.DESC,
+        ? OrderColumn.ASC.toLowerCase()
+        : OrderColumn.DESC.toLowerCase(),
   };
 };
 
@@ -563,7 +600,12 @@ watch(
   { deep: true }
 );
 
-const onRefresh = () => refresh();
+const onRefresh = () => {
+  tableKey.value++;
+  // tableRef.value?.tableRef?.setExpandedRowKeys([]);
+  // console.log("table ref", tableRef.value.tableRef);
+  refresh();
+};
 </script>
 
 <style scoped>

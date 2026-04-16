@@ -115,6 +115,7 @@
           {{ currency(scope.row.price) }}
         </template>
       </el-table-column>
+      <el-table-column prop="note" label="Note" width="150" />
     </el-table>
     <div class="flex justify-end">
       <el-pagination

@@ -82,6 +82,7 @@ export type Pricetag_item = {
   fileUploads: UploadUserFile[];
   image?: string;
   files?: AppFile[];
+  note?: string;
 };
 
 export type Pricetag_condition = {

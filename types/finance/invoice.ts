@@ -1,7 +1,9 @@
 import type { AddressType } from "../address";
 import type { ReferenceTransactionAdjustment } from "../attribute_adjustment";
+import type { Catalogue } from "../catalogue";
 import type { Contact } from "../contact";
 import type { TermOfPayment } from "../payment_term";
+import type { People } from "../people";
 import type { PaymentTerm } from "../scm/canvasing";
 import type { PaymentMethod, PaymentStatus } from "./bill";
 import type { TransactionBank, TransactionItem } from "./transaction";
@@ -28,6 +30,7 @@ export type Invoice = {
   customer_id: string | null;
   customer_name: string;
   customer_version: number;
+  customer?: Contact;
 
   vendor_id: string | null;
   vendor_name: string;
@@ -94,6 +97,14 @@ export type Invoice = {
   pic_id?: string;
   pic_name?: string;
   pic_version?: number;
+  pic?: Contact;
+
+  approved_by_id?: string;
+  approved_by_name?: string;
+  approved_by_version?: number;
+  approved?: People;
+
+  decision_note?: string;
 };
 
 export type InvoiceItem = {
@@ -111,10 +122,14 @@ export type InvoiceItem = {
   quantity: number;
   price: number;
   total_amount: number;
+  display_total_amount?: string;
+  display_price?: string;
 
   version: number;
   invoice_version: number;
   created_at: number;
   created_by: number;
   updated_at: number;
+
+  catalogue?: Catalogue;
 };

@@ -1003,13 +1003,17 @@ const create_catalogue = async (catalogue: Catalogue) => {
 };
 
 // Computed
-const filteredCanvassingItems = await useFetchApi<
-  ResponsePagination<CanvassingVendor[]>
->(
-  "/search",
+const filteredCanvassingItems = await useAsyncData(
   "search-canvasing-vendor",
-  "post",
-  query_search_canvasing_item.value
+  async () => {
+    const res = await useFetchApi<ResponsePagination<CanvassingVendor[]>>(
+      `/search`,
+      "search-canvasing-vendor",
+      "post",
+      query_search_canvasing_item.value
+    );
+    return res.data.value;
+  }
 );
 
 const subtotal = computed(() => {
@@ -1623,12 +1627,12 @@ const handleAdjustmentSubmit = () => {
   refreshNuxtData("search-adjustment");
 };
 
-watchDebounced(
-  () => query_search_canvasing_item,
+watch(
+  () => query_search_canvasing_item.value,
   () => {
-    refreshNuxtData("search-canvasing-vendor");
+    filteredCanvassingItems.refresh();
   },
-  { debounce: 500 }
+  { deep: true }
 );
 watchDebounced(
   () => query_search_pricetag_item,

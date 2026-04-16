@@ -350,6 +350,18 @@
               </el-form-item>
             </template>
           </el-table-column>
+          <el-table-column prop="note" label="Catatan" class="mb-0" width="150">
+            <template #default="scope">
+              <el-form-item
+                label=""
+                :prop="`items.${scope.index}.price`"
+                class="mb-0"
+                style="margin-bottom: 0px !important"
+              >
+                <el-input v-model="scope.row.note" class="mb-0" />
+              </el-form-item>
+            </template>
+          </el-table-column>
 
           <el-table-column label="Aksi" width="100px" class="flex items-center">
             <template #default="scope" class="flex items-center">
@@ -683,6 +695,7 @@ const ruleForm = reactive<Pricetag>(
     subject: "",
     pricetag_item: [
       {
+        note: "",
         catalogue: {
           id: null,
           unique_id: null,
@@ -1811,7 +1824,9 @@ const addNewLine = () => {
     fileUploads: UploadUserFile[];
   }[] = [
     ...ruleForm.pricetag_item,
+
     {
+      note: "",
       catalogue: {
         id: null,
         unique_id: null,
@@ -2153,6 +2168,7 @@ const onSubmit = async (formEl: FormInstance) => {
         `${value.unit_version}`
       );
       formData.append(`pricetag_item[${index}][quantity]`, `${value.quantity}`);
+      formData.append(`pricetag_item[${index}][note]`, `${value.note}`);
 
       (value.fileUploads ?? []).forEach((file) => {
         if (file.raw) {
@@ -2244,7 +2260,14 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 
 const resetForm = (formEl: FormInstance | undefined) => {
   if (!formEl) return;
-  formEl.resetFields();
+  if (id.value) {
+    fetchInitialData();
+  } else {
+    formEl.resetFields();
+    ruleForm.pricetag_item = [];
+    ruleForm.pricetag_condition = [];
+    // table
+  }
 };
 
 // watch(requestSearchInventory, fetchData, {immediate: true});
@@ -2306,6 +2329,7 @@ const fetchInitialData = async () => {
       ruleForm.created_by = pricetagEdit.created_by;
       ruleForm.updated_at = pricetagEdit.updated_at;
       ruleForm.version = pricetagEdit.version;
+      ruleForm.note = pricetagEdit.note;
 
       ruleForm.pricetag_item = pricetagEdit.pricetag_item.map((value) => {
         const parsed = parseCurrencyID(`${value.price}`);

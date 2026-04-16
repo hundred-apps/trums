@@ -6,6 +6,7 @@
     style="width: 100%"
     @sort-change="onSortChange"
     v-bind="tableProps"
+    ref="tableRef"
   >
     <el-table-column
       v-for="col in columns"
@@ -40,6 +41,12 @@ defineProps<{
   loading?: boolean;
   tableProps?: Record<string, any>;
 }>();
+
+const tableRef = ref();
+
+defineExpose({
+  tableRef,
+});
 
 const renderCell = (col: any, scope: any) => {
   return h(

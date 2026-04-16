@@ -2,7 +2,9 @@
   <div class="common-layout">
     <HeaderFeature />
     <TrumsContentDefault>
-      <slot />
+      <TrumsWrapper>
+        <slot />
+      </TrumsWrapper>
     </TrumsContentDefault>
   </div>
 </template>

@@ -3,20 +3,30 @@
     class="flex fixed backdrop-filter backdrop-blur-md top-0 z-40 w-full flex-none transition-colors duration-300 lg:z-50 border-b border-gray-950/10 dark:border-gray-50/[0.2] bg-white/[0.5] dark:bg-gray-950/[0.5] justify-between"
     style="text-align: right"
   >
-    <div class="flex items-center gap-3">
-      <img
-        v-if="$colorMode.value === 'dark'"
-        src="/images/logo/logo-white.png"
-        alt="Logo Trums"
-        width="40"
-      />
-      <img
-        v-if="$colorMode.value === 'light'"
-        src="/images/logo/logo-black.png"
-        alt="Logo Trums"
-        width="40"
-      />
-      <p class="text-3xl">TRUMS</p>
+    <div class="flex gap-20">
+      <div class="flex items-center gap-3">
+        <img
+          v-if="$colorMode.value === 'dark'"
+          src="/images/logo/logo-white.png"
+          alt="Logo Trums"
+          width="40"
+        />
+        <img
+          v-if="$colorMode.value === 'light'"
+          src="/images/logo/logo-black.png"
+          alt="Logo Trums"
+          width="40"
+        />
+        <p class="text-3xl">TRUMS</p>
+      </div>
+      <el-menu mode="horizontal" :ellipsis="false">
+        <el-menu-item index="1">
+          <NuxtLink to="/invoicing">List Invoice</NuxtLink>
+        </el-menu-item>
+        <el-menu-item index="3">
+          <NuxtLink to="/report">Report</NuxtLink>
+        </el-menu-item>
+      </el-menu>
     </div>
     <div class="toolbar flex gap-3 items-center">
       <TrumsSwitcherTheme type="element" />

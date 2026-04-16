@@ -1,32 +1,37 @@
 export enum PaymentMethod {
-  Cash = 'cash',
-  BankTransfer = 'bank',
-  Giro = 'giro',
+  Cash = "cash",
+  BankTransfer = "bank",
+  Giro = "giro",
 }
 
-export const getPaymentMethodLabel = (payment: PaymentMethod) =>{
+export const getPaymentMethodLabel = (payment: PaymentMethod) => {
   switch (payment) {
     case PaymentMethod.Cash:
-      return 'Cash';
+      return "Cash";
     case PaymentMethod.BankTransfer:
-      return 'Bank Transfer';
+      return "Bank Transfer";
     case PaymentMethod.Giro:
-      return 'Giro';
+      return "Giro";
     default:
       return payment;
   }
-}
-
+};
 
 export enum PaymentStatus {
-  DRAFT = 'draft',
-  UNPAID = 'unpaid',
-  PAID = 'paid',
-  RECEIVED = 'received',
-  DRAFTVIEW = 'DRAFT',
-  UNPAIDVIEW = 'UNPAID',
-  PAIDVIEW = 'PAID',
-  RECEIVEDVIEW = 'RECEIVED',
+  DRAFT = "draft",
+  UNPAID = "unpaid",
+  PAID = "paid",
+  RECEIVED = "received",
+  WAITING = "waiting",
+  APPROVED = "approved",
+  REJECTED = "rejected",
+  DRAFTVIEW = "DRAFT",
+  UNPAIDVIEW = "UNPAID",
+  PAIDVIEW = "PAID",
+  RECEIVEDVIEW = "RECEIVED",
+  WAITINGVIEW = "WAITING",
+  APPROVEDVIEW = "APPROVED",
+  REJECTEDVIEW = "REJECTED",
 }
 
 export type Bill = {
@@ -38,20 +43,20 @@ export type Bill = {
   due_date_view?: string | null;
   posted_date: number | null;
   due_date: number | null;
-  
+
   to: string | null;
   to_name: string;
   to_version: number;
-  to_address_id: string|null;
+  to_address_id: string | null;
   to_address_version: number;
   to_address_view?: string;
-  
+
   order_reference: string | null;
   order_reference_view?: string | null;
 
   recipient_bank: string | null;
-  accont_bank_name: string|null;
-  account_bank_number: string|null;
+  accont_bank_name: string | null;
+  account_bank_number: string | null;
 
   tempo: boolean;
 
@@ -65,24 +70,24 @@ export type Bill = {
   status: PaymentStatus | null;
 
   account_id: string | null;
-  account_name: string|null;
+  account_name: string | null;
 
   created_at: number;
   created_by: number;
   updated_at: number;
 
-  note: string|null,
+  note: string | null;
 
   items: BillItem[];
-}
+};
 
 export type BillItem = {
   id: number;
   unique_id: string;
   unique_code: string;
   bill_id: string;
-  item_id: string|null;
-  item_name: string|null;
+  item_id: string | null;
+  item_name: string | null;
   quantity: number;
   unit_price: number;
   unit_id: string;
@@ -92,4 +97,4 @@ export type BillItem = {
   created_by: number;
   updated_at: number;
   item_version: number;
-}
+};

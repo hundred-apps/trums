@@ -427,7 +427,7 @@ const generateDeliveryOrderPdf = async () => {
         i + 1,
         item.inventory?.catalogue?.name ?? "-",
         item.quantity,
-        "",
+        item.unit_name,
         "",
       ]
     ),

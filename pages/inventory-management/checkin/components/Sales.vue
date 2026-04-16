@@ -473,7 +473,7 @@ const requestSearchContact = ref<RequestSearch>({
 const requestSearchInquiry = ref<RequestSearch>({
   keyword: "",
   table: "inquiries",
-  column: [],
+  column: [{ reference: type.value == "in" ? ["po"] : ["so"] }],
   sort: null,
   limit: "10",
   offset: "1",
@@ -496,12 +496,15 @@ const locations = await useFetchApi<ResponsePagination<Catalogue[]>>(
   requestSearchLocation.value
 );
 
-const inquiries = await useFetchApi<ResponsePagination<Inquiry[]>>(
-  "/search",
-  "fetch-inquiries",
-  "post",
-  requestSearchInquiry.value
-);
+const inquiries = await useAsyncData("fetch-inquiries", async () => {
+  const res = await useFetchApi<ResponsePagination<Inquiry[]>>(
+    `/search`,
+    "fetch-inquiries",
+    "post",
+    requestSearchInquiry.value
+  );
+  return res.data.value;
+});
 
 // watcher
 watch(requestSearchLocation.value, () => refreshNuxtData("fetch-locations"), {
@@ -551,9 +554,13 @@ watch(requestSearchSalesOrder.value, () => refreshNuxtData("sales-order"), {
   immediate: true,
 });
 
-watch(requestSearchInquiry.value, () => refreshNuxtData("fetch-inquiries"), {
-  immediate: true,
-});
+watch(
+  () => requestSearchInquiry.value,
+  () => inquiries.refresh(),
+  {
+    deep: true,
+  }
+);
 
 watch(
   () => formInline.type,
@@ -685,7 +692,7 @@ const getStockStatus = (
   type: "success" | "warning" | "info" | "primary" | "danger";
   text: string;
 } => {
-  const quantity = item.quantity || 0;
+  const quantity = item.request_qty || 0;
   const stok = item.stok || 0;
 
   if (stok === 0) {
@@ -980,6 +987,8 @@ const fetchInventory = async () => {
           element.inventory_id = findIndex?.unique_id ?? "";
           element.stok = findIndex?.quantity;
         } else {
+          element.inventory_id = "";
+          element.stok = 0;
           ElMessage.error("Item Tidak Ditemukan!");
         }
       });

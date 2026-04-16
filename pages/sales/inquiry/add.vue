@@ -85,6 +85,7 @@ import {
   getFirstFileUrl,
   generateAddressViewName,
 } from "#imports";
+import AutocompleteContact from "~/components/trums/AutocompleteContact.vue";
 
 const fileList = ref<UploadUserFile[]>([]);
 
@@ -702,6 +703,7 @@ const querySearchContact = (
   cb: (arg: any) => void,
   type: "to" | "pic"
 ) => {
+  console.log("request", queryString);
   (request_search.value.keyword = queryString),
     (request_search.value.table = "contacts");
   request_search.value.column =
@@ -721,16 +723,16 @@ const querySearchContact = (
         const resultApi: ResponsePagination<Contact[]> = response.data;
         if (resultApi.data.length > 0) {
           const results = resultApi.data.map((data: Contact) => {
-            return { ...data, value: `${data.name}` };
+            return { data: data, value: `${data.name}` };
           });
 
           const options = [
             ...results,
             {
-              value: `Tambahkan ${queryString}`,
+              value: `${queryString}`,
               isNew: true,
               query: queryString,
-              label: `Tambahkan ${queryString}`,
+              label: `${queryString}`,
             },
           ];
 
@@ -738,10 +740,10 @@ const querySearchContact = (
         } else {
           cb([
             {
-              value: `Tambahkan ${queryString}`,
+              value: `${queryString}`,
               isNew: true,
               query: queryString,
-              label: `Tambahkan ${queryString}`,
+              label: `${queryString}`,
             },
           ]);
         }
@@ -1233,6 +1235,21 @@ const handleSubmitContact = async (formData: Contact) => {
   }
 };
 
+const handleSelectContact = (data: Contact, type: "to" | "pic") => {
+  console.log("contact data", data);
+  if (type == "to") {
+    toContact.value = data;
+    ruleForm.to_unique_id = data.unique_id;
+    ruleForm.to_version = data.version;
+    ruleForm.to_name = data.name ?? "";
+  } else {
+    picContact.value = data;
+    ruleForm.request_by = data.unique_id;
+    ruleForm.request_by_version = data.version;
+    ruleForm.request_by_name = data.name ?? "";
+  }
+};
+
 const handleResetContact = () => {
   formFieldsRefContact.value?.resetForm();
   dialogContact.value = false;
@@ -1687,7 +1704,13 @@ const handleDeleteAddress = () => {
         :disabled="loading"
       >
         <el-form-item label="Diminta oleh?" prop="to_name">
-          <div class="flex items-center gap-3">
+          <AutocompleteContact
+            v-model="ruleForm.to_name"
+            :contact="toContact"
+            :fetch-suggestions="(queryString: string, cb: (arg: any) => void) => querySearchContact(queryString, cb, 'to')"
+            @save-contact="(data: Contact) => handleSelectContact(data, 'to')"
+          />
+          <!-- <div class="flex items-center gap-3">
             <el-autocomplete
               :fetch-suggestions="(queryString: string, cb: (arg: any) => void) => querySearchContact(queryString, cb, 'to')"
               v-model="ruleForm.to_name"
@@ -1705,32 +1728,20 @@ const handleDeleteAddress = () => {
               @click="openDialogTo"
               :icon="User"
             />
-          </div>
+          </div> -->
         </el-form-item>
         <el-form-item
           v-if="toContact && toContact.is_company"
           label="PIC"
           prop="request_by_name"
         >
-          <div class="flex items-center gap-3">
-            <el-autocomplete
-              :fetch-suggestions="(queryString: string, cb: (arg: any) => void) => querySearchContact(queryString, cb, 'pic')"
-              v-model="ruleForm.request_by_name"
-              placeholder="Cari Kontak"
-              @select="(item: Record<string, any>) => onHandleSelectContact(item, 'pic')"
-            >
-              <template #default="{ item }">
-                <div v-if="!item.isNew">{{ item.name }}</div>
-                <div v-else class="text-blue-600">{{ item.value }}</div>
-              </template>
-            </el-autocomplete>
-            <el-button
-              type="primary"
-              v-if="picContact"
-              @click="openDialogPIC"
-              :icon="User"
-            />
-          </div>
+          <AutocompleteContact
+            v-model="ruleForm.request_by_name"
+            :contact="picContact"
+            :fetch-suggestions="(queryString: string, cb: (arg: any) => void) => querySearchContact(queryString, cb, 'pic')"
+            @select="(item: Record<string, any>) => onHandleSelectContact(item, 'pic')"
+            @save-contact="(data: Contact) => handleSelectContact(data, 'pic')"
+          />
         </el-form-item>
 
         <el-form-item label="File Lampiran" prop="files">
@@ -1953,15 +1964,6 @@ const handleDeleteAddress = () => {
       </div>
     </el-card>
 
-    <el-dialog v-model="dialogContact" title="Detail Kontak">
-      <AddContact
-        ref="formFieldsRefContact"
-        :contact-data="typeContactActive == 'to' ? toContact! : picContact!"
-        :loading="loading"
-        @submit="handleSubmitContact"
-        @reset="handleResetContact"
-      />
-    </el-dialog>
     <el-dialog v-model="dialogNewAddress" title="Form Alamat" width="500">
       <FormAddress
         :onSetInitital="addressStateForm == 'new' ? {

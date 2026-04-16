@@ -24,14 +24,6 @@ const activeNameTab = ref("RFQ");
           <inquiryItemTable />
         </el-tab-pane>
       </el-tabs>
-      <!-- <el-tab-pane label="RFQ" name="RFQ">
-        <div style="height: 100%">
-          <inquiryTable />
-        </div>
-      </el-tab-pane>
-      <el-tab-pane label="RFQ ITEM" name="ITEM">
-        <inquiryItemTable />
-      </el-tab-pane> -->
     </el-tabs>
   </TrumsWrapper>
 </template>

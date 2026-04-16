@@ -2631,7 +2631,7 @@ const querySearchCatalogue = (queryString: string, cb: (arg: any) => void) => {
       `/pricetag-item-read`,
       "pricetag-search-items",
       "post",
-      request_search_pricetag_item
+      request_search_pricetag_item.value
     ).then((response) => {
       if (response.status.value == "success") {
         const resultApi: Pricetag_item[] = response.data.value?.data ?? [];
@@ -3459,6 +3459,7 @@ const paginationClick = (val: number) => {
 };
 
 const paginationClickPriceTag = (val: number) => {
+  console.log("pagination change");
   request_search_pricetag_item.value.offset = val;
 };
 const paginationSizeChange = (val: number) => {
@@ -3518,11 +3519,11 @@ watchDebounced(request_search_contact.value, () => fetchContact(), {
 //   { debounce: 500 }
 // )
 
-watchDebounced(
-  () => request_search_pricetag_item.value.keyword,
+watch(
+  () => request_search_pricetag_item.value,
   () => fetchPricetagItem(),
   {
-    debounce: 500,
+    deep: true,
   }
 );
 
