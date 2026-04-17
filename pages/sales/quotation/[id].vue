@@ -72,6 +72,19 @@ const fetchCanvassing = async () => {
     if (response.status.value == "success" && response.data.value?.data) {
       currentPrivilage.value = response.data.value.privilege ?? [];
       canvassingData.value = response.data.value.data;
+      canvassingData.value.canvassing_item.forEach((element) => {
+        element.canvassing_vendor.forEach((vendor) => {
+          console.log(" status", vendor.status);
+        });
+      });
+      // console.log(
+      //   "canvassing vendor status",
+      //   canvassingData.value.canvassing_item[0].canvassing_vendor[0].status
+      // );
+      // console.log(
+      //   "canvassing vendor",
+      //   canvassingData.value.canvassing_item[0].canvassing_vendor[0]
+      // );
     }
   } catch (error) {
     ElMessage.error("Failed to fetch canvassing data");

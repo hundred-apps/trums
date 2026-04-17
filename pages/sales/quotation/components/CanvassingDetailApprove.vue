@@ -2274,6 +2274,7 @@ const tableRowClassName = ({
   row: CanvassingItemForm;
   rowIndex: number;
 }) => {
+  console.log("row", row);
   if (row.type_item != "request" && row.type_item != "equivalent") {
     if (row.status === CanvassingVendorStatus.SELECTED) {
       return "success-row";
@@ -2412,6 +2413,7 @@ const fetchPriceTagWithItems = async () => {
 
 const initialCanvassing = (data: Canvassing) => {
   canvassingData.value = data;
+  console.log("item canvassing", canvassingData.value.canvassing_item);
 
   contactsFee.value = [];
   (canvassingData.value.reference_transaction ?? []).forEach((element) => {
@@ -2767,39 +2769,40 @@ watch(
   { deep: true }
 );
 
-watch(
-  () => item_canvassing.value,
-  () => {
-    item_canvassing.value.forEach((element) => {
-      const findCanvassingItem = (
-        canvassingData.value?.canvassing_item ?? []
-      ).findIndex((item) => item.unique_id == element.unique_id);
-      element.children.forEach((child) => {
-        if (findCanvassingItem >= 0) {
-          const vendorIndex = (
-            canvassingData.value?.canvassing_item[findCanvassingItem]
-              .canvassing_vendor ?? []
-          ).findIndex((v) => v.unique_id == child.unique_id);
+// watch(
+//   () => item_canvassing.value,
+//   () => {
+//     item_canvassing.value.forEach((element) => {
+//       const findCanvassingItem = (
+//         canvassingData.value?.canvassing_item ?? []
+//       ).findIndex((item) => item.unique_id == element.unique_id);
 
-          if (vendorIndex >= 0) {
-            if (child.checked == true && CanvassingStatus.DONE) {
-              canvassingData.value!.canvassing_item[
-                findCanvassingItem
-              ].canvassing_vendor[vendorIndex].status =
-                CanvassingVendorStatus.SELECTED;
-            } else {
-              canvassingData.value!.canvassing_item[
-                findCanvassingItem
-              ].canvassing_vendor[vendorIndex].status =
-                CanvassingVendorStatus.SUBMITTED;
-            }
-          }
-        }
-      });
-    });
-  },
-  { deep: true }
-);
+//       element.children.forEach((child) => {
+//         if (findCanvassingItem >= 0) {
+//           const vendorIndex = (
+//             canvassingData.value?.canvassing_item[findCanvassingItem]
+//               .canvassing_vendor ?? []
+//           ).findIndex((v) => v.unique_id == child.unique_id);
+
+//           if (vendorIndex >= 0) {
+//             if (child.checked == true && CanvassingStatus.DONE) {
+//               canvassingData.value!.canvassing_item[
+//                 findCanvassingItem
+//               ].canvassing_vendor[vendorIndex].status =
+//                 CanvassingVendorStatus.SELECTED;
+//             } else {
+//               canvassingData.value!.canvassing_item[
+//                 findCanvassingItem
+//               ].canvassing_vendor[vendorIndex].status =
+//                 CanvassingVendorStatus.SUBMITTED;
+//             }
+//           }
+//         }
+//       });
+//     });
+//   },
+//   { deep: true }
+// );
 
 watch(
   () => item_canvassing.value,
@@ -3771,18 +3774,19 @@ const decline = async () => {
 };
 
 const submitApprove = async () => {
-  canvassingData.value?.canvassing_item.forEach((element) => {
-    element.canvassing_vendor.forEach((element) => {
-      if (element.status === CanvassingVendorStatus.SELECTED) {
-        element.status = CanvassingVendorStatus.SELECTED;
-      } else if ((element.status = CanvassingVendorStatus.SUBMITTED)) {
-        element.status = CanvassingVendorStatus.SUBMITTED;
-      } else {
-        element.status = CanvassingVendorStatus.REJECTED;
-      }
-    });
-  });
-
+  // canvassingData.value?.canvassing_item.forEach((element) => {
+  //   element.canvassing_vendor.forEach((vendor) => {
+  //     console.log("canvassing ", vendor.status);
+  //     if (vendor.status === CanvassingVendorStatus.SELECTED) {
+  //       vendor.status = CanvassingVendorStatus.SELECTED;
+  //     } else if ((vendor.status = CanvassingVendorStatus.SUBMITTED)) {
+  //       vendor.status = CanvassingVendorStatus.SUBMITTED;
+  //     } else {
+  //       vendor.status = CanvassingVendorStatus.REJECTED;
+  //     }
+  //   });
+  // });
+  // console
   await updateStatus(CanvassingStatus.DONE);
 
   visibleApproveDialog.value = false;

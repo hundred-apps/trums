@@ -2062,7 +2062,7 @@ const onHandleSelectItemAutocompleteUnit = (
     ruleForm.pricetag_item[scope.$index].unit_id = "";
   } else {
     ruleForm.pricetag_item[scope.$index].unit_name = item.value;
-    ruleForm.pricetag_item[scope.$index].unit_id = `${item.id}`;
+    ruleForm.pricetag_item[scope.$index].unit_id = `${item.unique_id}`;
   }
 };
 

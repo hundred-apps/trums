@@ -58,6 +58,7 @@ import {
   Operation,
   User,
   Delete,
+  Eleme,
 } from "@element-plus/icons-vue";
 import type { Maintenance } from "~/types/maintenance";
 import type { Contact } from "~/types/contact";
@@ -144,12 +145,15 @@ const maintenances = await useFetchApi<ResponsePagination<Maintenance[]>>(
   "post",
   request_search_maintenance.value
 );
-const sales_order = await useFetchApi<ResponsePagination<Maintenance[]>>(
-  "/search",
-  "get-sales-order",
-  "post",
-  request_search_sales_order.value
-);
+const sales_order = await useAsyncData("get-sales-order", async () => {
+  const res = await useFetchApi<ResponsePagination<PurchaseOrder[]>>(
+    `/search`,
+    "get-sales-order",
+    "post",
+    request_search_sales_order.value
+  );
+  return res.data.value;
+});
 
 const dataTable = ref<
   {
@@ -605,6 +609,22 @@ watch(
   },
   { immediate: true }
 );
+watch(
+  () => ruleForm.reference,
+  () => {
+    request_search_sales_order.value.column = [
+      {
+        type: ["po"],
+      },
+    ];
+  },
+  { deep: true }
+);
+watch(
+  () => request_search_sales_order.value,
+  () => sales_order.refresh(),
+  { deep: true }
+);
 
 const onSelectReference_id = async (data: any) => {
   console.log("po data", data);
@@ -655,6 +675,8 @@ const onSelectReference_id = async (data: any) => {
     if (sales_order.address) {
       address.value = sales_order.address;
     }
+
+    // ruleForm.request_by = sales_order
 
     dataTable.value = (sales_order.purchase_order_item ?? []).map((value) => ({
       unique_id: null,
@@ -1432,7 +1454,11 @@ onMounted(() => {
         <template #header>
           <div class="card-header">
             <el-form-item>
-              <el-button type="primary" @click="submitForm(ruleFormRef)"
+              <el-button
+                type="primary"
+                :loading-icon="Eleme"
+                :loading="loading"
+                @click="submitForm(ruleFormRef)"
                 >Simpan</el-button
               >
               <el-button @click="resetForm(ruleFormRef)">Batal</el-button>

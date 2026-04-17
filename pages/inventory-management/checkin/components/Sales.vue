@@ -16,6 +16,8 @@
               <el-form-item style="margin-bottom: 0px">
                 <el-button
                   type="primary"
+                  :loading-icon="Eleme"
+                  :loading="loading"
                   @click="() => submitForm(ruleFormRef)"
                   :disabled="
                     formInline.type == 'out' && stockStatus.hasZeroStockOnly
@@ -371,6 +373,7 @@ import {
   CircleCloseFilled,
   Warning,
   Delete,
+  Eleme,
 } from "@element-plus/icons-vue";
 import type { Catalogue } from "~/types/catalogue";
 import type { Contact } from "~/types/contact";

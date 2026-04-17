@@ -488,12 +488,9 @@
       </template>
 
       <el-descriptions :column="1" border>
-        <el-descriptions-item
-          :width="100"
-          label="Total Tagihan"
-          align="right"
-          >{{ currency(ruleForm.subtotal || 0) }}</el-descriptions-item
-        >
+        <el-descriptions-item :width="100" label="Total Price" align="right">{{
+          currency(ruleForm.subtotal || 0)
+        }}</el-descriptions-item>
 
         <el-descriptions-item
           :width="100"
@@ -509,9 +506,19 @@
             currency(showTransactionAdjustmentValue(ref))
           }}</el-descriptions-item
         >
-        <el-descriptions-item :width="100" label="Subtotal" align="right">{{
-          currency(totalPlus)
-        }}</el-descriptions-item>
+        <el-descriptions-item
+          v-if="
+            references.filter(
+              (value) =>
+                value.adjustment?.operator == 'plus' &&
+                value.adjustment?.category == 'adjustment'
+            ).length > 0
+          "
+          :width="100"
+          label="Subtotal"
+          align="right"
+          >{{ currency(totalPlus) }}</el-descriptions-item
+        >
         <el-descriptions-item
           :width="100"
           align="right"
@@ -538,12 +545,17 @@
             currency(showTransactionAdjustmentValue(ref))
           }}</el-descriptions-item
         >
-        <el-descriptions-item :width="100" label="Total" align="right">{{
-          currency(grandTotal)
-        }}</el-descriptions-item>
         <el-descriptions-item
           :width="100"
-          label="Total Harus Di Bayar"
+          v-if="ruleForm.payment_terms"
+          :label="ruleForm.payment_terms.name"
+          align="right"
+          >{{ currency(paidAmount) }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :width="100"
+          v-if="!ruleForm.payment_terms"
+          label="Grand Total"
           align="right"
           >{{ currency(paidAmount) }}</el-descriptions-item
         >
@@ -1096,10 +1108,11 @@ const paidAmount = computed(() => {
   let amount: number = Number(grandTotal.value);
   console.log("payment term", ruleForm.payment_terms);
   if (ruleForm.payment_terms) {
-    console.log(
-      "paid Amount",
-      Number(grandTotal.value) * (Number(ruleForm.payment_terms?.value) / 100)
-    );
+    // if (ruleForm.payment_terms.term_of_payment == PaymentTerm.CBD) {
+
+    // } else {
+
+    // }
     amount =
       Number(grandTotal.value) * (Number(ruleForm.payment_terms?.value) / 100);
   }

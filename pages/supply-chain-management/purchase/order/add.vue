@@ -908,21 +908,28 @@ const request_search_inquiry = ref<RequestSearch>({
   table: "item_request_trail",
 });
 
-const itemRequest = await useFetchApi<ResponsePagination<ItemRequestTrail[]>>(
-  "/search",
-  "search-item-request",
-  "post",
-  request_search_inquiry.value
+const itemRequest = await useAsyncData("search-item-request", async () => {
+  const res = await useFetchApi<ResponsePagination<ItemRequestTrail[]>>(
+    `/search`,
+    "search-item-request",
+    "post",
+    request_search_inquiry.value
+  );
+  return res.data.value;
+});
+
+watch(
+  () => request_search_inquiry.value,
+  () => itemRequest.refresh(),
+  { deep: true }
 );
 
 const paginationClick = (val: number) => {
   request_search_inquiry.value.offset = val.toString();
-  refreshNuxtData("search-item-request");
 };
 
 const handleSizeChange = (size: number) => {
   request_search_inquiry.value.limit = `${size}`;
-  refreshNuxtData("search-item-request");
 };
 
 // Handle cancel
@@ -2151,7 +2158,11 @@ const fetchDataEdit = async () => {
         ruleForm.total_price = request.total_price;
         ruleForm.additinal_information = request.additional_information ?? "";
         ruleForm.status = request.status;
-        ruleForm.items = request.purchase_order_item;
+        ruleForm.items = request.purchase_order_item.map((item) => ({
+          ...item,
+          unit_price: item.unit_price,
+          displayPrice: formatCurrencyID(item.unit_price),
+        }));
         ruleForm.payment_term =
           request.term_payment == null
             ? PaymentTerm.CBD

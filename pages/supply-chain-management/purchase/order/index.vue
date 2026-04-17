@@ -181,7 +181,7 @@ const { data } = await useFetchApi<ResponsePagination<PurchaseOrder[]>>(
   "/search",
   "search-purchase-order",
   "post",
-  request_search
+  request_search.value
 );
 const selectedPurchaseOrders = ref<PurchaseOrder[]>([]);
 const loading = ref<boolean>(false);

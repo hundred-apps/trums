@@ -258,12 +258,9 @@
       </template>
 
       <el-descriptions :column="1" border>
-        <el-descriptions-item
-          :width="100"
-          label="Total Tagihan"
-          align="right"
-          >{{ currency(data?.data?.subtotal || 0) }}</el-descriptions-item
-        >
+        <el-descriptions-item :width="100" label="Total" align="right">{{
+          currency(data?.data?.subtotal || 0)
+        }}</el-descriptions-item>
         <el-descriptions-item
           :width="100"
           align="right"
@@ -279,9 +276,19 @@
           }}</el-descriptions-item
         >
 
-        <el-descriptions-item :width="100" label="Subtotal" align="right">{{
-          currency(totalPlus)
-        }}</el-descriptions-item>
+        <el-descriptions-item
+          :width="100"
+          v-if="
+            (data?.data?.reference_transaction ?? []).filter(
+              (value) =>
+                value.adjustments_transaction?.operator == 'plus' &&
+                value.adjustments_transaction?.category == 'adjustment'
+            ).length > 0
+          "
+          label="Subtotal"
+          align="right"
+          >{{ currency(totalPlus) }}</el-descriptions-item
+        >
         <el-descriptions-item
           :width="100"
           align="right"
@@ -308,9 +315,20 @@
             currency(showTransactionAdjustmentValue(ref))
           }}</el-descriptions-item
         >
-        <el-descriptions-item :width="100" label="Grand Total" align="right">{{
-          currency(grandTotal)
-        }}</el-descriptions-item>
+        <el-descriptions-item
+          :width="100"
+          v-if="data?.data?.payment_terms"
+          :label="data?.data?.payment_terms.name"
+          align="right"
+          >{{ currency(paidAmount) }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :width="100"
+          v-if="!data?.data?.payment_terms"
+          label="Grand Total"
+          align="right"
+          >{{ currency(paidAmount) }}</el-descriptions-item
+        >
       </el-descriptions>
     </el-card>
 
@@ -627,14 +645,15 @@ const formatPaymentMethod = (method: PaymentMethod | null) => {
 };
 
 const paidAmount = computed(() => {
-  let amount: number = data.value?.data?.subtotal || 0;
-
+  let amount: number = Number(grandTotal.value);
   if (data.value?.data?.payment_terms) {
     amount =
-      (Number(data.value?.data?.subtotal) *
-        Number(data.value?.data?.payment_terms?.value)) /
-      100;
+      Number(grandTotal.value) *
+      (Number(data.value?.data?.payment_terms.value) / 100);
   }
+
+  console.log("grand total", grandTotal.value);
+  console.log("TOP", data.value?.data?.payment_terms?.value);
 
   return amount;
 });
@@ -1004,7 +1023,7 @@ const generatePDF = async () => {
   summeryNumber++;
   rowData.push([
     {
-      content: `Subtotal`,
+      content: `Total Price`,
       colSpan: 5,
       styles: {
         halign: "right",
@@ -1062,30 +1081,38 @@ const generatePDF = async () => {
       ]);
     });
 
-  rowData.push([
-    {
-      content: `Subtotal`,
-      colSpan: 5,
-      styles: {
-        halign: "right",
-        fontStyle: "bold",
-        cellWidth: 0.0,
-        lineWidth: 0.1,
-        lineColor: [0, 0, 0],
-        fillColor: [255, 255, 255],
+  if (
+    (data?.value?.data?.reference_transaction ?? []).filter(
+      (value) =>
+        value.adjustments_transaction?.operator == "plus" &&
+        value.adjustments_transaction?.category == "adjustment"
+    ).length > 0
+  ) {
+    rowData.push([
+      {
+        content: `Subtotal`,
+        colSpan: 5,
+        styles: {
+          halign: "right",
+          fontStyle: "bold",
+          cellWidth: 0.0,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
       },
-    },
-    {
-      content: `${currencyWithoutSymbol(totalPlus.value)}`,
-      styles: {
-        halign: "right",
-        cellWidth: 0.0,
-        lineWidth: 0.1,
-        lineColor: [0, 0, 0],
-        fillColor: [255, 255, 255],
+      {
+        content: `${currencyWithoutSymbol(totalPlus.value)}`,
+        styles: {
+          halign: "right",
+          cellWidth: 0.0,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
       },
-    },
-  ]);
+    ]);
+  }
 
   (data?.value?.data?.reference_transaction ?? [])
     .filter((value) => value.adjustments_transaction?.operator == "minus")
@@ -1154,7 +1181,9 @@ const generatePDF = async () => {
   summeryNumber++;
   rowData.push([
     {
-      content: `Grand Total`,
+      content: data.value?.data?.payment_terms
+        ? data.value?.data?.payment_terms.name
+        : `Grand Total`,
       colSpan: 5,
       styles: {
         halign: "right",
@@ -1166,7 +1195,7 @@ const generatePDF = async () => {
       },
     },
     {
-      content: `${currencyWithoutSymbol(grandTotal.value || 0)}`,
+      content: `${currencyWithoutSymbol(paidAmount.value || 0)}`,
       styles: {
         halign: "right",
         cellWidth: 0.0,
@@ -1400,6 +1429,8 @@ const getPlus = computed(() => {
       }
     });
 
+  console.log("get plus", plus);
+
   return plus;
 });
 
@@ -1438,6 +1469,14 @@ const ppnComponent = computed(() => {
   }
 });
 
+// const getPaymentTerms = () => {
+//   let amount: number = Number(grandTotal.value);
+//   if (data.value?.data?.payment_terms) {
+//     amount =
+//       Number(grandTotal.value) * (Number(ruleForm.payment_terms?.value) / 100);
+//   }
+// }
+
 const grandTotal = computed(() => {
   let total = totalPlus.value || 0;
   (data?.value?.data?.reference_transaction ?? [])
@@ -1458,6 +1497,8 @@ const grandTotal = computed(() => {
       }
     });
 
+  console.log("total plus", totalPlus.value);
+
   return total;
 });
 
@@ -1475,9 +1516,10 @@ const getMinus = computed(() => {
 });
 
 const subtotal = computed(() => {
-  return Number(paidAmount.value) - Number(getMinus.value);
+  return data.value?.data?.subtotal || 0;
 });
 const totalPlus = computed(() => {
+  console.log("subtotal", subtotal.value);
   return Number(subtotal.value) + Number(getPlus.value);
 });
 const totalMinus = computed(() => {

@@ -127,7 +127,7 @@
         </el-form-item>
 
         <!-- Discount Section -->
-        <el-form-item label="Diskon" prop="is_discount">
+        <!-- <el-form-item label="Diskon" prop="is_discount">
           <el-checkbox v-model="ruleForm.is_discount"
             >Tambahkan diskon</el-checkbox
           >
@@ -153,7 +153,7 @@
               <el-option label="Nominal" value="nominal" />
             </el-select>
           </el-form-item>
-        </template>
+        </template> -->
 
         <el-form-item label="Status" prop="status">
           <el-select v-model="ruleForm.status" style="width: 100%">
@@ -197,7 +197,16 @@
         <el-table-column prop="catalogue_name" label="Item" />
         <el-table-column prop="quantity" label="Qty" width="200" align="center">
           <template #default="scope">
-            <el-input-number v-model="scope.row.quantity" :min="1" />
+            <el-input-number
+              v-model="scope.row.quantity"
+              :min="1"
+              @change="
+                (value) => {
+                  ruleForm.items[scope.$index].total_price =
+                    Number(value) * scope.row.unit_price;
+                }
+              "
+            />
           </template>
         </el-table-column>
         <el-table-column prop="unit_name" label="Satuan" width="100" />
@@ -208,7 +217,7 @@
           width="120"
         >
           <template #default="scope">
-            {{ formatCurrency(scope.row.unit_price) }}
+            {{ currency(scope.row.unit_price) }}
           </template>
         </el-table-column>
         <el-table-column
@@ -218,7 +227,7 @@
           width="120"
         >
           <template #default="scope">
-            {{ formatCurrency(scope.row.quantity * scope.row.unit_price) }}
+            {{ currency(scope.row.total_price) }}
           </template>
         </el-table-column>
         <el-table-column label="Garansi" width="120">
@@ -356,7 +365,7 @@
       <el-row :gutter="20" class="mb-3">
         <el-col :span="4">
           <el-input
-            v-model="pricetagSearch.keyword"
+            v-model="request_search_pricetag_item.keyword"
             placeholder="Cari item..."
             clearable
           />
@@ -673,13 +682,17 @@ const paymentMethods = [
   { value: PaymentMethod.Giro, label: "Giro" },
 ];
 
-const filteredPricetagItems = await useFetchApi<
-  ResponsePagination<Pricetag_item[]>
->(
-  "/search",
+const filteredPricetagItems = await useAsyncData(
   "search-pricetag-item",
-  "post",
-  request_search_pricetag_item.value
+  async () => {
+    const res = await useFetchApi<ResponsePagination<Pricetag_item[]>>(
+      `/search`,
+      "search-pricetag-item",
+      "post",
+      request_search_pricetag_item.value
+    );
+    return res.data.value;
+  }
 );
 const adjustmentTransactions = await useFetchApi<
   ResponsePagination<AdjustmentTransaction[]>
@@ -817,9 +830,13 @@ const showTransactionAdjustmentValue = (
 };
 
 const totalPrice = computed(() => {
-  return ruleForm.items.reduce((accumulator, currentValue) => {
-    return accumulator + currentValue.total_price * currentValue.quantity;
+  const total = ruleForm.items.reduce((accumulator, currentValue) => {
+    return accumulator + currentValue.total_price;
   }, 0);
+
+  console.log("total_price", total);
+
+  return total;
 });
 
 const onUpdatePaymentTerms = (data: TermOfPayment[]) => {
@@ -1081,12 +1098,12 @@ const onAddressNew = (value: AddressType) => {
   dialogNewAddress.value = false;
 };
 
-watchDebounced(
+watch(
   () => request_search_pricetag_item.value,
   () => {
-    refreshNuxtData("search-pricetag-item");
+    filteredPricetagItems.refresh();
   },
-  { debounce: 500 }
+  { deep: true }
 );
 
 const createNewVendor = async (data: any) => {
@@ -1240,7 +1257,7 @@ const addSelectedPricetagItems = () => {
       catalogue_version: value.catalogue?.version ?? 1,
       quantity: 1,
       unit_price: value.price,
-      total_price: value.price,
+      total_price: Number(value.quantity) * Number(value.price),
       is_warranty: false,
       warranty: 0,
       warranty_unit: "hari",
@@ -1260,6 +1277,8 @@ const addSelectedPricetagItems = () => {
       status: PurchaseOrderItemStatus.DRAFT,
     });
   });
+
+  console.log("rule form", ruleForm.items);
 
   visiblePricetagModal.value = false;
   selectedPricetagItems.value = [];
@@ -1516,6 +1535,10 @@ const fetchDataEdit = async () => {
         }));
 
         termOfPayments.value = request.payment_terms ?? [];
+
+        if (request.address) {
+          address.value = request.address;
+        }
       }
     }
   } catch (error: any) {
