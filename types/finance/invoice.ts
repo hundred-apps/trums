@@ -130,6 +130,7 @@ export type InvoiceItem = {
   created_at: number;
   created_by: number;
   updated_at: number;
-
+  inventory_movement_id?: string;
+  inventory_movement_version?: number;
   catalogue?: Catalogue;
 };

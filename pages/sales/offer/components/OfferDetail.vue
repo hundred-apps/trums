@@ -730,46 +730,80 @@ const generateQuotationPdf = async () => {
     //   }
     // );
 
-    const dppComp = getDppComponent(
-      props.dataInterface.data?.reference_transaction_adjustment ?? []
-    );
-    const ppnComp = getPPNComponent(
-      props.dataInterface.data?.reference_transaction_adjustment ?? []
-    );
+    // const dppComp = getDppComponent(
+    //   props.dataInterface.data?.reference_transaction_adjustment ?? []
+    // );
+    // const ppnComp = getPPNComponent(
+    //   props.dataInterface.data?.reference_transaction_adjustment ?? []
+    // );
 
-    if (dppComp) {
-      const dppValue = getDPPFormula(dppComp, subtotal.value || 0);
-      const ppnValue = getPPNFormula(dppComp, dppValue);
-      summeryNumber++;
-      rowData.push([
-        {
-          content: `${dppComp.adjustments_transaction?.name}`,
-          colSpan: 5,
-          styles: {
-            halign: "right",
-            fontStyle: "bold",
-            cellWidth: 0.0,
-            lineWidth: 0.1,
-            lineColor: [0, 0, 0],
-            fillColor: [255, 255, 255],
-          },
-        },
-        {
-          content: `${currencyWithoutSymbol(dppValue || 0)}`,
-          styles: {
-            halign: "right",
-            cellWidth: 0.0,
-            lineWidth: 0.1,
-            lineColor: [0, 0, 0],
-            fillColor: [255, 255, 255],
-          },
-        },
-      ]);
-      if (ppnComp) {
-        summeryNumber++;
+    // if (dppComp) {
+    //   const dppValue = getDPPFormula(dppComp, subtotal.value || 0);
+    //   const ppnValue = getPPNFormula(dppComp, dppValue);
+    //   summeryNumber++;
+    //   rowData.push([
+    //     {
+    //       content: `${dppComp.adjustments_transaction?.name}`,
+    //       colSpan: 5,
+    //       styles: {
+    //         halign: "right",
+    //         fontStyle: "bold",
+    //         cellWidth: 0.0,
+    //         lineWidth: 0.1,
+    //         lineColor: [0, 0, 0],
+    //         fillColor: [255, 255, 255],
+    //       },
+    //     },
+    //     {
+    //       content: `${currencyWithoutSymbol(dppValue || 0)}`,
+    //       styles: {
+    //         halign: "right",
+    //         cellWidth: 0.0,
+    //         lineWidth: 0.1,
+    //         lineColor: [0, 0, 0],
+    //         fillColor: [255, 255, 255],
+    //       },
+    //     },
+    //   ]);
+    //   if (ppnComp) {
+    //     summeryNumber++;
+    //     rowData.push([
+    //       {
+    //         content: `${ppnComp.adjustments_transaction?.name}`,
+    //         colSpan: 5,
+    //         styles: {
+    //           halign: "right",
+    //           fontStyle: "bold",
+    //           cellWidth: 0.0,
+    //           lineWidth: 0.1,
+    //           lineColor: [0, 0, 0],
+    //           fillColor: [255, 255, 255],
+    //         },
+    //       },
+    //       {
+    //         content: `${currencyWithoutSymbol(ppnValue || 0)}`,
+    //         styles: {
+    //           halign: "right",
+    //           cellWidth: 0.0,
+    //           lineWidth: 0.1,
+    //           lineColor: [0, 0, 0],
+    //           fillColor: [255, 255, 255],
+    //         },
+    //       },
+    //     ]);
+    //   }
+    // }
+
+    (props.dataInterface.data?.reference_transaction_adjustment ?? [])
+      .filter(
+        (value) =>
+          value.adjustments_transaction?.category == "transform" ||
+          value.adjustments_transaction?.category == "tax"
+      )
+      .forEach((element) => {
         rowData.push([
           {
-            content: `${ppnComp.adjustments_transaction?.name}`,
+            content: `${element.adjustments_transaction?.name}`,
             colSpan: 5,
             styles: {
               halign: "right",
@@ -781,7 +815,9 @@ const generateQuotationPdf = async () => {
             },
           },
           {
-            content: `${currencyWithoutSymbol(ppnValue || 0)}`,
+            content: `${currencyWithoutSymbol(
+              showTransactionAdjustmentValue(element)
+            )}`,
             styles: {
               halign: "right",
               cellWidth: 0.0,
@@ -791,8 +827,8 @@ const generateQuotationPdf = async () => {
             },
           },
         ]);
-      }
-    }
+      });
+
     summeryNumber++;
     rowData.push([
       {
@@ -863,9 +899,7 @@ const generateQuotationPdf = async () => {
   // Table
   autoTable(doc, {
     startY: 105,
-    head: [
-      ["No", "Item", "Qty", "UoM", "Price exc. PPN", "Total Price exc. PPN"],
-    ],
+    head: [["No", "Item", "Qty", "UoM", "Price", "Total Price"]],
     body: rowData,
     styles: {
       fontSize: 9,

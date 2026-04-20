@@ -344,6 +344,12 @@
       <template #header>
         <div class="card-header">
           <span>Invoice Items</span>
+          <el-button
+            type="primary"
+            size="default"
+            @click="() => (dialogDO = true)"
+            >Pilih Dari DO</el-button
+          >
         </div>
       </template>
 
@@ -545,7 +551,7 @@
             currency(showTransactionAdjustmentValue(ref))
           }}</el-descriptions-item
         >
-        <el-descriptions-item
+        <!-- <el-descriptions-item
           :width="100"
           v-if="ruleForm.payment_terms"
           :label="ruleForm.payment_terms.name"
@@ -558,7 +564,11 @@
           label="Grand Total"
           align="right"
           >{{ currency(paidAmount) }}</el-descriptions-item
-        >
+        > -->
+
+        <el-descriptions-item :width="100" label="Grand Total" align="right">{{
+          currency(paidAmount)
+        }}</el-descriptions-item>
       </el-descriptions>
     </el-card>
 
@@ -703,25 +713,39 @@
       title="Form Item"
       :with-header="true"
     >
+      <el-row :gutter="20" class="mb-3">
+        <el-col :span="6"
+          ><el-input
+            v-model="request_search_do.keyword"
+            size="default"
+            placeholder="Type to search"
+        /></el-col>
+        <el-button
+          :loading="loading"
+          @click="onRefreshDeliveryOrder"
+          size="default"
+          type="default"
+          :icon="Eleme"
+          >Refresh</el-button
+        >
+      </el-row>
       <CatalogueAdd :catalogue_form="tmpCatalogue!" :loading="loading" />
-      <template #footer>
-        <div style="flex: auto">
-          <el-button @click="() => (dialogFormCatalogue = false)"
-            >Batal</el-button
-          >
-          <el-button
-            type="primary"
-            @click="() => handleSubmitCatalogue(tmpCatalogue!)"
-            >Simpan</el-button
-          >
-        </div>
-      </template>
+    </el-dialog>
+
+    <el-dialog v-model="dialogDO" title="Deliver Order" width="1000">
+      <InventoryMovementTable
+        :data="deliveryOrders.data.value!"
+        :loading="deliveryOrders.status.value === 'pending'"
+        @on-cancel="() => (dialogDO = false)"
+        ,
+        @on-submit="onHandleSelectDO"
+      />
     </el-dialog>
   </div>
 </template>
 
 <script lang="ts" setup>
-import { Delete, Plus, Search, Edit } from "@element-plus/icons-vue";
+import { Delete, Plus, Search, Edit, Eleme } from "@element-plus/icons-vue";
 import type { FormInstance, FormRules, UploadUserFile } from "element-plus";
 import {
   getPaymentMethodLabel,
@@ -776,6 +800,7 @@ import { parseCurrencyID } from "#imports";
 import AutocompleteCatalogue from "~/components/trums/AutocompleteCatalogue.vue";
 import CatalogueAdd from "~/components/trums/CatalogueAdd.vue";
 import { load } from "@fingerprintjs/fingerprintjs";
+import InventoryMovementTable from "~/components/trums/InventoryMovementTable.vue";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -796,6 +821,7 @@ const drawerVisibleCreateAccount = ref(false);
 const visibleModalAdjustmentTransaction = ref(false);
 const visibleModalNewAdjustment = ref(false);
 const dialogFormCatalogue = ref<boolean>(false);
+const dialogDO = ref<boolean>(false);
 
 const tmpCatalogue = ref<Catalogue | undefined>();
 
@@ -910,6 +936,8 @@ const ruleForm = reactive<Invoice>({
   vendor_address_view: "",
   vendor_address_version: 0,
 });
+
+const tmp_purchase_order = ref<PurchaseOrder | null>(null);
 
 const request_search = ref<RequestSearch>({
   keyword: "",
@@ -1034,6 +1062,28 @@ const request_search_purchase_order = ref<RequestSearch>({
   flag: "form",
 });
 
+const request_search_do = ref<{
+  uid_po: string;
+  keyword: string;
+  limit: number;
+  page: number;
+}>({
+  uid_po: "",
+  keyword: "",
+  limit: 10,
+  page: 1,
+});
+
+const deliveryOrders = await useAsyncData("fetch-delivery-order", async () => {
+  const res = await useFetchApi<ResponsePagination<InventoryMovement[]>>(
+    `/inventory-movement-by-so`,
+    "fetch-delivery-order",
+    "post",
+    request_search_do.value
+  );
+  return res.data.value;
+});
+
 const purchase_order = await useFetchApi<ResponsePagination<PurchaseOrder[]>>(
   "/search",
   "search-reference-purchase-order",
@@ -1075,12 +1125,58 @@ const handleEditAddress = (
   dialogNewAddress.value = true;
 };
 
+const onHandleSelectDO = (values: InventoryMovement[]) => {
+  ruleForm.invoice_item = [];
+  values.forEach((element) => {
+    element.inventory_movement_item.forEach((moveItem) => {
+      const orderItem = tmp_purchase_order.value?.purchase_order_item.find(
+        (find) => find.catalogue_id == moveItem.inventory?.catalogue_id
+      );
+      if (orderItem) {
+        ruleForm.invoice_item.push({
+          unique_id: "",
+          unique_code: "",
+          invoice_id: null,
+          item_id: moveItem.inventory?.catalogue?.unique_id || "",
+          item_version: moveItem.inventory?.catalogue?.version || 0,
+          item_name: moveItem.inventory?.catalogue?.name || "",
+          unit_id: moveItem.unit_id,
+          unit_name: moveItem.unit_name,
+          quantity: moveItem.quantity,
+          price: orderItem.unit_price,
+          total_amount:
+            Number(orderItem.unit_price) * Number(moveItem.quantity),
+          display_total_amount: formatCurrencyID(
+            Number(orderItem.unit_price) * Number(moveItem.quantity)
+          ),
+          display_price: formatCurrencyID(orderItem.unit_price),
+          inventory_movement_id: moveItem.unique_id,
+          inventory_movement_version: moveItem.version,
+          version: 0,
+          invoice_version: 0,
+          created_at: 0,
+          created_by: 0,
+          updated_at: 0,
+        });
+      }
+    });
+  });
+  dialogDO.value = false;
+};
+
 watch(
   request_search_purchase_order.value,
   () => refreshNuxtData("search-reference-purchase-order"),
   { immediate: true }
 );
 
+watch(
+  () => request_search_do.value,
+  () => onRefreshDeliveryOrder(),
+  { deep: true }
+);
+
+const onRefreshDeliveryOrder = () => deliveryOrders.refresh();
 const handleAdjustmentSubmit = () => {
   visibleModalNewAdjustment.value = false;
   refreshNuxtData("search-adjustment");
@@ -2022,6 +2118,8 @@ const onHandleSelectReference = async (item: any) => {
 
     console.log("purchase order", po);
 
+    tmp_purchase_order.value = po;
+
     ruleForm.reference_id = po.unique_id;
     ruleForm.reference_number = po.unique_code;
     ruleForm.customer_id = po.vendor_id;
@@ -2072,6 +2170,8 @@ const onHandleSelectReference = async (item: any) => {
     paymentTerms.value = po.payment_terms ?? [];
 
     getHistoryInvoices();
+
+    request_search_do.value.uid_po = po.unique_id;
 
     // ruleForm.invoice_item[index].item_id = data.unique_id;
     // ruleForm.invoice_item[index].item_name = data.name ?? '';
@@ -2257,16 +2357,10 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         // Calculate final amounts
         updateTotalAmount();
 
-        // Prepare data for submission
-        // const invoiceData = {
-        //   ...ruleForm,
-        //   total_amount: total.value
+        // if (paymentTerms.value.length > 0 && ruleForm.payment_term_id == "") {
+        //   ElMessage.error("Pilih TOP Terlebih Dahulu!!");
+        //   return;
         // }
-
-        if (paymentTerms.value.length > 0 && ruleForm.payment_term_id == "") {
-          ElMessage.error("Pilih TOP Terlebih Dahulu!!");
-          return;
-        }
 
         const invoiceDate = new Date(ruleForm.invoice_date!);
         const billDate = new Date(ruleForm.due_date!);
@@ -2376,6 +2470,14 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           formData.append(
             `invoice_items[${index}][total_amount]`,
             String(value.total_amount)
+          );
+          formData.append(
+            `invoice_items[${index}][inventory_movement_item_id]`,
+            String(value.inventory_movement_id)
+          );
+          formData.append(
+            `invoice_items[${index}][inventory_movement_item_version]`,
+            String(value.inventory_movement_version)
           );
         });
 

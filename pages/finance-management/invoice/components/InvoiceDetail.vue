@@ -315,7 +315,7 @@
             currency(showTransactionAdjustmentValue(ref))
           }}</el-descriptions-item
         >
-        <el-descriptions-item
+        <!-- <el-descriptions-item
           :width="100"
           v-if="data?.data?.payment_terms"
           :label="data?.data?.payment_terms.name"
@@ -328,7 +328,10 @@
           label="Grand Total"
           align="right"
           >{{ currency(paidAmount) }}</el-descriptions-item
-        >
+        > -->
+        <el-descriptions-item :width="100" label="Grand Total" align="right">{{
+          currency(paidAmount)
+        }}</el-descriptions-item>
       </el-descriptions>
     </el-card>
 
@@ -1181,9 +1184,7 @@ const generatePDF = async () => {
   summeryNumber++;
   rowData.push([
     {
-      content: data.value?.data?.payment_terms
-        ? data.value?.data?.payment_terms.name
-        : `Grand Total`,
+      content: `Grand Total`,
       colSpan: 5,
       styles: {
         halign: "right",
