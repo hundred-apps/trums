@@ -276,7 +276,7 @@
           }}</el-descriptions-item
         >
 
-        <el-descriptions-item
+        <!-- <el-descriptions-item
           :width="100"
           v-if="
             (data?.data?.reference_transaction ?? []).filter(
@@ -288,7 +288,7 @@
           label="Subtotal"
           align="right"
           >{{ currency(totalPlus) }}</el-descriptions-item
-        >
+        > -->
         <el-descriptions-item
           :width="100"
           align="right"
@@ -1087,38 +1087,38 @@ const generatePDF = async () => {
       ]);
     });
 
-  if (
-    (data?.value?.data?.reference_transaction ?? []).filter(
-      (value) =>
-        value.adjustments_transaction?.operator == "plus" &&
-        value.adjustments_transaction?.category == "adjustment"
-    ).length > 0
-  ) {
-    rowData.push([
-      {
-        content: `Subtotal`,
-        colSpan: 5,
-        styles: {
-          halign: "right",
-          fontStyle: "bold",
-          cellWidth: 0.0,
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
-        },
-      },
-      {
-        content: `${currencyWithoutSymbol(totalPlus.value)}`,
-        styles: {
-          halign: "right",
-          cellWidth: 0.0,
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
-        },
-      },
-    ]);
-  }
+  // if (
+  //   (data?.value?.data?.reference_transaction ?? []).filter(
+  //     (value) =>
+  //       value.adjustments_transaction?.operator == "plus" &&
+  //       value.adjustments_transaction?.category == "adjustment"
+  //   ).length > 0
+  // ) {
+  //   rowData.push([
+  //     {
+  //       content: `Subtotal`,
+  //       colSpan: 5,
+  //       styles: {
+  //         halign: "right",
+  //         fontStyle: "bold",
+  //         cellWidth: 0.0,
+  //         lineWidth: 0.1,
+  //         lineColor: [0, 0, 0],
+  //         fillColor: [255, 255, 255],
+  //       },
+  //     },
+  //     {
+  //       content: `${currencyWithoutSymbol(totalPlus.value)}`,
+  //       styles: {
+  //         halign: "right",
+  //         cellWidth: 0.0,
+  //         lineWidth: 0.1,
+  //         lineColor: [0, 0, 0],
+  //         fillColor: [255, 255, 255],
+  //       },
+  //     },
+  //   ]);
+  // }
 
   (data?.value?.data?.reference_transaction ?? [])
     .filter((value) => value.adjustments_transaction?.operator == "minus")
