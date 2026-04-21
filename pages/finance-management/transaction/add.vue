@@ -63,12 +63,24 @@
 
         <!-- Total Amount -->
         <el-form-item label="Total Transaksi">
-          <el-input-number
-            v-model="totalAmount"
+          <el-input
+            v-model="ruleForm.display_amount"
             :min="0"
             :precision="2"
             controls-position="right"
             class="w-full"
+            @input="
+              (val) => {
+                const parsed = parseCurrencyID(val);
+                ruleForm.amount = parsed;
+                ruleForm.display_amount = formatCurrencyID(parsed);
+              }
+            "
+            @blur="
+              () => {
+                ruleForm.display_amount = formatCurrencyID(ruleForm.amount);
+              }
+            "
           />
         </el-form-item>
 
@@ -269,8 +281,8 @@
 
         <el-table-column label="Harga Satuan">
           <template #default="{ row, $index }">
-            <el-input-number
-              v-model="row.price_per_unit"
+            <el-input
+              v-model="row.display_price_per_unit"
               :min="0"
               :precision="2"
               controls-position="right"
@@ -287,10 +299,8 @@
 
         <el-table-column label="Total">
           <template #default="{ row, $index }">
-            <el-input-number
-              v-model="row.amount"
-              :min="0.01"
-              :step="0.01"
+            <el-input
+              v-model="row.display_amount"
               :precision="2"
               :disabled="row.reference == null"
               controls-position="right"
@@ -334,7 +344,7 @@ import type { Catalogue } from "~/types/catalogue";
 import type { BaseResponse } from "~/types/response";
 import type { DefaultResponsePagination } from "~/types/pagination";
 import TrumsUploadFile from "~/components/trums/form/TrumsUploadFile.vue";
-import { currency } from "#imports";
+import { currency, parseCurrencyID, formatCurrencyID } from "#imports";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -393,20 +403,34 @@ const ruleForm = reactive<Transaction>({
   account_to_id: "",
   account_to_name: "",
   account_to_version: 0,
+  display_amount: formatCurrencyID(0),
 });
 
-// Calculate total amacount from items
-const totalAmount = computed(() => {
-  return ruleForm.transaction_items.reduce(
-    (sum, item) => sum + (item.amount || 0),
-    0
-  );
-});
+// // Calculate total amacount from items
+// const totalAmount = computed(() => {
+//   ruleForm.amount = ruleForm.transaction_items.reduce(
+//     (sum, item) => sum + (item.amount || 0),
+//     0
+//   );
+
+//   ruleForm.display_amount = formatCurrencyID(ruleForm.amount);
+
+//   return
+// });
 
 // Watch total amount and update main amount
-watch(totalAmount, (newVal) => {
-  ruleForm.amount = newVal;
-});
+watch(
+  () => ruleForm.transaction_items,
+  () => {
+    ruleForm.amount = ruleForm.transaction_items.reduce(
+      (sum, item) => sum + (item.amount || 0),
+      0
+    );
+
+    ruleForm.display_amount = formatCurrencyID(ruleForm.amount);
+  },
+  { deep: true }
+);
 
 // Form validation rules
 const rules = reactive<FormRules>({
@@ -780,9 +804,11 @@ const onHandleSelectReference = async (
     item.reference_value = invoice.unique_code;
     item.reference_id = invoice.unique_id;
     item.description = "";
-    item.price_per_unit = 0;
+    item.price_per_unit = invoice.total_amount;
     item.quantity = 1;
     item.amount = invoice.total_amount;
+    item.display_price_per_unit = formatCurrencyID(invoice.total_amount);
+    item.display_amount = formatCurrencyID(invoice.total_amount);
   } else {
     if (selected.isNew) {
       const catalogue: Catalogue | null = await createCatalogue({
@@ -820,7 +846,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           type: ruleForm.type,
           date: date.getTime() / 1000,
           description: ruleForm.description,
-          amount: totalAmount.value,
+          amount: ruleForm.amount,
           account_id: ruleForm.account_id,
           account_name: ruleForm.account_name,
           account_to_id: ruleForm.account_to_id,

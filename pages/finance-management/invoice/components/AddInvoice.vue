@@ -118,7 +118,7 @@
           />
         </el-form-item>
 
-        <el-form-item label="Alamat Penagihan" prop="billing_address_view">
+        <el-form-item label="Alamat Penagihan" prop="billing_address_id">
           <el-autocomplete
             :fetch-suggestions="querySearchAddress"
             v-model="ruleForm.billing_address_view"
@@ -1005,7 +1005,7 @@ const rules = reactive({
       trigger: "change",
     },
   ],
-  billing_address_view: [
+  billing_address_id: [
     {
       required: true,
       message: "Please select billing address",

@@ -12,12 +12,18 @@ import inquiryTable from "../sales/inquiry/components/inquiryTable.vue";
 import InvoiceSummery from "../finance-management/invoice/components/InvoiceSummery.vue";
 import BillSummery from "../finance-management/bill/components/BillSummery.vue";
 import InvoiceTable from "../finance-management/invoice/components/InvoiceTable.vue";
+import { checkPermission } from "#imports";
 
 definePageMeta({
   middleware: ["auth", "app"],
 });
 
 const refreshTrigger = ref<Number>(0);
+
+const canReadPO = ref(false);
+const canReadCanvassing = ref(false);
+const canReadInquiry = ref(false);
+const canReadInvoice = ref(false);
 
 const request_search_rab_approval = ref<RequestSearch>({
   keyword: "",
@@ -48,15 +54,17 @@ const onReload = async () => {
   await tableRABRef.value?.reloadData();
 };
 
-onMounted(() => {
-  const user = useCookie("userdata");
-  console.log(user.value);
+onMounted(async () => {
+  canReadPO.value = await checkPermission("purchase-order-read");
+  canReadCanvassing.value = await checkPermission("canvassing-read");
+  canReadInquiry.value = await checkPermission("inquiry-read");
+  canReadInvoice.value = await checkPermission("invoices-read");
 });
 </script>
 <template>
   <TrumsWrapper>
-    <OrderSummery />
-    <ElCard class="mt-2 mb-5" shadow="never">
+    <OrderSummery v-if="canReadPO" />
+    <ElCard class="mt-2 mb-5" shadow="never" v-if="canReadCanvassing">
       <template #header>
         <div class="card-header">
           <span>RAB Pending Approval</span>
@@ -86,7 +94,7 @@ onMounted(() => {
         type="RAB"
       />
     </ElCard>
-    <ElCard class="mt-2 mb-5" shadow="never">
+    <ElCard class="mt-2 mb-5" shadow="never" v-if="canReadInquiry">
       <template #header>
         <div class="card-header">
           <span>Status RFQ</span>
@@ -95,9 +103,11 @@ onMounted(() => {
       <inquiryTable />
     </ElCard>
     <!-- <UmurPiutangLineChart /> -->
-    <p class="font-bold text-xl mb-3">INVOICE</p>
-    <InvoiceTable />
-    <p class="font-bold text-xl mb-5">TAGIHAN</p>
-    <BillSummery />
+    <div v-if="canReadInvoice">
+      <p class="font-bold text-xl mb-3">INVOICE</p>
+      <InvoiceTable />
+      <p class="font-bold text-xl mb-5">TAGIHAN</p>
+      <BillSummery />
+    </div>
   </TrumsWrapper>
 </template>

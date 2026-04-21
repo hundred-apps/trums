@@ -45,9 +45,9 @@ export async function useFetchApi<T>(
     }
 
     // HANDLE 403
-    if (code === 403) {
-      window.location.href = "/error/403";
-    }
+    // if (code === 403) {
+    //   window.location.href = "/error/403";
+    // }
   } finally {
     pending.value = false;
   }

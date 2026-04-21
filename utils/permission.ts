@@ -51,7 +51,7 @@ export async function checkPermission(slug: string): Promise<boolean> {
     );
 
     if (response.success) {
-      const permission: boolean = response.success ?? false;
+      const permission: boolean = response.data ?? false;
 
       return permission;
     } else {
