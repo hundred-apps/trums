@@ -259,6 +259,7 @@ const onSubmitAddress = async () => {
     lat: ruleFormAddress.lat,
     lng: ruleFormAddress.lng,
     unique_id: ruleFormAddress.unique_id,
+    flag: "form",
   };
 
   try {

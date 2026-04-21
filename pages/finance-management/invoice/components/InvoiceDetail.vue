@@ -649,14 +649,17 @@ const formatPaymentMethod = (method: PaymentMethod | null) => {
 
 const paidAmount = computed(() => {
   let amount: number = Number(grandTotal.value);
+  console.log("payment term", data.value?.data?.payment_terms);
   if (data.value?.data?.payment_terms) {
+    // if (data.value?.data?.payment_terms.term_of_payment == PaymentTerm.CBD) {
+
+    // } else {
+
+    // }
     amount =
       Number(grandTotal.value) *
-      (Number(data.value?.data?.payment_terms.value) / 100);
+      (Number(data.value?.data?.payment_terms?.value) / 100);
   }
-
-  console.log("grand total", grandTotal.value);
-  console.log("TOP", data.value?.data?.payment_terms?.value);
 
   return amount;
 });
@@ -1402,15 +1405,15 @@ const showTransactionAdjustmentValue = (
         data?.value?.data?.reference_transaction ?? []
       ).find((value) => value.adjustments_transaction?.unique_code == "DPPL");
       if (dpp) {
-        const dppValue = getDPPFormula(dpp, paidAmount.value || 0);
-        return getPPNFormula(ref, dppValue || paidAmount.value);
+        const dppValue = getDPPFormula(dpp, data.value?.data?.subtotal || 0);
+        return getPPNFormula(ref, dppValue || data.value?.data?.subtotal);
       } else {
-        return getPPNFormula(ref, paidAmount.value);
+        return getPPNFormula(ref, data.value?.data?.subtotal || 0);
       }
     } else {
       return ref.type == "amount"
         ? ref.amount
-        : displayAmount(ref, paidAmount.value || 0);
+        : displayAmount(ref, data.value?.data?.subtotal || 0);
     }
   }
 };
@@ -1493,6 +1496,8 @@ const grandTotal = computed(() => {
     )
     .forEach((element) => {
       if (element.include == false) {
+        console.log("total plus", totalPlus.value);
+        console.log("adjustment", element);
         total =
           (totalPlus.value || 0) + showTransactionAdjustmentValue(element);
       }
