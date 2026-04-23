@@ -258,9 +258,16 @@
       </template>
 
       <el-descriptions :column="1" border>
-        <el-descriptions-item :width="100" label="Total" align="right">{{
-          currency(data?.data?.subtotal || 0)
+        <el-descriptions-item :width="100" label="Total Price" align="right">{{
+          currency(totalAmount || 0)
         }}</el-descriptions-item>
+        <el-descriptions-item
+          :width="100"
+          v-if="data?.data?.payment_terms"
+          :label="data?.data?.payment_terms?.name"
+          align="right"
+          >{{ currency(data?.data?.subtotal || 0) }}</el-descriptions-item
+        >
         <el-descriptions-item
           :width="100"
           align="right"
@@ -588,7 +595,7 @@ const submitDecision = async (formEl: FormInstance | undefined) => {
 
 const sendApproval = async () => {
   await ElMessageBox.confirm("Yakin ingin mengajukan invoice?", "Warning", {
-    confirmButtonText: "Hapus",
+    confirmButtonText: "Ajukan Sekarang",
     cancelButtonText: "Batal",
     type: "warning",
   });
@@ -1041,7 +1048,7 @@ const generatePDF = async () => {
       },
     },
     {
-      content: `${currencyWithoutSymbol(subtotal.value)}`,
+      content: `${currencyWithoutSymbol(totalAmount.value)}`,
       styles: {
         halign: "right",
         cellWidth: 0.0,
@@ -1086,6 +1093,33 @@ const generatePDF = async () => {
         },
       ]);
     });
+
+  if (data.value?.data?.payment_terms) {
+    rowData.push([
+      {
+        content: `${data.value?.data?.payment_terms?.name}`,
+        colSpan: 5,
+        styles: {
+          halign: "right",
+          fontStyle: "bold",
+          cellWidth: 0.0,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${currencyWithoutSymbol(data.value.data.subtotal || 0)}`,
+        styles: {
+          halign: "right",
+          cellWidth: 0.0,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+    ]);
+  }
 
   // if (
   //   (data?.value?.data?.reference_transaction ?? []).filter(
@@ -1137,9 +1171,7 @@ const generatePDF = async () => {
           },
         },
         {
-          content: `${currencyWithoutSymbol(
-            showTransactionAdjustmentValue(element)
-          )}`,
+          content: `${currencyWithoutSymbol(data.value?.data?.subtotal || 0)}`,
           styles: {
             halign: "right",
             cellWidth: 0.0,
@@ -1328,15 +1360,15 @@ const generatePDF = async () => {
     doc.text(
       `${data.value?.data?.approved?.name || "-"},`,
       rightX,
-      signY + 80,
+      signY + 34,
       {
         align: "center",
       }
     );
     doc.text(
-      `${data.value?.data?.approved?.position?.name || ""}`,
+      `${data.value?.data?.approved?.departement_name || ""}`,
       rightX,
-      signY + 85,
+      signY + 40,
       {
         align: "center",
       }
@@ -1480,6 +1512,12 @@ const ppnComponent = computed(() => {
 //       Number(grandTotal.value) * (Number(ruleForm.payment_terms?.value) / 100);
 //   }
 // }
+
+const totalAmount = computed(() => {
+  return (data?.value?.data?.invoice_item || []).reduce((total, ref) => {
+    return total + Number(ref.total_amount || 0);
+  }, 0);
+});
 
 const grandTotal = computed(() => {
   let total = totalPlus.value || 0;

@@ -2,22 +2,19 @@
   <TrumsWrapper>
     <!-- Header dengan Breadcrumb -->
     <el-page-header @back="goBack" class="mb-6">
-        
       <template #extra>
         <div class="flex gap-2">
-          <el-button @click="goBack">
-            Batal
-          </el-button>
-          <el-button 
-                type="primary" 
-                size="default" 
-                :loading="loading.submit"
-                @click="handleSubmit"
-                class="w-full"
-            >
+          <el-button @click="goBack"> Batal </el-button>
+          <el-button
+            type="primary"
+            size="default"
+            :loading="loading.submit"
+            @click="handleSubmit"
+            class="w-full"
+          >
             <el-icon class="mr-2"><Check /></el-icon>
             Simpan Perubahan
-        </el-button>
+          </el-button>
         </div>
       </template>
     </el-page-header>
@@ -33,31 +30,30 @@
               <span>Informasi Dasar</span>
             </div>
           </template>
-          
-          <el-form 
-            ref="basicInfoFormRef" 
-            :model="formData" 
+
+          <el-form
+            ref="basicInfoFormRef"
+            :model="formData"
             :rules="basicInfoRules"
             label-width="180px"
             label-position="top"
             size="large"
           >
-          
             <el-row :gutter="20">
               <el-col :span="12">
                 <el-form-item label="Nama Lengkap" prop="name">
-                  <el-input 
-                    v-model="formData.name" 
+                  <el-input
+                    v-model="formData.name"
                     placeholder="Masukkan nama lengkap"
                     clearable
                   />
                 </el-form-item>
               </el-col>
-              
+
               <el-col :span="12">
                 <el-form-item label="Email" prop="email">
-                  <el-input 
-                    v-model="formData.email" 
+                  <el-input
+                    v-model="formData.email"
                     type="email"
                     placeholder="nama@perusahaan.com"
                     clearable
@@ -69,14 +65,14 @@
             <el-row :gutter="20">
               <el-col :span="12">
                 <el-form-item label="Nomor Telepon" prop="phone">
-                  <el-input 
-                    v-model="formData.phone" 
+                  <el-input
+                    v-model="formData.phone"
                     placeholder="081234567890"
                     clearable
                   />
                 </el-form-item>
               </el-col>
-              
+
               <el-col :span="12">
                 <el-form-item label="Jenis Kelamin" prop="gender">
                   <el-select
@@ -90,8 +86,6 @@
                 </el-form-item>
               </el-col>
             </el-row>
-            
-            
           </el-form>
         </el-card>
 
@@ -103,11 +97,10 @@
               <span>Informasi Departemen & Posisi</span>
             </div>
           </template>
-          
-          <el-form 
-            ref="departmentFormRef" 
-            :model="formData" 
-            
+
+          <el-form
+            ref="departmentFormRef"
+            :model="formData"
             label-width="180px"
             label-position="top"
             size="large"
@@ -121,19 +114,22 @@
                     placeholder="Cari Departement"
                     @select="onHandleSelectDepartement"
                   >
-                  <template #default="{ item }">
-                      <div v-if="item.isNew" class="flex items-center text-blue-500">
-                          <el-icon><Plus /></el-icon>
-                          <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                    <template #default="{ item }">
+                      <div
+                        v-if="item.isNew"
+                        class="flex items-center text-blue-500"
+                      >
+                        <el-icon><Plus /></el-icon>
+                        <span class="ml-2">Tambahkan "{{ item.value }}"</span>
                       </div>
                       <div v-else>
-                          <p class="font-bold">{{ item.value }}</p>
+                        <p class="font-bold">{{ item.value }}</p>
                       </div>
-                  </template>
+                    </template>
                   </el-autocomplete>
                 </el-form-item>
               </el-col>
-              
+
               <el-col :span="12">
                 <el-form-item label="Posisi" prop="position_id">
                   <el-autocomplete
@@ -142,25 +138,24 @@
                     placeholder="Cari Position"
                     @select="onHandleSelectPosition"
                   >
-                  <template #default="{ item }">
-                      <div v-if="item.isNew" class="flex items-center text-blue-500">
-                          <el-icon><Plus /></el-icon>
-                          <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                    <template #default="{ item }">
+                      <div
+                        v-if="item.isNew"
+                        class="flex items-center text-blue-500"
+                      >
+                        <el-icon><Plus /></el-icon>
+                        <span class="ml-2">Tambahkan "{{ item.value }}"</span>
                       </div>
                       <div v-else>
-                          <p class="font-bold">{{ item.value }}</p>
+                        <p class="font-bold">{{ item.value }}</p>
                       </div>
-                  </template>
+                    </template>
                   </el-autocomplete>
                 </el-form-item>
               </el-col>
             </el-row>
-
-            
           </el-form>
         </el-card>
-
-        
       </el-col>
 
       <!-- Kolom Kanan: Photo Upload & Action Buttons -->
@@ -196,9 +191,9 @@
                 Ukuran maksimal 2MB. Format: JPG, PNG
               </p>
               <div class="flex gap-2 justify-center">
-                <el-button 
-                  v-if="fileList.length > 0" 
-                  type="danger" 
+                <el-button
+                  v-if="fileList.length > 0"
+                  type="danger"
                   size="small"
                   @click="removeProfilePhoto"
                 >
@@ -208,12 +203,9 @@
             </div>
           </div>
         </el-card>
-        
-        
       </el-col>
     </el-row>
 
-    
     <!-- Confirm Dialog -->
     <el-dialog
       v-model="showConfirmDialog"
@@ -228,13 +220,16 @@
         <h3 class="text-lg font-semibold mb-2">{{ dialogConfig.title }}</h3>
         <p class="text-gray-600">{{ dialogConfig.message }}</p>
       </div>
-      
+
       <template #footer>
         <span class="dialog-footer">
-          <el-button @click="showConfirmDialog = false" :disabled="loading.confirm">
+          <el-button
+            @click="showConfirmDialog = false"
+            :disabled="loading.confirm"
+          >
             Batal
           </el-button>
-          <el-button 
+          <el-button
             :type="dialogConfig.buttonType"
             :loading="loading.confirm"
             @click="confirmAction"
@@ -252,7 +247,7 @@
       width="80%"
       top="5vh"
     >
-      <FileManager 
+      <FileManager
         v-if="showFileManager"
         @select-file="handleFileSelect"
         @close="showFileManager = false"
@@ -262,23 +257,41 @@
 </template>
 
 <script lang="ts" setup>
-import { 
-  User, Briefcase, Camera, Check, Delete, Refresh,
-  Setting, View, Lock, Unlock, InfoFilled, Key,
-  Plus, Warning, SuccessFilled, WarningFilled
-} from '@element-plus/icons-vue'
-import type { FormInstance, FormRules, UploadProps, UploadUserFile } from 'element-plus'
-import type { Contact } from '~/types/contact'
-import type { Departement } from '~/types/departement'
-import type { People } from '~/types/people'
-import type { Position } from '~/types/position'
-import type { RequestSearch } from '~/types/request_search'
-import type { BaseResponse } from '~/types/response'
-import type { ResponsePagination } from '~/types/response_pagination'
+import {
+  User,
+  Briefcase,
+  Camera,
+  Check,
+  Delete,
+  Refresh,
+  Setting,
+  View,
+  Lock,
+  Unlock,
+  InfoFilled,
+  Key,
+  Plus,
+  Warning,
+  SuccessFilled,
+  WarningFilled,
+} from "@element-plus/icons-vue";
+import type {
+  FormInstance,
+  FormRules,
+  UploadProps,
+  UploadUserFile,
+} from "element-plus";
+import type { Contact } from "~/types/contact";
+import type { Departement } from "~/types/departement";
+import type { People } from "~/types/people";
+import type { Position } from "~/types/position";
+import type { RequestSearch } from "~/types/request_search";
+import type { BaseResponse } from "~/types/response";
+import type { ResponsePagination } from "~/types/response_pagination";
 
-const router = useRouter()
-const route = useRoute()
-const peopleId = computed(() => route.query.id as string)
+const router = useRouter();
+const route = useRoute();
+const peopleId = computed(() => route.query.id as string);
 
 const config = useRuntimeConfig();
 const imageUrl = config.public.baseImageURL;
@@ -289,75 +302,69 @@ const authStore = useAuthStore();
 const api = useApi();
 
 // Refs
-const basicInfoFormRef = ref<FormInstance>()
-const departmentFormRef = ref<FormInstance>()
+const basicInfoFormRef = ref<FormInstance>();
+const departmentFormRef = ref<FormInstance>();
 const tmp_image_url = ref("");
 // State
-const peopleData = ref<People>({} as People)
+const peopleData = ref<People>({} as People);
 const formData = ref<People>({
   id: 0,
-  unique_id: '',
-  unique_code: '',
-  gid: '',
-  name: '',
-  email: '',
-  phone: '',
-  password: '',
+  unique_id: "",
+  unique_code: "",
+  gid: "",
+  name: "",
+  email: "",
+  phone: "",
+  password: "",
   join_date: 0,
-  gender: '',
-  departement_id: '',
-  position_id: '',
-  departement_name: '',
-  position_name: '',
-  file_id: '',
+  gender: "",
+  departement_id: "",
+  position_id: "",
+  departement_name: "",
+  position_name: "",
+  file_id: "",
   created_at: 0,
   created_by: null,
   updated_at: 0,
-  parent_people: '',
-  position: '',
-  departement: '',
+  parent_people: "",
+  position: "",
+  departement: "",
   version: 1,
-  devices: []
-})
+  devices: [],
+});
 
 const request_search = ref<RequestSearch>({
-    keyword: '',
-    table: '',
-    column: [],
-    limit: '100',
-    offset: '1',
-    sort: null,
-})
+  keyword: "",
+  table: "",
+  column: [],
+  limit: "100",
+  offset: "1",
+  sort: null,
+});
 
-
-const showPasswordField = ref(false)
+const showPasswordField = ref(false);
 const loading = ref({
   submit: false,
-  confirm: false
-})
+  confirm: false,
+});
 
-const onLoading = ref<boolean>(false)
+const onLoading = ref<boolean>(false);
 
-const showConfirmDialog = ref(false)
-const showFileManager = ref(false)
-const joinDateFormatted = ref('')
+const showConfirmDialog = ref(false);
+const showFileManager = ref(false);
+const joinDateFormatted = ref("");
 
 const dialogConfig = ref({
-  title: '',
-  message: '',
-  confirmText: '',
+  title: "",
+  message: "",
+  confirmText: "",
   icon: Warning,
-  color: '#E6A23C',
-  buttonType: 'primary' as 'primary' | 'danger' | 'success',
-  action: '' as 'submit' | 'reset_password' | 'deactivate'
-})
+  color: "#E6A23C",
+  buttonType: "primary" as "primary" | "danger" | "success",
+  action: "" as "submit" | "reset_password" | "deactivate",
+});
 
-
-
-
-
-const parentPeopleOptions = ref<People[]>([])
-
+const parentPeopleOptions = ref<People[]>([]);
 
 const handleChange: UploadProps["onChange"] = (uploadFile, uploadFiles) => {
   var data = uploadFiles[uploadFiles.length - 1];
@@ -366,268 +373,320 @@ const handleChange: UploadProps["onChange"] = (uploadFile, uploadFiles) => {
 };
 
 const uploadUrl = computed(() => {
-  return '/api/upload' // Ganti dengan endpoint upload Anda
-})
+  return "/api/upload"; // Ganti dengan endpoint upload Anda
+});
 
 const uploadHeaders = computed(() => {
-  const token = useCookie('auth_token')
+  const token = useCookie("auth_token");
   return {
-    Authorization: `Bearer ${token.value}`
-  }
-})
+    Authorization: `Bearer ${token.value}`,
+  };
+});
 
 const uploadData = computed(() => ({
-  type: 'profile',
-  people_id: peopleId.value
-}))
+  type: "profile",
+  people_id: peopleId.value,
+}));
 
 // Validation Rules
 const basicInfoRules: FormRules = {
   unique_code: [
-    { required: true, message: 'Kode unik harus diisi', trigger: 'blur' }
+    { required: true, message: "Kode unik harus diisi", trigger: "blur" },
   ],
   name: [
-    { required: true, message: 'Nama harus diisi', trigger: 'blur' },
-    { min: 3, message: 'Minimal 3 karakter', trigger: 'blur' }
+    { required: true, message: "Nama harus diisi", trigger: "blur" },
+    { min: 3, message: "Minimal 3 karakter", trigger: "blur" },
   ],
   email: [
-    { required: true, message: 'Email harus diisi', trigger: 'blur' },
-    { type: 'email', message: 'Format email tidak valid', trigger: 'blur' }
+    { required: true, message: "Email harus diisi", trigger: "blur" },
+    { type: "email", message: "Format email tidak valid", trigger: "blur" },
   ],
   gender: [
-    { required: true, message: 'Jenis kelamin harus dipilih', trigger: 'change' }
-  ]
-}
+    {
+      required: true,
+      message: "Jenis kelamin harus dipilih",
+      trigger: "change",
+    },
+  ],
+};
 
 const departmentRules: FormRules = {
   departement_id: [
-    { required: true, message: 'Departemen harus dipilih', trigger: 'change' }
+    { required: true, message: "Departemen harus dipilih", trigger: "change" },
   ],
   position_id: [
-    { required: true, message: 'Posisi harus dipilih', trigger: 'change' }
+    { required: true, message: "Posisi harus dipilih", trigger: "change" },
   ],
   join_date: [
-    { required: true, message: 'Tanggal bergabung harus diisi', trigger: 'change' }
-  ]
-}
+    {
+      required: true,
+      message: "Tanggal bergabung harus diisi",
+      trigger: "change",
+    },
+  ],
+};
 
 // Methods
 const goBack = () => {
-  router.push(`/people/${peopleId.value}`)
-}
-
-
+  router.back();
+};
 
 const fetchPeopleDetail = async () => {
   try {
     const response = await useFetchApi<{ data: People }>(
-      `/people-read/${peopleId.value}`, 
-      'get-people-detail', 
-      'post',
+      `/people-read/${peopleId.value}`,
+      "get-people-detail",
+      "post",
       null
-    )
-    
-    if (response.status.value === 'success') {
-      peopleData.value = response.data.value?.data || {} as People
-      populateFormData()
-      await fetchParentPeopleOptions()
+    );
+
+    if (response.status.value === "success") {
+      peopleData.value = response.data.value?.data || ({} as People);
+      populateFormData();
+      await fetchParentPeopleOptions();
     }
   } catch (error) {
-    ElMessage.error('Gagal memuat detail people')
+    ElMessage.error("Gagal memuat detail people");
   }
-}
+};
 
-const departement_create = async (name: string): Promise<Departement | undefined> => {
+const departement_create = async (
+  name: string
+): Promise<Departement | undefined> => {
   onLoading.value = true;
   try {
-    const response = await useFetchApi<BaseResponse<Departement>>('/departement-create?flag=form', 'departement-create', 'post', {name: name});
-    if(response.status.value == 'success'){
-      return response.data.value?.data
+    const response = await useFetchApi<BaseResponse<Departement>>(
+      "/departement-create?flag=form",
+      "departement-create",
+      "post",
+      { name: name }
+    );
+    if (response.status.value == "success") {
+      return response.data.value?.data;
     }
   } catch (error: any) {
-    ElMessage.error(error.response?.message ?? error)
-  }finally {
+    ElMessage.error(error.response?.message ?? error);
+  } finally {
     onLoading.value = false;
   }
-}
+};
 const position_create = async (name: string): Promise<Position | undefined> => {
   onLoading.value = true;
   try {
-    const response = await useFetchApi<BaseResponse<Position>>('/position-create?flag=form', 'position-create', 'post', {name: name});
-    if(response.status.value == 'success'){
-      return response.data.value?.data
+    const response = await useFetchApi<BaseResponse<Position>>(
+      "/position-create?flag=form",
+      "position-create",
+      "post",
+      { name: name }
+    );
+    if (response.status.value == "success") {
+      return response.data.value?.data;
     }
   } catch (error: any) {
-    ElMessage.error(error.response?.message ?? error)
-  }finally {
+    ElMessage.error(error.response?.message ?? error);
+  } finally {
     onLoading.value = false;
   }
-}
+};
 
 const onHandleSelectDepartement = async (item: Record<string, any>) => {
-  console.log('on select', item);
-  if(item.isNew){
-    const departement: Departement|null = await departement_create(`${item.label}`) ?? null;
-    if(departement !== null){
+  console.log("on select", item);
+  if (item.isNew) {
+    const departement: Departement | null =
+      (await departement_create(`${item.label}`)) ?? null;
+    if (departement !== null) {
       formData.value.departement_id = departement.unique_id;
       formData.value.departement_name = departement.name;
     }
-  }else{
+  } else {
     const departement: Departement = item as Departement;
     formData.value.departement_id = departement.unique_id;
-      formData.value.departement_name = departement.name;
+    formData.value.departement_name = departement.name;
   }
-
-
-  
-  
-}
+};
 const onHandleSelectPosition = async (item: Record<string, any>) => {
-  
-  if(item.isNew){
-    const position: Position|null = await position_create(`${item.label}`) ?? null;
-    if(position !== null){
+  if (item.isNew) {
+    const position: Position | null =
+      (await position_create(`${item.label}`)) ?? null;
+    if (position !== null) {
       formData.value.position_id = position.unique_id;
       formData.value.position_name = position.name;
     }
-  }else{
+  } else {
     const position: Position = item as Position;
     formData.value.position_id = position.unique_id;
-      formData.value.position_name = position.name;
+    formData.value.position_name = position.name;
   }
-
-
-  
-  
-}
+};
 
 const querySearchPosition = (queryString: string, cb: (arg: any) => void) => {
-      
-    request_search.value.keyword = queryString,
-    request_search.value.table = 'positions';
-    request_search.value.column = [];
-    request_search.value.flag = "form";
+  (request_search.value.keyword = queryString),
+    (request_search.value.table = "positions");
+  request_search.value.column = [];
+  request_search.value.flag = "form";
 
-    if(queryString != 'null'){
-      useFetchApi<ResponsePagination<Position[]>>('/search', 'address', 'post', request_search).then((response) => {
-          if(response.status.value == 'success'){
-              
-              const resultApi: Position[]  = response.data.value?.data!;
-              
-              if(resultApi.length > 0){
+  if (queryString != "null") {
+    useFetchApi<ResponsePagination<Position[]>>(
+      "/search",
+      "address",
+      "post",
+      request_search
+    ).then((response) => {
+      if (response.status.value == "success") {
+        const resultApi: Position[] = response.data.value?.data!;
 
-                  if(resultApi.length > 0){
-                    const results = resultApi.map((data: Position) => {
-                        return {...data, value: `${data.name}`}
-                    });    
-                    cb([...results, { value: `${queryString}`, label: `Tambahkan ${queryString}`, isNew: true}])
-                  }else{
-                    cb([{ value: `${queryString}`, label: `Tambahkan ${queryString}`, isNew: true}])
-                  }
-              }else{
-                  cb([{value: `Tambahkan ${queryString}`, isNew: true, label: `${queryString}`}]);
-              }
+        if (resultApi.length > 0) {
+          if (resultApi.length > 0) {
+            const results = resultApi.map((data: Position) => {
+              return { ...data, value: `${data.name}` };
+            });
+            cb([
+              ...results,
+              {
+                value: `${queryString}`,
+                label: `Tambahkan ${queryString}`,
+                isNew: true,
+              },
+            ]);
+          } else {
+            cb([
+              {
+                value: `${queryString}`,
+                label: `Tambahkan ${queryString}`,
+                isNew: true,
+              },
+            ]);
           }
-      })
-    }
-    
-}
-const querySearchDepartement = (queryString: string, cb: (arg: any) => void) => {
-      
-    request_search.value.keyword = queryString,
-    request_search.value.table = 'departements';
-    request_search.value.column = [];
-    request_search.value.flag = "form";
-
-    if(queryString != 'null'){
-      useFetchApi<ResponsePagination<Departement[]>>('/search', 'address', 'post', request_search).then((response) => {
-        if(response.status.value == 'success'){
-            
-            const resultApi: Departement[]  = response.data.value?.data!;
-            
-            if(resultApi.length > 0){
-
-                if(resultApi.length > 0){
-                  const results = resultApi.map((data: Departement) => {
-                      return {...data, value: `${data.name}`}
-                  });    
-                  cb([...results, { value: `${queryString}`, label: `Tambahkan ${queryString}`, isNew: true}])
-                }else{
-                  cb([{ value: `${queryString}`, label: `Tambahkan ${queryString}`, isNew: true}])
-                }
-            }else{
-                cb([{value: `Tambahkan ${queryString}`, isNew: true, label: `${queryString}`}]);
-            }
+        } else {
+          cb([
+            {
+              value: `Tambahkan ${queryString}`,
+              isNew: true,
+              label: `${queryString}`,
+            },
+          ]);
         }
-      })
-    }
+      }
+    });
+  }
+};
+const querySearchDepartement = (
+  queryString: string,
+  cb: (arg: any) => void
+) => {
+  (request_search.value.keyword = queryString),
+    (request_search.value.table = "departements");
+  request_search.value.column = [];
+  request_search.value.flag = "form";
 
-    
-    
-}
+  if (queryString != "null") {
+    useFetchApi<ResponsePagination<Departement[]>>(
+      "/search",
+      "address",
+      "post",
+      request_search
+    ).then((response) => {
+      if (response.status.value == "success") {
+        const resultApi: Departement[] = response.data.value?.data!;
+
+        if (resultApi.length > 0) {
+          if (resultApi.length > 0) {
+            const results = resultApi.map((data: Departement) => {
+              return { ...data, value: `${data.name}` };
+            });
+            cb([
+              ...results,
+              {
+                value: `${queryString}`,
+                label: `Tambahkan ${queryString}`,
+                isNew: true,
+              },
+            ]);
+          } else {
+            cb([
+              {
+                value: `${queryString}`,
+                label: `Tambahkan ${queryString}`,
+                isNew: true,
+              },
+            ]);
+          }
+        } else {
+          cb([
+            {
+              value: `Tambahkan ${queryString}`,
+              isNew: true,
+              label: `${queryString}`,
+            },
+          ]);
+        }
+      }
+    });
+  }
+};
 
 const fetchParentPeopleOptions = async () => {
   try {
     const response = await useFetchApi<{ data: People[] }>(
-      '/people', 
-      'get-people-list', 
-      'get',
+      "/people",
+      "get-people-list",
+      "get",
       { limit: 100 }
-    )
-    
-    if (response.status.value === 'success') {
-      parentPeopleOptions.value = response.data.value?.data || []
+    );
+
+    if (response.status.value === "success") {
+      parentPeopleOptions.value = response.data.value?.data || [];
     }
   } catch (error) {
-    console.error('Failed to fetch parent people:', error)
+    console.error("Failed to fetch parent people:", error);
   }
-}
+};
 
 const populateFormData = () => {
-  const data = { ...peopleData.value }
-  
+  const data = { ...peopleData.value };
+
   // Convert join_date timestamp to date string
   if (data.join_date) {
-    const date = new Date(data.join_date * 1000)
-    joinDateFormatted.value = date.toISOString().split('T')[0]
+    const date = new Date(data.join_date * 1000);
+    joinDateFormatted.value = date.toISOString().split("T")[0];
   }
-  
+
   formData.value = {
     ...data,
-    password: '' // Never populate password field
-  }
+    password: "", // Never populate password field
+  };
 
-  formData.value.departement = peopleData.value.departement_name ?? '';
-  formData.value.position = peopleData.value.position_name ?? '';
+  formData.value.departement = peopleData.value.departement_name ?? "";
+  formData.value.position = peopleData.value.position_name ?? "";
 
   tmp_image_url.value = `${config.public.baseBE}${formData.value.photo?.image_path}/${formData.value.photo?.filename}`;
-}
+};
 
 const handleJoinDateChange = (date: string) => {
   if (date) {
-    const timestamp = Math.floor(new Date(date).getTime() / 1000)
-    formData.value.join_date = timestamp
+    const timestamp = Math.floor(new Date(date).getTime() / 1000);
+    formData.value.join_date = timestamp;
   } else {
-    formData.value.join_date = 0
+    formData.value.join_date = 0;
   }
-}
+};
 
 const handleDepartmentChange = (deptId: string) => {
   // Reset position when department changes
-  formData.value.position_id = ''
-}
+  formData.value.position_id = "";
+};
 
 const handleSubmit = async () => {
   try {
     // Validate forms
     const [basicValid, deptValid] = await Promise.all([
       basicInfoFormRef.value?.validate(),
-      departmentFormRef.value?.validate()
-    ]).catch(() => [false, false])
+      departmentFormRef.value?.validate(),
+    ]).catch(() => [false, false]);
 
     if (!basicValid || !deptValid) {
-      ElMessage.warning('Harap periksa form yang belum valid')
-      return
+      ElMessage.warning("Harap periksa form yang belum valid");
+      return;
     }
 
     const formDataPayload = new FormData();
@@ -635,7 +694,10 @@ const handleSubmit = async () => {
     formDataPayload.append("email", `${formData.value.email}`);
     formDataPayload.append("phone", `${formData.value.phone}`);
     formDataPayload.append("gender", `${formData.value.gender}`);
-    formDataPayload.append("departement_id", `${formData.value.departement_id}`);
+    formDataPayload.append(
+      "departement_id",
+      `${formData.value.departement_id}`
+    );
     formDataPayload.append("position_id", `${formData.value.position_id}`);
 
     if (fileList.value.length > 0) {
@@ -653,85 +715,82 @@ const handleSubmit = async () => {
     if (response.status == 201) {
       const dataUser: People = response.data.data;
       appUserData.value = JSON.stringify(dataUser);
-      
 
-      console.log('user',response.data.data);
-      
+      console.log("user", response.data.data);
+
       authStore.setUserData(dataUser);
       authStore.setMenu(dataUser.menu || []);
-      
-      ElMessage.success('Berhasil Memperbarui Profile!');
+
+      ElMessage.success("Berhasil Memperbarui Profile!");
       fetchPeopleDetail();
     } else {
       ElMessage.error(response?.data?.message);
     }
-    
   } catch (error) {
-    console.error('Validation error:', error)
+    console.error("Validation error:", error);
   }
-}
+};
 
 const confirmAction = async () => {
-  loading.value.confirm = true
+  loading.value.confirm = true;
 
   try {
-    if (dialogConfig.value.action === 'submit') {
-      await submitForm()
-    } else if (dialogConfig.value.action === 'reset_password') {
-      await resetPassword()
-    } else if (dialogConfig.value.action === 'deactivate') {
-      await deactivateAccount()
+    if (dialogConfig.value.action === "submit") {
+      await submitForm();
+    } else if (dialogConfig.value.action === "reset_password") {
+      await resetPassword();
+    } else if (dialogConfig.value.action === "deactivate") {
+      await deactivateAccount();
     }
   } catch (error) {
-    console.error('Action failed:', error)
+    console.error("Action failed:", error);
   } finally {
-    loading.value.confirm = false
-    showConfirmDialog.value = false
+    loading.value.confirm = false;
+    showConfirmDialog.value = false;
   }
-}
+};
 
 const submitForm = async () => {
-  loading.value.submit = true
-  
+  loading.value.submit = true;
+
   try {
     // Prepare payload - remove null password if empty
-    const payload = { ...formData.value }
-    
-    
+    const payload = { ...formData.value };
 
     const response = await useFetchApi(
-      `/people/${peopleId.value}`, 
-      'update-people', 
-      'put',
+      `/people/${peopleId.value}`,
+      "update-people",
+      "put",
       payload
-    )
+    );
 
-    if (response.status.value === 'success') {
-      ElMessage.success('Profil berhasil diperbarui')
-      router.push(`/people/${peopleId.value}`)
+    if (response.status.value === "success") {
+      ElMessage.success("Profil berhasil diperbarui");
+      router.push(`/people/${peopleId.value}`);
     }
   } catch (error) {
-    ElMessage.error('Gagal memperbarui profil')
+    ElMessage.error("Gagal memperbarui profil");
   } finally {
-    loading.value.submit = false
+    loading.value.submit = false;
   }
-}
+};
 
 const resetForm = () => {
   dialogConfig.value = {
-    title: 'Reset Form',
-    message: 'Apakah Anda yakin ingin mengembalikan form ke data awal? Semua perubahan yang belum disimpan akan hilang.',
-    confirmText: 'Ya, Reset',
+    title: "Reset Form",
+    message:
+      "Apakah Anda yakin ingin mengembalikan form ke data awal? Semua perubahan yang belum disimpan akan hilang.",
+    confirmText: "Ya, Reset",
     icon: Warning,
-    color: '#E6A23C',
-    buttonType: 'primary',
-    action: 'submit'
-  }
-  showConfirmDialog.value = true
-  
+    color: "#E6A23C",
+    buttonType: "primary",
+    action: "submit",
+  };
+  showConfirmDialog.value = true;
+
   // Actual reset logic in confirmAction
-  dialogConfig.value.action = 'submit'
-}
+  dialogConfig.value.action = "submit";
+};
 
 const handleAvatarSuccess: UploadProps["onSuccess"] = (
   response,
@@ -740,138 +799,136 @@ const handleAvatarSuccess: UploadProps["onSuccess"] = (
   tmp_image_url.value = URL.createObjectURL(uploadFile.raw!);
 };
 
-const beforeAvatarUpload: UploadProps['beforeUpload'] = (rawFile) => {
-  const isValidType = ['image/jpeg', 'image/png'].includes(rawFile.type)
-  const isLt2M = rawFile.size / 1024 / 1024 < 2
+const beforeAvatarUpload: UploadProps["beforeUpload"] = (rawFile) => {
+  const isValidType = ["image/jpeg", "image/png"].includes(rawFile.type);
+  const isLt2M = rawFile.size / 1024 / 1024 < 2;
 
   if (!isValidType) {
-    ElMessage.error('Format file harus JPG atau PNG')
-    return false
+    ElMessage.error("Format file harus JPG atau PNG");
+    return false;
   }
-  
+
   if (!isLt2M) {
-    ElMessage.error('Ukuran gambar tidak boleh lebih dari 2MB')
-    return false
+    ElMessage.error("Ukuran gambar tidak boleh lebih dari 2MB");
+    return false;
   }
-  
-  return true
-}
+
+  return true;
+};
 
 const handleUploadError = () => {
-  ElMessage.error('Upload gambar gagal')
-}
+  ElMessage.error("Upload gambar gagal");
+};
 
 const removeProfilePhoto = () => {
   fileList.value = [];
   tmp_image_url.value = `${config.public.baseBE}${formData.value.photo?.image_path}/${formData.value.photo?.filename}`;
-}
+};
 
 const openFileManager = () => {
-  showFileManager.value = true
-}
+  showFileManager.value = true;
+};
 
 const handleFileSelect = (file: any) => {
   if (file?.url) {
-    formData.value.file_id = file.url
-    ElMessage.success('Foto profil dipilih')
+    formData.value.file_id = file.url;
+    ElMessage.success("Foto profil dipilih");
   }
-  showFileManager.value = false
-}
+  showFileManager.value = false;
+};
 
 const handleResetPassword = () => {
   dialogConfig.value = {
-    title: 'Reset Password',
-    message: 'Password akan direset dan dikirim ke email user. Apakah Anda yakin?',
-    confirmText: 'Ya, Reset Password',
+    title: "Reset Password",
+    message:
+      "Password akan direset dan dikirim ke email user. Apakah Anda yakin?",
+    confirmText: "Ya, Reset Password",
     icon: Warning,
-    color: '#E6A23C',
-    buttonType: 'danger',
-    action: 'reset_password'
-  }
-  showConfirmDialog.value = true
-}
+    color: "#E6A23C",
+    buttonType: "danger",
+    action: "reset_password",
+  };
+  showConfirmDialog.value = true;
+};
 
 const handleDeactivateAccount = () => {
   dialogConfig.value = {
-    title: 'Nonaktifkan Akun',
-    message: 'Akun ini akan dinonaktifkan dan tidak dapat mengakses sistem.',
-    confirmText: 'Nonaktifkan Akun',
+    title: "Nonaktifkan Akun",
+    message: "Akun ini akan dinonaktifkan dan tidak dapat mengakses sistem.",
+    confirmText: "Nonaktifkan Akun",
     icon: WarningFilled,
-    color: '#F56C6C',
-    buttonType: 'danger',
-    action: 'deactivate'
-  }
-  showConfirmDialog.value = true
-}
+    color: "#F56C6C",
+    buttonType: "danger",
+    action: "deactivate",
+  };
+  showConfirmDialog.value = true;
+};
 
 const resetPassword = async () => {
   try {
     const response = await useFetchApi(
-      `/people/${peopleId.value}/reset-password`, 
-      'reset-password', 
-      'post',
+      `/people/${peopleId.value}/reset-password`,
+      "reset-password",
+      "post",
       null
-    )
+    );
 
-    if (response.status.value === 'success') {
-      ElMessage.success('Password berhasil direset dan dikirim ke email')
+    if (response.status.value === "success") {
+      ElMessage.success("Password berhasil direset dan dikirim ke email");
     }
   } catch (error) {
-    ElMessage.error('Gagal reset password')
+    ElMessage.error("Gagal reset password");
   }
-}
+};
 
 const deactivateAccount = async () => {
   try {
     const response = await useFetchApi(
-      `/people/${peopleId.value}/deactivate`, 
-      'deactivate-people', 
-      'post',
+      `/people/${peopleId.value}/deactivate`,
+      "deactivate-people",
+      "post",
       null
-    )
+    );
 
-    if (response.status.value === 'success') {
-      ElMessage.success('Akun berhasil dinonaktifkan')
-      router.push('/people')
+    if (response.status.value === "success") {
+      ElMessage.success("Akun berhasil dinonaktifkan");
+      router.push("/people");
     }
   } catch (error) {
-    ElMessage.error('Gagal menonaktifkan akun')
+    ElMessage.error("Gagal menonaktifkan akun");
   }
-}
+};
 
 // Helper functions
 const formatDateTime = (timestamp: number) => {
-  if (!timestamp) return '-'
-  return new Date(timestamp * 1000).toLocaleString('id-ID', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
-  })
-}
+  if (!timestamp) return "-";
+  return new Date(timestamp * 1000).toLocaleString("id-ID", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
 
 const formatDate = (timestamp: number) => {
-  if (!timestamp) return '-'
-  return new Date(timestamp * 1000).toLocaleDateString('id-ID', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
-}
-
-
+  if (!timestamp) return "-";
+  return new Date(timestamp * 1000).toLocaleDateString("id-ID", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+};
 
 const getPeopleName = (peopleId: number) => {
-  const people = parentPeopleOptions.value.find(p => p.id === peopleId)
-  return people?.name || `User #${peopleId}`
-}
+  const people = parentPeopleOptions.value.find((p) => p.id === peopleId);
+  return people?.name || `User #${peopleId}`;
+};
 
 // Lifecycle
 onMounted(() => {
-    
-    fetchPeopleDetail()
-})
+  fetchPeopleDetail();
+});
 </script>
 
 <style scoped>

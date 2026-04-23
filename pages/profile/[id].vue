@@ -4,23 +4,29 @@
     <el-page-header @back="goBack" class="mb-6">
       <template #content>
         <div class="flex items-center">
-          <el-avatar v-if="peopleData.photo" :size="60" :src="`${imageUrl}/${peopleData.photo?.image_path}/${peopleData.photo?.filename}`" class="mr-4">
-            {{ peopleData.name?.charAt(0) || 'U' }}
+          <el-avatar
+            v-if="peopleData.photo"
+            :size="60"
+            :src="`${imageUrl}/${peopleData.photo?.image_path}/${peopleData.photo?.filename}`"
+            class="mr-4"
+          >
+            {{ peopleData.name?.charAt(0) || "U" }}
           </el-avatar>
           <div>
-            <h1 class="text-2xl font-bold">{{ peopleData.name}}</h1>
+            <h1 class="text-2xl font-bold">{{ peopleData.name }}</h1>
             <p class="text-gray-500">{{ peopleData.unique_code }}</p>
           </div>
         </div>
       </template>
       <template #extra>
         <div class="flex gap-2">
-          <NuxtLink class="el-button el-button--primary" :href="`/profile/edit?id=${peopleData.unique_id}`">
+          <NuxtLink
+            class="el-button el-button--primary"
+            :href="`/profile/edit?id=${peopleData.unique_id}`"
+          >
             Edit Profile
           </NuxtLink>
-          <el-button @click="goBack">
-            Kembali
-          </el-button>
+          <el-button @click="goBack"> Kembali </el-button>
         </div>
       </template>
     </el-page-header>
@@ -37,10 +43,18 @@
             </div>
           </template>
           <el-descriptions :column="1" border>
-            <el-descriptions-item label="Kode Unik">{{ peopleData.unique_code }}</el-descriptions-item>
-            <el-descriptions-item label="Nama">{{ peopleData.name || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="Email">{{ peopleData.email || '-' }}</el-descriptions-item>
-            <el-descriptions-item label="Telepon">{{ peopleData.phone || '-' }}</el-descriptions-item>
+            <el-descriptions-item label="Kode Unik">{{
+              peopleData.unique_code
+            }}</el-descriptions-item>
+            <el-descriptions-item label="Nama">{{
+              peopleData.name || "-"
+            }}</el-descriptions-item>
+            <el-descriptions-item label="Email">{{
+              peopleData.email || "-"
+            }}</el-descriptions-item>
+            <el-descriptions-item label="Telepon">{{
+              peopleData.phone || "-"
+            }}</el-descriptions-item>
             <el-descriptions-item label="Jenis Kelamin">
               <el-tag :type="getGenderTagType(peopleData.gender)">
                 {{ getGenderDisplay(peopleData.gender) }}
@@ -53,109 +67,114 @@
         </el-card>
 
         <!-- Informasi Pekerjaan -->
-        
       </el-col>
       <el-col :span="24">
-          <el-card class="mb-6">
-            <template #header>
-              <div class="flex items-center">
-                <el-icon class="mr-2"><Briefcase /></el-icon>
-                <span>Informasi Pekerjaan</span>
-              </div>
-            </template>
-            <el-descriptions :column="1" border>
-              <el-descriptions-item label="Departemen">
-                <el-tag v-if="peopleData.departement" type="primary">
-                  {{ peopleData.departement }}
-                </el-tag>
-                <span v-else>-</span>
-              </el-descriptions-item>
-              <el-descriptions-item label="Posisi">
-                <el-tag v-if="peopleData.position" type="success">
-                  {{ peopleData.position }}
-                </el-tag>
-                <span v-else>-</span>
-              </el-descriptions-item>
-            </el-descriptions>
-          </el-card>
+        <el-card class="mb-6">
+          <template #header>
+            <div class="flex items-center">
+              <el-icon class="mr-2"><Briefcase /></el-icon>
+              <span>Informasi Pekerjaan</span>
+            </div>
+          </template>
+          <el-descriptions :column="1" border>
+            <el-descriptions-item label="Departemen">
+              <el-tag v-if="peopleData.departement_name" type="primary">
+                {{ peopleData.departement_name }}
+              </el-tag>
+              <span v-else>-</span>
+            </el-descriptions-item>
+            <el-descriptions-item label="Posisi">
+              <el-tag v-if="peopleData.position_name" type="success">
+                {{ peopleData.position_name }}
+              </el-tag>
+              <span v-else>-</span>
+            </el-descriptions-item>
+          </el-descriptions>
+        </el-card>
       </el-col>
       <el-col :span="24">
-          <el-card>
-            <template #header>
-              <div class="flex items-center">
-                
-                <el-icon class="mr-2"><Platform /></el-icon>
-                <span>Perangkat Terhubung</span>
-              </div>
-            </template>
-            <el-descriptions border v-for="device in myDevices" >
-              <el-descriptions-item :key="device.unique_id" :label="device.device_name">
-                {{formatLocalDateTime(device.last_active)}}  
-                <el-tag type="primary" v-if="device.is_active">Active</el-tag>
-                <el-tag type="danger" v-else>InActive</el-tag>
-              </el-descriptions-item>
-            </el-descriptions>
-          </el-card>
+        <el-card>
+          <template #header>
+            <div class="flex items-center">
+              <el-icon class="mr-2"><Platform /></el-icon>
+              <span>Perangkat Terhubung</span>
+            </div>
+          </template>
+          <el-descriptions border v-for="device in myDevices">
+            <el-descriptions-item
+              :key="device.unique_id"
+              :label="device.device_name"
+            >
+              {{ formatLocalDateTime(device.last_active) }}
+              <el-tag type="primary" v-if="device.is_active">Active</el-tag>
+              <el-tag type="danger" v-else>InActive</el-tag>
+            </el-descriptions-item>
+          </el-descriptions>
+        </el-card>
       </el-col>
-      
     </el-row>
-
-    
   </TrumsWrapper>
-    
 </template>
 
 <script lang="tsx" setup>
-import { 
-  User, Briefcase, Lock, Plus, Delete, Check,
-  Unlock, Folder, FolderOpened, Key,Platform
-} from '@element-plus/icons-vue'
-import type { Menu, Permission } from '~/types/menu'
-import type { DeviceInfo, People, UserPermission } from '~/types/people'
-import PermissionTreeManager from '~/components/trums/PermissionTreeManager.vue'
-import type { RequestSearch } from '~/types/request_search'
-import type { ResponsePagination } from '~/types/response_pagination'
-import { formatLocalDate, formatLocalDateTime } from '#imports'
+import {
+  User,
+  Briefcase,
+  Lock,
+  Plus,
+  Delete,
+  Check,
+  Unlock,
+  Folder,
+  FolderOpened,
+  Key,
+  Platform,
+} from "@element-plus/icons-vue";
+import type { Menu, Permission } from "~/types/menu";
+import type { DeviceInfo, People, UserPermission } from "~/types/people";
+import PermissionTreeManager from "~/components/trums/PermissionTreeManager.vue";
+import type { RequestSearch } from "~/types/request_search";
+import type { ResponsePagination } from "~/types/response_pagination";
+import { formatLocalDate, formatLocalDateTime } from "#imports";
 
 interface PermissionTreeNode {
-  unique_id: string
-  name: string
-  type: 'menu' | 'submenu' | 'permission'
-  code?: string
-  is_granted?: boolean
-  children?: PermissionTreeNode[]
+  unique_id: string;
+  name: string;
+  type: "menu" | "submenu" | "permission";
+  code?: string;
+  is_granted?: boolean;
+  children?: PermissionTreeNode[];
 }
 
-const router = useRouter()
-const route = useRoute()
-const peopleId = computed(() => route.params.id as string)
+const router = useRouter();
+const route = useRoute();
+const peopleId = computed(() => route.params.id as string);
 
 const config = useRuntimeConfig();
 const imageUrl = config.public.baseImageURL;
 
 // State
-const peopleData = ref<People>({} as People)
+const peopleData = ref<People>({} as People);
 const userPermissions = ref<UserPermission[]>([]);
-const permissionTree = ref<PermissionTreeNode[]>([])
-const showPermissionDialog = ref(false)
+const permissionTree = ref<PermissionTreeNode[]>([]);
+const showPermissionDialog = ref(false);
 const loading = ref<boolean>(true);
 const myDevices = ref<DeviceInfo[]>([]);
 
 // Tree configuration
 const treeProps = {
-  children: 'children',
-  label: 'name'
-}
+  children: "children",
+  label: "name",
+};
 
 // Computed
 const totalMenus = computed(() => {
   return peopleData.value.menu?.length || 0;
-})
+});
 
 const totalPermissions = computed(() => {
   return peopleData.value.user_permissions?.length || 0;
-})
-
+});
 
 // Methods
 const goBack = () => router.back();
@@ -166,193 +185,201 @@ const getMyDevices = async () => {
     const request_search: RequestSearch = {
       column: [
         {
-          people_id: [peopleId.value]
-        }
+          people_id: [peopleId.value],
+        },
       ],
-      keyword: '',
-      table: 'people_devices',
+      keyword: "",
+      table: "people_devices",
       sort: null,
-      offset: '1',
-      limit: '10',
-      flag: 'form',
-    }
+      offset: "1",
+      limit: "10",
+      flag: "form",
+    };
     const response = await useApiFetch<ResponsePagination<DeviceInfo[]>>(
-      `/search`, 
+      `/search`,
       {
-        method: 'post',
+        method: "post",
         body: request_search,
       }
-    )
-    
+    );
+
     if (response.success) {
-      myDevices.value = response.data ?? [] as DeviceInfo[]
+      myDevices.value = response.data ?? ([] as DeviceInfo[]);
     }
   } catch (error) {
-    ElMessage.error('Gagal memuat detail people')
+    ElMessage.error("Gagal memuat detail people");
   } finally {
     loading.value = false;
   }
-}
+};
 
 const fetchPeopleDetail = async () => {
   loading.value = true;
   try {
     const response = await useFetchApi<{ data: People }>(
-      `/people-read/${peopleId.value}`, 
-      'get-people-detail', 
-      'post',
+      `/people-read/${peopleId.value}`,
+      "get-people-detail",
+      "post",
       null
-    )
-    if (response.status.value === 'success') {
-      console.log('masuk sini')
-      peopleData.value = response.data.value?.data || {} as People
+    );
+    if (response.status.value === "success") {
+      console.log("masuk sini");
+      peopleData.value = response.data.value?.data || ({} as People);
     }
   } catch (error) {
-    ElMessage.error('Gagal memuat detail people')
+    ElMessage.error("Gagal memuat detail people");
   } finally {
     loading.value = false;
   }
-}
+};
 
 const buildPermissionTree = async () => {
   try {
     // Fetch semua menu dengan struktur hierarchy
     const response = await useFetchApi<{ data: Menu[] }>(
-      '/menus-with-permissions', 
-      'get-menus-with-permissions', 
-      'get',
-      null,
-    )
-    
-    if (response.status.value === 'success') {
-      const menus = response.data.value?.data || []
-      permissionTree.value = transformMenusToTree(menus)
+      "/menus-with-permissions",
+      "get-menus-with-permissions",
+      "get",
+      null
+    );
+
+    if (response.status.value === "success") {
+      const menus = response.data.value?.data || [];
+      permissionTree.value = transformMenusToTree(menus);
     }
   } catch (error) {
-    ElMessage.error('Gagal membangun tree permissions')
+    ElMessage.error("Gagal membangun tree permissions");
   }
-}
+};
 
 const transformMenusToTree = (menus: Menu[]): PermissionTreeNode[] => {
-  return menus.map(menu => {
+  return menus.map((menu) => {
     const node: PermissionTreeNode = {
       unique_id: menu.unique_id,
       name: menu.name,
-      type: 'menu'
-    }
+      type: "menu",
+    };
 
     // Jika menu memiliki submenus
     if (menu.menus && menu.menus.length > 0) {
       node.children = menu.menus.map((submenu: any) => ({
         unique_id: submenu.unique_id,
         name: submenu.name,
-        type: 'submenu',
-        children: transformPermissions(submenu.permissions || [])
-      }))
+        type: "submenu",
+        children: transformPermissions(submenu.permissions || []),
+      }));
     } else {
       // Jika menu tidak memiliki submenu, langsung attach permissions
-      node.children = transformPermissions(menu.permissions || [])
+      node.children = transformPermissions(menu.permissions || []);
     }
 
-    return node
-  })
-}
+    return node;
+  });
+};
 
-const transformPermissions = (permissions: Permission[]): PermissionTreeNode[] => {
-  return permissions.map(permission => ({
+const transformPermissions = (
+  permissions: Permission[]
+): PermissionTreeNode[] => {
+  return permissions.map((permission) => ({
     unique_id: permission.unique_id,
     name: permission.permission_name,
-    type: 'permission',
+    type: "permission",
     code: permission.slug,
     // is_granted: userPermissions.value.some((up: { unique_id: any }) => up.unique_id === permission.unique_id)
     is_granted: false,
-  }))
-}
+  }));
+};
 
 const removePermission = async (permissionId: string) => {
   try {
     await ElMessageBox.confirm(
-      'Apakah Anda yakin ingin mencabut permission ini?',
-      'Konfirmasi Cabut Permission',
+      "Apakah Anda yakin ingin mencabut permission ini?",
+      "Konfirmasi Cabut Permission",
       {
-        confirmButtonText: 'Ya, Cabut',
-        cancelButtonText: 'Batal',
-        type: 'warning',
+        confirmButtonText: "Ya, Cabut",
+        cancelButtonText: "Batal",
+        type: "warning",
       }
-    )
+    );
 
     const response = await useFetchApi(
-      `/people/${peopleId.value}/permissions/${permissionId}`, 
-      'remove-permission', 
-      'delete',
-      null,
-    )
+      `/people/${peopleId.value}/permissions/${permissionId}`,
+      "remove-permission",
+      "delete",
+      null
+    );
 
-    if (response.status.value === 'success') {
-      ElMessage.success('Permission berhasil dicabut')
-      
+    if (response.status.value === "success") {
+      ElMessage.success("Permission berhasil dicabut");
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      ElMessage.error('Gagal mencabut permission')
+    if (error !== "cancel") {
+      ElMessage.error("Gagal mencabut permission");
     }
   }
-}
+};
 
 const grantPermission = async (permissionId: string) => {
   try {
     const response = await useFetchApi(
-      `/people/${peopleId.value}/permissions`, 
-      'grant-permission', 
-      'post',
+      `/people/${peopleId.value}/permissions`,
+      "grant-permission",
+      "post",
       { permissions: [permissionId] }
-    )
+    );
 
-    if (response.status.value === 'success') {
-      ElMessage.success('Permission berhasil diberikan')
-      
+    if (response.status.value === "success") {
+      ElMessage.success("Permission berhasil diberikan");
     }
   } catch (error) {
-    ElMessage.error('Gagal memberikan permission')
+    ElMessage.error("Gagal memberikan permission");
   }
-}
+};
 
 const handlePermissionsUpdated = () => {
-  showPermissionDialog.value = false
-  ElMessage.success('Permissions berhasil di-update')
+  showPermissionDialog.value = false;
+  ElMessage.success("Permissions berhasil di-update");
   fetchPeopleDetail();
-}
+};
 
 const editPeople = () => {
-  router.push(`/people/edit/${peopleId.value}`)
-}
-
-
+  router.push(`/people/edit/${peopleId.value}`);
+};
 
 const getGenderDisplay = (gender: string | null) => {
-  if (!gender) return 'Tidak Diketahui'
+  if (!gender) return "Tidak Diketahui";
   const genderMap: { [key: string]: string } = {
-    'male': 'Laki-laki', 'female': 'Perempuan',
-    'M': 'Laki-laki', 'F': 'Perempuan'
-  }
-  return genderMap[gender.toLowerCase()] || gender
-}
+    male: "Laki-laki",
+    female: "Perempuan",
+    M: "Laki-laki",
+    F: "Perempuan",
+  };
+  return genderMap[gender.toLowerCase()] || gender;
+};
 
-const getGenderTagType = (gender: string | null): "success" | "warning" | "info" | "primary" | "danger" => {
-  if (!gender) return 'info'
+const getGenderTagType = (
+  gender: string | null
+): "success" | "warning" | "info" | "primary" | "danger" => {
+  if (!gender) return "info";
   const genderMap: { [key: string]: string } = {
-    'male': 'primary', 'female': 'danger',
-    'M': 'primary', 'F': 'danger'
-  }
-  return (genderMap[gender.toLowerCase()] || 'info') as "success" | "warning" | "info" | "primary" | "danger";
-}
+    male: "primary",
+    female: "danger",
+    M: "primary",
+    F: "danger",
+  };
+  return (genderMap[gender.toLowerCase()] || "info") as
+    | "success"
+    | "warning"
+    | "info"
+    | "primary"
+    | "danger";
+};
 
 // Lifecycle
 onMounted(async () => {
   fetchPeopleDetail();
   getMyDevices();
-  
-})
+});
 </script>
 
 <style scoped>
@@ -380,7 +407,8 @@ onMounted(async () => {
 }
 
 .permission-code {
-  font-family: ui-monospace, SFMono-Regular, 'SF Mono', Menlo, Consolas, monospace;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    monospace;
   font-size: 12px;
   color: var(--el-text-color-secondary);
   background: var(--el-fill-color-light);

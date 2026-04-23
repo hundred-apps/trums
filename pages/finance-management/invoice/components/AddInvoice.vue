@@ -506,8 +506,23 @@
 
       <el-descriptions :column="1" border>
         <el-descriptions-item :width="100" label="Total Price" align="right">{{
-          currency(ruleForm.subtotal || 0)
+          currency(totalAmount || 0)
         }}</el-descriptions-item>
+
+        <el-descriptions-item
+          v-if="getInvoiceDownPayment > 0"
+          :width="100"
+          :label="getInvoiceDownPaymentLabel"
+          align="right"
+          >{{ currency(getInvoiceDownPayment || 0) }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          v-if="ruleForm.payment_terms"
+          :width="100"
+          :label="ruleForm.payment_terms?.name"
+          align="right"
+          >{{ currency(ruleForm.subtotal || 0) }}</el-descriptions-item
+        >
 
         <el-descriptions-item
           :width="100"
@@ -1470,32 +1485,27 @@ watch(
   { deep: true }
 );
 
-const updateTotalAmount = () => {
-  ruleForm.subtotal = ruleForm.invoice_item.reduce((total, ref) => {
+const totalAmount = computed(() => {
+  return ruleForm.invoice_item.reduce((total, ref) => {
     return total + Number(ref.total_amount || 0);
   }, 0);
+});
+
+const updateTotalAmount = () => {
+  ruleForm.subtotal = totalAmount.value;
 
   var amount = ruleForm.subtotal;
 
-  if (invoicesHistory.value.length > 0) {
-    // console.log("updat total amount", amount);
-    // invoicesHistory.value.forEach((element) => {
-    //   console.log("updat total amount", element);
-    //   if (element.payment_terms) {
+  // if (invoicesHistory.value.length > 0) {
+  //   if (invoicesHistory.value[0].payment_terms) {
+  //     const history =
+  //       ((ruleForm.subtotal || 0) *
+  //         invoicesHistory.value[0].payment_terms.value) /
+  //       100;
 
-    //   }
-    // });
-    // console.log("updat total amount after", amount);
-
-    if (invoicesHistory.value[0].payment_terms) {
-      const history =
-        ((ruleForm.subtotal || 0) *
-          invoicesHistory.value[0].payment_terms.value) /
-        100;
-
-      amount -= history;
-    }
-  }
+  //     amount -= history;
+  //   }
+  // }
 
   if (ruleForm.payment_term_id) {
     amount =
@@ -1511,6 +1521,30 @@ const updateTotalAmount = () => {
   //   ruleForm
   // }
 };
+
+const getInvoiceDownPaymentLabel = computed(() => {
+  let label = "DP";
+  if (invoicesHistory.value.length > 0) {
+    if (invoicesHistory.value[0].payment_terms) {
+      label = invoicesHistory.value[0].payment_terms.name;
+    }
+  }
+
+  return label;
+});
+const getInvoiceDownPayment = computed(() => {
+  let total = 0;
+  if (invoicesHistory.value.length > 0) {
+    if (invoicesHistory.value[0].payment_terms) {
+      total =
+        ((totalAmount.value || 0) *
+          invoicesHistory.value[0].payment_terms.value) /
+        100;
+    }
+  }
+
+  return total;
+});
 
 const addNewItem = () => {
   ruleForm.invoice_item.push({
