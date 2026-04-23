@@ -16,12 +16,19 @@ definePageMeta({
 });
 
 // Data state
-const { data } = await useFetchApi<DefaultResponsePagination<BankAccount[]>>(
-  "/bank-accounts-read",
+const { data, refresh, status } = await useAsyncData(
   "get-bank-accounts",
-  "get",
-  null
+  async () => {
+    const res = await useFetchApi<DefaultResponsePagination<BankAccount[]>>(
+      `/bank-accounts-read`,
+      "get-bank-accounts",
+      "get",
+      null
+    );
+    return res.data.value;
+  }
 );
+
 const loading = ref(false);
 const drawerVisible = ref(false);
 const currentAccount = ref<BankAccount | null>(null);
@@ -148,7 +155,7 @@ const handleDelete = async (id: number) => {
       null
     );
     ElMessage.success("Akun bank berhasil dihapus");
-    refreshNuxtData("get-bank-accounts");
+    handleRefresh();
   } catch {
     ElMessage.error("Gagal menghapus akun bank");
   }
@@ -172,7 +179,7 @@ const batchDelete = async () => {
     );
 
     ElMessage.success(`${count} akun bank berhasil dihapus`);
-    refreshNuxtData("get-bank-accounts");
+    handleRefresh();
     selectedAccounts.value = [];
   } catch {
     // Cancelled
@@ -188,7 +195,8 @@ const formatDate = (timestamp: number) => {
 };
 
 const handleRefresh = () => {
-  refreshNuxtData("get-bank-accounts");
+  console.log("refresh");
+  refresh();
   selectedAccounts.value = [];
 };
 </script>

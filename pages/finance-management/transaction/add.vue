@@ -555,7 +555,7 @@ const querySearchReference = (
       table: "invoices",
       column: [
         {
-          status: ["received"],
+          status: ["received", "performa"],
           type: ["out"],
         },
       ],

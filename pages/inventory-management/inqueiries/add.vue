@@ -1304,7 +1304,9 @@ const openDialogPIC = () => {
 
 const generateResultSearchAddress = (address: AddressType | null) => {
   if (address) {
-    const name = `(${address.contact_name}) - ${address.village}, ${address.city}, ${address.regency}, ${address.province}`;
+    const name = `(${address.contact_name}) - ${address.village}, ${
+      address.city
+    }, ${address.regency || address.province}`;
     const street = `${address.street}`;
     const address_id = address.unique_id;
     const address_version = address.version;

@@ -492,12 +492,15 @@ const onSort = (sortBy: { order: string; prop: string }) => {
   };
 };
 
-const locations = await useFetchApi<ResponsePagination<Catalogue[]>>(
-  "/search",
-  "fetch-locations",
-  "post",
-  requestSearchLocation.value
-);
+const locations = await useAsyncData("fetch-locations", async () => {
+  const res = await useFetchApi<ResponsePagination<Catalogue[]>>(
+    "/search",
+    "fetch-locations",
+    "post",
+    requestSearchLocation.value
+  );
+  return res.data.value;
+});
 
 const inquiries = await useAsyncData("fetch-inquiries", async () => {
   const res = await useFetchApi<ResponsePagination<Inquiry[]>>(
@@ -510,9 +513,13 @@ const inquiries = await useAsyncData("fetch-inquiries", async () => {
 });
 
 // watcher
-watch(requestSearchLocation.value, () => refreshNuxtData("fetch-locations"), {
-  immediate: true,
-});
+watch(
+  () => requestSearchLocation.value,
+  () => locations.refresh(),
+  {
+    deep: true,
+  }
+);
 
 const contacts = await useFetchApi<ResponsePagination<Contact[]>>(
   "/search",

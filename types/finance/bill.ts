@@ -22,6 +22,7 @@ export enum PaymentStatus {
   UNPAID = "unpaid",
   PAID = "paid",
   RECEIVED = "received",
+  PERFORMA_INVOICE = "performa",
   WAITING = "waiting",
   APPROVED = "approved",
   REJECTED = "rejected",
@@ -32,6 +33,7 @@ export enum PaymentStatus {
   WAITINGVIEW = "WAITING",
   APPROVEDVIEW = "APPROVED",
   REJECTEDVIEW = "REJECTED",
+  PERFORMA_INVOICE_VIEW = "performa",
 }
 
 export type Bill = {

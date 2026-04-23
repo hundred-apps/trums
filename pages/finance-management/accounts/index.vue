@@ -47,11 +47,17 @@ const request_search = ref<RequestSearch>({
 });
 
 // Data state
-const { data } = await useFetchApi<ResponsePagination<Account[]>>(
-  `/search`,
-  "account",
-  "post",
-  request_search.value
+const { data, refresh, status } = await useAsyncData(
+  "fetch-account",
+  async () => {
+    const res = await useFetchApi<ResponsePagination<Account[]>>(
+      `/search`,
+      "fetch-account",
+      "post",
+      request_search.value
+    );
+    return res.data.value;
+  }
 );
 
 const loading = ref<boolean>(false);
@@ -358,13 +364,11 @@ const onSort = async (sortBy: SortBy) => {
 };
 
 // Watch search query
-watchDebounced(
-  request_search.value,
-  () => {
-    refreshNuxtData("account");
-  },
-  { debounce: 500 }
-);
+watchDebounced(request_search.value, () => onRefresh(), { debounce: 500 });
+
+const onRefresh = () => {
+  refresh();
+};
 </script>
 
 <template>
@@ -381,8 +385,9 @@ watchDebounced(
       </NuxtLink>
       <el-button
         size="default"
-        @click="() => {}"
+        @click="onRefresh"
         :loading-icon="Eleme"
+        :icon="Eleme"
         :loading="loading"
       >
         Muat Ulang Data
@@ -392,7 +397,7 @@ watchDebounced(
     <CustomTable
       :columns="filteredColumn"
       :data="data?.data ?? []"
-      :loading="loading"
+      :loading="status == 'pending'"
       :column-sort="onSort"
     />
 

@@ -3,14 +3,14 @@
     <el-page-header @back="goBack">
       <template #content>
         <span class="text-large font-600 mr-3">
-          Purchase Order - {{ purchaseOrderData?.unique_code }}
+          Purchase Order - {{ data?.data?.unique_code }}
         </span>
       </template>
     </el-page-header>
 
     <el-card
       class="my-3"
-      v-loading="loading"
+      v-if="status === 'success'"
       element-loading-text="Loading..."
       :element-loading-spinner="svg"
       element-loading-svg-view-box="-10, -10, 50, 50"
@@ -22,39 +22,35 @@
             >Hapus</el-button
           >
           <NuxtLink
-            :to="`/supply-chain-management/purchase/order/add?id=${purchaseOrderData?.unique_id}`"
+            :to="`/supply-chain-management/purchase/order/add?id=${data?.data?.unique_id}`"
             class="el-button el-button--primary"
           >
             <el-icon class="me-2"><Edit /></el-icon> Edit
           </NuxtLink>
           <el-button
             type="success"
-            v-if="
-              purchaseOrderData?.status === PurchaseOrderStatus.PENDING_APPROVAL
-            "
+            v-if="data?.data?.status === PurchaseOrderStatus.PENDING_APPROVAL"
             @click="approvePurchaseOrder"
           >
             <el-icon class="me-2"><CircleCheck /></el-icon> Approve
           </el-button>
           <el-button
             type="danger"
-            v-if="
-              purchaseOrderData?.status === PurchaseOrderStatus.PENDING_APPROVAL
-            "
+            v-if="data?.data?.status === PurchaseOrderStatus.PENDING_APPROVAL"
             @click="rejectPurchaseOrder"
           >
             <el-icon class="me-2"><CircleClose /></el-icon> REJECT
           </el-button>
           <el-button
             type="warning"
-            v-if="purchaseOrderData?.status === PurchaseOrderStatus.DRAFT"
+            v-if="data?.data?.status === PurchaseOrderStatus.DRAFT"
             @click="submitForApproval"
           >
             <el-icon class="me-2"><Upload /></el-icon> Submit for Approval
           </el-button>
           <el-button
             type="primary"
-            v-if="purchaseOrderData?.status === PurchaseOrderStatus.APPROVED"
+            v-if="data?.data?.status === PurchaseOrderStatus.APPROVED"
             @click="markAsCompleted"
           >
             <el-icon class="me-2"><CircleCheck /></el-icon> Mark as Completed
@@ -75,13 +71,13 @@
         <div class="flex-1">
           <el-descriptions title="" :column="1" size="large" border>
             <el-descriptions-item label="Nomor Referensi">
-              {{ purchaseOrderData?.sourcing_document || "-" }}
+              {{ data?.data?.sourcing_document || "-" }}
             </el-descriptions-item>
             <el-descriptions-item label="Nomor PO">
-              {{ purchaseOrderData?.unique_code || "-" }}
+              {{ data?.data?.unique_code || "-" }}
             </el-descriptions-item>
             <el-descriptions-item label="Vendor">
-              {{ purchaseOrderData?.vendor?.name || "-" }}
+              {{ data?.data?.vendor?.name || "-" }}
             </el-descriptions-item>
             <el-descriptions-item label="Total Harga">
               {{ formatCurrency(grandTotal || 0) }}
@@ -92,9 +88,9 @@
           <el-descriptions title="" :column="1" size="large" border>
             <el-descriptions-item label="Diskon">
               {{
-                purchaseOrderData?.is_discount
-                  ? `${purchaseOrderData.discount}${
-                      purchaseOrderData.discount_unit === "percent" ? "%" : ""
+                data?.data?.is_discount
+                  ? `${data?.data?.discount}${
+                      data?.data?.discount_unit === "percent" ? "%" : ""
                     }`
                   : "Tidak ada"
               }}
@@ -103,27 +99,25 @@
               <el-tag
                 :type="
                   getStatusTagType(
-                    purchaseOrderData?.status || PurchaseOrderStatus.DRAFT
+                    data?.data?.status || PurchaseOrderStatus.DRAFT
                   )
                 "
               >
                 {{
-                  formatStatus(
-                    purchaseOrderData?.status || PurchaseOrderStatus.DRAFT
-                  )
+                  formatStatus(data?.data?.status || PurchaseOrderStatus.DRAFT)
                 }}
               </el-tag>
             </el-descriptions-item>
 
             <el-descriptions-item label="Tanggal Dibuat">
               {{
-                purchaseOrderData?.created_at != null
-                  ? formatLocalDate(purchaseOrderData?.created_at)
+                data?.data?.created_at != null
+                  ? formatLocalDate(data?.data?.created_at)
                   : "-"
               }}
             </el-descriptions-item>
             <el-descriptions-item label="Informasi Tambahan">
-              {{ purchaseOrderData?.additional_information ?? "Tidak Ada" }}
+              {{ data?.data?.additional_information ?? "Tidak Ada" }}
             </el-descriptions-item>
           </el-descriptions>
         </div>
@@ -135,21 +129,16 @@
           <el-descriptions title="" :column="1" size="large" border>
             <el-descriptions-item label="Estimasi Tiba">
               {{
-                purchaseOrderData?.expected_arrival != null
-                  ? formatLocalDate(purchaseOrderData?.expected_arrival)
+                data?.data?.expected_arrival != null
+                  ? formatLocalDate(data?.data?.expected_arrival)
                   : "-"
               }}
             </el-descriptions-item>
             <el-descriptions-item label="Alamat Pengiriman">
-              ({{ purchaseOrderData?.address?.address_name }})
-              <div>
-                {{
-                  purchaseOrderData?.address?.city +
-                  "," +
-                  purchaseOrderData?.address?.province +
-                  "," +
-                  purchaseOrderData?.address?.regency
-                }}
+              ({{ data?.data?.address?.address_name }})
+              <div class="flex flex-col">
+                <span>{{ data?.data?.address?.street }}</span>
+                <span>{{ generateAddressViewName(data?.data?.address!) }}</span>
               </div>
             </el-descriptions-item>
           </el-descriptions>
@@ -163,14 +152,14 @@
           <span>Purchase Order Items</span>
         </div>
       </template>
-      <el-table :data="purchaseOrderData?.purchase_order_item ?? []" border>
+      <el-table :data="data?.data?.purchase_order_item ?? []" border>
         <el-table-column prop="catalogue_name" label="Item" />
         <el-table-column
           prop="quantity"
           label="QTY"
           align="right"
           :width="
-            purchaseOrderData?.status === PurchaseOrderStatus.PENDING_APPROVAL
+            data?.data?.status === PurchaseOrderStatus.PENDING_APPROVAL
               ? 200
               : 70
           "
@@ -183,8 +172,7 @@
               v-if="
                 scope.row.status === PurchaseOrderItemStatus.PENDING_APPROVAL ||
                 (scope.row.status === PurchaseOrderItemStatus.DRAFT &&
-                  purchaseOrderData?.status ===
-                    PurchaseOrderStatus.PENDING_APPROVAL)
+                  data?.data?.status === PurchaseOrderStatus.PENDING_APPROVAL)
               "
             />
             <p v-else>
@@ -224,9 +212,8 @@
           align="center"
           width="150"
           v-if="
-            purchaseOrderData?.status !==
-              PurchaseOrderStatus.PENDING_APPROVAL &&
-            purchaseOrderData?.status !== PurchaseOrderStatus.DONE
+            data?.data?.status !== PurchaseOrderStatus.PENDING_APPROVAL &&
+            data?.data?.status !== PurchaseOrderStatus.DONE
           "
         >
           <template #default="scope">
@@ -239,9 +226,7 @@
           label="Aksi"
           align="center"
           width="300"
-          v-if="
-            purchaseOrderData?.status === PurchaseOrderStatus.PENDING_APPROVAL
-          "
+          v-if="data?.data?.status === PurchaseOrderStatus.PENDING_APPROVAL"
         >
           <template #default="scope">
             <el-button
@@ -249,8 +234,7 @@
               v-if="
                 scope.row.status === PurchaseOrderItemStatus.PENDING_APPROVAL ||
                 (scope.row.status === PurchaseOrderItemStatus.DRAFT &&
-                  purchaseOrderData?.status ===
-                    PurchaseOrderStatus.PENDING_APPROVAL)
+                  data?.data?.status === PurchaseOrderStatus.PENDING_APPROVAL)
               "
               @click="() => approveItem(scope.$index)"
             >
@@ -261,8 +245,7 @@
               v-if="
                 scope.row.status === PurchaseOrderItemStatus.PENDING_APPROVAL ||
                 (scope.row.status === PurchaseOrderItemStatus.DRAFT &&
-                  purchaseOrderData?.status ===
-                    PurchaseOrderStatus.PENDING_APPROVAL)
+                  data?.data?.status === PurchaseOrderStatus.PENDING_APPROVAL)
               "
               @click="() => rejectItem(scope.$index)"
             >
@@ -304,7 +287,7 @@
 
     <CustomPaymentTerm
       type="view"
-      :data="purchaseOrderData?.payment_terms ?? []"
+      :data="data?.data?.payment_terms ?? []"
       v-if="!loading"
     />
 
@@ -407,6 +390,7 @@ import {
 import { currency, formatLocalDate } from "#imports";
 import type { TrumDoc } from "~/types/document";
 import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
+import { generateAddressViewName } from "#imports";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -436,7 +420,18 @@ const loadingDocument = ref<boolean>(false);
 const showPreviewPDF = ref(false);
 const pdfUrl = ref<string | null>(null);
 const pdfBlob = ref<Blob | null>(null);
-const purchaseOrderData = ref<PurchaseOrder | null>(null);
+const { data, status, refresh } = await useAsyncData(
+  "detail-purchase-order",
+  async () => {
+    const res = await useFetchApi<BaseResponse<PurchaseOrder>>(
+      `/purchase-order-read/${purchaseOrderId.value}`,
+      "detail-purchase-order",
+      "get",
+      null
+    );
+    return res.data.value;
+  }
+);
 const purchaseOrderItems = ref<PurchaseOrderItem[]>([]);
 const relatedDocuments = ref<any[]>([]);
 const approveForm = reactive({
@@ -444,34 +439,6 @@ const approveForm = reactive({
 });
 
 const goBack = () => router.back();
-
-// Fetch purchase order data
-const fetchPurchaseOrder = async () => {
-  loading.value = true;
-  try {
-    const response = await useFetchApi<BaseResponse<PurchaseOrder>>(
-      `/purchase-order-read/${purchaseOrderId.value}`,
-      "detail-purchase-order",
-      "get",
-      null
-    );
-
-    if (response.status.value === "success" && response.data.value?.data) {
-      purchaseOrderData.value = response.data.value!.data;
-      console.log(
-        "purchase order payment terms",
-        purchaseOrderData.value.payment_terms
-      );
-      //   await fetchPurchaseOrderItems()
-      //   await fetchRelatedDocuments()
-    }
-  } catch (error) {
-    ElMessage.error("Gagal mengambil data purchase order");
-    goBack();
-  } finally {
-    loading.value = false;
-  }
-};
 
 const formatStatusItem = (status: PurchaseOrderItemStatus) => {
   if (status === PurchaseOrderItemStatus.DRAFT) {
@@ -487,11 +454,11 @@ const formatStatusItem = (status: PurchaseOrderItemStatus) => {
 
 // Fetch purchase order items
 const fetchPurchaseOrderItems = async () => {
-  if (!purchaseOrderData.value) return;
+  if (!data.value?.data) return;
 
   try {
     const response = await useFetchApi<BaseResponse<PurchaseOrderItem[]>>(
-      `/purchase-order-items/${purchaseOrderData.value.unique_id}`,
+      `/purchase-order-items/${data.value?.data.unique_id}`,
       "purchase-order-items",
       "get",
       null
@@ -507,11 +474,11 @@ const fetchPurchaseOrderItems = async () => {
 
 // Fetch related documents
 const fetchRelatedDocuments = async () => {
-  if (!purchaseOrderData.value) return;
+  if (!data.value?.data) return;
 
   try {
     const response = await useFetchApi<BaseResponse<any[]>>(
-      `/related-documents/${purchaseOrderData.value.unique_id}`,
+      `/related-documents/${data.value?.data.unique_id}`,
       "related-documents",
       "get",
       null
@@ -598,18 +565,18 @@ const formatCurrency = (amount: number) => {
 
 // Actions
 const updateStatus = async (status: PurchaseOrderStatus, note: string = "") => {
-  if (!purchaseOrderData.value) return;
+  if (!data.value?.data) return;
 
   loading.value = true;
   try {
     const formData = new FormData();
-    formData.append("unique_id", purchaseOrderData.value.unique_id);
+    formData.append("unique_id", data.value?.data.unique_id);
     formData.append("status", status);
     // if (note) {
     //   formData.append('additional_', note)
     // }
 
-    (purchaseOrderData.value.purchase_order_item ?? []).forEach(
+    (data.value?.data.purchase_order_item ?? []).forEach(
       (item: PurchaseOrderItem, index: number) => {
         formData.append(`item[${index}][unique_id]`, item.unique_id);
         formData.append(`item[${index}][quantity]`, `${item.quantity}`);
@@ -637,9 +604,9 @@ const updateStatus = async (status: PurchaseOrderStatus, note: string = "") => {
     );
 
     if (response.status.value === "success") {
-      purchaseOrderData.value.status = status;
+      data!.value!.data.status = status;
       ElMessage.success("Status berhasil diupdate");
-      await fetchPurchaseOrder(); // Refresh data
+      await refresh(); // Refresh data
     }
   } catch (error) {
     ElMessage.error("Gagal mengupdate status");
@@ -666,7 +633,7 @@ const submitApproval = async () => {
   approveForm.note = "";
 };
 const rejectApproval = async () => {
-  purchaseOrderData.value?.purchase_order_item.forEach((value) => {
+  data.value?.data?.purchase_order_item.forEach((value) => {
     value.quantity = 0;
     value.status = PurchaseOrderItemStatus.DONE;
   });
@@ -728,7 +695,7 @@ const printDocument = async (code: string) => {
   doc.text("VENDOR", col1X, startY);
 
   doc.setFont("helvetica", "normal");
-  doc.text(purchaseOrderData.value?.vendor_name ?? "-", col1X, startY + 6, {
+  doc.text(data.value?.data?.vendor_name ?? "-", col1X, startY + 6, {
     maxWidth: colWidth - 5,
   });
 
@@ -738,8 +705,8 @@ const printDocument = async (code: string) => {
 
   doc.setFont("helvetica", "normal");
   doc.text(
-    purchaseOrderData.value?.address
-      ? displayPDFAddress(purchaseOrderData.value.address)
+    data.value?.data?.address
+      ? displayPDFAddress(data.value?.data.address)
       : "-",
     col2X,
     startY + 6,
@@ -755,25 +722,24 @@ const printDocument = async (code: string) => {
     {
       label1: "PO DATE",
       value1:
-        purchaseOrderData.value?.date != null &&
-        purchaseOrderData.value?.date != undefined
-          ? formatLocalDate(purchaseOrderData.value?.date)
+        data.value?.data?.date != null && data.value?.data?.date != undefined
+          ? formatLocalDate(data.value?.data?.date)
           : "-",
       label2: "PO NUMBER",
-      value2: purchaseOrderData.value?.unique_code,
+      value2: data.value?.data?.unique_code,
     },
     {
       label1: "TERMS",
-      value1: `${purchaseOrderData.value?.term_payment} ${
-        purchaseOrderData.value?.term_payment === "tempo"
-          ? purchaseOrderData.value?.term_payment_value + " Hari"
+      value1: `${data.value?.data?.term_payment} ${
+        data.value?.data?.term_payment === "tempo"
+          ? data.value?.data?.term_payment_value + " Hari"
           : ""
       }`.toUpperCase(),
       label2: "EXPECTED DATE",
       value2:
-        purchaseOrderData.value?.expected_arrival != null &&
-        purchaseOrderData.value?.expected_arrival != undefined
-          ? formatLocalDate(purchaseOrderData.value?.expected_arrival)
+        data.value?.data?.expected_arrival != null &&
+        data.value?.data?.expected_arrival != undefined
+          ? formatLocalDate(data.value?.data?.expected_arrival)
           : "-",
     },
   ];
@@ -803,7 +769,7 @@ const printDocument = async (code: string) => {
   // ================= ITEMS TABLE =================
   const tableStartY = startY + 35;
 
-  const rows = (purchaseOrderData.value?.purchase_order_item ?? []).map(
+  const rows = (data.value?.data?.purchase_order_item ?? []).map(
     (item: any, i: number) => [
       i + 1,
       item.catalogue?.name,
@@ -838,7 +804,7 @@ const printDocument = async (code: string) => {
     currency(subtotal.value),
   ]);
 
-  (purchaseOrderData.value?.reference_transaction ?? []).forEach((el) => {
+  (data.value?.data?.reference_transaction ?? []).forEach((el) => {
     summaryRows.push([
       {
         content:
@@ -912,16 +878,16 @@ const printDocument = async (code: string) => {
 const generatePDF = async () => {
   loadingDocument.value = true;
   try {
-    const data = {
+    const req_doc = {
       reference: "po",
-      reference_id: purchaseOrderData.value?.unique_id,
+      reference_id: data.value?.data?.unique_id,
     };
 
     const response = await useFetchApi<BaseResponse<TrumDoc>>(
       "/documents-create",
       "document-create",
       "post",
-      data
+      req_doc
     );
 
     if (response.status.value == "success") {
@@ -946,9 +912,7 @@ const downloadPdf = () => {
     return;
   }
 
-  const filename = `PO-${
-    purchaseOrderData.value?.unique_code || "document"
-  }.pdf`;
+  const filename = `PO-${data.value?.data?.unique_code || "document"}.pdf`;
 
   // Buat URL object untuk blob
   const url = URL.createObjectURL(pdfBlob.value);
@@ -967,7 +931,7 @@ const downloadPdf = () => {
   // ElMessage.success('PDF berhasil di-download')
 };
 const subtotal = computed(() => {
-  return (purchaseOrderData.value?.purchase_order_item ?? []).reduce(
+  return (data.value?.data?.purchase_order_item ?? []).reduce(
     (sum, item) => sum + item.unit_price * item.quantity,
     0
   );
@@ -976,7 +940,7 @@ const subtotal = computed(() => {
 const getPlus = computed(() => {
   var plus = 0;
 
-  (purchaseOrderData.value?.reference_transaction ?? [])
+  (data.value?.data?.reference_transaction ?? [])
     .filter(
       (value) =>
         (value.adjustment ?? value.adjustments_transaction!).operator ==
@@ -993,7 +957,7 @@ const getPlus = computed(() => {
   return plus;
 });
 const dppComponent = computed(() => {
-  return (purchaseOrderData.value?.reference_transaction ?? []).find(
+  return (data.value?.data?.reference_transaction ?? []).find(
     (value) =>
       (value.adjustment ?? value.adjustments_transaction!).category ==
         "transform" &&
@@ -1001,9 +965,7 @@ const dppComponent = computed(() => {
   );
 });
 const ppnComponent = computed(() => {
-  const ppnComponentRef = (
-    purchaseOrderData.value?.reference_transaction ?? []
-  ).find(
+  const ppnComponentRef = (data.value?.data?.reference_transaction ?? []).find(
     (value) =>
       (value.adjustment ?? value.adjustments_transaction!).category == "tax" &&
       (
@@ -1033,7 +995,7 @@ const ppnComponent = computed(() => {
 
 const getMinus = computed(() => {
   var minus = 0;
-  (purchaseOrderData.value?.reference_transaction ?? [])
+  (data.value?.data?.reference_transaction ?? [])
     .filter(
       (value) =>
         (value.adjustment ?? value.adjustments_transaction!).operator == "minus"
@@ -1065,7 +1027,7 @@ const summeryData = computed(() => {
     },
   ];
 
-  (purchaseOrderData.value?.reference_transaction ?? []).forEach((element) => {
+  (data.value?.data?.reference_transaction ?? []).forEach((element) => {
     tableData.push({
       label: element.adjustments_transaction?.name
         ? `${element.adjustments_transaction?.name} (${Number(
@@ -1085,12 +1047,12 @@ const summeryData = computed(() => {
 });
 
 const approveItem = async (itemIndex: number) => {
-  purchaseOrderData.value!.purchase_order_item[itemIndex].status =
+  data.value!.data!.purchase_order_item[itemIndex].status =
     PurchaseOrderItemStatus.DONE;
 };
 
 const rejectItem = async (itemIndex: number) => {
-  purchaseOrderData.value!.purchase_order_item[itemIndex].status =
+  data.value!.data!.purchase_order_item[itemIndex].status =
     PurchaseOrderItemStatus.CANCELLED;
 };
 
@@ -1119,7 +1081,7 @@ const deletePurchaseOrder = async () => {
       `/purchase-order-delete`,
       "delete-purchase-order",
       "post",
-      [purchaseOrderData.value?.unique_id]
+      [data.value?.data?.unique_id]
     );
 
     if (response.status.value === "success") {
@@ -1134,9 +1096,9 @@ const deletePurchaseOrder = async () => {
   }
 };
 
-onMounted(() => {
-  fetchPurchaseOrder();
-});
+const onRefresh = () => refresh();
+
+onMounted(() => {});
 </script>
 
 <style scoped>

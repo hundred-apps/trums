@@ -20,7 +20,39 @@
       <el-form-item label="Nama/Label Alamat" prop="address_name">
         <el-input v-model="ruleFormAddress.address_name" autocomplete="off" />
       </el-form-item>
-      <el-form-item label="Alamat">
+      <el-form-item label="Alamat" props="address_view">
+        <!-- <el-select
+          v-model="ruleFormAddress.address_view"
+          placeholder="Select"
+          style="width: 240px"
+        >
+          <el-row :gutter="20">
+            <el-col :span="6">
+              <el-option
+                v-for="item in cities"
+                :key="item.value"
+                :label="item.label"
+                :value="item.value"
+            /></el-col>
+          </el-row>
+          <el-option
+            v-for="item in cities"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          >
+            <span style="float: left">{{ item.label }}</span>
+            <span
+              style="
+                float: right;
+                color: var(--el-text-color-secondary);
+                font-size: 13px;
+              "
+            >
+              {{ item.value }}
+            </span>
+          </el-option>
+        </el-select> -->
         <el-autocomplete
           v-model="ruleFormAddress.address_view"
           :fetch-suggestions="querySearchGeolocation"

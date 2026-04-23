@@ -586,7 +586,6 @@ const onDelete = async (bill: string[]) => {
     );
     if (response.status.value == "success") {
       ElMessage.success("bill berhasil dihapus");
-      refreshNuxtData("invoice");
     }
   } catch (error) {
     // User canceled or error occurred

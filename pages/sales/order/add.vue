@@ -31,7 +31,13 @@
       >
         <!-- Vendor Selection -->
         <el-form-item label="Kontak" prop="vendor_name">
-          <el-autocomplete
+          <AutocompleteContact
+            v-model="ruleForm.vendor_name"
+            :contact="ruleForm.vendor"
+            :fetch-suggestions="(queryString: string, cb: (arg: any) => void) => querySearchCustomer(queryString, cb, 'vendor')"
+            @save-contact="(data: Contact) => onHandleSelectVendor(data, 'vendor')"
+          />
+          <!-- <el-autocomplete
             :fetch-suggestions="querySearchCustomer"
             v-model="ruleForm.vendor_name"
             placeholder="Cari Kontak"
@@ -49,7 +55,34 @@
                 }}</span>
               </div>
             </template>
-          </el-autocomplete>
+          </el-autocomplete> -->
+        </el-form-item>
+        <el-form-item label="PIC" prop="pic_name">
+          <AutocompleteContact
+            v-model="ruleForm.pic_name"
+            :contact="ruleForm.pic"
+            :fetch-suggestions="(queryString: string, cb: (arg: any) => void) => querySearchCustomer(queryString, cb, 'pic')"
+            @save-contact="(data: Contact) => onHandleSelectVendor(data, 'pic')"
+          />
+          <!-- <el-autocomplete
+            :fetch-suggestions="querySearchCustomer"
+            v-model="ruleForm.vendor_name"
+            placeholder="Cari Kontak"
+            @select="onHandleSelectVendor"
+          >
+            <template #default="{ item }">
+              <div v-if="item.isNew" class="flex items-center text-blue-500">
+                <el-icon><Plus /></el-icon>
+                <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+              </div>
+              <div v-else>
+                {{ item.value }}
+                <span class="text-gray-400 ml-2">{{
+                  item.additionalInfo
+                }}</span>
+              </div>
+            </template>
+          </el-autocomplete> -->
         </el-form-item>
 
         <!-- Purchase Order Information -->
@@ -493,7 +526,7 @@
   </el-dialog>
 </template>
 
-<script lang="ts" setup>
+<script lang="tsx" setup>
 import { Delete, Plus, RemoveFilled, Edit } from "@element-plus/icons-vue";
 import {
   ElMessage,
@@ -544,6 +577,8 @@ import AdjustmentTransactionComponent from "~/components/trums/AdjustmentTransac
 import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
 import { currency } from "#imports";
 import FormAddress from "~/components/trums/FormAddress.vue";
+import AutocompleteContact from "~/components/trums/AutocompleteContact.vue";
+import { boolean, string } from "yup";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -583,8 +618,40 @@ const purchaseOrderStatusOptions = [
   { value: PurchaseOrderStatus.APPROVED, label: "Approved" },
 ];
 
+type FormType = {
+  unique_id: string;
+  vendor_id: string;
+  vendor_parent_id: string;
+  vendor_name: string;
+  vendor_version: number;
+  sourcing_document: string;
+  delivery_address_id: string;
+  delivery_address_version: number;
+  delivery_address_view: string;
+  expected_arrival: number | null;
+  date: number;
+  is_discount: boolean;
+  is_tempo: boolean;
+  payment_term: PaymentTerm;
+  payment_term_value: number;
+  payment_term_unit: string;
+  payment_method: PaymentMethod;
+  discount: number;
+  discount_unit: DiscountUnit;
+  delivery_cost: number;
+  total_price: number;
+  additinal_information: string;
+  status: PurchaseOrderStatus;
+  items: PurchaseOrderItem[];
+  vendor: Contact | null;
+  pic_id: string;
+  pic_name: string;
+  pic_version: number;
+  pic: Contact | null;
+};
+
 // Form data
-const ruleForm = reactive({
+const ruleForm = reactive<FormType>({
   unique_id: "",
   vendor_id: "",
   vendor_parent_id: "",
@@ -609,6 +676,11 @@ const ruleForm = reactive({
   additinal_information: "",
   status: PurchaseOrderStatus.DRAFT,
   items: [] as PurchaseOrderItem[],
+  vendor: null,
+  pic_id: "",
+  pic_name: "",
+  pic_version: 0,
+  pic: null,
 });
 
 // Vendor data
@@ -955,12 +1027,24 @@ const formatCurrency = (amount: number) => {
   }).format(amount);
 };
 
-const querySearchCustomer = (query: string, cb: (arg: any) => void) => {
+const querySearchCustomer = (
+  query: string,
+  cb: (arg: any) => void,
+  type: "vendor" | "pic"
+) => {
   try {
     const request_contact = { ...query_search.value };
 
     request_contact.table = "contacts";
     request_contact.keyword = query;
+    request_contact.column =
+      type == "vendor"
+        ? []
+        : [
+            {
+              parent_id: ruleForm.vendor_id,
+            },
+          ];
     request_contact.flag = "form";
 
     useFetchApi<ResponsePagination<Contact>>(
@@ -1122,38 +1206,26 @@ const createNewVendor = async (data: any) => {
   }
 };
 
-const onHandleSelectVendor = (item: any) => {
-  if (item.isNew) {
-    createNewVendor(item.query).then((customer) => {
-      if (customer) {
-        ruleForm.vendor_id = customer.unique_id;
-        ruleForm.vendor_name = customer.name;
-        ruleForm.vendor_version = customer.version;
-        ruleForm.vendor_parent_id = customer.parent_id ?? "";
-        request_search_pricetag_item.value.column = [
-          {
-            pricetag: {
-              category: ["penawaran"],
-              to_id: [customer.unique_id],
-            },
-          },
-        ];
-      }
-    });
-  } else {
-    const customer = item.data as Contact;
-    ruleForm.vendor_id = customer.unique_id;
-    ruleForm.vendor_name = customer.name;
-    ruleForm.vendor_version = customer.version || 1;
-    ruleForm.vendor_parent_id = customer.parent_id ?? "";
+const onHandleSelectVendor = (item: Contact, type: "vendor" | "pic") => {
+  if (type == "vendor") {
+    ruleForm.vendor_id = item.unique_id;
+    ruleForm.vendor_name = item.name;
+    ruleForm.vendor_version = item.version || 1;
+    ruleForm.vendor_parent_id = item.parent_id ?? "";
+    ruleForm.vendor = item;
     request_search_pricetag_item.value.column = [
       {
         pricetag: {
           category: ["penawaran"],
-          to_id: [customer.unique_id],
+          to_id: [item.unique_id],
         },
       },
     ];
+  } else {
+    ruleForm.pic_id = item.unique_id;
+    ruleForm.pic_name = item.name;
+    ruleForm.pic_version = item.version || 1;
+    ruleForm.pic = item;
   }
 };
 
@@ -1343,7 +1415,10 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         formData.append("term_payment", `${ruleForm.payment_term}`);
         formData.append("term_payment_unit", `${ruleForm.payment_term_unit}`);
         formData.append("term_payment_value", `${ruleForm.payment_term_value}`);
-        formData.append("method_payment", `${ruleForm.payment_method}`);
+
+        formData.append("pic_id", `${ruleForm.pic_id}`);
+        formData.append("pic_name", `${ruleForm.pic_name}`);
+        formData.append("pic_version", `${ruleForm.pic_version}`);
 
         // Append items array
         ruleForm.items.forEach((value, index) => {

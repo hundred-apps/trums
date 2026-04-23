@@ -55,6 +55,9 @@
                   <el-dropdown-item :command="PaymentStatus.UNPAID"
                     >Belum Lunas</el-dropdown-item
                   >
+                  <el-dropdown-item :command="PaymentStatus.PERFORMA_INVOICE"
+                    >Performa Invoice</el-dropdown-item
+                  >
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -650,16 +653,11 @@ const formatPaymentMethod = (method: PaymentMethod | null) => {
 const paidAmount = computed(() => {
   let amount: number = Number(grandTotal.value);
   console.log("payment term", data.value?.data?.payment_terms);
-  if (data.value?.data?.payment_terms) {
-    // if (data.value?.data?.payment_terms.term_of_payment == PaymentTerm.CBD) {
-
-    // } else {
-
-    // }
-    amount =
-      Number(grandTotal.value) *
-      (Number(data.value?.data?.payment_terms?.value) / 100);
-  }
+  // if (data.value?.data?.payment_terms) {
+  //   amount =
+  //     Number(grandTotal.value) *
+  //     (Number(data.value?.data?.payment_terms?.value) / 100);
+  // }
 
   return amount;
 });
@@ -904,7 +902,16 @@ const generatePDF = async () => {
 
   // ================= TITLE =================
   doc.setFontSize(18);
-  doc.text("INVOICE", pageWidth / 2, 50, { align: "center" });
+  doc.text(
+    `${
+      data.value?.data?.status == PaymentStatus.PERFORMA_INVOICE
+        ? "PERFORMA INVOICE"
+        : "INVOICE"
+    }`,
+    pageWidth / 2,
+    50,
+    { align: "center" }
+  );
 
   // ================= INFO =================
 

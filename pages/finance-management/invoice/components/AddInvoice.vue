@@ -314,6 +314,10 @@
             <el-option label="Diterima" :value="PaymentStatus.RECEIVED" />
             <el-option label="Lunas" :value="PaymentStatus.PAID" />
             <el-option label="Belum Lunas" :value="PaymentStatus.UNPAID" />
+            <el-option
+              label="Performa"
+              :value="PaymentStatus.PERFORMA_INVOICE"
+            />
           </el-select>
         </el-form-item>
 
@@ -737,7 +741,6 @@
         :data="deliveryOrders.data.value!"
         :loading="deliveryOrders.status.value === 'pending'"
         @on-cancel="() => (dialogDO = false)"
-        ,
         @on-submit="onHandleSelectDO"
       />
     </el-dialog>
@@ -1129,10 +1132,12 @@ const onHandleSelectDO = (values: InventoryMovement[]) => {
   ruleForm.invoice_item = [];
   values.forEach((element) => {
     element.inventory_movement_item.forEach((moveItem) => {
+      console.log("tmp_purchase_order", tmp_purchase_order.value);
       const orderItem = tmp_purchase_order.value?.purchase_order_item.find(
         (find) => find.catalogue_id == moveItem.inventory?.catalogue_id
       );
       if (orderItem) {
+        console.log("movement", orderItem);
         ruleForm.invoice_item.push({
           unique_id: "",
           unique_code: "",
@@ -1203,21 +1208,18 @@ const displayPercentage = (ref: any, multiplier: number) => {
 const paidAmount = computed(() => {
   let amount: number = Number(grandTotal.value);
   console.log("payment term", ruleForm.payment_terms);
-  if (ruleForm.payment_terms) {
-    // if (ruleForm.payment_terms.term_of_payment == PaymentTerm.CBD) {
-
-    // } else {
-
-    // }
-    amount =
-      Number(grandTotal.value) * (Number(ruleForm.payment_terms?.value) / 100);
-  }
+  // if (ruleForm.payment_terms) {
+  //   amount =
+  //     Number(grandTotal.value) * (Number(ruleForm.payment_terms?.value) / 100);
+  // }
 
   return amount;
 });
 
 const paidHistory = computed(() => {
   var sum = 0;
+
+  console.log("invoice history", invoicesHistory.value);
 
   invoicesHistory.value.forEach((element) => {
     (element.history_payment ?? []).forEach((history) => {
@@ -1454,11 +1456,45 @@ watch(
   () => updateTotalAmount(),
   { deep: true }
 );
+watch(
+  () => ruleForm.payment_term_id,
+  () => updateTotalAmount(),
+  { deep: true }
+);
 
 const updateTotalAmount = () => {
   ruleForm.subtotal = ruleForm.invoice_item.reduce((total, ref) => {
     return total + Number(ref.total_amount || 0);
   }, 0);
+
+  var amount = ruleForm.subtotal;
+
+  if (invoicesHistory.value.length > 0) {
+    // console.log("updat total amount", amount);
+    // invoicesHistory.value.forEach((element) => {
+    //   console.log("updat total amount", element);
+    //   if (element.payment_terms) {
+
+    //   }
+    // });
+    // console.log("updat total amount after", amount);
+
+    if (invoicesHistory.value[0].payment_terms) {
+      const history =
+        ((ruleForm.subtotal || 0) *
+          invoicesHistory.value[0].payment_terms.value) /
+        100;
+
+      amount -= history;
+    }
+  }
+
+  if (ruleForm.payment_term_id) {
+    amount =
+      Number(amount || 0) * (Number(ruleForm.payment_terms?.value) / 100);
+  }
+
+  ruleForm.subtotal = amount;
 
   // ruleForm.paid_amount =
   //     (Number(ruleForm.subtotal) * Number(item.value)) / 100;
@@ -2008,6 +2044,7 @@ const onHandleSelectAddressPublisher = (item: any) => {
     ruleForm.vendor_address_id = address.unique_id;
     ruleForm.vendor_address_view = address.address_name;
     ruleForm.vendor_address_version = address.version || 1;
+    publisher_address.value = address;
   }
 };
 
@@ -2096,6 +2133,7 @@ const getHistoryInvoices = async () => {
     if (response.status.value === "success") {
       (response.data.value?.data ?? []).forEach((element) => {
         if ((element.history_payment ?? []).length > 0) {
+          console.log("invoice history", element);
           invoicesHistory.value.push(element);
         }
       });
@@ -2128,6 +2166,13 @@ const onHandleSelectReference = async (item: any) => {
 
     if (po.vendor) {
       dataCustomer.value = po.vendor;
+    }
+
+    if (po.pic) {
+      ruleForm.pic = po.pic;
+      ruleForm.pic_id = po.pic_id;
+      ruleForm.pic_name = po.pic_name;
+      ruleForm.pic_version = po.pic_version;
     }
 
     ruleForm.invoice_item = [];
@@ -2543,7 +2588,12 @@ const submitForm = async (formEl: FormInstance | undefined) => {
             ruleForm.unique_id = invoiceData.unique_id;
             ruleForm.invoice_item = invoiceData.invoice_item;
             ElMessage.success("Invoice Berhasil Dibuat!");
-            router.push(`/finance-management/invoice/${invoiceData.unique_id}`);
+            let url = "/finance-management/";
+            if (ruleForm.type == "in") {
+              url = url + `invoice/${invoiceData.unique_id}`;
+            } else {
+              url = url + `bill/${invoiceData.unique_id}`;
+            }
           }
         } else {
           ElMessage.error(
@@ -2665,6 +2715,26 @@ const resetForm = (formEl: FormInstance | undefined) => {
   ];
 };
 
+const fetchPurchaseOrder = async () => {
+  loading.value = true;
+  try {
+    const response = await useFetchApi<BaseResponse<PurchaseOrder>>(
+      `/purchase-order-read/${tmp_purchase_order.value?.unique_id}`,
+      "detail-purchase-order",
+      "get",
+      null
+    );
+
+    if (response.status.value === "success") {
+      tmp_purchase_order.value = response.data.value!.data!;
+    }
+  } catch (error) {
+    ElMessage.error("Gagal mengambil data purchase order");
+  } finally {
+    loading.value = false;
+  }
+};
+
 const fetchDataEdit = async () => {
   loading.value = true;
   try {
@@ -2679,7 +2749,9 @@ const fetchDataEdit = async () => {
 
       if (invoice) {
         Object.assign(ruleForm, invoice);
-        // console.log(new Date(formatLocalDate(invoice.invoice_date!)));
+
+        await getHistoryInvoices();
+
         ruleForm.invoice_date = new Date(
           invoice.invoice_date! * 1000
         ).getTime();
@@ -2721,6 +2793,10 @@ const fetchDataEdit = async () => {
         );
 
         if (invoice.data_reference) {
+          tmp_purchase_order.value = invoice.data_reference as PurchaseOrder;
+
+          await fetchPurchaseOrder();
+
           getPaymentTerms([
             {
               reference: ["po"],
@@ -2729,6 +2805,10 @@ const fetchDataEdit = async () => {
               ],
             },
           ]);
+
+          request_search_do.value.uid_po = (
+            invoice.data_reference as PurchaseOrder
+          ).unique_id;
         }
 
         ruleForm.payment_term_id = invoice.payment_term_id;

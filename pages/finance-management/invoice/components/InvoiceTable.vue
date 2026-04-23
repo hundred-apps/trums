@@ -895,7 +895,7 @@ const onDelete = async (uniques: string[]) => {
     );
     if (response.status.value == "success") {
       ElMessage.success("Invoice berhasil dihapus");
-      refreshNuxtData("invoice");
+      refreshData();
     }
   } catch (error) {
     // User canceled or error occurred

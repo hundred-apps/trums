@@ -73,6 +73,10 @@ export type PurchaseOrder = {
   reference_transaction: ReferenceTransactionAdjustment[];
   reference_data: Invoice[];
   payment_terms?: TermOfPayment[];
+  pic_id?: string;
+  pic_name?: string;
+  pic_version?: number;
+  pic?: Contact;
 };
 
 export type StatisticOrder = {

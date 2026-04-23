@@ -1553,7 +1553,8 @@ const querySearchAddress = (queryString: string, cb: (arg: any) => void) => {
 };
 
 const generateResultSearchAddress = (address: AddressType) => {
-  const name = `(${address.contact_name}) - ${address.village}, ${address.city}, ${address.regency}, ${address.province}`;
+  console.log("addres", address);
+  const name = `(${address.contact_name}) - ${address.village}, ${address.city}, ${address.regency}, ${address.codepos}`;
   const street = `${address.street}`;
   const address_id = address.unique_id;
   const address_version = address.version;

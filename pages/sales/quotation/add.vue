@@ -2209,13 +2209,14 @@ function calculatePricing(
 
     sellingPrice = hargaBeli + ongkirNominal + selisih;
     row.selling_price = Math.round(sellingPrice);
-    row.total_selling_price = Number(row.quantity) * Number(row.selling_price);
   }
 
+  row.total_selling_price = Number(row.quantity) * Number(row.selling_price);
   // ==============================
   // MODE 2: SELLING PRICE DIINPUT → HITUNG PROFIT
   // ==============================
   if (activeField === "selling_price") {
+    console.log("selling price", sellingPrice);
     selisih = sellingPrice - hargaBeli - ongkirNominal;
   }
 
@@ -2247,6 +2248,8 @@ function calculatePricing(
   if (parent.tmp_child_selected == row.index) {
     parent.selling_price = row.selling_price;
     parent.total_selling_price = row.total_selling_price;
+    console.log("parent selected", row.selling_price);
+    console.log("row index", row.total_selling_price);
   }
 }
 
