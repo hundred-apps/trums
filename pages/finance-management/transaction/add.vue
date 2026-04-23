@@ -56,7 +56,7 @@
           <el-input
             v-model="ruleForm.description"
             type="textarea"
-            :rows="2"
+            :rows="3"
             placeholder="Deskripsi transaksi"
           />
         </el-form-item>
@@ -89,7 +89,26 @@
         <h3 class="text-lg font-medium mb-4">CoA</h3>
 
         <el-form-item label="Account" prop="account_name">
-          <el-autocomplete
+          <el-select
+            v-model="ruleForm.account_id!"
+            filterable
+            remote
+            reserve-keyword
+            placeholder="Cari Account"
+            :remote-method="searchAccounts"
+            :loading="loading"
+            style="width: 240px"
+            remote-show-suffix
+            @change="(value, option) => console.log('value', option)"
+          >
+            <el-option
+              v-for="item in options"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+          <!-- <el-autocomplete
             v-model="ruleForm.account_name!"
             :fetch-suggestions="querySearchAccounts"
             placeholder="Cari Account"
@@ -103,7 +122,7 @@
               </div>
               <div v-else>{{ item.name }} ({{ item.code }})</div>
             </template>
-          </el-autocomplete>
+          </el-autocomplete> -->
         </el-form-item>
 
         <h3 v-if="ruleForm.type == 'transfer'" class="text-lg font-medium mb-4">
@@ -188,9 +207,9 @@
         </el-form-item>
 
         <el-divider />
-        <h3 class="text-lg font-medium mb-4">File Lampiran</h3>
+        <!-- <h3 class="text-lg font-medium mb-4">File Lampiran</h3> -->
 
-        <el-form-item label="File" prop="files">
+        <el-form-item label="File Lampiran" prop="files">
           <TrumsUploadFile v-model:file-list="fileList" />
         </el-form-item>
       </el-form>
@@ -203,7 +222,7 @@
       </template>
 
       <el-table :data="ruleForm.transaction_items" border style="width: 100%">
-        <el-table-column label="Referensi">
+        <!-- <el-table-column label="Referensi" width="200">
           <template #default="{ row, $index }">
             <el-select v-model="row.reference" placeholder="pilih referensi">
               <el-option label="Invoice" value="invoice" />
@@ -211,19 +230,17 @@
               <el-option label="Other" value="other" />
             </el-select>
           </template>
-        </el-table-column>
+        </el-table-column> -->
 
         <el-table-column label="Nomor/Nama Item">
           <template #default="{ row, $index }">
             <el-autocomplete
-              v-if="row.reference && row.reference !== 'other'"
               v-model="row.reference_value"
               :fetch-suggestions="
                 (query, cb) => querySearchReference(query, cb, row.reference)
               "
               placeholder="Cari nomor referensi"
               class="w-full"
-              :disabled="row.reference == null"
               @select="
                 (selected) =>
                   onHandleSelectReference(selected, $index, row.reference)
@@ -255,16 +272,16 @@
               </template>
             </el-autocomplete>
 
-            <el-input
+            <!-- <el-input
               v-else
               v-model="row.reference_value"
               :disabled="row.reference == null"
               placeholder="Nama item"
-            />
+            /> -->
           </template>
         </el-table-column>
 
-        <el-table-column label="Kuantitas">
+        <!-- <el-table-column label="Kuantitas">
           <template #default="{ row, $index }">
             <el-input-number
               v-model="row.quantity"
@@ -277,9 +294,9 @@
               @change="calculateItemAmount($index)"
             />
           </template>
-        </el-table-column>
+        </el-table-column> -->
 
-        <el-table-column label="Harga Satuan">
+        <el-table-column label="Total Price" width="200">
           <template #default="{ row, $index }">
             <el-input
               v-model="row.display_price_per_unit"
@@ -287,29 +304,53 @@
               :precision="2"
               controls-position="right"
               class="w-full"
-              :disabled="
-                row.reference == null ||
-                row.reference == 'invoice' ||
-                row.reference == 'bill'
+              :disabled="row.reference == 'invoice' || row.reference == 'bill'"
+              @input="
+                (val) => {
+                  const parsed = parseCurrencyID(val);
+                  row.price_per_unit = parsed;
+                  row.display_price_per_unit = formatCurrencyID(parsed);
+
+                  row.amount = parsed;
+                  row.display_amount = formatCurrencyID(parsed);
+                }
               "
-              @change="calculateItemAmount($index)"
+              @blur="
+                () => {
+                  row.display_price_per_unit = formatCurrencyID(
+                    row.price_per_unit
+                  );
+                  row.display_amount = formatCurrencyID(row.amount);
+                }
+              "
             />
           </template>
         </el-table-column>
 
-        <el-table-column label="Total">
+        <el-table-column label="Total" width="200">
           <template #default="{ row, $index }">
             <el-input
               v-model="row.display_amount"
               :precision="2"
-              :disabled="row.reference == null"
               controls-position="right"
               class="w-full"
+              @input="
+                (val) => {
+                  const parsed = parseCurrencyID(val);
+                  row.amount = parsed;
+                  row.display_amount = formatCurrencyID(parsed);
+                }
+              "
+              @blur="
+                () => {
+                  row.display_amount = formatCurrencyID(row.amount);
+                }
+              "
             />
           </template>
         </el-table-column>
 
-        <el-table-column label="Aksi">
+        <el-table-column label="Aksi" width="70">
           <template #default="scope">
             <el-button
               type="danger"
@@ -352,6 +393,9 @@ definePageMeta({
 });
 
 const router = useRouter();
+const route = useRoute();
+const id = computed(() => route.query.id as string);
+
 const ruleFormRef = ref<FormInstance>();
 const loading = ref(false);
 
@@ -371,6 +415,13 @@ const createEmptyItem = (): TransactionItem => {
     amount: 0,
   };
 };
+
+interface ListItem {
+  value: string;
+  label: string;
+}
+
+const options = ref<ListItem[]>([]);
 
 const ruleForm = reactive<Transaction>({
   unique_id: "",
@@ -528,9 +579,26 @@ const removeItem = async (index: number) => {
   }
 };
 
-const calculateItemAmount = (index: number) => {
+const calculateItemAmount = (index: number, amount: string) => {
   const item = ruleForm.transaction_items[index];
-  item.amount = Number((item.quantity * item.price_per_unit).toFixed(2));
+  if (ruleForm.transaction_items[index].reference == "other") {
+    ruleForm.transaction_items[index].amount = Number(
+      item.price_per_unit.toFixed(2)
+    );
+    ruleForm.transaction_items[index].display_amount = formatCurrencyID(
+      Number(item.price_per_unit.toFixed(2))
+    );
+  } else {
+    const total = Number((item.quantity * item.price_per_unit).toFixed(2));
+    ruleForm.transaction_items[index].amount = total;
+    ruleForm.transaction_items[index].display_amount = formatCurrencyID(total);
+  }
+
+  console.log("amount", ruleForm.transaction_items[index].amount);
+  console.log(
+    "display_amount",
+    ruleForm.transaction_items[index].display_amount
+  );
 };
 
 const handleItemReferenceChange = (index: number) => {
@@ -545,11 +613,6 @@ const querySearchReference = (
   referenceType: string | null
 ) => {
   try {
-    if (!referenceType) {
-      cb([]);
-      return;
-    }
-
     const request_search: RequestSearch = {
       keyword: query,
       table: "invoices",
@@ -564,106 +627,111 @@ const querySearchReference = (
       limit: "10",
     };
 
-    if (referenceType === "invoice") {
-      useFetchApi<ResponsePagination<Invoice[]>>(
-        "/search",
-        "inovices",
-        "post",
-        request_search
-      ).then((response) => {
-        if (response.status.value == "success") {
-          const invoices: Invoice[] = (response.data.value?.data ??
-            []) as Invoice[];
-          cb(
-            invoices.map((inv) => ({
-              value: inv.unique_code,
-              ...inv,
-              reference: "invoice",
-            }))
-          );
-        }
-      });
-
-      // if (filtered.length > 0) {
-      //   cb(filtered.map(inv => ({
-      //     value: inv.unique_code,
-      //     unique_id: inv.unique_id,
-      //     reference: 'invoice',
-      //     data: inv
-      //   })))
-      // } else {
-      //   cb([{
-      //     value: query,
-      //     isNew: true,
-      //     reference: 'invoice'
-      //   }])
-      // }
-    } else if (referenceType === "bill") {
+    if (ruleForm.type == "income") {
       request_search.column = [
         {
+          status: ["received", "performa"],
+          type: ["out"],
+        },
+      ];
+    } else if (ruleForm.type == "expense") {
+      request_search.column = [
+        {
+          status: ["received", "performa"],
           type: ["in"],
         },
       ];
-      useFetchApi<ResponsePagination<Invoice[]>>(
-        "/search",
-        "inovices",
-        "post",
-        request_search
-      ).then((response) => {
-        if (response.status.value == "success") {
-          const invoices: Invoice[] = (response.data.value?.data ??
-            []) as Invoice[];
-          cb(
-            invoices.map((inv) => ({
-              value: inv.unique_code,
-              ...inv,
-              reference: "invoice",
-            }))
-          );
-        }
-      });
-    } else if (referenceType === "other") {
-      const request_search: RequestSearch = {
-        keyword: query,
-        table: "catalogues",
-        column: [],
-        sort: {
-          column: "created_at",
-          order: OrderColumn.ASC,
-        },
-        offset: "1",
-        limit: "10",
-      };
-
-      useFetchApi<ResponsePagination<Catalogue[]>>(
-        "/search",
-        "search-catalogue",
-        "post",
-        request_search
-      ).then((response) => {
-        if (response.status.value == "success") {
-          const catalogues: Catalogue[] = (response.data.value?.data ??
-            []) as Catalogue[];
-          if (catalogues.length > 0) {
-            cb(
-              catalogues.map((value) => ({
-                value: value.name,
-                ...value,
-                isNew: false,
-              }))
-            );
-          } else {
-            cb([
-              {
-                value: `Tambahkan ${query}`,
-                data: query,
-                isNew: true,
-              },
-            ]);
-          }
-        }
-      });
     }
+
+    console.log("invoice");
+
+    useFetchApi<ResponsePagination<Invoice[]>>(
+      "/search",
+      "inovices",
+      "post",
+      request_search
+    ).then((response) => {
+      if (response.status.value == "success") {
+        const invoices: Invoice[] = (response.data.value?.data ??
+          []) as Invoice[];
+        cb(
+          invoices.map((inv) => ({
+            value: inv.unique_code,
+            ...inv,
+            reference: "invoice",
+          }))
+        );
+      }
+    });
+
+    // if (referenceType === "invoice") {
+
+    // } else if (referenceType === "bill") {
+    //   request_search.column = [
+    //     {
+    //       type: ["in"],
+    //     },
+    //   ];
+    //   useFetchApi<ResponsePagination<Invoice[]>>(
+    //     "/search",
+    //     "inovices",
+    //     "post",
+    //     request_search
+    //   ).then((response) => {
+    //     if (response.status.value == "success") {
+    //       const invoices: Invoice[] = (response.data.value?.data ??
+    //         []) as Invoice[];
+    //       cb(
+    //         invoices.map((inv) => ({
+    //           value: inv.unique_code,
+    //           ...inv,
+    //           reference: "invoice",
+    //         }))
+    //       );
+    //     }
+    //   });
+    // } else if (referenceType === "other") {
+    //   const request_search: RequestSearch = {
+    //     keyword: query,
+    //     table: "catalogues",
+    //     column: [],
+    //     sort: {
+    //       column: "created_at",
+    //       order: OrderColumn.ASC,
+    //     },
+    //     offset: "1",
+    //     limit: "10",
+    //   };
+
+    //   useFetchApi<ResponsePagination<Catalogue[]>>(
+    //     "/search",
+    //     "search-catalogue",
+    //     "post",
+    //     request_search
+    //   ).then((response) => {
+    //     if (response.status.value == "success") {
+    //       const catalogues: Catalogue[] = (response.data.value?.data ??
+    //         []) as Catalogue[];
+    //       if (catalogues.length > 0) {
+    //         cb(
+    //           catalogues.map((value) => ({
+    //             value: value.name,
+    //             ...value,
+    //             isNew: false,
+    //           }))
+    //         );
+    //       } else {
+    //         cb([
+    //           {
+    //             value: `Tambahkan ${query}`,
+    //             data: query,
+    //             isNew: true,
+    //           },
+    //         ]);
+    //       }
+    //     }
+    //   });
+    // }
   } catch (error) {
     console.error("Failed to fetch references", error);
     cb([]);
@@ -709,6 +777,51 @@ const querySearchAccounts = (query: string, cb: (arg: any) => void) => {
   } catch (error) {
     console.error("Failed to fetch accounts", error);
     cb([]);
+  }
+};
+const searchAccounts = (query: string) => {
+  try {
+    console.log(query);
+
+    if (query != "" && query != "null") {
+      const request_search: RequestSearch = {
+        keyword: query,
+        table: "accounts",
+        column: [],
+        sort: {
+          column: "created_at",
+          order: OrderColumn.ASC,
+        },
+        offset: "1",
+        limit: "10",
+      };
+
+      useFetchApi<ResponsePagination<Account[]>>(
+        "/search",
+        "search-account",
+        "post",
+        request_search
+      ).then((response) => {
+        if (response.status.value == "success") {
+          const accounts: Account[] = (response.data.value?.data ??
+            []) as Account[];
+          // cb(
+          //   accounts.map((value) => ({
+          //     value: `${value.name} (${value.code})`,
+          //     isNew: false,
+          //     ...value,
+          //   }))
+          // );
+          options.value = accounts.map((account) => ({
+            label: account.name,
+            value: account.unique_id,
+          }));
+        }
+      });
+    }
+  } catch (error) {
+    console.error("Failed to fetch accounts", error);
+    // cb([]);
   }
 };
 
@@ -797,39 +910,50 @@ const onHandleSelectReference = async (
   index: number,
   reference: string
 ) => {
-  const item = ruleForm.transaction_items[index];
-  console.log(selected.reference);
-  if (selected.reference === "invoice" || selected.reference === "bill") {
-    const invoice = selected as Invoice;
-    item.reference_value = invoice.unique_code;
-    item.reference_id = invoice.unique_id;
-    item.description = "";
-    item.price_per_unit = invoice.total_amount;
-    item.quantity = 1;
-    item.amount = invoice.total_amount;
-    item.display_price_per_unit = formatCurrencyID(invoice.total_amount);
-    item.display_amount = formatCurrencyID(invoice.total_amount);
-  } else {
-    if (selected.isNew) {
-      const catalogue: Catalogue | null = await createCatalogue({
-        name: selected.data,
-      });
-      item.reference_value = catalogue?.name ?? "";
-      item.reference_id = catalogue?.unique_id ?? "";
-      item.description = "";
-      item.price_per_unit = 0;
-      item.quantity = 1;
-      item.amount = 0;
-    } else {
-      const catalogue: Catalogue = selected.data as Catalogue;
-      item.reference_value = catalogue.name ?? "";
-      item.reference_id = catalogue.unique_id;
-      item.description = "";
-      item.price_per_unit = 0;
-      item.quantity = 1;
-      item.amount = 0;
-    }
+  const invoice = selected as Invoice;
+  ruleForm.transaction_items[index].reference_value = invoice.unique_code;
+  ruleForm.transaction_items[index].reference_id = invoice.unique_id;
+  ruleForm.transaction_items[index].description = "";
+  ruleForm.transaction_items[index].price_per_unit = invoice.total_amount;
+  ruleForm.transaction_items[index].quantity = 1;
+  ruleForm.transaction_items[index].amount = invoice.total_amount;
+  ruleForm.transaction_items[index].display_price_per_unit = formatCurrencyID(
+    invoice.total_amount
+  );
+  ruleForm.transaction_items[index].display_amount = formatCurrencyID(
+    invoice.total_amount
+  );
+
+  if (invoice.type == "in") {
+    ruleForm.transaction_items[index].reference = "bill";
+  } else if (invoice.type == "out") {
+    ruleForm.transaction_items[index].reference = "invoice";
+
+    // console.log("reference item");
   }
+
+  // if (selected.reference === "invoice" || selected.reference === "bill") {
+  // } else {
+  //   if (selected.isNew) {
+  //     const catalogue: Catalogue | null = await createCatalogue({
+  //       name: selected.data,
+  //     });
+  //     item.reference_value = catalogue?.name ?? "";
+  //     item.reference_id = catalogue?.unique_id ?? "";
+  //     item.description = "";
+  //     item.price_per_unit = 0;
+  //     item.quantity = 1;
+  //     item.amount = 0;
+  //   } else {
+  //     const catalogue: Catalogue = selected.data as Catalogue;
+  //     item.reference_value = catalogue.name ?? "";
+  //     item.reference_id = catalogue.unique_id;
+  //     item.description = "";
+  //     item.price_per_unit = 0;
+  //     item.quantity = 1;
+  //     item.amount = 0;
+  //   }
+  // }
 };
 
 const submitForm = async (formEl: FormInstance | undefined) => {
@@ -901,7 +1025,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           );
           formData.append(
             `transaction_items[${index}][reference]`,
-            value.reference ?? ""
+            value.reference == "other" ? "null" : value.reference || ""
           );
           formData.append(
             `transaction_items[${index}][reference_id]`,
@@ -992,9 +1116,8 @@ const generateTransactionCode = (): string => {
 const fetchDataEdit = async () => {
   loading.value = true;
   try {
-    const unique_id = useCookie("unique_id");
     const response = await useFetchApi<BaseResponse<Transaction>>(
-      `/transaction-read/${unique_id.value}`,
+      `/transaction-read/${id.value}`,
       "data-edit",
       "get",
       null
@@ -1003,6 +1126,21 @@ const fetchDataEdit = async () => {
       const trx: Transaction | null = response.data.value?.data as Transaction;
       if (trx != null) {
         Object.assign(ruleForm, trx);
+
+        ruleForm.transaction_items = trx.transaction_items.map((item) => ({
+          unique_id: item.unique_id,
+          account_id: "",
+          reference: item.reference,
+          reference_id: item.reference_id,
+          reference_value: item.reference_value,
+          description: item.description,
+          quantity: item.quantity,
+          price_per_unit: item.price_per_unit,
+          amount: item.amount,
+          display_price_per_unit: formatCurrencyID(item.price_per_unit || 0),
+          display_amount: formatCurrencyID(item.amount || 0),
+        }));
+
         ruleForm.date = new Date(trx.date! * 1000).getTime();
       } else {
         ElMessage.error(`Data Tidak Di Temukan!`);
@@ -1018,8 +1156,8 @@ const fetchDataEdit = async () => {
 };
 
 onMounted(() => {
-  const unique_id = useCookie("unique_id");
-  if (unique_id.value != null && unique_id.value != undefined) {
+  console.log("data edit id", id.value);
+  if (id.value) {
     fetchDataEdit();
   }
 });

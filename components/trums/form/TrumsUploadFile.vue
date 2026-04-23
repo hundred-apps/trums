@@ -10,7 +10,7 @@
     :on-exceed="handleExceed"
     :auto-upload="false"
   >
-    <el-button type="primary">Click Untuk Mengunggah </el-button>
+    <el-button type="primary">Upload File </el-button>
   </el-upload>
 </template>
 

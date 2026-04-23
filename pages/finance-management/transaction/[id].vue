@@ -22,14 +22,8 @@
             >Hapus</el-button
           >
           <NuxtLink
-            :to="`/transactions/add/`"
+            :to="`/finance-management/transaction/add?id=${transactionData?.unique_id}`"
             class="el-button el-button--primary"
-            @click="
-              () => {
-                const unique_id = useCookie('unique_id');
-                unique_id.value = transactionData?.unique_id;
-              }
-            "
           >
             <el-icon class="me-2"><Edit /></el-icon> Edit
           </NuxtLink>
@@ -49,7 +43,7 @@
               </el-tag>
             </el-descriptions-item>
             <el-descriptions-item label="CoA">
-              {{ transactionData?.account_name || "-" }}
+              {{ transactionData?.account?.name || "-" }}
               <span v-if="transactionData?.account">
                 ({{ transactionData.account?.code }})
               </span>
@@ -158,7 +152,7 @@
           </template>
         </el-table-column>
         <el-table-column prop="description" label="Description" />
-        <el-table-column prop="quantity" label="Qty" align="right" width="120">
+        <!-- <el-table-column prop="quantity" label="Qty" align="right" width="120">
           <template #default="scope">
             <p
               v-if="
@@ -170,23 +164,15 @@
             </p>
             <p v-else>{{ scope.row.quantity || "-" }}</p>
           </template>
-        </el-table-column>
+        </el-table-column> -->
         <el-table-column
           prop="price_per_unit"
-          label="Unit Price"
+          label="Total Price"
           align="right"
           width="180"
         >
           <template #default="scope">
-            <p
-              v-if="
-                scope.row.reference == 'invoice' ||
-                scope.row.reference == 'bill'
-              "
-            >
-              {{ "-" }}
-            </p>
-            <p v-else>{{ formatCurrency(scope.row.price_per_unit || 0) }}</p>
+            <p>{{ formatCurrency(scope.row.price_per_unit || 0) }}</p>
           </template>
         </el-table-column>
         <el-table-column prop="amount" label="Amount" align="right" width="180">
