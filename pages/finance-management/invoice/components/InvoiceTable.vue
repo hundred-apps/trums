@@ -116,6 +116,7 @@
       :icon="Eleme"
       :loading="status === 'pending'"
       @click="refreshData"
+      style="margin-left: 0px"
     >
       Muat Ulang
     </el-button>
@@ -466,7 +467,7 @@ const request_search = ref<RequestSearch>({
 });
 
 const { data, refresh, status } = await useAsyncData(
-  "fetch-inquiries",
+  "fetch-invoice",
   async () => {
     const res = await useFetchApi<ResponsePagination<Invoice[]>>(
       `/search`,

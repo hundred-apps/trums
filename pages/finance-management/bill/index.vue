@@ -109,7 +109,8 @@
       <el-button
         size="default"
         :loading-icon="Eleme"
-        :loading="loading"
+        :icon="Eleme"
+        :loading="status === 'pending'"
         @click="fetchData"
       >
         Muat Ulang
@@ -197,12 +198,15 @@ const request_search = ref<RequestSearch>({
 });
 
 // Data state
-const { data } = await useFetchApi<ResponsePagination<Invoice[]>>(
-  `/search`,
-  "invoice",
-  "post",
-  request_search.value
-);
+const { data, status, refresh } = await useAsyncData("fetch-bill", async () => {
+  const res = await useFetchApi<ResponsePagination<Invoice[]>>(
+    `/search`,
+    "fetch-bill",
+    "post",
+    request_search.value
+  );
+  return res.data.value;
+});
 
 const request_statistic = ref<RequestStatistic>({
   table: StatisticTable.invoices,
@@ -586,6 +590,7 @@ const onDelete = async (bill: string[]) => {
     );
     if (response.status.value == "success") {
       ElMessage.success("bill berhasil dihapus");
+      refreshData();
     }
   } catch (error) {
     // User canceled or error occurred
@@ -643,13 +648,9 @@ const onSort = async (sortBy: SortBy) => {
 };
 
 // Watch search query
-watchDebounced(
-  request_search.value,
-  () => {
-    refreshNuxtData("invoice");
-  },
-  { debounce: 500 }
-);
+watchDebounced(request_search.value, () => refreshData(), { debounce: 500 });
+
+const refreshData = () => refresh();
 
 onMounted(() => {
   // fetchData()
