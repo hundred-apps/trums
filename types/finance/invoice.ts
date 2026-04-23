@@ -105,6 +105,7 @@ export type Invoice = {
   approved?: People;
 
   decision_note?: string;
+  is_performa?: boolean;
 };
 
 export type InvoiceItem = {

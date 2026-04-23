@@ -1,6 +1,6 @@
 <template>
   <TrumsWrapper>
-    <InvoiceTable />
+    <InvoiceTable type="finance" />
   </TrumsWrapper>
 </template>
 

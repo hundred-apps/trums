@@ -10,6 +10,17 @@
               @click="submitForm(ruleFormRef)"
               >Simpan</el-button
             >
+            <el-button
+              type="info"
+              :loading="loading"
+              @click="
+                () => {
+                  ruleForm.is_performa = true;
+                  submitForm(ruleFormRef);
+                }
+              "
+              >Simpan Sebagai Performa Invoice</el-button
+            >
             <el-button :loading="loading" @click="resetForm(ruleFormRef)"
               >Reset</el-button
             >
@@ -314,10 +325,6 @@
             <el-option label="Diterima" :value="PaymentStatus.RECEIVED" />
             <el-option label="Lunas" :value="PaymentStatus.PAID" />
             <el-option label="Belum Lunas" :value="PaymentStatus.UNPAID" />
-            <el-option
-              label="Performa"
-              :value="PaymentStatus.PERFORMA_INVOICE"
-            />
           </el-select>
         </el-form-item>
 
@@ -938,6 +945,7 @@ const ruleForm = reactive<Invoice>({
   vendor_address_id: "",
   vendor_address_view: "",
   vendor_address_version: 0,
+  is_performa: false,
 });
 
 const tmp_purchase_order = ref<PurchaseOrder | null>(null);
@@ -2480,6 +2488,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         formData.append("total_amount", paidAmount.value.toString());
         formData.append("paid_amount", paidAmount.value.toString());
         formData.append("payment_term_id", `${ruleForm.payment_term_id}`);
+        formData.append("is_performa", `${ruleForm.is_performa}`);
 
         // Loop untuk invoice_items
         ruleForm.invoice_item.forEach((value, index) => {
@@ -2590,10 +2599,11 @@ const submitForm = async (formEl: FormInstance | undefined) => {
             ElMessage.success("Invoice Berhasil Dibuat!");
             let url = "/finance-management/";
             if (ruleForm.type == "in") {
-              url = url + `invoice/${invoiceData.unique_id}`;
-            } else {
               url = url + `bill/${invoiceData.unique_id}`;
+            } else {
+              url = url + `invoice/${invoiceData.unique_id}`;
             }
+            window.location.href = url;
           }
         } else {
           ElMessage.error(
@@ -2768,7 +2778,7 @@ const fetchDataEdit = async () => {
         ruleForm.vendor_address_view =
           invoice.vendor_address?.address_name ?? "";
         ruleForm.vendor_address_version = invoice.vendor_address?.version ?? 0;
-
+        ruleForm.is_performa = invoice.is_performa;
         ruleForm.invoice_item = (invoice.invoice_item || []).map((value) => ({
           ...value,
           display_price: formatCurrencyID(value.price),

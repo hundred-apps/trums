@@ -55,9 +55,6 @@
                   <el-dropdown-item :command="PaymentStatus.UNPAID"
                     >Belum Lunas</el-dropdown-item
                   >
-                  <el-dropdown-item :command="PaymentStatus.PERFORMA_INVOICE"
-                    >Performa Invoice</el-dropdown-item
-                  >
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -903,11 +900,7 @@ const generatePDF = async () => {
   // ================= TITLE =================
   doc.setFontSize(18);
   doc.text(
-    `${
-      data.value?.data?.status == PaymentStatus.PERFORMA_INVOICE
-        ? "PERFORMA INVOICE"
-        : "INVOICE"
-    }`,
+    `${data.value?.data?.is_performa ? "PERFORMA INVOICE" : "INVOICE"}`,
     pageWidth / 2,
     50,
     { align: "center" }

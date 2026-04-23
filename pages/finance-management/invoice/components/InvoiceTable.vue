@@ -921,8 +921,7 @@ const onEdit = (invoice: Invoice) => {
   //   router.push(`/finance-management/invoice/add`);
   if (props.type == "finance") {
     window.location.href = `/finance-management/invoice/add?id=${invoice.unique_id}`;
-  }
-  {
+  } else {
     window.location.href = `/invoicing/add?id=${invoice.unique_id}`;
   }
 };
