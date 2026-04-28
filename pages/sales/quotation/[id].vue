@@ -72,11 +72,12 @@ const fetchCanvassing = async () => {
     if (response.status.value == "success" && response.data.value?.data) {
       currentPrivilage.value = response.data.value.privilege ?? [];
       canvassingData.value = response.data.value.data;
-      canvassingData.value.canvassing_item.forEach((element) => {
-        element.canvassing_vendor.forEach((vendor) => {
-          console.log(" status", vendor.status);
-        });
-      });
+      (response.data.value.data.reference_transaction || []).forEach(
+        (element) => {
+          console.log("reference", element);
+        }
+      );
+      console.log("reference", canvassingData.value.reference_transaction);
       // console.log(
       //   "canvassing vendor status",
       //   canvassingData.value.canvassing_item[0].canvassing_vendor[0].status

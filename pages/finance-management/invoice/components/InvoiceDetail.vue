@@ -111,7 +111,7 @@
                   : formatLocalDate(data?.data?.invoice_date)
               }}
             </el-descriptions-item>
-            <el-descriptions-item label="Tenggat Waktu">
+            <!-- <el-descriptions-item label="Tenggat Waktu">
               {{
                 data?.data?.due_date != null &&
                 data.data.due_date > 0 &&
@@ -119,7 +119,7 @@
                   ? formatLocalDate(data?.data?.due_date)
                   : "-"
               }}
-            </el-descriptions-item>
+            </el-descriptions-item> -->
             <el-descriptions-item label="Reference">
               {{ data?.data?.data_reference?.unique_code ?? "-" }}
             </el-descriptions-item>
@@ -130,14 +130,14 @@
             <el-descriptions-item label="Penerbit">
               {{ data?.data?.vendor?.name ?? "" }}
             </el-descriptions-item>
-            <el-descriptions-item label="Status">
+            <!-- <el-descriptions-item label="Status">
               <el-tag
                 :type="
                   getStatusTagType(data?.data?.status ?? PaymentStatus.DRAFT)
                 "
                 >{{ formatStatus(data?.data?.status ?? null) }}</el-tag
               >
-            </el-descriptions-item>
+            </el-descriptions-item> -->
             <el-descriptions-item
               label="Pembayaran"
               v-if="data?.data?.payment_term_id"
@@ -835,10 +835,20 @@ const deleteInvoice = async () => {
   loading.value = true;
   try {
     // await $fetch(`/api/invoices/${invoiceId.value}`, {
-    //   method: 'DELETE'
-    // })
-    ElMessage.success("Invoice deleted");
-    router.push("/finance-management/invoices");
+    //   method: "DELETE",
+    // });
+
+    const response = await useFetchApi<BaseResponse<any>>(
+      "/invoice-delete",
+      "delete-invoice",
+      "post",
+      [invoiceId.value]
+    );
+
+    if (response.status.value == "success") {
+      ElMessage.success("Invoice deleted");
+      router.push("/finance-management/invoice");
+    }
   } catch (error) {
     ElMessage.error("Failed to delete invoice");
     console.error(error);
@@ -1094,7 +1104,7 @@ const generatePDF = async () => {
       ]);
     });
 
-  if (data.value?.data?.payment_terms) {
+  if (data.value?.data?.payment_terms && data.value.data.is_termin) {
     rowData.push([
       {
         content: `${data.value?.data?.payment_terms?.name}`,

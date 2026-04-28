@@ -101,7 +101,25 @@
       clearable
       style="width: 300px"
     />
-    <NuxtLink
+    <el-dropdown @command="handleNewInvoice">
+      <el-button
+        type="primary"
+        v-if="canAccess('invoices-create', data?.privilege ?? [])"
+      >
+        Buat Invoice<el-icon class="el-icon--right"><arrow-down /></el-icon>
+      </el-button>
+      <template #dropdown>
+        <el-dropdown-menu>
+          <el-dropdown-item command="tunggal"
+            >Buat Invoice Tunggal</el-dropdown-item
+          >
+          <el-dropdown-item command="termin"
+            >Buat Invoice Termin</el-dropdown-item
+          >
+        </el-dropdown-menu>
+      </template>
+    </el-dropdown>
+    <!-- <NuxtLink
       v-if="canAccess('invoices-create', data?.privilege ?? [])"
       class="el-button el-button--primary el-button--default"
       :href="
@@ -109,7 +127,7 @@
       "
     >
       Buat Invoice Baru
-    </NuxtLink>
+    </NuxtLink> -->
     <el-button
       size="default"
       :loading-icon="Eleme"
@@ -314,6 +332,7 @@ import {
   SetUp,
   Eleme,
   CircleCloseFilled,
+  ArrowDown,
 } from "@element-plus/icons-vue";
 import {
   ElCheckbox,
@@ -913,6 +932,14 @@ const batchDelete = async () => {
     }
   }
   onDelete(ids);
+};
+
+const handleNewInvoice = (command: string) => {
+  if (command == "tunggal") {
+    window.location.href = "/finance-management/invoice/add?is_termin=0";
+  } else {
+    window.location.href = "/finance-management/invoice/add?is_termin=1";
+  }
 };
 
 // Edit invoice

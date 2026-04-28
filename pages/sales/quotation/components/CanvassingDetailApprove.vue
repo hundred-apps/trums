@@ -1112,10 +1112,13 @@ const handleAdjustmentSubmit = () => {
 watch(
   () => contactsFee.value,
   () => {
-    adjustmentTransactionFeeTotal.value.amount = contactsFee.value.reduce(
-      (sum, c) => Number(sum) + Number(c.amount || 0),
-      0
-    );
+    console.log("masuk kontak fee", contactsFee.value);
+    if (contactsFee.value.length > 0) {
+      adjustmentTransactionFeeTotal.value.amount = contactsFee.value.reduce(
+        (sum, c) => Number(sum) + Number(c.amount || 0),
+        0
+      );
+    }
   },
   { deep: true }
 );
@@ -2151,8 +2154,10 @@ const summeryData = computed(() => {
     });
   }
 
+  console.log("preference", references.value);
+
   references.value.forEach((element) => {
-    console.log("reference", element.adjustments_transaction?.name);
+    console.log("reference", element);
     console.log("reference value", displayAmount(element, grandTotal.value));
 
     tableData.push({
@@ -2190,12 +2195,6 @@ const summeryData = computed(() => {
       )}  %`,
     });
   });
-
-  console.log("gross profit", grossProfit.value);
-  console.log(
-    "fee total",
-    displayAmount(adjustmentTransactionFeeTotal.value, grossProfit.value)
-  );
 
   tableData.push(
     {
@@ -2413,7 +2412,7 @@ const fetchPriceTagWithItems = async () => {
 
 const initialCanvassing = (data: Canvassing) => {
   canvassingData.value = data;
-  console.log("item canvassing", canvassingData.value.canvassing_item);
+  console.log("item canvassing", canvassingData.value.reference_transaction);
 
   contactsFee.value = [];
   (canvassingData.value.reference_transaction ?? []).forEach((element) => {
@@ -2437,6 +2436,10 @@ const initialCanvassing = (data: Canvassing) => {
 
     if ((element.adjustments_transaction?.name ?? "").toLowerCase() == "fee") {
       adjustmentTransactionFeeTotal.value = element;
+      console.log(
+        "adjustmentTransactionFeeTotal",
+        adjustmentTransactionFeeTotal.value
+      );
     }
   });
 
@@ -2680,6 +2683,8 @@ const initialCanvassing = (data: Canvassing) => {
       }
     });
   });
+
+  // references.value = data.reference_transaction || [];
 
   // item_canvassing.value.forEach((item) => (item.children = []));
 

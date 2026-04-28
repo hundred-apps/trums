@@ -1339,10 +1339,12 @@ const handleAdjustmentSubmit = () => {
 watch(
   () => contactsFee.value,
   () => {
-    adjustmentTransactionFeeTotal.value.amount = contactsFee.value.reduce(
-      (sum, c) => Number(sum) + Number(c.amount || 0),
-      0
-    );
+    if (contactsFee.value.length > 0) {
+      adjustmentTransactionFeeTotal.value.amount = contactsFee.value.reduce(
+        (sum, c) => Number(sum) + Number(c.amount || 0),
+        0
+      );
+    }
   },
   { deep: true }
 );

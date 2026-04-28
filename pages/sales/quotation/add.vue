@@ -1355,14 +1355,25 @@ const canvassingStatusOptions = [
 
 const netProfitForBuying = computed(() => {
   let fee = 0;
+  let ongkir = 0;
 
   if (adjustmentTransactionFeeTotal.value.type == FeeType.AMOUNT) {
     fee = adjustmentTransactionFeeTotal.value.amount;
   } else if (adjustmentTransactionFeeTotal.value.type == FeeType.PERCENT) {
     fee = (grandTotal.value * adjustmentTransactionFeeTotal.value.amount) / 100;
   }
+  if (adjustmentTransactionOngkirTotal.value.type == FeeType.AMOUNT) {
+    ongkir = adjustmentTransactionOngkirTotal.value.amount;
+  } else if (adjustmentTransactionOngkirTotal.value.type == FeeType.PERCENT) {
+    ongkir =
+      (grandTotal.value * adjustmentTransactionOngkirTotal.value.amount) / 100;
+  }
 
-  return Number(totalForGrossProfitForBuying.value || 0) - Number(fee || 0);
+  return (
+    Number(totalForGrossProfitForBuying.value || 0) -
+    Number(fee || 0) -
+    Number(ongkir || 0)
+  );
 });
 const netProfitForBuyingMin = computed(() => {
   let fee = 0;
@@ -2333,10 +2344,13 @@ const calculateSellingPrice = (row: CanvassingItemForm) => {
   const parent = findParent(item_canvassing.value, row.index);
 
   if (parent && parent.tmp_child_selected == row.index) {
+    console.log("parent", parent);
+
+    parent.unit_price = row.unit_price;
+    parent.total_price = row.total_price;
     parent.selling_price = row.selling_price;
     parent.total_selling_price = row.total_selling_price;
   }
-  console.log("parent", parent);
 };
 
 const removeItem = async (item: CanvassingItemForm) => {
@@ -3533,6 +3547,10 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
       // console.log("tmp ", value.canvassing_vendor[0].selling_price);
 
       item_canvassing.value.push(canvassingItemTmp);
+      references.value = (dataCanvassing.reference_transaction || []).filter(
+        (value) =>
+          value.adjustments_transaction?.name?.toLowerCase() != "ongkos kirim"
+      );
     });
 
     const equivalent: CanvassingItemForm[] = item_canvassing.value.filter(
@@ -4337,11 +4355,19 @@ const calcucateSummaryaData = () => {
   const grossProfit = Number(grandTotalValue) - Number(buyingPrice);
 
   let fee = 0;
+  let ongkir = 0;
 
   if (adjustmentTransactionFeeTotal.value.type == FeeType.AMOUNT) {
     fee = adjustmentTransactionFeeTotal.value.amount;
   } else if (adjustmentTransactionFeeTotal.value.type == FeeType.PERCENT) {
     fee = (grandTotalValue * adjustmentTransactionFeeTotal.value.amount) / 100;
+  }
+
+  if (adjustmentTransactionOngkirTotal.value.type == FeeType.AMOUNT) {
+    ongkir = adjustmentTransactionOngkirTotal.value.amount;
+  } else if (adjustmentTransactionOngkirTotal.value.type == FeeType.PERCENT) {
+    ongkir =
+      (grandTotalValue * adjustmentTransactionOngkirTotal.value.amount) / 100;
   }
 
   var tmp_gross = grossProfit;
@@ -4354,7 +4380,7 @@ const calcucateSummaryaData = () => {
     }
   });
 
-  const netProfit = Number(tmp_gross) - Number(fee);
+  const netProfit = Number(tmp_gross) - Number(fee) - Number(ongkir);
 
   summeryView.value = [];
 
@@ -4437,31 +4463,31 @@ const calcucateSummaryaData = () => {
   });
 
   data.push(
-    {
-      label: adjustmentTransactionFeeTotal.value.adjustment?.name ?? "N/A",
-      max: currency(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotalValue)
-      ),
-      beli: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotalValue),
-        buyingPrice
-      )} %`,
-      jual: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotalValue),
-        grandTotalValue
-      )} %`,
-      min: currency(
-        displayAmount(adjustmentTransactionFeeTotal.value, grossProfitMin.value)
-      ),
-      beliMin: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grossProfit),
-        totalBuyingPriceMin
-      )} %`,
-      jualMin: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grossProfit),
-        grandTotalValue
-      )} %`,
-    },
+    // {
+    //   label: adjustmentTransactionFeeTotal.value.adjustment?.name ?? "N/A",
+    //   max: currency(
+    //     displayAmount(adjustmentTransactionFeeTotal.value, grandTotalValue)
+    //   ),
+    //   beli: `${safePercent(
+    //     displayAmount(adjustmentTransactionFeeTotal.value, grandTotalValue),
+    //     buyingPrice
+    //   )} %`,
+    //   jual: `${safePercent(
+    //     displayAmount(adjustmentTransactionFeeTotal.value, grandTotalValue),
+    //     grandTotalValue
+    //   )} %`,
+    //   min: currency(
+    //     displayAmount(adjustmentTransactionFeeTotal.value, grossProfitMin.value)
+    //   ),
+    //   beliMin: `${safePercent(
+    //     displayAmount(adjustmentTransactionFeeTotal.value, grossProfit),
+    //     totalBuyingPriceMin
+    //   )} %`,
+    //   jualMin: `${safePercent(
+    //     displayAmount(adjustmentTransactionFeeTotal.value, grossProfit),
+    //     grandTotalValue
+    //   )} %`,
+    // },
     {
       label: "Net Profit",
       max: currency(netProfit),

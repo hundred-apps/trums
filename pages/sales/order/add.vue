@@ -247,7 +247,7 @@
           prop="unit_price"
           label="Harga Satuan"
           align="right"
-          width="120"
+          width="200"
         >
           <template #default="scope">
             {{ currency(scope.row.unit_price) }}
@@ -257,24 +257,10 @@
           prop="total_price"
           label="Total Harga"
           align="right"
-          width="120"
+          width="200"
         >
           <template #default="scope">
             {{ currency(scope.row.total_price) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="Garansi" width="120">
-          <template #default="scope">
-            <el-checkbox v-model="scope.row.is_warranty">Garansi</el-checkbox>
-          </template>
-        </el-table-column>
-        <el-table-column label="Waktu Garansi (Hari)" width="200">
-          <template #default="scope">
-            <el-input-number
-              v-model="scope.row.warranty"
-              :disabled="!scope.row.is_warranty"
-              :min="1"
-            />
           </template>
         </el-table-column>
         <el-table-column label="Aksi" width="100" fixed="right">
@@ -1082,7 +1068,11 @@ const querySearchCustomer = (
 };
 
 const generateResultSearchAddress = (address: AddressType) => {
-  const name = `(${address.contact_name}) - ${address.village}, ${address.city}, ${address.regency}, ${address.province}`;
+  const name = `(${address.contact_name}) - ${
+    address.village ? address.village + "," : ""
+  } ${address.city ? address.city + "," : ""} ${
+    address.regency ? address.regency + "," : ""
+  } ${address.province ? address.province + "," : ""}`;
   const street = `${address.street}`;
   const address_id = address.unique_id;
   const address_version = address.version;

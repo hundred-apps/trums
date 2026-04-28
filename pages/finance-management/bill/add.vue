@@ -10,6 +10,17 @@
               @click="submitForm(ruleFormRef)"
               >Simpan</el-button
             >
+            <el-button
+              type="info"
+              :loading="loading"
+              @click="
+                () => {
+                  ruleForm.is_performa = true;
+                  submitForm(ruleFormRef);
+                }
+              "
+              >Simpan Sebagai Performa Invoice</el-button
+            >
             <el-button :loading="loading" @click="resetForm(ruleFormRef)"
               >Reset</el-button
             >
@@ -229,15 +240,15 @@
           />
         </el-form-item>
 
-        <el-form-item label="Tenggat Waktu" prop="due_date">
+        <!-- <el-form-item label="Tenggat Waktu" prop="due_date">
           <el-date-picker
             v-model="ruleForm.due_date!"
             type="date"
             placeholder="Pilih Tenggat Waktu"
           />
-        </el-form-item>
+        </el-form-item> -->
 
-        <el-form-item label="Akun" prop="account_name">
+        <!-- <el-form-item label="Akun" prop="account_name">
           <el-autocomplete
             v-model="ruleForm.account_name!"
             :fetch-suggestions="querySearchAccounts"
@@ -269,7 +280,7 @@
               :value="method.value"
             />
           </el-select>
-        </el-form-item>
+        </el-form-item> -->
 
         <el-form-item label="Rekening Penerima" prop="accont_bank_name">
           <el-autocomplete
@@ -303,7 +314,7 @@
           </div>
         </el-form-item>
 
-        <el-form-item
+        <!-- <el-form-item
           label="Durasi Tempo (Hari)"
           prop="tempo_value"
           v-if="ruleForm.payment_term === PaymentTerm.TEMPO"
@@ -322,9 +333,9 @@
               :value="PaymentStatus.PERFORMA_INVOICE"
             />
           </el-select>
-        </el-form-item>
+        </el-form-item> -->
 
-        <el-form-item
+        <!-- <el-form-item
           label="Tanggal Diterima"
           v-if="ruleForm.status == PaymentStatus.RECEIVED"
           prop="received_date"
@@ -334,7 +345,7 @@
             type="date"
             placeholder="Pilih Tanggal Diterima"
           />
-        </el-form-item>
+        </el-form-item> -->
 
         <el-form-item label="File Lampiran" prop="files">
           <TrumsUploadFile v-model:file-list="fileList" />
@@ -502,8 +513,23 @@
 
       <el-descriptions :column="1" border>
         <el-descriptions-item :width="100" label="Total Price" align="right">{{
-          currency(ruleForm.subtotal || 0)
+          currency(totalAmount || 0)
         }}</el-descriptions-item>
+
+        <el-descriptions-item
+          v-if="getInvoiceDownPayment > 0 && ruleForm.is_termin"
+          :width="100"
+          :label="getInvoiceDownPaymentLabel"
+          align="right"
+          >{{ currency(getInvoiceDownPayment || 0) }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          v-if="ruleForm.payment_terms && ruleForm.is_termin"
+          :width="100"
+          :label="ruleForm.payment_terms?.name"
+          align="right"
+          >{{ currency(ruleForm.subtotal || 0) }}</el-descriptions-item
+        >
 
         <el-descriptions-item
           :width="100"
@@ -817,6 +843,7 @@ definePageMeta({
 const router = useRouter();
 const route = useRoute();
 const id = computed(() => route.query.id as string);
+const is_termin = computed(() => route.query.is_termin as string);
 
 const ruleFormRef = ref<FormInstance>();
 const dialogNewAddress = ref(false);
@@ -941,6 +968,8 @@ const ruleForm = reactive<Invoice>({
   vendor_address_id: "",
   vendor_address_view: "",
   vendor_address_version: 0,
+  is_performa: false,
+  is_termin: is_termin.value == "1" ? true : false,
 });
 
 const tmp_purchase_order = ref<PurchaseOrder | null>(null);
@@ -1212,7 +1241,7 @@ const displayPercentage = (ref: any, multiplier: number) => {
 
 const paidAmount = computed(() => {
   let amount: number = Number(grandTotal.value);
-  console.log("payment term", ruleForm.payment_terms);
+
   // if (ruleForm.payment_terms) {
   //   amount =
   //     Number(grandTotal.value) * (Number(ruleForm.payment_terms?.value) / 100);
@@ -1320,6 +1349,7 @@ const ppnComponent = computed(() => {
 });
 
 const grandTotal = computed(() => {
+  console.log("total plus", totalPlus.value);
   let total = totalPlus.value || 0;
   (references.value || [])
     .filter((value) => value.adjustment?.operator == "minus")
@@ -1356,11 +1386,44 @@ const getMinus = computed(() => {
   return minus;
 });
 
+const totalAmount = computed(() => {
+  return ruleForm.invoice_item.reduce((total, ref) => {
+    return total + Number(ref.total_amount || 0);
+  }, 0);
+});
+
+const getInvoiceDownPayment = computed(() => {
+  let total = 0;
+  if (invoicesHistory.value.length > 0) {
+    if (invoicesHistory.value[0].payment_terms) {
+      total =
+        ((totalAmount.value || 0) *
+          invoicesHistory.value[0].payment_terms.value) /
+        100;
+    }
+  }
+
+  return total;
+});
+
+const getInvoiceDownPaymentLabel = computed(() => {
+  let label = "DP";
+  if (invoicesHistory.value.length > 0) {
+    if (invoicesHistory.value[0].payment_terms) {
+      label = invoicesHistory.value[0].payment_terms.name;
+    }
+  }
+
+  return label;
+});
+
 const subtotal = computed(() => {
   return Number(paidAmount.value) - Number(getMinus.value);
 });
 
 const totalPlus = computed(() => {
+  console.log("subtotal", ruleForm.subtotal);
+  console.log("total plus", ruleForm.subtotal);
   return Number(ruleForm.subtotal) + Number(getPlus.value);
 });
 const totalMinus = computed(() => {
@@ -1474,29 +1537,22 @@ const updateTotalAmount = () => {
 
   var amount = ruleForm.subtotal;
 
-  if (invoicesHistory.value.length > 0) {
-    // console.log("updat total amount", amount);
-    // invoicesHistory.value.forEach((element) => {
-    //   console.log("updat total amount", element);
-    //   if (element.payment_terms) {
+  // if (invoicesHistory.value.length > 0) {
+  //   if (invoicesHistory.value[0].payment_terms) {
+  //     const history =
+  //       ((ruleForm.subtotal || 0) *
+  //         invoicesHistory.value[0].payment_terms.value) /
+  //       100;
 
-    //   }
-    // });
-    // console.log("updat total amount after", amount);
+  //     amount -= history;
+  //   }
+  // }
 
-    if (invoicesHistory.value[0].payment_terms) {
-      const history =
-        ((ruleForm.subtotal || 0) *
-          invoicesHistory.value[0].payment_terms.value) /
-        100;
-
-      amount -= history;
+  if (ruleForm.is_termin) {
+    if (ruleForm.payment_term_id) {
+      amount =
+        Number(amount || 0) * (Number(ruleForm.payment_terms?.value) / 100);
     }
-  }
-
-  if (ruleForm.payment_term_id) {
-    amount =
-      Number(amount || 0) * (Number(ruleForm.payment_terms?.value) / 100);
   }
 
   ruleForm.subtotal = amount;
@@ -2121,7 +2177,7 @@ const getHistoryInvoices = async () => {
       table: "invoices",
       column: [
         {
-          reference: ["sales"],
+          reference: ["purchase_order"],
           reference_id: [ruleForm.reference_id],
         },
       ],
@@ -2136,6 +2192,7 @@ const getHistoryInvoices = async () => {
       request
     );
     if (response.status.value === "success") {
+      console.log("invoice history", response.data.value?.data);
       (response.data.value?.data ?? []).forEach((element) => {
         if ((element.history_payment ?? []).length > 0) {
           console.log("invoice history", element);
@@ -2487,6 +2544,8 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         formData.append("total_amount", paidAmount.value.toString());
         formData.append("paid_amount", paidAmount.value.toString());
         formData.append("payment_term_id", `${ruleForm.payment_term_id}`);
+        formData.append("is_performa", `${ruleForm.is_performa}`);
+        formData.append("is_termin", `${ruleForm.is_termin}`);
 
         // Loop untuk invoice_items
         ruleForm.invoice_item.forEach((value, index) => {

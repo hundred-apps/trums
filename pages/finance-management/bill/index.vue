@@ -94,7 +94,25 @@
         clearable
         style="width: 300px; margin-right: 12px"
       />
-      <NuxtLink
+      <el-dropdown @command="handleNewInvoice" class="mr-3">
+        <el-button
+          type="primary"
+          v-if="canAccess('invoices-create', data?.privilege ?? [])"
+        >
+          Buat Invoice<el-icon class="el-icon--right"><arrow-down /></el-icon>
+        </el-button>
+        <template #dropdown>
+          <el-dropdown-menu>
+            <el-dropdown-item command="tunggal"
+              >Buat Bill Tunggal</el-dropdown-item
+            >
+            <el-dropdown-item command="termin"
+              >Buat Bill Termin</el-dropdown-item
+            >
+          </el-dropdown-menu>
+        </template>
+      </el-dropdown>
+      <!-- <NuxtLink
         class="el-button el-button--primary el-button--default"
         @click="
           () => {
@@ -105,7 +123,7 @@
         href="/finance-management/bill/add"
       >
         Buat Bill Baru
-      </NuxtLink>
+      </NuxtLink> -->
       <el-button
         size="default"
         :loading-icon="Eleme"
@@ -142,7 +160,13 @@
 </template>
 
 <script lang="tsx" setup>
-import { Eleme, SetUp, Filter, Setting } from "@element-plus/icons-vue";
+import {
+  Eleme,
+  SetUp,
+  Filter,
+  Setting,
+  ArrowDown,
+} from "@element-plus/icons-vue";
 import {
   type Column,
   type CheckboxValueType,
@@ -173,6 +197,7 @@ import { unique } from "element-plus/es/utils/arrays.mjs";
 import type { BaseResponse } from "~/types/response";
 import { useCookie } from "#app";
 import type { ColumnTable } from "~/types/ColumnTable";
+import { canAccess } from "#imports";
 definePageMeta({
   middleware: ["auth", "check-access"],
   requiredPermission: "invoices-read",
@@ -251,7 +276,7 @@ const columns: ColumnTable<Invoice>[] = [
     fixed: true,
     cellRenderer: ({ rowData: row }) => (
       <NuxtLink
-        href={`/finance-management/invoice/${row.unique_id}`}
+        href={`/finance-management/bill/${row.unique_id}`}
         class="text-blue-500"
       >
         {row.unique_code}
@@ -511,6 +536,14 @@ const formatCurrency = (amount: number) => {
     currency: "IDR",
     minimumFractionDigits: 0,
   }).format(amount);
+};
+
+const handleNewInvoice = (command: string) => {
+  if (command == "tunggal") {
+    window.location.href = "/finance-management/bill/add?is_termin=0";
+  } else {
+    window.location.href = "/finance-management/bill/add?is_termin=1";
+  }
 };
 
 // Render status tag

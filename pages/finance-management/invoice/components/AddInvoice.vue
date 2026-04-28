@@ -40,7 +40,7 @@
         status-icon
       >
         <!-- Invoice Header Information -->
-        <el-form-item label="Referensi" prop="source_document">
+        <el-form-item label="Referensi" prop="source_document" v-if="!id">
           <el-select v-model="ruleForm.reference!">
             <el-option label="Lainya" :value="FinanceReference.OTHER" />
             <el-option label="Sales Order" :value="FinanceReference.SALES" />
@@ -237,7 +237,7 @@
           />
         </el-form-item>
 
-        <el-form-item label="Tenggat Waktu" prop="due_date">
+        <!-- <el-form-item label="Tenggat Waktu" prop="due_date">
           <el-date-picker
             v-model="ruleForm.due_date!"
             type="date"
@@ -263,9 +263,9 @@
               </div>
             </template>
           </el-autocomplete>
-        </el-form-item>
+        </el-form-item> -->
 
-        <el-form-item label="Metode Pembayaran" prop="payment_method">
+        <!-- <el-form-item label="Metode Pembayaran" prop="payment_method">
           <el-select
             v-model="ruleForm.payment_method"
             placeholder="Select payment method"
@@ -277,7 +277,7 @@
               :value="method.value"
             />
           </el-select>
-        </el-form-item>
+        </el-form-item> -->
 
         <el-form-item label="Rekening Penerima" prop="accont_bank_name">
           <el-autocomplete
@@ -311,7 +311,7 @@
           </div>
         </el-form-item>
 
-        <el-form-item
+        <!-- <el-form-item
           label="Durasi Tempo (Hari)"
           prop="tempo_value"
           v-if="ruleForm.payment_term === PaymentTerm.TEMPO"
@@ -338,7 +338,7 @@
             type="date"
             placeholder="Pilih Tanggal Diterima"
           />
-        </el-form-item>
+        </el-form-item> -->
 
         <el-form-item label="File Lampiran" prop="files">
           <TrumsUploadFile v-model:file-list="fileList" />
@@ -510,14 +510,14 @@
         }}</el-descriptions-item>
 
         <el-descriptions-item
-          v-if="getInvoiceDownPayment > 0"
+          v-if="getInvoiceDownPayment > 0 && ruleForm.is_termin"
           :width="100"
           :label="getInvoiceDownPaymentLabel"
           align="right"
           >{{ currency(getInvoiceDownPayment || 0) }}</el-descriptions-item
         >
         <el-descriptions-item
-          v-if="ruleForm.payment_terms"
+          v-if="ruleForm.payment_terms && ruleForm.is_termin"
           :width="100"
           :label="ruleForm.payment_terms?.name"
           align="right"
@@ -836,6 +836,7 @@ definePageMeta({
 const router = useRouter();
 const route = useRoute();
 const id = computed(() => route.query.id as string);
+const is_termin = computed(() => route.query.is_termin as string);
 
 const ruleFormRef = ref<FormInstance>();
 const dialogNewAddress = ref(false);
@@ -901,7 +902,7 @@ const ruleForm = reactive<Invoice>({
   billing_address_view: "",
 
   invoice_date: Date.now(),
-  due_date: Date.now(),
+  due_date: null,
 
   is_tempo: false,
   payment_term: PaymentTerm.CASH,
@@ -961,6 +962,7 @@ const ruleForm = reactive<Invoice>({
   vendor_address_view: "",
   vendor_address_version: 0,
   is_performa: false,
+  is_termin: is_termin.value == "1" ? true : false,
 });
 
 const tmp_purchase_order = ref<PurchaseOrder | null>(null);
@@ -1496,20 +1498,11 @@ const updateTotalAmount = () => {
 
   var amount = ruleForm.subtotal;
 
-  // if (invoicesHistory.value.length > 0) {
-  //   if (invoicesHistory.value[0].payment_terms) {
-  //     const history =
-  //       ((ruleForm.subtotal || 0) *
-  //         invoicesHistory.value[0].payment_terms.value) /
-  //       100;
-
-  //     amount -= history;
-  //   }
-  // }
-
-  if (ruleForm.payment_term_id) {
-    amount =
-      Number(amount || 0) * (Number(ruleForm.payment_terms?.value) / 100);
+  if (ruleForm.is_termin) {
+    if (ruleForm.payment_term_id) {
+      amount =
+        Number(amount || 0) * (Number(ruleForm.payment_terms?.value) / 100);
+    }
   }
 
   ruleForm.subtotal = amount;
@@ -1534,6 +1527,7 @@ const getInvoiceDownPaymentLabel = computed(() => {
 });
 const getInvoiceDownPayment = computed(() => {
   let total = 0;
+  console.log("invoice history", invoicesHistory.value);
   if (invoicesHistory.value.length > 0) {
     if (invoicesHistory.value[0].payment_terms) {
       total =
@@ -2523,6 +2517,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         formData.append("paid_amount", paidAmount.value.toString());
         formData.append("payment_term_id", `${ruleForm.payment_term_id}`);
         formData.append("is_performa", `${ruleForm.is_performa}`);
+        formData.append("is_termin", `${ruleForm.is_termin}`);
 
         // Loop untuk invoice_items
         ruleForm.invoice_item.forEach((value, index) => {
