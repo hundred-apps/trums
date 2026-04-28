@@ -36,13 +36,19 @@
           />
         </el-form-item>
 
-        <el-form-item label="Diminat Oleh" prop="requester_id">
-          <el-autocomplete
+        <el-form-item label="Diminat Oleh" prop="requester_name">
+          <AutocompleteContact
+            v-model="ruleForm.requester_name!"
+            :contact="ruleForm.requester"
+            :fetch-suggestions="(queryString: string, cb: (arg: any) => void) => querySearchContact(queryString, cb)"
+            @save-contact="(data: Contact) => onHandleSelectContact(data)"
+          />
+          <!-- <el-autocomplete
             :fetch-suggestions="querySearchContact"
             v-model="ruleForm.requester_name"
             placeholder="Cari Kontak"
             @select="(item: Record<string, any>) => onHandleSelectContact(item, 'to')"
-          />
+          /> -->
         </el-form-item>
 
         <el-form-item label="Status" prop="status">
@@ -230,6 +236,8 @@ import type { BaseResponse } from "~/types/response";
 import TrumsUploadFile from "~/components/trums/form/TrumsUploadFile.vue";
 import type { Inquiry } from "~/types/inquiry";
 import AddContact from "~/components/trums/AddContact.vue";
+import AutocompleteContact from "~/components/trums/AutocompleteContact.vue";
+
 const fileList = ref<UploadUserFile[]>([]);
 
 const router = useRouter();
@@ -312,7 +320,7 @@ const itemRequests = ref<ResponsePagination<ItemRequest[]>>({
 
 // Form validation rules
 const rules: FormRules = reactive({
-  requester_id: [
+  requester_name: [
     { required: true, message: "Requester wajib diisi", trigger: "blur" },
   ],
   status: [
@@ -467,6 +475,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 };
 
 const querySearchContact = (queryString: string, cb: (arg: any) => void) => {
+  console.log("masuk search", queryString);
   const request_search: RequestSearch = {
     keyword: queryString,
     table: "contacts",
@@ -487,7 +496,7 @@ const querySearchContact = (queryString: string, cb: (arg: any) => void) => {
         const resultApi: Contact[] = response.data.value?.data ?? [];
         if (resultApi.length > 0) {
           const results = resultApi.map((data: Contact) => {
-            return { ...data, value: `${data.name}` };
+            return { data: data, value: `${data.name}` };
           });
           cb(results);
         } else {
@@ -562,44 +571,14 @@ const handleResetContact = () => {
   dialogContact.value = false;
 };
 
-const onHandleSelectContact = async (
-  item: Record<string, any>,
-  type: "to" | "pic"
-) => {
-  console.log(item);
-  if (item.isNew) {
-    ruleForm.requester = {
-      unique_id: "",
-      unique_code: "",
-      is_personal: false,
-      is_company: false,
-      internal_id: "",
-      name: item.query,
-      email: "",
-      phone: "",
-      tax_id: "",
-      website: "",
-      title: "",
-      tmp_tags: [],
-      tags: "",
-      ownership: false,
-      address: [],
-      id: 0,
-      created_at: 0,
-      created_by: "",
-      updated_at: 0,
-      version: 0,
-    };
+const onHandleSelectContact = async (data: Contact) => {
+  console.log("masuk select");
+  ruleForm.requester_id = data.unique_id;
+  ruleForm.requester_version = data.version;
+  ruleForm.requester_name = data.name ?? "";
+  ruleForm.requester = data;
 
-    dialogContact.value = true;
-  } else {
-    const contact: Contact = item as Contact;
-
-    ruleForm.requester_id = contact.unique_id;
-    ruleForm.requester_version = contact.version;
-    ruleForm.requester_name = contact.name ?? "";
-    ruleForm.requester = contact;
-  }
+  console.log("ruleForm", ruleForm);
 };
 
 const submitPurchaseRequest = async () => {

@@ -129,7 +129,7 @@
           />
         </el-form-item>
 
-        <el-form-item label="Alamat Penagihan" prop="billing_address_id">
+        <el-form-item label="Alamat Penagihan" prop="billing_address_view">
           <el-autocomplete
             :fetch-suggestions="querySearchAddress"
             v-model="ruleForm.billing_address_view"
@@ -159,6 +159,11 @@
                 class="cursor-pointer text-blue-500 hover:text-blue-600"
                 @click="() => handleEditAddress(billing_address!, 'customer')"
                 ><Edit
+              /></el-icon>
+              <el-icon
+                class="cursor-pointer text-blue-500 hover:text-blue-600"
+                @click="() => handleDeleteAddress('customer')"
+                ><Delete
               /></el-icon>
             </div>
             <div>
@@ -220,6 +225,11 @@
                 class="cursor-pointer text-blue-500 hover:text-blue-600"
                 @click="() => handleEditAddress(publisher_address!, 'vendor')"
                 ><Edit
+              /></el-icon>
+              <el-icon
+                class="cursor-pointer text-blue-500 hover:text-blue-600"
+                @click="() => handleDeleteAddress('vendor')"
+                ><Delete
               /></el-icon>
             </div>
             <div>
@@ -1033,7 +1043,7 @@ const rules = reactive({
       trigger: "change",
     },
   ],
-  billing_address_id: [
+  billing_address_view: [
     {
       required: true,
       message: "Please select billing address",
@@ -1151,6 +1161,19 @@ const handleEditAddress = (
   addressInput.value = addressEdit;
   stateAddress.value = state;
   dialogNewAddress.value = true;
+};
+const handleDeleteAddress = (state: "customer" | "vendor") => {
+  if (state == "vendor") {
+    publisher_address.value = null;
+    ruleForm.vendor_address_view = "";
+    ruleForm.vendor_address_id = "";
+    ruleForm.vendor_address_version = 0;
+  } else {
+    billing_address.value = null;
+    ruleForm.billing_address_view = "";
+    ruleForm.billing_address_id = "";
+    ruleForm.billing_address_version = 0;
+  }
 };
 
 const onHandleSelectDO = (values: InventoryMovement[]) => {

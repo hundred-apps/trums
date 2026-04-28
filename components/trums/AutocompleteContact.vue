@@ -92,7 +92,6 @@ const handleFetch = (query: string, cb: any) => {
 
 // handle select
 const handleSelect = (item: any) => {
-  console.log("is new", item.isNew);
   if (item.isNew) {
     const contactData: Contact = {
       id: 0,
@@ -117,7 +116,7 @@ const handleSelect = (item: any) => {
     tmpContact.value = contactData;
     dialogContact.value = true;
   } else {
-    console.log("item", item);
+    console.log("item", item.data);
     if (item.data) {
       emit("save-contact", item.data as Contact);
     }
