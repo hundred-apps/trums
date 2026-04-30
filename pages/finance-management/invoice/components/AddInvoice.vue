@@ -275,7 +275,7 @@
           </el-autocomplete>
         </el-form-item> -->
 
-        <!-- <el-form-item label="Metode Pembayaran" prop="payment_method">
+        <el-form-item label="Metode Pembayaran" prop="payment_method">
           <el-select
             v-model="ruleForm.payment_method"
             placeholder="Select payment method"
@@ -287,7 +287,7 @@
               :value="method.value"
             />
           </el-select>
-        </el-form-item> -->
+        </el-form-item>
 
         <el-form-item label="Rekening Penerima" prop="accont_bank_name">
           <el-autocomplete
@@ -516,7 +516,7 @@
 
       <el-descriptions :column="1" border>
         <el-descriptions-item :width="100" label="Total Price" align="right">{{
-          currency(totalAmount || 0)
+          currencyWithoutSymbol(totalAmount || 0, 0)
         }}</el-descriptions-item>
 
         <el-descriptions-item
@@ -524,14 +524,18 @@
           :width="100"
           :label="getInvoiceDownPaymentLabel"
           align="right"
-          >{{ currency(getInvoiceDownPayment || 0) }}</el-descriptions-item
+          >{{
+            currencyWithoutSymbol(getInvoiceDownPayment || 0)
+          }}</el-descriptions-item
         >
         <el-descriptions-item
           v-if="ruleForm.payment_terms && ruleForm.is_termin"
           :width="100"
           :label="ruleForm.payment_terms?.name"
           align="right"
-          >{{ currency(ruleForm.subtotal || 0) }}</el-descriptions-item
+          >{{
+            currencyWithoutSymbol(ruleForm.subtotal || 0)
+          }}</el-descriptions-item
         >
 
         <el-descriptions-item
@@ -545,7 +549,7 @@
           :key="ref.adjustment_id"
           :label="ref.adjustment?.name ?? ''"
           >{{
-            currency(showTransactionAdjustmentValue(ref))
+            currencyWithoutSymbol(showTransactionAdjustmentValue(ref), 0)
           }}</el-descriptions-item
         >
         <el-descriptions-item
@@ -559,7 +563,7 @@
           :width="100"
           label="Subtotal"
           align="right"
-          >{{ currency(totalPlus) }}</el-descriptions-item
+          >{{ currencyWithoutSymbol(totalPlus) }}</el-descriptions-item 0m
         >
         <el-descriptions-item
           :width="100"
@@ -570,7 +574,7 @@
           :key="ref.adjustment_id"
           :label="ref.adjustment?.name ?? ''"
           >{{
-            currency(showTransactionAdjustmentValue(ref))
+            currencyWithoutSymbol(showTransactionAdjustmentValue(ref), 0)
           }}</el-descriptions-item
         >
         <el-descriptions-item
@@ -584,7 +588,7 @@
           :key="ref.adjustment_id"
           :label="ref.adjustment?.name ?? ''"
           >{{
-            currency(showTransactionAdjustmentValue(ref))
+            currencyWithoutSymbol(showTransactionAdjustmentValue(ref), 0)
           }}</el-descriptions-item
         >
         <!-- <el-descriptions-item
@@ -602,10 +606,79 @@
           >{{ currency(paidAmount) }}</el-descriptions-item
         > -->
 
-        <el-descriptions-item :width="100" label="Grand Total" align="right">{{
-          currency(paidAmount)
-        }}</el-descriptions-item>
+        <!-- <el-descriptions-item :width="100" label="Grand Total" align="right">
+          <el-input-number
+            v-model="scope.row.quantity"
+            :min="0.01"
+            :precision="2"
+            :step="1"
+            :disabled="loading"
+            @change="calculateAmount(scope.$index)"
+          />
+          {{ currency(paidAmount) }}</el-descriptions-item
+        > -->
+        <el-descriptions-item label="Grand Total" align="right">
+          <el-input
+            v-model="ruleForm.display_total_amount"
+            style="max-width: 600px"
+            class="no-border-input text-right"
+            @input="
+              (val) => {
+                const parsed = parseCurrencyID(val);
+                ruleForm.total_amount = parsed;
+                ruleForm.display_total_amount = formatCurrencyID(parsed);
+                // calculateAmount(scope.$index);
+              }
+            "
+            @blur="
+              () => {
+                ruleForm.display_total_amount = formatCurrencyID(
+                  ruleForm.total_amount
+                );
+                // calculateAmount(scope.$index);
+              }
+            "
+          >
+            <!-- <template #prepend>
+              <el-button :icon="Minus" />
+            </template>
+            <template #append>
+              <el-button :icon="Plus" />
+            </template> -->
+          </el-input>
+        </el-descriptions-item>
       </el-descriptions>
+      <div class="flex my-2  justify-end items-center gap-2" v-if="ruleForm.total_amount > 0">
+        
+        <div class="flex gap-2">
+          <el-check-tag size="small" round @change="() => {
+            ruleForm.total_amount = (Math.floor((ruleForm.tmp_round || 0) / 100) * 100);
+            ruleForm.display_total_amount = formatCurrencyID(ruleForm.total_amount);
+            console.log('tmp round', ruleForm.tmp_round);
+            console.log('total amount', ruleForm.total_amount);
+          }"><span class="text-xs text-blue-500"
+                >{{ currencyWithoutSymbol((Math.floor((ruleForm.tmp_round || 0) / 100) * 100), 0) }}
+              </span></el-check-tag>
+          <el-check-tag size="small" round @change="() => {
+            ruleForm.total_amount = (Math.ceil((ruleForm.tmp_round || 0) / 100) * 100);
+            ruleForm.display_total_amount = formatCurrencyID(ruleForm.total_amount);
+          }"><span class="text-xs text-blue-500"
+                >{{ currencyWithoutSymbol((Math.ceil((ruleForm.tmp_round || 0) / 100) * 100), 0) }}
+              </span></el-check-tag>
+        </div>
+        <!-- <el-icon
+          color="#3B82F6"
+          class="cursor-pointer"
+          @click="() => handleEditAddress(billing_address!, 'customer')"
+          ><Check color="primary"
+        /></el-icon>
+        <el-icon
+          color="#EF4444"
+          class="cursor-pointer"
+          @click="() => handleEditAddress(billing_address!, 'customer')"
+          ><Close color="danger"
+        /></el-icon> -->
+      </div>
     </el-card>
 
     <ModalAdjustmentTransaction
@@ -780,7 +853,16 @@
 </template>
 
 <script lang="ts" setup>
-import { Delete, Plus, Search, Edit, Eleme } from "@element-plus/icons-vue";
+import {
+  Delete,
+  Plus,
+  Search,
+  Edit,
+  Eleme,
+  Minus,
+  Check,
+  Close,
+} from "@element-plus/icons-vue";
 import type { FormInstance, FormRules, UploadUserFile } from "element-plus";
 import {
   getPaymentMethodLabel,
@@ -817,6 +899,8 @@ import {
 import { PaymentTerm } from "~/types/scm/canvasing";
 import { paymentTermView } from "~/types/scm/canvasing";
 import {
+  FeeType,
+  PartyType,
   ReferenceAdjustment,
   type AdjustmentTransaction,
   type ReferenceTransactionAdjustment,
@@ -825,6 +909,7 @@ import ModalAdjustmentTransaction from "~/components/trums/ModalAdjustmentTransa
 import {
   formatLocalDate,
   currency,
+  currencyWithoutSymbol,
   formatCurrencyID,
   generateAddressView,
 } from "#imports";
@@ -877,7 +962,74 @@ const currentAccount = ref<BankAccount | null>(null);
 const rekeningBanks = ref<string[]>([]);
 const transactionBanks = ref<TransactionBank[]>([]);
 const rekeningBanksOptions = ref<BankAccount[]>([]);
-const references = ref<ReferenceTransactionAdjustment[]>([]);
+const references = ref<ReferenceTransactionAdjustment[]>([
+  {
+    "unique_id": "db6de4f9271e5a17ce4d6535e542257b",
+    "reference": ReferenceAdjustment.INVOICE,
+    "reference_id": "",
+    "adjustment_id": "e0cc23825369e9db3691bbdb25bd3419",
+    // "adjustment_version": 1,
+    "value": 11,
+    "amount": 11,
+    "party_type": PartyType.CONTACT,
+    "party_id": null,
+    // "version": 1,
+    "type": FeeType.AMOUNT,
+    "include": false,
+    // "created_by": "5b076a80afde94cb9f0980b8feba76e6",
+    "created_at": 1777025996,
+    // "updated_at": 1777025996,
+    "adjustments_transaction": {
+        "unique_id": "e0cc23825369e9db3691bbdb25bd3419",
+        "unique_code": "PPN11",
+        "name": "PPN",
+        "type": FeeType.AMOUNT,
+        "category": "tax",
+        "default_value": 11,
+        "operator": "plus",
+        "allow_party": false,
+        "version": 1,
+        "created_at": 1758861317,
+        "updated_at": 1758861317
+    },
+    // "people": {
+    //     "name": "Faizal"
+    // },
+    // "data_reference": {
+    //     "id": 9,
+    //     "unique_id": "29b5436863828b6866b64178d4b748df",
+    //     "unique_code": "PO/TMP/04/2026/0005",
+    //     "type": "so",
+    //     "vendor_id": "e2cc5ee1c2d3e5b43aca6fbf9e1d2d92",
+    //     "vendor_name": "Satya Rgam Koporindo, PT",
+    //     "vendor_version": 1,
+    //     "pic_id": null,
+    //     "pic_name": null,
+    //     "pic_version": 0,
+    //     "sourcing_document": null,
+    //     "total_price": 6229408.8,
+    //     "delivery_address_id": "d1da5ac26970c9be90c905bf08c5f60e",
+    //     "delivery_address_version": 1,
+    //     "expected_arrival": null,
+    //     "date": 1777025903,
+    //     "is_discount": false,
+    //     "discount": 0,
+    //     "discount_unit": "percent",
+    //     "delivery_cost": 0,
+    //     "additional_information": null,
+    //     "status": "done",
+    //     "is_tempo": false,
+    //     "term_payment_value": 0,
+    //     "term_payment": "cbd",
+    //     "term_payment_unit": "day",
+    //     "method_payment": null,
+    //     "version": 1,
+    //     "created_at": 1777025996,
+    //     "created_by": "5b076a80afde94cb9f0980b8feba76e6",
+    //     "updated_at": 1777025996
+    // },
+}
+]);
 
 const addressInput = ref<AddressType | null>(null);
 const billing_address = ref<AddressType | null>(null);
@@ -927,7 +1079,7 @@ const ruleForm = reactive<Invoice>({
   pic_name: "",
   pic_version: 0,
   type: "out",
-  status: PaymentStatus.DRAFT,
+  status: PaymentStatus.RELEASE,
 
   invoice_item: [
     {
@@ -961,6 +1113,7 @@ const ruleForm = reactive<Invoice>({
   reference_id: null,
   reference_number: null,
   total_amount: 0,
+  display_total_amount: formatCurrencyID(0),
   subtotal: 0,
   paid_amount: 0,
   invoice_date_view: Date.now().toString(),
@@ -1016,9 +1169,9 @@ const rules = reactive({
   vendor_name: [
     { required: true, message: "Please select a publisher", trigger: "blur" },
   ],
-  pic_name: [
-    { required: true, message: "Please select a PIC", trigger: "blur" },
-  ],
+  // pic_name: [
+  //   { required: true, message: "Please select a PIC", trigger: "blur" },
+  // ],
   payment_term_id: [
     { required: true, message: "Please select a TOP", trigger: "blur" },
   ],
@@ -1264,6 +1417,24 @@ const paidAmount = computed(() => {
   return amount;
 });
 
+watch(
+  () => ruleForm.invoice_item,
+  () => {
+    ruleForm.total_amount = paidAmount.value;
+    ruleForm.tmp_round = paidAmount.value;
+  },
+  { deep: true }
+);
+
+watch(
+  () => ruleForm.payment_terms,
+  () => {
+    ruleForm.total_amount = paidAmount.value;
+    ruleForm.tmp_round = paidAmount.value;
+  },
+  { deep: true }
+);
+
 const paidHistory = computed(() => {
   var sum = 0;
 
@@ -1384,6 +1555,35 @@ const grandTotal = computed(() => {
 
   return total;
 });
+
+watch(
+  () => references.value,
+  () => {
+    let total = totalPlus.value || 0;
+    (references.value || [])
+      .filter((value) => value.adjustment?.operator == "minus")
+      .forEach((element) => {
+        total =
+          (totalPlus.value || 0) - showTransactionAdjustmentValue(element);
+      });
+    (references.value || [])
+      .filter(
+        (value) =>
+          value.adjustment?.category == "transform" ||
+          value.adjustment?.category == "tax"
+      )
+      .forEach((element) => {
+        if (element.include == false) {
+          total =
+            (totalPlus.value || 0) + showTransactionAdjustmentValue(element);
+        }
+      });
+
+    ruleForm.total_amount = total;
+    ruleForm.display_total_amount = formatCurrencyID(total, 0);
+  },
+  { deep: true }
+);
 
 const getMinus = computed(() => {
   var minus = 0;
@@ -1529,13 +1729,8 @@ const updateTotalAmount = () => {
   }
 
   ruleForm.subtotal = amount;
-
-  // ruleForm.paid_amount =
-  //     (Number(ruleForm.subtotal) * Number(item.value)) / 100;
-
-  // if ((ruleForm.subtotal || 0) == 0) {
-  //   ruleForm
-  // }
+  ruleForm.total_amount = amount;
+  ruleForm.display_total_amount = formatCurrencyID(amount, 0);
 };
 
 const getInvoiceDownPaymentLabel = computed(() => {
@@ -2208,6 +2403,7 @@ const getHistoryInvoices = async () => {
 };
 
 const onHandleSelectReference = async (item: any) => {
+  loading.value = true;
   if (ruleForm.reference == "other") {
     ruleForm.reference_number = item.data;
   } else if (ruleForm.reference === FinanceReference.SALES) {
@@ -2265,7 +2461,8 @@ const onHandleSelectReference = async (item: any) => {
         updated_at: 0,
       });
     });
-    ruleForm.subtotal = po.total_price;
+    // ruleForm.subtotal = po.total_price;
+
     ruleForm.billing_address_id = po.address?.unique_id ?? "";
     ruleForm.billing_address_view = po.address?.address_name ?? "";
     ruleForm.billing_address_version = po.address?.version || 1;
@@ -2277,9 +2474,14 @@ const onHandleSelectReference = async (item: any) => {
 
     request_search_do.value.uid_po = po.unique_id;
 
+    
+    references.value = po.reference_transaction.map((value) => ({...value, reference: ReferenceAdjustment.INVOICE, reference_id: ''}));
+    console.log('reference', references.value);
+
     // ruleForm.invoice_item[index].item_id = data.unique_id;
     // ruleForm.invoice_item[index].item_name = data.name ?? '';
     // ruleForm.invoice_item[index].item_version = data.version ?? 0;
+    updateTotalAmount();
     visibleModalPurchaseOrder.value = false;
   } else {
     if (item.isNew) {
@@ -2290,6 +2492,7 @@ const onHandleSelectReference = async (item: any) => {
       // ruleForm.order_id = po.id
     }
   }
+  loading.value = true;
 };
 
 const handleCreateCatalogue = async (data: any): Promise<Catalogue | null> => {
@@ -2459,7 +2662,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       loading.value = true;
       try {
         // Calculate final amounts
-        updateTotalAmount();
+        // updateTotalAmount();
 
         // if (paymentTerms.value.length > 0 && ruleForm.payment_term_id == "") {
         //   ElMessage.error("Pilih TOP Terlebih Dahulu!!");
@@ -2536,8 +2739,8 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         formData.append("status", ruleForm.status);
         formData.append("received_date", String(receivedDate.getTime() / 1000));
         formData.append("subtotal", (ruleForm.subtotal || 0).toString());
-        formData.append("total_amount", paidAmount.value.toString());
-        formData.append("paid_amount", paidAmount.value.toString());
+        formData.append("total_amount", ruleForm.total_amount.toString());
+        formData.append("paid_amount", ruleForm.total_amount.toString());
         formData.append("payment_term_id", `${ruleForm.payment_term_id}`);
         formData.append("is_performa", `${ruleForm.is_performa}`);
         formData.append("is_termin", `${ruleForm.is_termin}`);
@@ -2954,5 +3157,17 @@ onMounted(() => {
 }
 :deep(.el-input-number) {
   width: 100% !important;
+}
+:deep(.no-border-input .el-input__wrapper) {
+  box-shadow: none !important;
+  border: none !important;
+  border-bottom: 1px solid #dcdfe6 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+:deep(.no-border-input .el-input__inner) {
+  text-align: right;
 }
 </style>

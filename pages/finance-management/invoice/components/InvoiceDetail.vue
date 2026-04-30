@@ -35,7 +35,7 @@
             >
               <el-icon class="me-2"><CircleCheck /></el-icon> Mark as Paid
             </el-button>
-            <el-dropdown @command="handleStatus">
+            <!-- <el-dropdown @command="handleStatus">
               <el-button type="default">
                 Ubah Status<el-icon class="el-icon--right"
                   ><arrow-down
@@ -57,9 +57,21 @@
                   >
                 </el-dropdown-menu>
               </template>
-            </el-dropdown>
-            <el-button type="primary" @click="generateInvoicePDF">
+            </el-dropdown> -->
+            <el-button
+              type="primary"
+              style="margin-left: 0px"
+              @click="generateInvoicePDF"
+            >
               Cetak Invoice
+            </el-button>
+            <el-button
+              type="success"
+              style="margin-left: 0px"
+              @click="() => (dialogFakturPajak = true)"
+              :icon="Upload"
+            >
+              Upload Faktur Pajak
             </el-button>
             <el-button
               type="success"
@@ -159,11 +171,19 @@
                 }}
               </el-tag>
             </el-descriptions-item>
+            <el-descriptions-item
+              label="Status"
+              v-if="data?.data?.status == PaymentStatus.PAID"
+            >
+              <el-tag :type="getStatusTagType(data?.data?.status)">
+                {{ data?.data?.status.toUpperCase() }}
+              </el-tag>
+            </el-descriptions-item>
           </el-descriptions>
         </div>
       </div>
 
-      <el-descriptions
+      <!-- <el-descriptions
         title="Alamat Penagihan"
         v-if="data?.data?.billing_address"
       >
@@ -179,6 +199,34 @@
         <el-descriptions-item label="">{{
           data.data.notes
         }}</el-descriptions-item>
+      </el-descriptions> -->
+
+      <h5 class="font-bold text-black text-1xl mt-6">Alamat Penagihan</h5>
+      <span class="text-sm text-gray-500 pl-5">{{
+        data?.data?.billing_address
+          ? generateAddressView(data?.data?.billing_address) +
+            `, ${data.data.billing_address?.codepos}`
+          : "-"
+      }}</span>
+      <h5 class="font-bold text-black text-1xl mt-6">Catatan</h5>
+      <span
+        class="text-sm text-gray-500 flex flex-col p-2"
+        v-html="`${formattedText(data?.data?.notes ?? '')}`"
+      ></span>
+      <h5 class="font-bold text-black text-1xl mt-6">Lampiran</h5>
+      <el-descriptions title="" :column="1" size="small" border>
+        <el-descriptions-item
+          :label="`[${getDisplayFileType(file.type)}]`"
+          v-for="(file, key) in data?.data?.files"
+          :key="key"
+        >
+          <NuxtLink
+            class="text-blue-600 text-sm pl-5"
+            :href="`${imageUrl}/${file.image_path}/${file.filename}`"
+            target="_blank"
+            >{{ file.filename_original }}</NuxtLink
+          >
+        </el-descriptions-item>
       </el-descriptions>
     </el-card>
 
@@ -259,14 +307,14 @@
 
       <el-descriptions :column="1" border>
         <el-descriptions-item :width="100" label="Total Price" align="right">{{
-          currency(totalAmount || 0)
+          currency(totalAmount || 0, 0)
         }}</el-descriptions-item>
         <el-descriptions-item
           :width="100"
           v-if="data?.data?.payment_terms"
           :label="data?.data?.payment_terms?.name"
           align="right"
-          >{{ currency(data?.data?.subtotal || 0) }}</el-descriptions-item
+          >{{ currency(data?.data?.subtotal || 0, 0) }}</el-descriptions-item
         >
         <el-descriptions-item
           :width="100"
@@ -279,7 +327,7 @@
           :key="ref.adjustment_id"
           :label="ref.adjustments_transaction?.name ?? ''"
           >{{
-            currency(showTransactionAdjustmentValue(ref))
+            currency(showTransactionAdjustmentValue(ref), 0)
           }}</el-descriptions-item
         >
 
@@ -305,7 +353,7 @@
           :key="ref.adjustment_id"
           :label="ref.adjustments_transaction?.name ?? ''"
           >{{
-            currency(showTransactionAdjustmentValue(ref))
+            currency(showTransactionAdjustmentValue(ref), 0)
           }}</el-descriptions-item
         >
         <el-descriptions-item
@@ -319,7 +367,7 @@
           :key="ref.adjustment_id"
           :label="ref.adjustments_transaction?.name ?? ''"
           >{{
-            currency(showTransactionAdjustmentValue(ref))
+            currency(showTransactionAdjustmentValue(ref), 0)
           }}</el-descriptions-item
         >
         <!-- <el-descriptions-item
@@ -337,7 +385,7 @@
           >{{ currency(paidAmount) }}</el-descriptions-item
         > -->
         <el-descriptions-item :width="100" label="Grand Total" align="right">{{
-          currency(paidAmount)
+          currency(data?.data?.total_amount || 0)
         }}</el-descriptions-item>
       </el-descriptions>
     </el-card>
@@ -416,11 +464,45 @@
         </div>
       </template>
     </el-dialog>
+    <el-dialog
+      v-model="dialogFakturPajak"
+      title="Upload Faktu Pajak"
+      width="800"
+    >
+      <el-upload
+        class="upload-demo"
+        drag
+        :file-list="internalFileList"
+        :on-change="handleChangeUploadFile"
+        :auto-upload="false"
+        :disabled="loading || status == 'pending'"
+      >
+        <el-icon class="el-icon--upload"><upload-filled /></el-icon>
+        <div class="el-upload__text">
+          Drop directory here or <em>click to upload</em>
+        </div>
+      </el-upload>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="dialogFakturPajak = false">Cancel</el-button>
+          <el-button type="primary" @click="submitFakturPajak">
+            Simpan
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script lang="tsx" setup>
-import { Delete, Edit, CircleCheck, ArrowDown } from "@element-plus/icons-vue";
+import {
+  Delete,
+  Edit,
+  CircleCheck,
+  ArrowDown,
+  Upload,
+  UploadFilled,
+} from "@element-plus/icons-vue";
 import { twCookie } from "nuxt-twemoji/emojis";
 import type { AddressType } from "~/types/address";
 import { PaymentStatus, PaymentMethod } from "~/types/finance/bill";
@@ -439,7 +521,13 @@ import type { PurchaseOrder } from "~/types/scm/purchase_order";
 import { autoTable, type RowInput } from "jspdf-autotable";
 import type { ReferenceTransactionAdjustment } from "~/types/attribute_adjustment";
 import { generateAddressView, currency } from "#imports";
-import type { FormInstance } from "element-plus";
+import type { FormInstance, UploadProps, UploadUserFile } from "element-plus";
+import {
+  AppFileReference,
+  AppFileType,
+  getDisplayFileType,
+} from "~/types/file";
+import { formattedText } from "#imports";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -450,6 +538,9 @@ definePageMeta({
 const router = useRouter();
 const route = useRoute();
 const invoiceId = ref<string>(route.params.id as string);
+
+const config = useRuntimeConfig();
+const imageUrl = config.public.baseImageURL;
 
 // Loading animation SVG
 const svg = `
@@ -465,7 +556,10 @@ const svg = `
 
 const loading = ref(false);
 const dialogDecision = ref(false);
+const dialogFakturPajak = ref<boolean>(false);
 // const invoiceData = ref<Invoice | null>(null);
+
+const internalFileList = ref<UploadUserFile[]>([]);
 
 const ruleFormRef = ref<FormInstance>();
 const ruleFormDecision = reactive<{
@@ -514,6 +608,14 @@ const pdfBlob = ref<Blob | null>(null);
 const showPrevInvoice = ref(false);
 
 const goBack = () => router.back();
+
+const handleChangeUploadFile: UploadProps["onChange"] = (
+  uploadFile,
+  uploadFiles
+) => {
+  console.log("file upload", uploadFiles);
+  internalFileList.value = uploadFiles; // Memicu watch dan emit ke parent
+};
 
 // Calculation functions
 const calculateSubtotal = () => {
@@ -591,6 +693,47 @@ const submitDecision = async (formEl: FormInstance | undefined) => {
       handleStatus(ruleFormDecision.status);
     }
   });
+};
+
+const submitFakturPajak = async () => {
+  loading.value = true;
+
+  if (internalFileList.value.length == 0) {
+    loading.value = false;
+    ElMessage.error("Upload Faktur Pajak Terlebih Dahulu!");
+    return;
+  }
+
+  try {
+    const formData = new FormData();
+
+    formData.append("unique_id", `${data.value?.data?.unique_id}`);
+    formData.append("status", `${PaymentStatus.RECEIVED}`);
+
+    formData.append("files[0][reference]", AppFileReference.INVOICES);
+    formData.append(
+      "files[0][reference_id]",
+      data.value?.data?.unique_id ?? ""
+    );
+    formData.append("files[0][type]", AppFileType.FAKTUR_PAJAK);
+    formData.append("files[0]", internalFileList.value[0].raw as Blob);
+
+    const response = await useFetchApi(
+      "/invoice-create",
+      "upload-file-faktur",
+      "post",
+      formData
+    );
+    if (response.status.value === "success") {
+      ElMessage.success("Berhasil Upload Faktur Pajak!");
+      dialogFakturPajak.value = false;
+      refresh();
+    }
+  } catch (error: any) {
+    ElMessage.error("Gagal Upload Faktu Pajak");
+  } finally {
+    loading.value = false;
+  }
 };
 
 const sendApproval = async () => {
@@ -875,11 +1018,7 @@ const generatePDF = async () => {
   const pageWidth = doc.internal.pageSize.getWidth();
   const marginX = 10;
 
-  const formatted = today.toLocaleDateString("id-ID", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+  const formatted = formatLocalDate(data.value?.data?.invoice_date!);
 
   // Logo
   const imgLogo = await getBase64ImageFromUrl("/images/trumecs-logo.png"); // path logo (public/logo.png)

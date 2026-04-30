@@ -151,14 +151,35 @@
           </el-autocomplete>
         </el-form-item>
 
-        <!-- Bank Information Section -->
         <el-divider />
-        <h3 class="text-lg font-medium mb-4">
+        <el-form-item label="Metode Pembayaran" prop="payment_method">
+          <el-select
+            v-model="ruleForm.payment_method"
+            placeholder="Select payment method"
+          >
+            <el-option
+              v-for="method in paymentMethods"
+              :key="method.value"
+              :label="method.label"
+              :value="method.value"
+            />
+          </el-select>
+        </el-form-item>
+        <el-divider />
+
+        <h3
+          class="text-lg font-medium mb-4"
+          v-if="ruleForm.payment_method === PaymentMethod.BankTransfer"
+        >
           Informasi Bank
           {{ ruleForm.type === "income" ? "Penerima" : "Pengirim" }}
         </h3>
 
-        <el-form-item label="Rekening Bank" prop="account_bank_name">
+        <el-form-item
+          label="Rekening Bank"
+          prop="account_bank_name"
+          v-if="ruleForm.payment_method === PaymentMethod.BankTransfer"
+        >
           <el-autocomplete
             v-model="ruleForm.account_bank_name!"
             :fetch-suggestions="querySearchBanks"
@@ -206,7 +227,9 @@
           </el-autocomplete>
         </el-form-item>
 
-        <el-divider />
+        <el-divider
+          v-if="ruleForm.payment_method === PaymentMethod.BankTransfer"
+        />
         <!-- <h3 class="text-lg font-medium mb-4">File Lampiran</h3> -->
 
         <el-form-item label="File Lampiran" prop="files">
@@ -422,6 +445,10 @@ interface ListItem {
 }
 
 const options = ref<ListItem[]>([]);
+const paymentMethods = [
+  { value: PaymentMethod.Cash, label: "Cash" },
+  { value: PaymentMethod.BankTransfer, label: "Bank Transfer" },
+];
 
 const ruleForm = reactive<Transaction>({
   unique_id: "",
@@ -455,6 +482,8 @@ const ruleForm = reactive<Transaction>({
   account_to_name: "",
   account_to_version: 0,
   display_amount: formatCurrencyID(0),
+
+  payment_method: PaymentMethod.Cash,
 });
 
 // // Calculate total amacount from items
@@ -618,7 +647,7 @@ const querySearchReference = (
       table: "invoices",
       column: [
         {
-          status: ["received", "performa", "draft"],
+          // status: ["received", "performa", "draft"],
           type: ["out"],
         },
       ],
@@ -630,14 +659,14 @@ const querySearchReference = (
     if (ruleForm.type == "income") {
       request_search.column = [
         {
-          status: ["received", "performa"],
+          // status: ["received", "performa", "draft"],
           type: ["out"],
         },
       ];
     } else if (ruleForm.type == "expense") {
       request_search.column = [
         {
-          status: ["received", "performa"],
+          // status: ["received", "performa", "draft"],
           type: ["in"],
         },
       ];
@@ -988,6 +1017,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           account_bank_number: ruleForm.account_bank_number,
           account_bank_to_number: ruleForm.account_bank_to_number,
           account_bank_to_name: ruleForm.account_bank_to_name,
+          payment_method: ruleForm.payment_method,
 
           transaction_items: ruleForm.transaction_items.map((value) => ({
             reference: value.reference,
@@ -1011,6 +1041,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         formData.append("account_id", `${payload.account_id}`);
         formData.append("account_name", `${payload.account_name}`);
 
+        formData.append("payment_method", `${payload.payment_method}`);
         formData.append("recipient_bank", `${payload.recipient_bank}`);
         formData.append("account_bank_name", `${payload.accont_bank_name}`);
         formData.append(

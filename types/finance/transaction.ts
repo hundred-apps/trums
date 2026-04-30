@@ -2,6 +2,7 @@ import type { BankAccount } from "../bank_account";
 import type { AppFile } from "../file";
 import type { People } from "../people";
 import type { Account } from "./account";
+import type { PaymentMethod } from "./bill";
 
 export enum TransactionBankReference {
   PURCHASEORDER = "purchase_order",
@@ -35,6 +36,8 @@ export type Transaction = {
   account_bank_number: string | null;
   account_bank_version?: number;
 
+  bank_account?: BankAccount;
+
   recipient_bank_to?: string;
   recipient_bank_to_version?: number;
 
@@ -56,7 +59,7 @@ export type Transaction = {
   created_by: string;
   files?: AppFile[];
   checked?: boolean;
-
+  payment_method?: PaymentMethod;
   people?: People;
 };
 

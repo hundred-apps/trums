@@ -132,7 +132,10 @@ const availableColumn: ColumnTable<Inquiry>[] = [
     dataKey: "unique_code",
     key: "unique_code",
     cellRenderer: ({ rowData: row }) => (
-      <NuxtLink href={`inquiry/${row.unique_id}`} class={"text-blue-600"}>
+      <NuxtLink
+        href={`/sales/inquiry/${row.unique_id}`}
+        class={"text-blue-600"}
+      >
         {row.unique_code}
       </NuxtLink>
     ),

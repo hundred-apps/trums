@@ -78,8 +78,10 @@
                 {{ currency(transactionData?.amount || 0) }}
               </span>
             </el-descriptions-item>
-            <el-descriptions-item label="Bank">
-              {{ transactionData?.account_bank_name || "-" }}
+            <el-descriptions-item label="Metode Pembayaran">
+              {{
+                getPaymentMethodLabel(transactionData?.payment_method!) || "-"
+              }}
             </el-descriptions-item>
             <el-descriptions-item label="Dibuat Oleh">
               {{ transactionData?.people?.name || "-" }}
@@ -110,6 +112,17 @@
       <el-descriptions title="Description">
         <el-descriptions-item label="">
           {{ transactionData?.description || "-" }}
+        </el-descriptions-item>
+      </el-descriptions>
+      <el-descriptions title="Informasi Bank" :column="1" class="mt-5">
+        <el-descriptions-item label="Bank">
+          {{ transactionData?.bank_account?.bank_name || "-" }}
+        </el-descriptions-item>
+        <el-descriptions-item label="Nama">
+          {{ transactionData?.bank_account?.account_name || "-" }}
+        </el-descriptions-item>
+        <el-descriptions-item label="Number">
+          {{ transactionData?.bank_account?.account_number || "-" }}
         </el-descriptions-item>
       </el-descriptions>
     </el-card>
@@ -208,6 +221,7 @@ import type { Transaction, TransactionItem } from "~/types/finance/transaction";
 import type { BaseResponse } from "~/types/response";
 import { formatLocalDate, currency } from "#imports";
 import { useCookie } from "#imports";
+import { getPaymentMethodLabel, PaymentMethod } from "~/types/finance/bill";
 
 definePageMeta({
   middleware: ["auth", "check-access"],

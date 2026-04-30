@@ -2,6 +2,7 @@ import type { AddressType } from "../address";
 import type { ReferenceTransactionAdjustment } from "../attribute_adjustment";
 import type { Catalogue } from "../catalogue";
 import type { Contact } from "../contact";
+import type { AppFile } from "../file";
 import type { TermOfPayment } from "../payment_term";
 import type { People } from "../people";
 import type { PaymentTerm } from "../scm/canvasing";
@@ -14,6 +15,7 @@ export enum FinanceReference {
   PURCHASE_ORDER = "purchase_order",
   OTHER = "other",
 }
+
 export type StatisticInvoice = {
   total_invoices: number;
   total_nominal: number;
@@ -70,6 +72,8 @@ export type Invoice = {
 
   subtotal?: number;
   total_amount: number;
+  tmp_round?: number;
+  display_total_amount?: string;
   paid_amount?: number;
 
   invoice_item: InvoiceItem[];
@@ -107,6 +111,8 @@ export type Invoice = {
   decision_note?: string;
   is_performa?: boolean;
   is_termin?: boolean;
+
+  files?: AppFile[];
 };
 
 export type InvoiceItem = {
