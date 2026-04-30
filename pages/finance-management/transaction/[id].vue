@@ -121,7 +121,7 @@
         <el-descriptions-item label="Nama">
           {{ transactionData?.bank_account?.account_name || "-" }}
         </el-descriptions-item>
-        <el-descriptions-item label="Number">
+        <el-descriptions-item label="Nomor Rekening">
           {{ transactionData?.bank_account?.account_number || "-" }}
         </el-descriptions-item>
       </el-descriptions>
