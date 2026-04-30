@@ -73,7 +73,7 @@
           size="default"
           :loading-icon="Eleme"
           :loading="loading"
-          @click="fetchData"
+          @click="onRefreshData"
         >
           Muat Ulang
         </el-button>
@@ -177,12 +177,19 @@ const statistic = await useFetchApi<BaseResponse<PurchaseOrderStatistic>>(
 );
 
 // Data state
-const { data } = await useFetchApi<ResponsePagination<PurchaseOrder[]>>(
-  "/search",
+const { data, refresh, status } = await useAsyncData(
   "search-purchase-order",
-  "post",
-  request_search.value
+  async () => {
+    const res = await useFetchApi<ResponsePagination<PurchaseOrder[]>>(
+      `/search`,
+      "search-purchase-order",
+      "post",
+      request_search.value
+    );
+    return res.data.value;
+  }
 );
+
 const selectedPurchaseOrders = ref<PurchaseOrder[]>([]);
 const loading = ref<boolean>(false);
 const columnsSelected = ref<string[]>([
@@ -485,12 +492,10 @@ const handleSelectionChange = (selection: PurchaseOrder[]) => {
 
 const handlePageChange = (page: number) => {
   request_search.value.offset = `${page}`;
-  fetchData();
 };
 
 const handleSizeChange = (size: number) => {
   request_search.value.limit = `${size}`;
-  fetchData();
 };
 
 const onDelete = async (uniques: string[]) => {
@@ -503,7 +508,7 @@ const onDelete = async (uniques: string[]) => {
       uniques
     );
     if (response.status.value === "success") {
-      await fetchData();
+      await onRefreshData();
     }
   } catch (error) {
     ElMessage.error("Gagal menghapus purchase order");
@@ -531,16 +536,13 @@ const onSort = async (sortBy: { prop: string; order: string }) => {
   };
 };
 
-// Fetch data
-const fetchData = async () => {
-  refreshNuxtData("search-purchase-order");
-};
+const onRefreshData = () => refresh();
 
 // Watch search query
 watchDebounced(
-  request_search,
+  () => request_search.value,
   () => {
-    fetchData();
+    onRefreshData();
   },
   { debounce: 500, deep: true }
 );

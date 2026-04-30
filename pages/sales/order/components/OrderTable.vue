@@ -78,7 +78,7 @@ const emit = defineEmits<{
 // var data;
 
 // Data state
-const { data, pending, refresh } = await useAsyncData(
+const { data, status, refresh } = await useAsyncData(
   props.refreshKey,
   async () => {
     const res = await useFetchApi<ResponsePagination<PurchaseOrder[]>>(
@@ -360,10 +360,10 @@ watch(
   { deep: true }
 );
 watch(
-  () => pending.value,
+  () => status.value,
   (val) => {
     emit("on-success", data.value);
-    emit("on-pending", val);
+    emit("on-pending", val == "pending");
   },
   { immediate: true }
 );

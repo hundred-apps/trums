@@ -191,6 +191,12 @@ const onRefresh = () => {
   refreshTrigger.value++;
 };
 
+watch(
+  () => request_search.value,
+  () => refreshTrigger.value++,
+  { deep: true }
+);
+
 onMounted(() => {});
 </script>
 
