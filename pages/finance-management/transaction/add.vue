@@ -280,11 +280,12 @@
                 <div v-else>
                   <p style="line-height: 15px" class="font-bold">
                     {{
-                      row.reference == "invoice"
-                        ? suggestion.customer_name
-                        : row.reference == "bill"
-                        ? suggestion.vendor_name
-                        : ""
+                      // row.reference == "invoice"
+                      //   ? suggestion.customer_name
+                      //   : row.reference == "bill"
+                      //   ? suggestion.vendor_name
+                      //   : ""
+                      suggestion.customer_name || suggestion.vendor_name || ""
                     }}
                   </p>
                   <p>
