@@ -639,12 +639,6 @@
               }
             "
           >
-            <!-- <template #prepend>
-              <el-button :icon="Minus" />
-            </template>
-            <template #append>
-              <el-button :icon="Plus" />
-            </template> -->
           </el-input>
         </el-descriptions-item>
       </el-descriptions>
@@ -1113,6 +1107,7 @@ const ruleForm = reactive<Invoice>({
   reference_id: null,
   reference_number: null,
   total_amount: 0,
+  tmp_round: 0,
   display_total_amount: formatCurrencyID(0),
   subtotal: 0,
   paid_amount: 0,
@@ -1581,6 +1576,7 @@ watch(
 
     ruleForm.total_amount = total;
     ruleForm.display_total_amount = formatCurrencyID(total, 0);
+    ruleForm.tmp_round = total;
   },
   { deep: true }
 );
@@ -1731,6 +1727,7 @@ const updateTotalAmount = () => {
   ruleForm.subtotal = amount;
   ruleForm.total_amount = amount;
   ruleForm.display_total_amount = formatCurrencyID(amount, 0);
+  ruleForm.tmp_round = ruleForm.total_amount;
 };
 
 const getInvoiceDownPaymentLabel = computed(() => {
@@ -2475,7 +2472,7 @@ const onHandleSelectReference = async (item: any) => {
     request_search_do.value.uid_po = po.unique_id;
 
     
-    references.value = po.reference_transaction.map((value) => ({...value, reference: ReferenceAdjustment.INVOICE, reference_id: ''}));
+    references.value = po.reference_transaction.map((value) => ({...value, reference: ReferenceAdjustment.INVOICE, reference_id: '', adjustment: value.adjustments_transaction}));
     console.log('reference', references.value);
 
     // ruleForm.invoice_item[index].item_id = data.unique_id;

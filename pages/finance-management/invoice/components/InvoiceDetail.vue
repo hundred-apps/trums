@@ -1380,7 +1380,7 @@ const generatePDF = async () => {
       },
     },
     {
-      content: `${currencyWithoutSymbol(paidAmount.value || 0)}`,
+      content: `${currencyWithoutSymbol(data.value?.data?.total_amount || 0)}`,
       styles: {
         halign: "right",
         cellWidth: 0.0,
@@ -1504,7 +1504,9 @@ const generatePDF = async () => {
   });
   doc.setFont("helvetica", "normal");
   if (data?.value?.data?.type === "in") {
-    doc.text(data?.value?.data?.vendor_name ?? "", rightX, signY + 80);
+    doc.text(data?.value?.data?.vendor_name ?? "", rightX, signY + 40, {
+      align: "center",
+    });
   } else {
     doc.text(
       `${data.value?.data?.approved?.name || "-"},`,

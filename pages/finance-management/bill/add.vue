@@ -282,6 +282,19 @@
           </el-select>
         </el-form-item> -->
 
+        <el-form-item label="Metode Pembayaran" prop="payment_method">
+          <el-select
+            v-model="ruleForm.payment_method"
+            placeholder="Select payment method"
+          >
+            <el-option
+              v-for="method in paymentMethods"
+              :key="method.value"
+              :label="method.label"
+              :value="method.value"
+            />
+          </el-select>
+        </el-form-item>
         <el-form-item label="Rekening Penerima" prop="accont_bank_name">
           <el-autocomplete
             v-model="ruleForm.account_bank_name!"
@@ -513,7 +526,7 @@
 
       <el-descriptions :column="1" border>
         <el-descriptions-item :width="100" label="Total Price" align="right">{{
-          currency(totalAmount || 0)
+          currencyWithoutSymbol(totalAmount || 0, 0)
         }}</el-descriptions-item>
 
         <el-descriptions-item
@@ -521,14 +534,18 @@
           :width="100"
           :label="getInvoiceDownPaymentLabel"
           align="right"
-          >{{ currency(getInvoiceDownPayment || 0) }}</el-descriptions-item
+          >{{
+            currencyWithoutSymbol(getInvoiceDownPayment || 0, 0)
+          }}</el-descriptions-item
         >
         <el-descriptions-item
           v-if="ruleForm.payment_terms && ruleForm.is_termin"
           :width="100"
           :label="ruleForm.payment_terms?.name"
           align="right"
-          >{{ currency(ruleForm.subtotal || 0) }}</el-descriptions-item
+          >{{
+            currencyWithoutSymbol(ruleForm.subtotal || 0, 0)
+          }}</el-descriptions-item
         >
 
         <el-descriptions-item
@@ -542,7 +559,7 @@
           :key="ref.adjustment_id"
           :label="ref.adjustment?.name ?? ''"
           >{{
-            currency(showTransactionAdjustmentValue(ref))
+            currencyWithoutSymbol(showTransactionAdjustmentValue(ref), 0)
           }}</el-descriptions-item
         >
         <el-descriptions-item
@@ -556,7 +573,7 @@
           :width="100"
           label="Subtotal"
           align="right"
-          >{{ currency(totalPlus) }}</el-descriptions-item
+          >{{ currencyWithoutSymbol(totalPlus, 0) }}</el-descriptions-item
         >
         <el-descriptions-item
           :width="100"
@@ -567,7 +584,7 @@
           :key="ref.adjustment_id"
           :label="ref.adjustment?.name ?? ''"
           >{{
-            currency(showTransactionAdjustmentValue(ref))
+            currencyWithoutSymbol(showTransactionAdjustmentValue(ref), 0)
           }}</el-descriptions-item
         >
         <el-descriptions-item
@@ -581,7 +598,7 @@
           :key="ref.adjustment_id"
           :label="ref.adjustment?.name ?? ''"
           >{{
-            currency(showTransactionAdjustmentValue(ref))
+            currencyWithoutSymbol(showTransactionAdjustmentValue(ref), 0)
           }}</el-descriptions-item
         >
         <!-- <el-descriptions-item
@@ -589,20 +606,108 @@
           v-if="ruleForm.payment_terms"
           :label="ruleForm.payment_terms.name"
           align="right"
-          >{{ currency(paidAmount) }}</el-descriptions-item
+          >{{ currencyWithoutSymbol(paidAmount, 0) }}</el-descriptions-item
         >
         <el-descriptions-item
           :width="100"
           v-if="!ruleForm.payment_terms"
           label="Grand Total"
           align="right"
-          >{{ currency(paidAmount) }}</el-descriptions-item
+          >{{ currencyWithoutSymbol(paidAmount, 0) }}</el-descriptions-item
         > -->
 
-        <el-descriptions-item :width="100" label="Grand Total" align="right">{{
-          currency(paidAmount)
-        }}</el-descriptions-item>
+        <!-- <el-descriptions-item :width="100" label="Grand Total" align="right">{{
+          currencyWithoutSymbol(paidAmount, 0)
+        }}</el-descriptions-item> -->
+
+        <el-descriptions-item label="Grand Total" align="right">
+          <el-input
+            v-model="ruleForm.display_total_amount"
+            style="max-width: 600px"
+            class="no-border-input text-right"
+            @input="
+              (val) => {
+                const parsed = parseCurrencyID(val);
+                ruleForm.total_amount = parsed;
+                ruleForm.display_total_amount = formatCurrencyID(parsed);
+                // calculateAmount(scope.$index);
+              }
+            "
+            @blur="
+              () => {
+                ruleForm.display_total_amount = formatCurrencyID(
+                  ruleForm.total_amount
+                );
+                // calculateAmount(scope.$index);
+              }
+            "
+          >
+          </el-input>
+        </el-descriptions-item>
       </el-descriptions>
+      <div
+        class="flex my-2 justify-end items-center gap-2"
+        v-if="ruleForm.total_amount > 0"
+      >
+        <div class="flex gap-2">
+          <el-check-tag
+            size="small"
+            round
+            @change="
+              () => {
+                ruleForm.total_amount =
+                  Math.floor((ruleForm.tmp_round || 0) / 100) * 100;
+                ruleForm.display_total_amount = formatCurrencyID(
+                  ruleForm.total_amount
+                );
+                console.log('tmp round', ruleForm.tmp_round);
+                console.log('total amount', ruleForm.total_amount);
+              }
+            "
+            ><span class="text-xs text-blue-500"
+              >{{
+                currencyWithoutSymbol(
+                  Math.floor((ruleForm.tmp_round || 0) / 100) * 100,
+                  0
+                )
+              }}
+            </span></el-check-tag
+          >
+          <el-check-tag
+            size="small"
+            round
+            @change="
+              () => {
+                ruleForm.total_amount =
+                  Math.ceil((ruleForm.tmp_round || 0) / 100) * 100;
+                ruleForm.display_total_amount = formatCurrencyID(
+                  ruleForm.total_amount
+                );
+              }
+            "
+            ><span class="text-xs text-blue-500"
+              >{{
+                currencyWithoutSymbol(
+                  Math.ceil((ruleForm.tmp_round || 0) / 100) * 100,
+                  0
+                )
+              }}
+            </span></el-check-tag
+          >
+        </div>
+        <!-- <el-icon
+          color="#3B82F6"
+          class="cursor-pointer"
+          @click="() => handleEditAddress(billing_address!, 'customer')"
+          ><Check color="primary"
+        /></el-icon>
+        <el-icon
+          color="#EF4444"
+          class="cursor-pointer"
+          @click="() => handleEditAddress(billing_address!, 'customer')"
+          ><Close color="danger"
+        /></el-icon> -->
+      </div>
     </el-card>
 
     <ModalAdjustmentTransaction
@@ -824,6 +929,7 @@ import {
   currency,
   formatCurrencyID,
   generateAddressView,
+  currencyWithoutSymbol,
 } from "#imports";
 import type { TermOfPayment } from "~/types/payment_term";
 import AdjustmentTransactionComponent from "~/components/trums/AdjustmentTransactionComponent.vue";
@@ -924,7 +1030,7 @@ const ruleForm = reactive<Invoice>({
   pic_name: "",
   pic_version: 0,
   type: "in",
-  status: PaymentStatus.DRAFT,
+  status: PaymentStatus.RELEASE,
 
   invoice_item: [
     {
@@ -1013,9 +1119,9 @@ const rules = reactive({
   vendor_name: [
     { required: true, message: "Please select a publisher", trigger: "blur" },
   ],
-  pic_name: [
-    { required: true, message: "Please select a PIC", trigger: "blur" },
-  ],
+  // pic_name: [
+  //   { required: true, message: "Please select a PIC", trigger: "blur" },
+  // ],
   payment_term_id: [
     { required: true, message: "Please select a TOP", trigger: "blur" },
   ],
@@ -1447,20 +1553,35 @@ watch(
     ruleForm.total_amount = amount + referenceTotal;
   }
 );
-watch(references, (newValue) => {
-  let amount: number = ruleForm.subtotal || 0;
-  let referenceTotal: number = 0;
+watch(
+  () => references.value,
+  () => {
+    let total = totalPlus.value || 0;
+    (references.value || [])
+      .filter((value) => value.adjustment?.operator == "minus")
+      .forEach((element) => {
+        total =
+          (totalPlus.value || 0) - showTransactionAdjustmentValue(element);
+      });
+    (references.value || [])
+      .filter(
+        (value) =>
+          value.adjustment?.category == "transform" ||
+          value.adjustment?.category == "tax"
+      )
+      .forEach((element) => {
+        if (element.include == false) {
+          total =
+            (totalPlus.value || 0) + showTransactionAdjustmentValue(element);
+        }
+      });
 
-  references.value.forEach((element) => {
-    if (element.type == "amount") {
-      referenceTotal += Number(element.amount);
-    } else {
-      referenceTotal += displayAmount(element, amount);
-    }
-  });
-
-  ruleForm.total_amount = amount + referenceTotal;
-});
+    ruleForm.total_amount = total;
+    ruleForm.display_total_amount = formatCurrencyID(total, 0);
+    ruleForm.tmp_round = total;
+  },
+  { deep: true }
+);
 
 // const getHi
 
@@ -1556,6 +1677,9 @@ const updateTotalAmount = () => {
   }
 
   ruleForm.subtotal = amount;
+  ruleForm.total_amount = amount;
+  ruleForm.display_total_amount = formatCurrencyID(amount, 0);
+  ruleForm.tmp_round = ruleForm.total_amount;
 
   // ruleForm.paid_amount =
   //     (Number(ruleForm.subtotal) * Number(item.value)) / 100;
@@ -2277,14 +2401,18 @@ const onHandleSelectReference = async (item: any) => {
       po.address?.unique_id ?? ""
     );
     paymentTerms.value = po.payment_terms ?? [];
+    references.value = po.reference_transaction.map((value) => ({
+      ...value,
+      reference: ReferenceAdjustment.INVOICE,
+      reference_id: "",
+      adjustment: value.adjustments_transaction,
+    }));
 
     getHistoryInvoices();
 
     request_search_do.value.uid_po = po.unique_id;
 
-    // ruleForm.invoice_item[index].item_id = data.unique_id;
-    // ruleForm.invoice_item[index].item_name = data.name ?? '';
-    // ruleForm.invoice_item[index].item_version = data.version ?? 0;
+    updateTotalAmount();
     visibleModalPurchaseOrder.value = false;
   } else {
     if (item.isNew) {
@@ -2464,7 +2592,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       loading.value = true;
       try {
         // Calculate final amounts
-        updateTotalAmount();
+        // updateTotalAmount();
 
         // if (paymentTerms.value.length > 0 && ruleForm.payment_term_id == "") {
         //   ElMessage.error("Pilih TOP Terlebih Dahulu!!");
@@ -2541,8 +2669,8 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         formData.append("status", ruleForm.status);
         formData.append("received_date", String(receivedDate.getTime() / 1000));
         formData.append("subtotal", (ruleForm.subtotal || 0).toString());
-        formData.append("total_amount", paidAmount.value.toString());
-        formData.append("paid_amount", paidAmount.value.toString());
+        formData.append("total_amount", ruleForm.total_amount.toString());
+        formData.append("paid_amount", ruleForm.total_amount.toString());
         formData.append("payment_term_id", `${ruleForm.payment_term_id}`);
         formData.append("is_performa", `${ruleForm.is_performa}`);
         formData.append("is_termin", `${ruleForm.is_termin}`);
@@ -2953,5 +3081,18 @@ onMounted(() => {
 }
 :deep(.el-input-number) {
   width: 100% !important;
+}
+
+:deep(.no-border-input .el-input__wrapper) {
+  box-shadow: none !important;
+  border: none !important;
+  border-bottom: 1px solid #dcdfe6 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+
+:deep(.no-border-input .el-input__inner) {
+  text-align: right;
 }
 </style>

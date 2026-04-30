@@ -111,7 +111,7 @@
                   : formatLocalDate(data?.data?.invoice_date)
               }}
             </el-descriptions-item>
-            <el-descriptions-item label="Tenggat Waktu">
+            <!-- <el-descriptions-item label="Tenggat Waktu">
               {{
                 data?.data?.due_date != null &&
                 data.data.due_date > 0 &&
@@ -119,7 +119,7 @@
                   ? formatLocalDate(data?.data?.due_date)
                   : "-"
               }}
-            </el-descriptions-item>
+            </el-descriptions-item> -->
             <el-descriptions-item label="Reference">
               {{ data?.data?.data_reference?.unique_code ?? "-" }}
             </el-descriptions-item>
@@ -130,14 +130,14 @@
             <el-descriptions-item label="Penerbit">
               {{ data?.data?.vendor?.name ?? "" }}
             </el-descriptions-item>
-            <el-descriptions-item label="Status">
+            <!-- <el-descriptions-item label="Status">
               <el-tag
                 :type="
                   getStatusTagType(data?.data?.status ?? PaymentStatus.DRAFT)
                 "
                 >{{ formatStatus(data?.data?.status ?? null) }}</el-tag
               >
-            </el-descriptions-item>
+            </el-descriptions-item> -->
             <el-descriptions-item
               label="Pembayaran"
               v-if="data?.data?.payment_term_id"
@@ -163,22 +163,32 @@
         </div>
       </div>
 
-      <el-descriptions
-        title="Alamat Penagihan"
-        v-if="data?.data?.billing_address"
-      >
-        <el-descriptions-item label="">{{
-          data?.data?.billing_address
-            ? generateAddressView(data?.data?.billing_address) +
-              `, ${data.data.billing_address?.codepos}`
-            : "-"
-        }}</el-descriptions-item>
-      </el-descriptions>
-
-      <el-descriptions title="Catatan" v-if="data?.data?.notes">
-        <el-descriptions-item label="">{{
-          data.data.notes
-        }}</el-descriptions-item>
+      <h5 class="font-bold text-black text-1xl mt-6">Alamat Penagihan</h5>
+      <span class="text-sm text-gray-500 pl-5">{{
+        data?.data?.billing_address
+          ? generateAddressView(data?.data?.billing_address) +
+            `, ${data.data.billing_address?.codepos}`
+          : "-"
+      }}</span>
+      <h5 class="font-bold text-black text-1xl mt-6">Catatan</h5>
+      <span
+        class="text-sm text-gray-500 flex flex-col p-2"
+        v-html="`${formattedText(data?.data?.notes ?? '')}`"
+      ></span>
+      <h5 class="font-bold text-black text-1xl mt-6">Lampiran</h5>
+      <el-descriptions title="" :column="1" size="small" border>
+        <el-descriptions-item
+          :label="`[${getDisplayFileType(file.type)}]`"
+          v-for="(file, key) in data?.data?.files"
+          :key="key"
+        >
+          <NuxtLink
+            class="text-blue-600 text-sm pl-5"
+            :href="`${imageUrl}/${file.image_path}/${file.filename}`"
+            target="_blank"
+            >{{ file.filename_original }}</NuxtLink
+          >
+        </el-descriptions-item>
       </el-descriptions>
     </el-card>
 
@@ -337,7 +347,7 @@
           >{{ currency(paidAmount) }}</el-descriptions-item
         > -->
         <el-descriptions-item :width="100" label="Grand Total" align="right">{{
-          currency(paidAmount)
+          currency(data?.data?.paid_amount || 0)
         }}</el-descriptions-item>
       </el-descriptions>
     </el-card>
@@ -440,6 +450,8 @@ import { autoTable, type RowInput } from "jspdf-autotable";
 import type { ReferenceTransactionAdjustment } from "~/types/attribute_adjustment";
 import { generateAddressView, currency } from "#imports";
 import type { FormInstance } from "element-plus";
+import { formattedText } from "#imports";
+import { getDisplayFileType } from "~/types/file";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -450,6 +462,9 @@ definePageMeta({
 const router = useRouter();
 const route = useRoute();
 const invoiceId = ref<string>(route.params.id as string);
+
+const config = useRuntimeConfig();
+const imageUrl = config.public.baseImageURL;
 
 // Loading animation SVG
 const svg = `
@@ -1241,7 +1256,7 @@ const generatePDF = async () => {
       },
     },
     {
-      content: `${currencyWithoutSymbol(paidAmount.value || 0)}`,
+      content: `${currencyWithoutSymbol(data.value?.data?.total_amount || 0)}`,
       styles: {
         halign: "right",
         cellWidth: 0.0,
@@ -1365,7 +1380,9 @@ const generatePDF = async () => {
   });
   doc.setFont("helvetica", "normal");
   if (data?.value?.data?.type === "in") {
-    doc.text(data?.value?.data?.vendor_name ?? "", rightX, signY + 80);
+    doc.text(data?.value?.data?.vendor_name ?? "", rightX, signY + 40, {
+      align: "center",
+    });
   } else {
     doc.text(
       `${data.value?.data?.approved?.name || "-"},`,
