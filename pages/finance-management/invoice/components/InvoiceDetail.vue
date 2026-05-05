@@ -1215,32 +1215,38 @@ const generatePDF = async () => {
         value.adjustments_transaction?.category == "adjustment"
     )
     .forEach((element) => {
-      rowData.push([
-        {
-          content: `${element.adjustments_transaction?.name}`,
-          colSpan: 5,
-          styles: {
-            halign: "right",
-            fontStyle: "bold",
-            cellWidth: 0.0,
-            lineWidth: 0.1,
-            lineColor: [0, 0, 0],
-            fillColor: [255, 255, 255],
+      if (
+        (
+          element.adjustment || element.adjustments_transaction
+        )?.name.toLowerCase() !== "pembulatan ke atas"
+      ) {
+        rowData.push([
+          {
+            content: `${element.adjustments_transaction?.name}`,
+            colSpan: 5,
+            styles: {
+              halign: "right",
+              fontStyle: "bold",
+              cellWidth: 0.0,
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
           },
-        },
-        {
-          content: `${currencyWithoutSymbol(
-            showTransactionAdjustmentValue(element)
-          )}`,
-          styles: {
-            halign: "right",
-            cellWidth: 0.0,
-            lineWidth: 0.1,
-            lineColor: [0, 0, 0],
-            fillColor: [255, 255, 255],
+          {
+            content: `${currencyWithoutSymbol(
+              showTransactionAdjustmentValue(element)
+            )}`,
+            styles: {
+              halign: "right",
+              cellWidth: 0.0,
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
           },
-        },
-      ]);
+        ]);
+      }
     });
 
   if (data.value?.data?.payment_terms && data.value.data.is_termin) {
@@ -1306,30 +1312,38 @@ const generatePDF = async () => {
   (data?.value?.data?.reference_transaction ?? [])
     .filter((value) => value.adjustments_transaction?.operator == "minus")
     .forEach((element) => {
-      rowData.push([
-        {
-          content: `${element.adjustments_transaction?.name}`,
-          colSpan: 5,
-          styles: {
-            halign: "right",
-            fontStyle: "bold",
-            cellWidth: 0.0,
-            lineWidth: 0.1,
-            lineColor: [0, 0, 0],
-            fillColor: [255, 255, 255],
+      if (
+        (
+          element.adjustment || element.adjustments_transaction
+        )?.name.toLowerCase() != "pembulatan ke bawah"
+      ) {
+        rowData.push([
+          {
+            content: `${element.adjustments_transaction?.name}`,
+            colSpan: 5,
+            styles: {
+              halign: "right",
+              fontStyle: "bold",
+              cellWidth: 0.0,
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
           },
-        },
-        {
-          content: `${currencyWithoutSymbol(data.value?.data?.subtotal || 0)}`,
-          styles: {
-            halign: "right",
-            cellWidth: 0.0,
-            lineWidth: 0.1,
-            lineColor: [0, 0, 0],
-            fillColor: [255, 255, 255],
+          {
+            content: `${currencyWithoutSymbol(
+              data.value?.data?.subtotal || 0
+            )}`,
+            styles: {
+              halign: "right",
+              cellWidth: 0.0,
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
           },
-        },
-      ]);
+        ]);
+      }
     });
   (data?.value?.data?.reference_transaction ?? [])
     .filter(

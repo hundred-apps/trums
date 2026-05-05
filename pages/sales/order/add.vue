@@ -220,7 +220,7 @@
           <span>Items</span>
           <div class="flex space-x-2">
             <el-button type="primary" @click="openPricetagModal">
-              Tambah item
+              Pilih Dari Penawaran
             </el-button>
           </div>
         </div>
@@ -274,6 +274,15 @@
           </template>
         </el-table-column>
       </el-table>
+      <!-- <el-button
+        type="default"
+        size="default"
+        :icon="Plus"
+        @click="tambahItemBaru"
+        style="width: 100%; margin-top: 10px"
+      >
+        Tambah Dari Katalog
+      </el-button> -->
     </el-card>
 
     <AdjustmentTransactionComponent
@@ -428,11 +437,11 @@
             {{ scope.row.pricetag?.unique_code || "N/A" }}
           </template>
         </el-table-column>
-        <el-table-column prop="" label="Tgl Berlaku" width="200">
+        <el-table-column prop="" label="Berlaku s/d" width="200">
           <template #default="scope">
             {{
               (scope.row.pricetag as Pricetag).end_date != undefined &&
-              (scope.row.pricetag as Pricetag).end_date != null
+              (scope.row.pricetag as Pricetag).end_date != null && (scope.row.pricetag as Pricetag).end_date != 0
                 ? formatLocalDate((scope.row.pricetag as Pricetag).end_date)
                 : "-"
             }}
@@ -1196,6 +1205,35 @@ const createNewVendor = async (data: any) => {
   }
 };
 
+const tambahItemBaru = () => {
+  ruleForm.items.push({
+    id: 0,
+    unique_id: "",
+    order_id: "",
+    order_version: 0,
+    vendor_id: "",
+    vendor_version: 0,
+    pr_item_request_trail_id: null,
+    pr_item_request_trail_version: 0,
+    catalogue_name: "",
+    catalogue_version: 0,
+    quantity: 0,
+    unit_price: 0,
+    total_price: 0,
+    is_warranty: false,
+    warranty: 0,
+    is_discount: false,
+    delivery_cost: 0,
+    version: 0,
+    unit_id: null,
+    unit_name: null,
+    created_at: 0,
+    created_by: 0,
+    updated_at: 0,
+    status: PurchaseOrderItemStatus.DRAFT,
+  });
+};
+
 const onHandleSelectVendor = (item: Contact, type: "vendor" | "pic") => {
   if (type == "vendor") {
     ruleForm.vendor_id = item.unique_id;
@@ -1251,7 +1289,7 @@ const openCanvassingModal = () => {
 
 const openPricetagModal = () => {
   if (!ruleForm.vendor_id) {
-    ElMessage.warning("Pilih vendor terlebih dahulu");
+    ElMessage.warning("Pilih Kontak terlebih dahulu");
     return;
   }
   visiblePricetagModal.value = true;

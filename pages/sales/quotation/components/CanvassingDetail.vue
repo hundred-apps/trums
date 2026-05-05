@@ -23,7 +23,7 @@
           <el-button
             type="success"
             v-if="canvassingData?.status === CanvassingStatus.RAB"
-            @click="() => (dialogSelectedItem = true)"
+            @click="() => submitApproveRab(CanvassingStatus.PENDING_APPROVAL)"
           >
             <el-icon class="me-2"><CircleCheck /></el-icon> Submit for Approval
           </el-button>
@@ -488,7 +488,11 @@
         >
           <template #default="{ row }">
             <div v-if="row.type === 'child'">
-              {{ `${row.ongkir_nominal || 0} (${row.ongkir} %)` }}
+              {{
+                `${row.ongkir_nominal || 0} (${(row.ongkir as number).toFixed(
+                  2
+                )} %)`
+              }}
             </div>
           </template>
         </el-table-column>

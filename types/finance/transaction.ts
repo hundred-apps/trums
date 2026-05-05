@@ -76,4 +76,8 @@ export type TransactionItem = {
   transaction?: Transaction;
   display_price_per_unit?: string;
   display_amount?: string;
+  debit?: number;
+  kredit?: number;
+  debit_display?: string;
+  kredit_display?: string;
 };

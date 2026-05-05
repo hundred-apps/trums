@@ -283,6 +283,7 @@ import {
 import ItemImageUpload from "../../inquiry/components/ItemImageUpload.vue";
 import type { ReferenceTransactionAdjustment } from "~/types/attribute_adjustment";
 import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
+import type { _0 } from "#tailwind-config/theme/backdropBlur";
 
 const router = useRouter();
 const loading = ref<boolean>(false);
@@ -464,7 +465,7 @@ const generateQuotationPdf = async () => {
   const headerCenterY = headerTop + headerHeight / 2;
 
   const leftLogoWidth = 40;
-  const leftLogoHeight = 25;
+  const leftLogoHeight = 35;
 
   const rightLogoWidth = 40;
   const rightLogoHeight = 15;
@@ -484,7 +485,7 @@ const generateQuotationPdf = async () => {
     imgLogo,
     "PNG",
     pageWidth - marginX - rightLogoWidth,
-    headerCenterY - rightLogoHeight / 2,
+    headerCenterY - rightLogoHeight / 3,
     rightLogoWidth,
     rightLogoHeight
   );
@@ -930,9 +931,10 @@ const generateQuotationPdf = async () => {
   // Notes
   doc.text("Notes:", 10, finalY + 5);
 
+  let finalNotesY = 0;
   if (canvassing) {
     let currentY = finalY + 15;
-    doc.setFontSize(9);
+    doc.setFontSize(8);
     const writeWrappedText = (text: string) => {
       const lines = doc.splitTextToSize(text, pageWidth - 30);
       doc.text(lines, 20, currentY);
@@ -967,21 +969,42 @@ const generateQuotationPdf = async () => {
       });
     }
 
+    if (props.dataInterface?.data?.note) {
+      const splits = `${props.dataInterface?.data?.note}`.split("\n");
+
+      let yFinal = Number(finalNotesY);
+      splits.forEach((value) => {
+        writeWrappedText(`\u2022 ${value ?? "-"}`);
+        // yFinal = yFinal + Number(5);
+        // console.log("final Y", yFinal);
+        // doc.text(`\u2022 ${value ?? "-"}`, 20, yFinal);
+      });
+    }
+
     doc.setFontSize(11);
+
+    // finalNotesY = currentY;
+  } else {
+    let currentY = finalY + 15;
+    doc.setFontSize(8);
+    const writeWrappedText = (text: string) => {
+      const lines = doc.splitTextToSize(text, pageWidth - 30);
+      doc.text(lines, 20, currentY);
+      currentY += lines.length * 5;
+    };
+    if (props.dataInterface?.data?.note) {
+      const splits = `${props.dataInterface?.data?.note}`.split("\n");
+
+      let yFinal = Number(finalNotesY);
+      splits.forEach((value) => {
+        writeWrappedText(`\u2022 ${value ?? "-"}`);
+        // yFinal = yFinal + Number(5);
+        // console.log("final Y", yFinal);
+        // doc.text(`\u2022 ${value ?? "-"}`, 20, yFinal);
+      });
+    }
   }
-
-  if (props.dataInterface?.data?.note) {
-    const splits = `${props.dataInterface?.data?.note}`.split("\n");
-
-    let yFinal = Number(finalY) + Number(10);
-    splits.forEach((value) => {
-      yFinal = yFinal + Number(5);
-      console.log("final Y", yFinal);
-      doc.text(`\u2022 ${value ?? "-"}`, 20, yFinal);
-    });
-  }
-
-  // Signature
+  doc.setFontSize(9);
   doc.text("Best Regards,", 10, finalY + 80);
 
   if (props.dataInterface?.data?.type === "in") {

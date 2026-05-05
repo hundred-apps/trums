@@ -283,7 +283,11 @@ const fetchLocation = async () => {
   }
 };
 
-watch(request_search, fetchData, { immediate: true });
+watch(
+  () => request_search.value,
+  () => refereshTrigger.value++,
+  { deep: true }
+);
 type SelectionCellProps = {
   value: boolean;
   intermediate?: boolean;

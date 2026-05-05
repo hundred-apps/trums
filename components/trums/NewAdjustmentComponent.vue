@@ -448,6 +448,6 @@ watch(
 );
 
 onMounted(() => {
-  console.log("references props", props.references);
+  console.log("references", props.references);
 });
 </script>

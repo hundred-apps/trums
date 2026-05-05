@@ -1836,7 +1836,9 @@ const accumulateOngkir = () => {
 
   item_canvassing.value.forEach((element) => {
     element.children.forEach((childs) => {
-      ongkirAmount += Number(childs.ongkir) * Number(childs.quantity);
+      if (element.tmp_child_selected === childs.index) {
+        ongkirAmount = Number(childs.ongkir) * Number(childs.quantity);
+      }
     });
   });
 
@@ -2077,6 +2079,11 @@ const calculateSellingPriceSelected = (
     Number(row.selling_price) * Number(row.quantity);
   item_canvassing.value[parentIndex].total_price = row.total_price;
   item_canvassing.value[parentIndex].unit_price = row.unit_price;
+
+  // if()
+  adjustmentTransactionOngkirTotal.value.type = row.ongkir_unit as FeeType;
+  adjustmentTransactionOngkirTotal.value.amount = row.ongkir;
+  adjustmentTransactionOngkirTotal.value.amount_nominal = row.ongkir_nominal;
 };
 
 const setProfit = (row: CanvassingItemForm) => {
@@ -4380,7 +4387,11 @@ const calcucateSummaryaData = () => {
     }
   });
 
-  const netProfit = Number(tmp_gross) - Number(fee) - Number(ongkir);
+  // const netProfit = Number(tmp_gross) - Number(fee) - Number(ongkir);
+  const netProfit = Number(tmp_gross);
+  console.log("temp gross", tmp_gross);
+  console.log("temp fee", fee);
+  console.log("temp ongkir", ongkir);
 
   summeryView.value = [];
 
@@ -4454,8 +4465,8 @@ const calcucateSummaryaData = () => {
       beli: `${safePercent(
         displayPercentage(element, totalBuyingPrice.value),
         1
-      )}`,
-      jual: `${safePercent(displayPercentage(element, grandTotalValue), 1)}`,
+      )} %`,
+      jual: `${safePercent(displayPercentage(element, grandTotalValue), 1)} %`,
       min: currency(0),
       beliMin: `${safePercent(0, 1)}`,
       jualMin: `${safePercent(displayPercentage(element, grandTotalValue), 1)}`,

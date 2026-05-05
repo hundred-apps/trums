@@ -13,6 +13,7 @@ export enum ReferenceAdjustment {
   CANVASSINGVENDOR = "canvassing_vendor",
   PURCHASEORDER = "po",
   INVOICE = "invoice",
+  TRANSACTION = "transaction",
   OFFER = "offer",
 }
 
@@ -23,8 +24,12 @@ export enum PartyType {
   CANVASSINGVENDOR = "canvassing_vendor",
   PURCHASEORDER = "purchase_order",
 }
-export type FeeOperator = "plus" | "minus" | "multiply" | "divide";
-
+export enum FeeOperator {
+  PLUS = "plus",
+  MINUS = "minus",
+  MULTIPLY = "multiply",
+  DIVIDE = "divide",
+}
 // Adjustment component definition
 export type AdjustmentTransaction = {
   unique_id: string; // primary key (UUID/ULID/string)
@@ -52,6 +57,7 @@ export type ReferenceTransactionAdjustment = {
   type: FeeType; // optional override value
   amount: number; // final calculated amount
   amount_nominal?: number;
+  amount_nominal_display?: string;
   adjustment?: AdjustmentTransaction;
   adjustments_transaction?: AdjustmentTransaction;
   // Polymorphic relation

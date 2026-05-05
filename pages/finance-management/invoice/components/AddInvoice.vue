@@ -36,7 +36,7 @@
         :disabled="loading"
         label-width="auto"
         class="demo-ruleForm"
-        size="default"
+        size="small"
         status-icon
       >
         <!-- Invoice Header Information -->
@@ -485,193 +485,295 @@
           </template>
         </el-table-column>
       </el-table>
-
-      <el-button
-        :loading="loading"
-        class="mt-4"
-        style="width: 100%"
-        @click="addNewItem"
-      >
-        Add New Item
-      </el-button>
-    </el-card>
-
-    <AdjustmentTransactionComponent
-      v-if="!loading"
-      :references="references"
-      @update:total="
-        (value) => {
-          console.log('update total', value);
-        }
-      "
-    />
-
-    <!-- Summary Section -->
-    <el-card class="mb-3">
-      <template #header>
-        <div class="card-header">
-          <span>Summary</span>
-        </div>
-      </template>
-
-      <el-descriptions :column="1" border>
-        <el-descriptions-item :width="100" label="Total Price" align="right">{{
-          currencyWithoutSymbol(totalAmount || 0, 0)
-        }}</el-descriptions-item>
-
-        <el-descriptions-item
-          v-if="getInvoiceDownPayment > 0 && ruleForm.is_termin"
-          :width="100"
-          :label="getInvoiceDownPaymentLabel"
-          align="right"
-          >{{
-            currencyWithoutSymbol(getInvoiceDownPayment || 0)
-          }}</el-descriptions-item
-        >
-        <el-descriptions-item
-          v-if="ruleForm.payment_terms && ruleForm.is_termin"
-          :width="100"
-          :label="ruleForm.payment_terms?.name"
-          align="right"
-          >{{
-            currencyWithoutSymbol(ruleForm.subtotal || 0)
-          }}</el-descriptions-item
-        >
-
-        <el-descriptions-item
-          :width="100"
-          align="right"
-          v-for="ref in references.filter(
+      <div class="flex justify-between gap-3 items-start mt-3">
+        <el-button :loading="loading" type="primary" link @click="addNewItem">
+          Tambah Item Baru
+        </el-button>
+        <div class="flex gap-2 mt-5">
+          <div>
+            <div class="flex justify-between items-center">
+              <p>Total Price</p>
+              <p>{{ currencyWithoutSymbol(totalAmount || 0, 0) }}</p>
+            </div>
+            <el-divider />
+            <div
+              class="flex justify-between items-center"
+              v-if="getInvoiceDownPayment > 0 && ruleForm.is_termin"
+            >
+              <p>{{ getInvoiceDownPaymentLabel }}</p>
+              <p>{{ currencyWithoutSymbol(getInvoiceDownPayment || 0) }}</p>
+            </div>
+            <div
+              class="flex justify-between items-center"
+              v-for="ref in references.filter(
             (value) =>
-              value.adjustment?.operator == 'plus' &&
-              value.adjustment?.category == 'adjustment'
+              (value.adjustment || value.adjustments_transaction!).operator == 'plus' &&
+              (value.adjustment || value.adjustments_transaction!).category == 'adjustment'
           )"
-          :key="ref.adjustment_id"
-          :label="ref.adjustment?.name ?? ''"
-          >{{
-            currencyWithoutSymbol(showTransactionAdjustmentValue(ref), 0)
-          }}</el-descriptions-item
-        >
-        <el-descriptions-item
-          v-if="
-            references.filter(
-              (value) =>
-                value.adjustment?.operator == 'plus' &&
-                value.adjustment?.category == 'adjustment'
-            ).length > 0
-          "
-          :width="100"
-          label="Subtotal"
-          align="right"
-          >{{ currencyWithoutSymbol(totalPlus) }}</el-descriptions-item 0m
-        >
-        <el-descriptions-item
-          :width="100"
-          align="right"
-          v-for="ref in references.filter(
-            (value) => value.adjustment?.operator == 'minus'
-          )"
-          :key="ref.adjustment_id"
-          :label="ref.adjustment?.name ?? ''"
-          >{{
-            currencyWithoutSymbol(showTransactionAdjustmentValue(ref), 0)
-          }}</el-descriptions-item
-        >
-        <el-descriptions-item
-          :width="100"
-          align="right"
-          v-for="ref in references.filter(
-            (value) =>
-              value.adjustment?.category == 'transform' ||
-              value.adjustment?.category == 'tax'
-          )"
-          :key="ref.adjustment_id"
-          :label="ref.adjustment?.name ?? ''"
-          >{{
-            currencyWithoutSymbol(showTransactionAdjustmentValue(ref), 0)
-          }}</el-descriptions-item
-        >
-        <!-- <el-descriptions-item
-          :width="100"
-          v-if="ruleForm.payment_terms"
-          :label="ruleForm.payment_terms.name"
-          align="right"
-          >{{ currency(paidAmount) }}</el-descriptions-item
-        >
-        <el-descriptions-item
-          :width="100"
-          v-if="!ruleForm.payment_terms"
-          label="Grand Total"
-          align="right"
-          >{{ currency(paidAmount) }}</el-descriptions-item
-        > -->
+              :key="ref.adjustment_id"
+            >
+              <p class="text-sm">
+                {{
+                  (ref.adjustment || ref.adjustments_transaction!).name ?? ""
+                }}
+              </p>
+              <p>
+                <el-input
+                  v-if="ref.type == FeeType.AMOUNT"
+                  v-model="ref.amount_nominal_display"
+                  style="max-width: 600px"
+                  class="no-border-input text-right"
+                  @input="
+                    (val) => {
+                      const parsed = parseCurrencyID(val);
+                      ref.amount = parsed;
+                      ref.amount_nominal = parsed;
+                      ref.amount_nominal_display = formatCurrencyID(parsed);
+                      ref.value = ref.amount;
+                    }
+                  "
+                  @blur="
+                    () => {
+                      ref.amount_nominal_display = formatCurrencyID(
+                        ref.amount_nominal || 0
+                      );
+                      // calculateAmount(scope.$index);
+                    }
+                  "
+                />
+                <el-input
+                  v-if="ref.type == FeeType.PERCENT"
+                  v-model="ref.amount_nominal"
+                  style="max-width: 600px"
+                  class="no-border-input text-right"
+                  @input="
+                    (val) => {
+                      // const parsed = parseCurrencyID(val);
 
-        <!-- <el-descriptions-item :width="100" label="Grand Total" align="right">
-          <el-input-number
-            v-model="scope.row.quantity"
-            :min="0.01"
-            :precision="2"
-            :step="1"
-            :disabled="loading"
-            @change="calculateAmount(scope.$index)"
-          />
-          {{ currency(paidAmount) }}</el-descriptions-item
-        > -->
-        <el-descriptions-item label="Grand Total" align="right">
-          <el-input
-            v-model="ruleForm.display_total_amount"
-            style="max-width: 600px"
-            class="no-border-input text-right"
-            @input="
-              (val) => {
-                const parsed = parseCurrencyID(val);
-                ruleForm.total_amount = parsed;
-                ruleForm.display_total_amount = formatCurrencyID(parsed);
-                // calculateAmount(scope.$index);
-              }
-            "
-            @blur="
-              () => {
-                ruleForm.display_total_amount = formatCurrencyID(
-                  ruleForm.total_amount
-                );
-                // calculateAmount(scope.$index);
-              }
-            "
-          >
-          </el-input>
-        </el-descriptions-item>
-      </el-descriptions>
-      <div class="flex my-2  justify-end items-center gap-2" v-if="ruleForm.total_amount > 0">
-        
-        <div class="flex gap-2">
-          <el-check-tag size="small" round @change="() => {
-            ruleForm.total_amount = (Math.floor((ruleForm.tmp_round || 0) / 100) * 100);
-            ruleForm.display_total_amount = formatCurrencyID(ruleForm.total_amount);
-            console.log('tmp round', ruleForm.tmp_round);
-            console.log('total amount', ruleForm.total_amount);
-          }"><span class="text-xs text-blue-500"
-                >{{ currencyWithoutSymbol((Math.floor((ruleForm.tmp_round || 0) / 100) * 100), 0) }}
-              </span></el-check-tag>
-          <el-check-tag size="small" round @change="() => {
-            ruleForm.total_amount = (Math.ceil((ruleForm.tmp_round || 0) / 100) * 100);
-            ruleForm.display_total_amount = formatCurrencyID(ruleForm.total_amount);
-          }"><span class="text-xs text-blue-500"
-                >{{ currencyWithoutSymbol((Math.ceil((ruleForm.tmp_round || 0) / 100) * 100), 0) }}
-              </span></el-check-tag>
+                      ref.amount = Number(val);
+                      ref.amount_nominal = displayAmount(ref, totalAmount);
+                      ref.amount_nominal_display = formatCurrencyID(
+                        ref.amount_nominal || 0
+                      );
+
+                      // ruleForm.total_amount = parsed;
+                      // ruleForm.display_total_amount = formatCurrencyID(parsed);
+                      // calculateAmount(scope.$index);
+                    }
+                  "
+                  @blur="
+                    () => {
+                      // ref.display_total_amount = formatCurrencyID(
+                      //   ruleForm.total_amount
+                      // );
+
+                      // ref.amount = Number(val);
+                      // ref.amount_nominal = displayAmount(ref, totalAmount);
+                      ref.amount_nominal_display = formatCurrencyID(
+                        ref.amount_nominal || 0
+                      );
+                      // calculateAmount(scope.$index);
+                    }
+                  "
+                />
+              </p>
+            </div>
+            <div
+              class="flex justify-between items-center"
+              v-for="ref in references.filter(
+            (value) => (value.adjustment || value.adjustments_transaction!).operator == 'minus'
+          )"
+              :key="ref.adjustment_id"
+            >
+              <p class="text-sm">
+                {{
+                  (ref.adjustment || ref.adjustments_transaction!).name ?? ""
+                }}
+              </p>
+              <p>
+                <el-input
+                  v-if="ref.type == FeeType.AMOUNT"
+                  v-model="ref.amount_nominal_display"
+                  style="max-width: 600px"
+                  class="no-border-input text-right"
+                  @input="
+                    (val) => {
+                      const parsed = parseCurrencyID(val);
+                      ref.amount = parsed;
+                      ref.amount_nominal = parsed;
+                      ref.amount_nominal_display = formatCurrencyID(parsed);
+                      ref.value = ref.amount;
+                    }
+                  "
+                  @blur="
+                    () => {
+                      ref.amount_nominal_display = formatCurrencyID(
+                        ref.amount_nominal || 0
+                      );
+                      // calculateAmount(scope.$index);
+                    }
+                  "
+                />
+                <el-input
+                  v-if="ref.type == FeeType.PERCENT"
+                  v-model="ref.amount_nominal"
+                  style="max-width: 600px"
+                  class="no-border-input text-right"
+                  @input="
+                    (val) => {
+                      // const parsed = parseCurrencyID(val);
+
+                      ref.amount = Number(val);
+                      ref.amount_nominal = displayAmount(ref, totalAmount);
+                      ref.amount_nominal_display = formatCurrencyID(
+                        ref.amount_nominal || 0
+                      );
+
+                      // ruleForm.total_amount = parsed;
+                      // ruleForm.display_total_amount = formatCurrencyID(parsed);
+                      // calculateAmount(scope.$index);
+                    }
+                  "
+                  @blur="
+                    () => {
+                      // ref.display_total_amount = formatCurrencyID(
+                      //   ruleForm.total_amount
+                      // );
+
+                      // ref.amount = Number(val);
+                      // ref.amount_nominal = displayAmount(ref, totalAmount);
+                      ref.amount_nominal_display = formatCurrencyID(
+                        ref.amount_nominal || 0
+                      );
+                      // calculateAmount(scope.$index);
+                    }
+                  "
+                />
+              </p>
+            </div>
+
+            <el-divider />
+            <div class="flex justify-between items-center">
+              <p>Subtotal</p>
+              <p>{{ currencyWithoutSymbol(subtotal || 0) }}</p>
+            </div>
+
+            <div
+              class="flex justify-between items-center"
+              v-for="ref in references.filter(
+            (value) =>
+              (value.adjustment || value.adjustments_transaction!).category == 'transform' ||
+              (value.adjustment || value.adjustments_transaction!).category == 'tax'
+          )"
+              :key="ref.adjustment_id"
+            >
+              <p>
+                {{
+                  (ref.adjustment || ref.adjustments_transaction!).name ?? ""
+                }}
+              </p>
+              <p>
+                {{
+                  currencyWithoutSymbol(showTransactionAdjustmentValue(ref), 0)
+                }}
+              </p>
+            </div>
+            <el-divider />
+            <div class="flex justify-between items-center">
+              <p>Grand Total</p>
+              <p>{{ currencyWithoutSymbol(paidAmount || 0, 0) }}</p>
+            </div>
+            <!-- <el-descriptions :column="1" border size="small">
+              <el-descriptions-item
+                :width="100"
+                align="right"
+                v-for="ref in references.filter(
+            (value) => (value.adjustment || value.adjustments_transaction!).operator == 'minus'
+          )"
+                :key="ref.adjustment_id"
+                :label="(ref.adjustment || ref.adjustments_transaction!).name ?? ''"
+              >
+                
+                <el-input
+                  v-if="ref.type == FeeType.AMOUNT"
+                  v-model="ref.amount_nominal_display"
+                  style="max-width: 600px"
+                  class="no-border-input text-right"
+                  @input="
+                    (val) => {
+                      const parsed = parseCurrencyID(val);
+                      ref.amount = parsed;
+                      ref.amount_nominal = parsed;
+                      ref.amount_nominal_display = formatCurrencyID(parsed);
+                    }
+                  "
+                  @blur="
+                    () => {
+                      ref.amount_nominal_display = formatCurrencyID(
+                        ref.amount_nominal || 0
+                      );
+                      
+                    }
+                  "
+                />
+                <el-input
+                  v-if="ref.type == FeeType.PERCENT"
+                  v-model="ref.amount_nominal"
+                  style="max-width: 600px"
+                  class="no-border-input text-right"
+                  @input="
+                    (val) => {
+                      ref.amount = Number(val);
+                      ref.amount_nominal = displayAmount(ref, totalAmount);
+                      ref.amount_nominal_display = formatCurrencyID(
+                        ref.amount_nominal || 0
+                      );
+
+                    }
+                  "
+                  @blur="
+                    () => {
+                     
+                      ref.amount_nominal_display = formatCurrencyID(
+                        ref.amount_nominal || 0
+                      );
+                      
+                    }
+                  "
+                />
+              </el-descriptions-item>
+              <el-descriptions-item
+                :width="100"
+                :label="'Subtotal'"
+                align="right"
+                >{{
+                  currencyWithoutSymbol(subtotal || 0)
+                }}</el-descriptions-item
+              >
+              <el-descriptions-item
+                :width="100"
+                align="right"
+                v-for="ref in references.filter(
+            (value) =>
+              (value.adjustment || value.adjustments_transaction!).category == 'transform' ||
+              (value.adjustment || value.adjustments_transaction!).category == 'tax'
+          )"
+                :key="ref.adjustment_id"
+                :label="(ref.adjustment || ref.adjustments_transaction!).name ?? ''"
+                >{{
+                  currencyWithoutSymbol(showTransactionAdjustmentValue(ref), 0)
+                }}</el-descriptions-item
+              >
+              <el-descriptions-item
+                :width="100"
+                label="Grand Total"
+                align="right"
+              >
+                {{ currencyWithoutSymbol(paidAmount, 0) }}</el-descriptions-item
+              >
+            </el-descriptions> -->
+          </div>
         </div>
-        <!-- <el-icon
-          color="#3B82F6"
-          class="cursor-pointer"
-          @click="() => handleEditAddress(billing_address!, 'customer')"
-          ><Check color="primary"
-        /></el-icon>
-        <el-icon
-          color="#EF4444"
-          class="cursor-pointer"
-          @click="() => handleEditAddress(billing_address!, 'customer')"
-          ><Close color="danger"
-        /></el-icon> -->
       </div>
     </el-card>
 
@@ -856,8 +958,14 @@ import {
   Minus,
   Check,
   Close,
+  CirclePlus,
 } from "@element-plus/icons-vue";
-import type { FormInstance, FormRules, UploadUserFile } from "element-plus";
+import type {
+  FormInstance,
+  FormRules,
+  TableColumnCtx,
+  UploadUserFile,
+} from "element-plus";
 import {
   getPaymentMethodLabel,
   PaymentMethod,
@@ -909,12 +1017,15 @@ import {
 } from "#imports";
 import type { TermOfPayment } from "~/types/payment_term";
 import AdjustmentTransactionComponent from "~/components/trums/AdjustmentTransactionComponent.vue";
+import NewAdjustmentComponent from "~/components/trums/NewAdjustmentComponent.vue";
 import AutocompleteContact from "~/components/trums/AutocompleteContact.vue";
 import { parseCurrencyID } from "#imports";
 import AutocompleteCatalogue from "~/components/trums/AutocompleteCatalogue.vue";
 import CatalogueAdd from "~/components/trums/CatalogueAdd.vue";
 import { load } from "@fingerprintjs/fingerprintjs";
 import InventoryMovementTable from "~/components/trums/InventoryMovementTable.vue";
+import { displayAmount } from "#imports";
+import { FeeOperator } from "~/types/attribute_adjustment";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -956,74 +1067,7 @@ const currentAccount = ref<BankAccount | null>(null);
 const rekeningBanks = ref<string[]>([]);
 const transactionBanks = ref<TransactionBank[]>([]);
 const rekeningBanksOptions = ref<BankAccount[]>([]);
-const references = ref<ReferenceTransactionAdjustment[]>([
-  {
-    "unique_id": "db6de4f9271e5a17ce4d6535e542257b",
-    "reference": ReferenceAdjustment.INVOICE,
-    "reference_id": "",
-    "adjustment_id": "e0cc23825369e9db3691bbdb25bd3419",
-    // "adjustment_version": 1,
-    "value": 11,
-    "amount": 11,
-    "party_type": PartyType.CONTACT,
-    "party_id": null,
-    // "version": 1,
-    "type": FeeType.AMOUNT,
-    "include": false,
-    // "created_by": "5b076a80afde94cb9f0980b8feba76e6",
-    "created_at": 1777025996,
-    // "updated_at": 1777025996,
-    "adjustments_transaction": {
-        "unique_id": "e0cc23825369e9db3691bbdb25bd3419",
-        "unique_code": "PPN11",
-        "name": "PPN",
-        "type": FeeType.AMOUNT,
-        "category": "tax",
-        "default_value": 11,
-        "operator": "plus",
-        "allow_party": false,
-        "version": 1,
-        "created_at": 1758861317,
-        "updated_at": 1758861317
-    },
-    // "people": {
-    //     "name": "Faizal"
-    // },
-    // "data_reference": {
-    //     "id": 9,
-    //     "unique_id": "29b5436863828b6866b64178d4b748df",
-    //     "unique_code": "PO/TMP/04/2026/0005",
-    //     "type": "so",
-    //     "vendor_id": "e2cc5ee1c2d3e5b43aca6fbf9e1d2d92",
-    //     "vendor_name": "Satya Rgam Koporindo, PT",
-    //     "vendor_version": 1,
-    //     "pic_id": null,
-    //     "pic_name": null,
-    //     "pic_version": 0,
-    //     "sourcing_document": null,
-    //     "total_price": 6229408.8,
-    //     "delivery_address_id": "d1da5ac26970c9be90c905bf08c5f60e",
-    //     "delivery_address_version": 1,
-    //     "expected_arrival": null,
-    //     "date": 1777025903,
-    //     "is_discount": false,
-    //     "discount": 0,
-    //     "discount_unit": "percent",
-    //     "delivery_cost": 0,
-    //     "additional_information": null,
-    //     "status": "done",
-    //     "is_tempo": false,
-    //     "term_payment_value": 0,
-    //     "term_payment": "cbd",
-    //     "term_payment_unit": "day",
-    //     "method_payment": null,
-    //     "version": 1,
-    //     "created_at": 1777025996,
-    //     "created_by": "5b076a80afde94cb9f0980b8feba76e6",
-    //     "updated_at": 1777025996
-    // },
-}
-]);
+const references = ref<ReferenceTransactionAdjustment[]>([]);
 
 const addressInput = ref<AddressType | null>(null);
 const billing_address = ref<AddressType | null>(null);
@@ -1041,6 +1085,8 @@ const invoicesHistory = ref<Invoice[]>([]);
 
 const dataCustomer = ref<Contact | null>(null);
 const dataPIC = ref<Contact | null>(null);
+
+const adjustmentPPnRef = ref<ReferenceAdjustment | null>(null);
 
 // Form data structure
 const ruleForm = reactive<Invoice>({
@@ -1136,6 +1182,18 @@ const request_search = ref<RequestSearch>({
     order: OrderColumn.ASC,
   },
 });
+
+interface SummaryMethodProps<T = InvoiceItem> {
+  columns: TableColumnCtx<T>[];
+  data: T[];
+}
+
+interface SpanMethodProps {
+  row: InvoiceItem;
+  column: TableColumnCtx<InvoiceItem>;
+  rowIndex: number;
+  columnIndex: number;
+}
 
 const querySearchAdjustmentTransaction = ref<RequestSearch>({
   keyword: "",
@@ -1383,24 +1441,6 @@ const handleAdjustmentSubmit = () => {
   refreshNuxtData("search-adjustment");
 };
 
-const displayAmount = (ref: any, multiplier: number) => {
-  console.log("type ", ref.type);
-  console.log("amount ", ref.amount);
-
-  if (ref.type === "percent") {
-    return (multiplier || 0) * (ref.amount / 100);
-  } else {
-    return ref.amount;
-  }
-};
-const displayPercentage = (ref: any, multiplier: number) => {
-  if (ref.type === "amount") {
-    return ref.amount / multiplier || 0 * 100;
-  } else {
-    return displayAmount(ref, multiplier);
-  }
-};
-
 const paidAmount = computed(() => {
   let amount: number = Number(grandTotal.value);
   console.log("payment term", ruleForm.payment_terms);
@@ -1425,6 +1465,7 @@ watch(
   () => ruleForm.payment_terms,
   () => {
     ruleForm.total_amount = paidAmount.value;
+    ruleForm.display_total_amount = formatCurrencyID(paidAmount.value, 0);
     ruleForm.tmp_round = paidAmount.value;
   },
   { deep: true }
@@ -1481,11 +1522,15 @@ const getPlus = computed(() => {
   references.value
     .filter(
       (value) =>
-        value.adjustment?.operator == "plus" &&
-        value.adjustment?.category === "adjustment"
+        (value.adjustment || value.adjustments_transaction!).operator ==
+          "plus" &&
+        (value.adjustment || value.adjustments_transaction!).category ===
+          "adjustment"
     )
     .forEach((ref) => {
-      if (ref.include == false) {
+      if (ref.include) {
+        plus += 0;
+      } else {
         plus += showTransactionAdjustmentValue(ref);
       }
     });
@@ -1493,58 +1538,20 @@ const getPlus = computed(() => {
   return plus;
 });
 
-const dppComponent = computed(() => {
-  return references.value.find(
-    (value) =>
-      value.adjustment?.category == "transform" &&
-      value.adjustment?.unique_code == "DPPL"
-  );
-});
-
-const ppnComponent = computed(() => {
-  const ppnComponentRef = references.value.find(
-    (value) =>
-      value.adjustment?.category == "tax" &&
-      value.adjustment?.name.toLowerCase() === "ppn"
-  );
-
-  if (ppnComponentRef) {
-    if (dppComponent.value) {
-      const dppValue = getDPPFormula(dppComponent.value, subtotal.value || 0);
-      if (ppnComponentRef.include) {
-        return 0;
-      } else {
-        return getPPNFormula(ppnComponentRef, dppValue);
-      }
-    } else {
-      if (ppnComponentRef.include) {
-        return 0;
-      } else {
-        return getPPNFormula(ppnComponentRef, subtotal.value || 0);
-      }
-    }
-  } else {
-    return 0;
-  }
-});
-
 const grandTotal = computed(() => {
-  let total = totalPlus.value || 0;
-  (references.value || [])
-    .filter((value) => value.adjustment?.operator == "minus")
-    .forEach((element) => {
-      total = (totalPlus.value || 0) - showTransactionAdjustmentValue(element);
-    });
+  let total = subtotal.value || 0;
   (references.value || [])
     .filter(
       (value) =>
-        value.adjustment?.category == "transform" ||
-        value.adjustment?.category == "tax"
+        (value.adjustment || value.adjustments_transaction!).category ==
+          "transform" ||
+        (value.adjustment || value.adjustments_transaction!).category == "tax"
     )
     .forEach((element) => {
-      if (element.include == false) {
-        total =
-          (totalPlus.value || 0) + showTransactionAdjustmentValue(element);
+      if (element.include) {
+        total = total + 0;
+      } else {
+        total = total + showTransactionAdjustmentValue(element);
       }
     });
 
@@ -1554,6 +1561,7 @@ const grandTotal = computed(() => {
 watch(
   () => references.value,
   () => {
+    console.log("current ref", references.value);
     let total = totalPlus.value || 0;
     (references.value || [])
       .filter((value) => value.adjustment?.operator == "minus")
@@ -1584,10 +1592,14 @@ watch(
 const getMinus = computed(() => {
   var minus = 0;
   references.value
-    .filter((value) => value.adjustment?.operator == "minus")
+    .filter(
+      (value) =>
+        (value.adjustment || value.adjustments_transaction!).operator == "minus"
+    )
     .forEach((ref) => {
-      if (ref.include == false) {
-        // if()
+      if (ref.include == true) {
+        minus += 0;
+      } else {
         minus += Number(ref.amount);
       }
     });
@@ -1596,7 +1608,13 @@ const getMinus = computed(() => {
 });
 
 const subtotal = computed(() => {
-  return Number(paidAmount.value) - Number(getMinus.value);
+  let subtotal = ruleForm.subtotal || 0;
+
+  if (ruleForm.is_termin && getInvoiceDownPayment.value > 0) {
+    subtotal -= getInvoiceDownPayment.value;
+  }
+
+  return Number(subtotal) + Number(getPlus.value) - Number(getMinus.value);
 });
 
 const totalPlus = computed(() => {
@@ -1623,20 +1641,6 @@ watch(
     ruleForm.total_amount = amount + referenceTotal;
   }
 );
-watch(references, (newValue) => {
-  let amount: number = ruleForm.subtotal || 0;
-  let referenceTotal: number = 0;
-
-  references.value.forEach((element) => {
-    if (element.type == "amount") {
-      referenceTotal += Number(element.amount);
-    } else {
-      referenceTotal += displayAmount(element, amount);
-    }
-  });
-
-  ruleForm.total_amount = amount + referenceTotal;
-});
 
 // const getHi
 
@@ -1728,6 +1732,8 @@ const updateTotalAmount = () => {
   ruleForm.total_amount = amount;
   ruleForm.display_total_amount = formatCurrencyID(amount, 0);
   ruleForm.tmp_round = ruleForm.total_amount;
+
+  console.log("masuk ini", ruleForm);
 };
 
 const getInvoiceDownPaymentLabel = computed(() => {
@@ -2435,7 +2441,7 @@ const onHandleSelectReference = async (item: any) => {
       | "months"
       | null;
     ruleForm.payment_term_value = po.term_payment_value ?? null;
-    ruleForm.payment_method = po.method_payment;
+    ruleForm.payment_method = po.method_payment || PaymentMethod.BankTransfer;
     po.purchase_order_item.forEach((value) => {
       ruleForm.invoice_item.push({
         unique_id: "",
@@ -2471,13 +2477,27 @@ const onHandleSelectReference = async (item: any) => {
 
     request_search_do.value.uid_po = po.unique_id;
 
-    
-    references.value = po.reference_transaction.map((value) => ({...value, reference: ReferenceAdjustment.INVOICE, reference_id: '', adjustment: value.adjustments_transaction}));
-    console.log('reference', references.value);
+    po.reference_transaction.forEach((element) => {
+      const index = references.value.findIndex(
+        (find) => find.adjustment_id == element.adjustment_id
+      );
+      if (index < 0) {
+        references.value.push({
+          ...element,
+          reference: ReferenceAdjustment.INVOICE,
+          reference_id: "",
+          adjustment: element.adjustments_transaction,
+        });
+      } else {
+        references.value[index] = {
+          ...element,
+          reference: ReferenceAdjustment.INVOICE,
+          reference_id: "",
+          adjustment: element.adjustments_transaction,
+        };
+      }
+    });
 
-    // ruleForm.invoice_item[index].item_id = data.unique_id;
-    // ruleForm.invoice_item[index].item_name = data.name ?? '';
-    // ruleForm.invoice_item[index].item_version = data.version ?? 0;
     updateTotalAmount();
     visibleModalPurchaseOrder.value = false;
   } else {
@@ -2818,22 +2838,30 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           );
         });
 
+        let indexRef = 0;
         references.value.forEach((ref, i) => {
-          const refFields = {
-            unique_id: ref.unique_id,
-            adjustment_id: ref.adjustment_id,
-            value: ref.value,
-            amount: ref.amount,
-            type: ref.type,
-            party_type: ref.party_type,
-            party_id: ref.party_id,
-            reference: ref.reference,
-            reference_id: ref.reference_id,
-          };
+          if (ref.amount > 0) {
+            const refFields = {
+              unique_id: ref.unique_id,
+              adjustment_id: ref.adjustment_id,
+              value: ref.value,
+              amount: ref.amount,
+              type: ref.type,
+              party_type: ref.party_type,
+              party_id: ref.party_id,
+              reference: ref.reference,
+              reference_id: ref.reference_id,
+            };
 
-          Object.entries(refFields).forEach(([key, value]) => {
-            formData.append(`reference_transaction[${i}][${key}]`, `${value}`);
-          });
+            Object.entries(refFields).forEach(([key, value]) => {
+              formData.append(
+                `reference_transaction[${indexRef}][${key}]`,
+                `${value}`
+              );
+            });
+
+            indexRef++;
+          }
         });
 
         const response = await useFetchApi<BaseResponse<Invoice>>(
@@ -3050,9 +3078,33 @@ const fetchDataEdit = async () => {
 
         ruleForm.unique_id = id.value;
         transactionBanks.value = invoice.purchase_order_bank ?? [];
-        references.value = (invoice.reference_transaction ?? []).map(
-          (value) => ({ ...value, adjustment: value.adjustments_transaction })
-        );
+        console.log("references is value", references.value);
+        (invoice.reference_transaction ?? []).forEach((element) => {
+          const indexExist = references.value.findIndex(
+            (find) => find.adjustment_id == element.adjustment_id
+          );
+          console.log("references is existting", indexExist);
+          console.log("references is exist", references.value[indexExist]);
+          console.log(
+            "references is name",
+            element.adjustments_transaction?.name
+          );
+          console.log("references is exist", element.adjustment_id);
+          if (indexExist >= 0) {
+            references.value[indexExist] = element;
+            references.value[indexExist].amount = element.amount;
+            references.value[indexExist].value = element.value;
+            references.value[indexExist].amount_nominal_display =
+              formatCurrencyID(element.amount);
+            references.value[indexExist].amount_nominal =
+              element.amount_nominal;
+
+            console.log("references edit", references.value[indexExist]);
+          }
+        });
+        // references.value = (invoice.reference_transaction ?? []).map(
+        //   (value) => ({ ...value, adjustment: value.adjustments_transaction })
+        // );
 
         if (invoice.data_reference) {
           tmp_purchase_order.value = invoice.data_reference as PurchaseOrder;
@@ -3137,7 +3189,154 @@ const initialSetting = () => {
   }
 };
 
+const fetchPPN = async () => {
+  try {
+    const request: RequestSearch = {
+      column: [
+        {
+          name: "ppn",
+          category: "tax",
+        },
+      ],
+      keyword: "",
+      limit: "100",
+      offset: "1",
+      table: "adjustments_transaction",
+      sort: {
+        column: "created_at",
+        order: "asc",
+      },
+    };
+
+    const response = await useFetchApi<
+      ResponsePagination<AdjustmentTransaction[]>
+    >("/search", "fetch-ppn", "post", request);
+
+    if (response.status.value === "success") {
+      const adjustment: AdjustmentTransaction = response.data.value!.data[0];
+
+      references.value.push({
+        unique_id: "",
+        reference: ReferenceAdjustment.INVOICE,
+        reference_id: "",
+        adjustment_id: adjustment.unique_id,
+        value: null,
+        type: adjustment.type,
+        amount: 0,
+        amount_nominal: 0,
+        amount_nominal_display: "0",
+        adjustments_transaction: adjustment,
+        adjustment: adjustment,
+      });
+    }
+  } catch (error: any) {
+    console.log("Gagal Mengambil PPN!");
+  }
+};
+const fetchDiscount = async () => {
+  try {
+    const request: RequestSearch = {
+      column: [
+        {
+          name: "Discount",
+          category: "adjustment",
+        },
+      ],
+      keyword: "",
+      limit: "100",
+      offset: "1",
+      table: "adjustments_transaction",
+      sort: {
+        column: "created_at",
+        order: "asc",
+      },
+    };
+
+    const response = await useFetchApi<
+      ResponsePagination<AdjustmentTransaction[]>
+    >("/search", "fetch-discount", "post", request);
+
+    if (response.status.value === "success") {
+      const adjustment: AdjustmentTransaction = response.data.value!.data[0];
+
+      const isExist = references.value.findIndex(
+        (value) => adjustment.unique_id == value.adjustment_id
+      );
+      references.value.push({
+        unique_id: "",
+        reference: ReferenceAdjustment.INVOICE,
+        reference_id: "",
+        adjustment_id: adjustment.unique_id,
+        value: null,
+        type: adjustment.type,
+        amount: 0,
+        amount_nominal: 0,
+        amount_nominal_display: "0",
+        adjustments_transaction: adjustment,
+        adjustment: adjustment,
+      });
+    }
+  } catch (error: any) {
+    console.log("Gagal Mengambil PPN!");
+  }
+};
+const fetchRounding = async () => {
+  try {
+    const request: RequestSearch = {
+      column: [],
+      keyword: "Pembulatan",
+      limit: "100",
+      offset: "1",
+      table: "adjustments_transaction",
+      sort: {
+        column: "created_at",
+        order: "asc",
+      },
+    };
+
+    const response = await useFetchApi<
+      ResponsePagination<AdjustmentTransaction[]>
+    >("/search", "fetch-pembulatan", "post", request);
+
+    if (response.status.value === "success") {
+      const adjustment: AdjustmentTransaction[] =
+        response.data.value?.data ?? [];
+      adjustment.forEach((element) => {
+        references.value.push({
+          unique_id: "",
+          reference: ReferenceAdjustment.INVOICE,
+          reference_id: "",
+          adjustment_id: element.unique_id,
+          value: null,
+          type: element.type,
+          amount: 0,
+          amount_nominal: 0,
+          amount_nominal_display: "0",
+          adjustments_transaction: element,
+          adjustment: element,
+        });
+      });
+
+      console.log("adjustment", references.value);
+    }
+  } catch (error: any) {
+    console.log("Gagal Mengambil Pembulatan!");
+  }
+};
+
+const initialForm = async () => {
+  loading.value = true;
+  await fetchPPN();
+  await fetchDiscount();
+  await fetchRounding();
+
+  console.log("references exist", references.value);
+  loading.value = false;
+};
+
 onMounted(() => {
+  initialForm();
+
   if (id.value != null && id.value != undefined) {
     fetchDataEdit();
   } else {

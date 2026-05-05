@@ -246,7 +246,7 @@
         </el-table-column>
         <el-table-column label="Ongkir" width="200">
           <template #default="{ row }">
-            {{ `${row.ongkir_nominal || 0} (${row.ongkir} %)` }}
+            {{ `${row.ongkir_nominal || 0} (${safePercent(row.ongkir, 1)} %)` }}
           </template>
         </el-table-column>
 
@@ -896,6 +896,7 @@ import {
   TermOfPaymentReference,
   type TermOfPayment,
 } from "~/types/payment_term";
+import { safePercent } from "#imports";
 
 definePageMeta({
   middleware: ["auth", "app"],

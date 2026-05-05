@@ -23,46 +23,143 @@
 
       <el-form
         ref="ruleFormRef"
-        style="max-width: 600px"
         :model="ruleForm"
         :rules="rules"
         label-width="auto"
         class="demo-ruleForm"
         size="default"
+        :label-position="labelPosition"
         status-icon
       >
-        <!-- Transaction Type -->
-        <el-form-item label="Jenis Transaksi" prop="type">
-          <el-radio-group v-model="ruleForm.type">
-            <el-radio-button value="income">Pemasukan</el-radio-button>
-            <el-radio-button value="transfer">Transfer</el-radio-button>
-            <el-radio-button value="expense">Pengeluaran</el-radio-button>
-          </el-radio-group>
-        </el-form-item>
+        <div class="flex">
+          <div class="flex-1">
+            <!-- Transaction Type -->
+            <el-form-item label="Jenis Transaksi" prop="type">
+              <el-radio-group v-model="ruleForm.type">
+                <el-radio-button value="income">Pemasukan</el-radio-button>
+                <el-radio-button value="transfer">Transfer</el-radio-button>
+                <el-radio-button value="expense">Pengeluaran</el-radio-button>
+              </el-radio-group>
+            </el-form-item>
 
-        <!-- Transaction Date -->
-        <el-form-item label="Tanggal Transaksi" prop="date">
-          <el-date-picker
-            v-model="ruleForm.date"
-            type="date"
-            placeholder="Pilih Tanggal"
-            format="DD/MM/YYYY"
-            value-format="x"
-          />
-        </el-form-item>
+            <!-- Transaction Date -->
+            <el-form-item label="Tanggal Transaksi" prop="date">
+              <el-date-picker
+                v-model="ruleForm.date"
+                type="date"
+                placeholder="Pilih Tanggal"
+                format="DD/MM/YYYY"
+                value-format="x"
+              />
+            </el-form-item>
 
-        <!-- Description -->
-        <el-form-item label="Deskripsi" prop="description">
-          <el-input
-            v-model="ruleForm.description"
-            type="textarea"
-            :rows="3"
-            placeholder="Deskripsi transaksi"
-          />
-        </el-form-item>
+            <!-- Description -->
+            <el-form-item label="Deskripsi" prop="description">
+              <el-input
+                v-model="ruleForm.description"
+                type="textarea"
+                :rows="3"
+                placeholder="Deskripsi transaksi"
+              />
+            </el-form-item>
+          </div>
+          <div class="flex-1">
+            <el-form-item label="Metode Pembayaran" prop="payment_method">
+              <el-select
+                v-model="ruleForm.payment_method"
+                placeholder="Select payment method"
+              >
+                <el-option
+                  v-for="method in paymentMethods"
+                  :key="method.value"
+                  :label="method.label"
+                  :value="method.value"
+                />
+              </el-select>
+            </el-form-item>
+
+            <h3
+              class="text-lg font-medium mb-4"
+              v-if="ruleForm.payment_method === PaymentMethod.BankTransfer"
+            >
+              Informasi Bank
+              {{ ruleForm.type === "income" ? "Penerima" : "Pengirim" }}
+            </h3>
+
+            <el-form-item
+              label="Rekening Bank"
+              prop="account_bank_name"
+              v-if="ruleForm.payment_method === PaymentMethod.BankTransfer"
+            >
+              <el-autocomplete
+                v-model="ruleForm.account_bank_name!"
+                :fetch-suggestions="querySearchBanks"
+                placeholder="Cari rekening bank"
+                class="w-full"
+                @select="(item) => handleSelectBank(item, 'from')"
+              >
+                <template #default="{ item }">
+                  <div
+                    v-if="item.isNew"
+                    class="flex items-center text-blue-500"
+                  >
+                    <el-icon><Plus /></el-icon>
+                    <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                  </div>
+                  <div v-else>
+                    {{ item.account_name }} ({{ item.account_number }})
+                  </div>
+                </template>
+              </el-autocomplete>
+            </el-form-item>
+
+            <h3
+              v-if="ruleForm.type == 'transfer'"
+              class="text-lg font-medium mb-4"
+            >
+              Informasi Bank Penerima
+            </h3>
+
+            <el-form-item
+              v-if="ruleForm.type == 'transfer'"
+              label="Rekening Bank Penerima"
+              prop="account_bank_to_name"
+            >
+              <el-autocomplete
+                v-model="ruleForm.account_bank_to_name!"
+                :fetch-suggestions="querySearchBanks"
+                placeholder="Cari rekening bank"
+                class="w-full"
+                @select="(item) => handleSelectBank(item, 'to')"
+              >
+                <template #default="{ item }">
+                  <div
+                    v-if="item.isNew"
+                    class="flex items-center text-blue-500"
+                  >
+                    <el-icon><Plus /></el-icon>
+                    <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                  </div>
+                  <div v-else>
+                    {{ item.account_name }} ({{ item.account_number }})
+                  </div>
+                </template>
+              </el-autocomplete>
+            </el-form-item>
+
+            <el-divider
+              v-if="ruleForm.payment_method === PaymentMethod.BankTransfer"
+            />
+            <!-- <h3 class="text-lg font-medium mb-4">File Lampiran</h3> -->
+
+            <el-form-item label="File Lampiran" prop="files">
+              <TrumsUploadFile v-model:file-list="fileList" />
+            </el-form-item>
+          </div>
+        </div>
 
         <!-- Total Amount -->
-        <el-form-item label="Total Transaksi">
+        <!-- <el-form-item label="Total Transaksi">
           <el-input
             v-model="ruleForm.display_amount"
             :min="0"
@@ -82,54 +179,10 @@
               }
             "
           />
-        </el-form-item>
+        </el-form-item> -->
 
         <!-- Cart of Account -->
-        <el-divider />
-        <h3 class="text-lg font-medium mb-4">CoA</h3>
-
-        <el-form-item label="Account" prop="account_name">
-          <el-select
-            v-model="ruleForm.account_id!"
-            filterable
-            remote
-            reserve-keyword
-            placeholder="Cari Account"
-            :remote-method="searchAccounts"
-            :loading="loading"
-            style="width: 240px"
-            remote-show-suffix
-            @change="(value, option) => console.log('value', option)"
-          >
-            <el-option
-              v-for="item in options"
-              :key="item.value"
-              :label="item.label"
-              :value="item.value"
-            />
-          </el-select>
-          <!-- <el-autocomplete
-            v-model="ruleForm.account_name!"
-            :fetch-suggestions="querySearchAccounts"
-            placeholder="Cari Account"
-            class="w-full"
-            @select="(item) => handleSelectAccount(item, 'from')"
-          >
-            <template #default="{ item }">
-              <div v-if="item.isNew" class="flex items-center text-blue-500">
-                <el-icon><Plus /></el-icon>
-                <span class="ml-2">Tambahkan "{{ item.value }}"</span>
-              </div>
-              <div v-else>{{ item.name }} ({{ item.code }})</div>
-            </template>
-          </el-autocomplete> -->
-        </el-form-item>
-
-        <h3 v-if="ruleForm.type == 'transfer'" class="text-lg font-medium mb-4">
-          CoA Tujuan
-        </h3>
-
-        <el-form-item
+        <!-- <el-form-item
           v-if="ruleForm.type == 'transfer'"
           label="Account"
           prop="account_to_name"
@@ -149,92 +202,7 @@
               <div v-else>{{ item.name }} ({{ item.code }})</div>
             </template>
           </el-autocomplete>
-        </el-form-item>
-
-        <el-divider />
-        <el-form-item label="Metode Pembayaran" prop="payment_method">
-          <el-select
-            v-model="ruleForm.payment_method"
-            placeholder="Select payment method"
-          >
-            <el-option
-              v-for="method in paymentMethods"
-              :key="method.value"
-              :label="method.label"
-              :value="method.value"
-            />
-          </el-select>
-        </el-form-item>
-        <el-divider />
-
-        <h3
-          class="text-lg font-medium mb-4"
-          v-if="ruleForm.payment_method === PaymentMethod.BankTransfer"
-        >
-          Informasi Bank
-          {{ ruleForm.type === "income" ? "Penerima" : "Pengirim" }}
-        </h3>
-
-        <el-form-item
-          label="Rekening Bank"
-          prop="account_bank_name"
-          v-if="ruleForm.payment_method === PaymentMethod.BankTransfer"
-        >
-          <el-autocomplete
-            v-model="ruleForm.account_bank_name!"
-            :fetch-suggestions="querySearchBanks"
-            placeholder="Cari rekening bank"
-            class="w-full"
-            @select="(item) => handleSelectBank(item, 'from')"
-          >
-            <template #default="{ item }">
-              <div v-if="item.isNew" class="flex items-center text-blue-500">
-                <el-icon><Plus /></el-icon>
-                <span class="ml-2">Tambahkan "{{ item.value }}"</span>
-              </div>
-              <div v-else>
-                {{ item.account_name }} ({{ item.account_number }})
-              </div>
-            </template>
-          </el-autocomplete>
-        </el-form-item>
-
-        <h3 v-if="ruleForm.type == 'transfer'" class="text-lg font-medium mb-4">
-          Informasi Bank Penerima
-        </h3>
-
-        <el-form-item
-          v-if="ruleForm.type == 'transfer'"
-          label="Rekening Bank Penerima"
-          prop="account_bank_to_name"
-        >
-          <el-autocomplete
-            v-model="ruleForm.account_bank_to_name!"
-            :fetch-suggestions="querySearchBanks"
-            placeholder="Cari rekening bank"
-            class="w-full"
-            @select="(item) => handleSelectBank(item, 'to')"
-          >
-            <template #default="{ item }">
-              <div v-if="item.isNew" class="flex items-center text-blue-500">
-                <el-icon><Plus /></el-icon>
-                <span class="ml-2">Tambahkan "{{ item.value }}"</span>
-              </div>
-              <div v-else>
-                {{ item.account_name }} ({{ item.account_number }})
-              </div>
-            </template>
-          </el-autocomplete>
-        </el-form-item>
-
-        <el-divider
-          v-if="ruleForm.payment_method === PaymentMethod.BankTransfer"
-        />
-        <!-- <h3 class="text-lg font-medium mb-4">File Lampiran</h3> -->
-
-        <el-form-item label="File Lampiran" prop="files">
-          <TrumsUploadFile v-model:file-list="fileList" />
-        </el-form-item>
+        </el-form-item> -->
       </el-form>
     </el-card>
     <el-card class="my-3">
@@ -328,7 +296,6 @@
               :precision="2"
               controls-position="right"
               class="w-full"
-              :disabled="row.reference == 'invoice' || row.reference == 'bill'"
               @input="
                 (val) => {
                   const parsed = parseCurrencyID(val);
@@ -351,28 +318,50 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="Total" width="200">
+        <!-- <el-table-column label="Kredit" width="200">
           <template #default="{ row, $index }">
             <el-input
-              v-model="row.display_amount"
+              v-model="(row as TransactionItem).kredit_display"
               :precision="2"
               controls-position="right"
               class="w-full"
               @input="
                 (val) => {
                   const parsed = parseCurrencyID(val);
-                  row.amount = parsed;
-                  row.display_amount = formatCurrencyID(parsed);
+                  row.kredit = parsed;
+                  row.kredit_display = formatCurrencyID(parsed);
                 }
               "
               @blur="
                 () => {
-                  row.display_amount = formatCurrencyID(row.amount);
+                  row.kredit_display = formatCurrencyID(row.kredit);
                 }
               "
             />
           </template>
         </el-table-column>
+        <el-table-column label="Debit" width="200">
+          <template #default="{ row, $index }">
+            <el-input
+              v-model="(row as TransactionItem).debit_display"
+              :precision="2"
+              controls-position="right"
+              class="w-full"
+              @input="
+                (val) => {
+                  const parsed = parseCurrencyID(val);
+                  row.dedit = parsed;
+                  row.debit_display = formatCurrencyID(parsed);
+                }
+              "
+              @blur="
+                () => {
+                  row.debit_display = formatCurrencyID(row.dedit);
+                }
+              "
+            />
+          </template>
+        </el-table-column> -->
 
         <el-table-column label="Aksi" width="70">
           <template #default="scope">
@@ -391,11 +380,88 @@
         Add New Item
       </el-button>
     </el-card>
+
+    <AdjustmentTransactionComponent
+      v-if="!loading"
+      :references="references"
+      @update:total="
+        (value) => {
+          console.log('update total', value);
+        }
+      "
+    />
+
+    <el-card class="mb-3" shadow="never">
+      <template #header>
+        <div class="card-header">
+          <span>Summary</span>
+        </div>
+      </template>
+
+      <el-descriptions :column="1" border>
+        <el-descriptions-item :width="100" label="Total Price" align="right">{{
+          currency(totalPrice || 0)
+        }}</el-descriptions-item>
+        <el-descriptions-item
+          :width="100"
+          align="right"
+          v-for="ref in references.filter(
+            (value) => value.adjustment?.operator == 'minus'
+          )"
+          :key="ref.adjustment_id"
+          :label="ref.adjustment?.name ?? ''"
+          >{{
+            currency(showTransactionAdjustmentValue(ref))
+          }}</el-descriptions-item
+        >
+
+        <el-descriptions-item
+          :width="100"
+          align="right"
+          v-for="ref in references.filter(
+            (value) =>
+              value.adjustment?.operator == 'plus' &&
+              value.adjustment?.category == 'adjustment'
+          )"
+          :key="ref.adjustment_id"
+          :label="ref.adjustment?.name ?? ''"
+          >{{
+            currency(showTransactionAdjustmentValue(ref))
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item :width="100" label="Subtotal" align="right">{{
+          currency(subtotal)
+        }}</el-descriptions-item>
+        <el-descriptions-item
+          :width="100"
+          align="right"
+          v-for="ref in references.filter(
+            (value) =>
+              value.adjustment?.category == 'transform' ||
+              value.adjustment?.category == 'tax'
+          )"
+          :key="ref.adjustment_id"
+          :label="ref.adjustment?.name ?? ''"
+          >{{
+            currency(showTransactionAdjustmentValue(ref))
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item :width="100" label="Grand Total" align="right">{{
+          currency(grandTotal)
+        }}</el-descriptions-item>
+        <!-- <el-descriptions-item :width="100" label="Grand Total">{{ currency(grandTotal) }}</el-descriptions-item> -->
+      </el-descriptions>
+    </el-card>
   </TrumsWrapper>
 </template>
 
 <script lang="ts" setup>
-import type { FormInstance, FormRules, UploadUserFile } from "element-plus";
+import type {
+  FormInstance,
+  FormProps,
+  FormRules,
+  UploadUserFile,
+} from "element-plus";
 import { ElMessage } from "element-plus";
 import { Delete } from "@element-plus/icons-vue";
 import type { BankAccount } from "~/types/bank_account";
@@ -410,11 +476,20 @@ import type { BaseResponse } from "~/types/response";
 import type { DefaultResponsePagination } from "~/types/pagination";
 import TrumsUploadFile from "~/components/trums/form/TrumsUploadFile.vue";
 import { currency, parseCurrencyID, formatCurrencyID } from "#imports";
+import AdjustmentTransactionComponent from "~/components/trums/AdjustmentTransactionComponent.vue";
+import {
+  FeeType,
+  ReferenceAdjustment,
+  type ReferenceTransactionAdjustment,
+} from "~/types/attribute_adjustment";
+import { _0 } from "#tailwind-config/theme/backdropBlur";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
   requiredPermission: "transactions-create",
 });
+
+const labelPosition = ref<FormProps["labelPosition"]>("top");
 
 const router = useRouter();
 const route = useRoute();
@@ -424,6 +499,8 @@ const ruleFormRef = ref<FormInstance>();
 const loading = ref(false);
 
 const fileList = ref<UploadUserFile[]>([]);
+
+const references = ref<ReferenceTransactionAdjustment[]>([]);
 
 // Helper function to create empty item
 const createEmptyItem = (): TransactionItem => {
@@ -437,6 +514,9 @@ const createEmptyItem = (): TransactionItem => {
     quantity: 1,
     price_per_unit: 0,
     amount: 0,
+    debit: 0,
+    debit_display: formatCurrencyID(0),
+    kredit: 0,
   };
 };
 
@@ -487,17 +567,126 @@ const ruleForm = reactive<Transaction>({
   payment_method: PaymentMethod.Cash,
 });
 
-// // Calculate total amacount from items
-// const totalAmount = computed(() => {
-//   ruleForm.amount = ruleForm.transaction_items.reduce(
-//     (sum, item) => sum + (item.amount || 0),
-//     0
-//   );
+const totalPrice = computed(() => {
+  const total = ruleForm.transaction_items.reduce(
+    (accumulator, currentValue) => {
+      return accumulator + currentValue.amount;
+    },
+    0
+  );
 
-//   ruleForm.display_amount = formatCurrencyID(ruleForm.amount);
+  console.log("total_price", total);
 
-//   return
-// });
+  return total;
+});
+
+const subtotal = computed(() => {
+  let total = totalPrice.value - getMinus.value + getPlus.value;
+
+  return total;
+});
+
+const getMinus = computed(() => {
+  var minus = 0;
+  references.value
+    .filter(
+      (value) =>
+        (value.adjustment || value.adjustments_transaction!).operator == "minus"
+    )
+    .forEach((ref) => {
+      if (ref.include == false) {
+        console.log("get minus ", ref.type);
+        minus +=
+          ref.type == FeeType.AMOUNT
+            ? Number(ref.amount)
+            : displayAmount(ref, totalPrice.value);
+      }
+    });
+
+  return minus;
+});
+
+const getPlus = computed(() => {
+  var plus = 0;
+
+  references.value
+    .filter(
+      (value) =>
+        (value.adjustment || value.adjustments_transaction!).operator ==
+          "plus" &&
+        (value.adjustment || value.adjustments_transaction!).category ===
+          "adjustment"
+    )
+    .forEach((ref) => {
+      if (ref.include == false) {
+        plus +=
+          ref.type == FeeType.AMOUNT
+            ? Number(ref.amount)
+            : displayAmount(ref, totalPrice.value);
+      }
+    });
+
+  return plus;
+});
+const getTaxTransform = computed(() => {
+  var plus = 0;
+
+  references.value
+    .filter(
+      (value) =>
+        (value.adjustment || value.adjustments_transaction!).operator ==
+          "plus" &&
+        (value.adjustment || value.adjustments_transaction!).category === "tax"
+    )
+    .forEach((ref) => {
+      if (ref.include == false) {
+        plus +=
+          ref.type == FeeType.AMOUNT
+            ? Number(ref.amount)
+            : displayAmount(ref, totalPrice.value);
+      }
+    });
+
+  return plus;
+});
+
+const grandTotal = computed(() => {
+  return subtotal.value + getTaxTransform.value;
+});
+
+const showTransactionAdjustmentValue = (
+  ref: ReferenceTransactionAdjustment
+) => {
+  if (ref.include) {
+    return 0;
+  } else {
+    if (
+      ref.adjustment?.category == "tax" &&
+      ref.adjustment.name.toLowerCase() === "ppn"
+    ) {
+      const dpp: ReferenceTransactionAdjustment | undefined =
+        references.value.find(
+          (value) => value.adjustment?.unique_code == "DPPL"
+        );
+      if (dpp) {
+        const dppValue = getDPPFormula(dpp, totalPrice.value || 0);
+        return getPPNFormula(ref, dppValue || totalPrice.value);
+      } else {
+        return getPPNFormula(ref, totalPrice.value);
+      }
+    } else {
+      if (ref.adjustment?.operator == "minus") {
+        return ref.type == "amount"
+          ? ref.amount
+          : displayAmount(ref, totalPrice.value || 0);
+      } else if (ref.adjustment?.operator == "plus") {
+        return ref.type == "amount"
+          ? ref.amount
+          : displayAmount(ref, totalPrice.value || 0);
+      }
+    }
+  }
+};
 
 // Watch total amount and update main amount
 watch(
@@ -946,13 +1135,17 @@ const onHandleSelectReference = async (
   ruleForm.transaction_items[index].description = "";
   ruleForm.transaction_items[index].price_per_unit = invoice.total_amount;
   ruleForm.transaction_items[index].quantity = 1;
-  ruleForm.transaction_items[index].amount = invoice.total_amount;
-  ruleForm.transaction_items[index].display_price_per_unit = formatCurrencyID(
-    invoice.total_amount
-  );
-  ruleForm.transaction_items[index].display_amount = formatCurrencyID(
-    invoice.total_amount
-  );
+
+  let amount = invoice.total_amount;
+
+  (invoice.history_payment || []).forEach((pay) => {
+    amount -= pay.amount;
+  });
+
+  ruleForm.transaction_items[index].amount = amount;
+  ruleForm.transaction_items[index].display_price_per_unit =
+    formatCurrencyID(amount);
+  ruleForm.transaction_items[index].display_amount = formatCurrencyID(amount);
 
   if (invoice.type == "in") {
     ruleForm.transaction_items[index].reference = "bill";
@@ -1038,7 +1231,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         formData.append("type", payload.type);
         formData.append("date", `${payload.date}`); // Date jadi string
         formData.append("description", `${payload.description}`);
-        formData.append("amount", payload.amount.toString());
+        formData.append("amount", grandTotal.value.toString());
         formData.append("account_id", `${payload.account_id}`);
         formData.append("account_name", `${payload.account_name}`);
 
@@ -1089,6 +1282,32 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 
         fileList.value.forEach((element, index) => {
           formData.append(`files[${index}]`, element.raw as Blob);
+        });
+
+        let indexRef = 0;
+        references.value.forEach((ref, i) => {
+          if (ref.amount > 0) {
+            const refFields = {
+              unique_id: ref.unique_id,
+              adjustment_id: ref.adjustment_id,
+              value: ref.value,
+              amount: ref.amount,
+              type: ref.type,
+              party_type: ref.party_type,
+              party_id: ref.party_id,
+              reference: ReferenceAdjustment.TRANSACTION,
+              reference_id: ref.reference_id,
+            };
+
+            Object.entries(refFields).forEach(([key, value]) => {
+              formData.append(
+                `reference_transaction[${indexRef}][${key}]`,
+                `${value}`
+              );
+            });
+
+            indexRef++;
+          }
         });
 
         const response = await useFetchApi<BaseResponse<Transaction>>(
