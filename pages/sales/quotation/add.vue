@@ -744,7 +744,13 @@
               v-model="ref.tmp_amount_input"
               style="max-width: 300px"
               placeholder="Masukan Nilai"
-              @change="(value) => onInputAdjustment(ref)"
+              @input="
+                (value) => {
+                  onInputAdjustment(ref);
+                  ref.amount = Number(value);
+                  console.log('ref', ref);
+                }
+              "
             >
               <template #append>
                 <el-select
@@ -3324,6 +3330,9 @@ const fetchDataEdit = async () => {
     if (response.status.value === "success") {
       const canvasing: Canvassing | null = response.data.value?.data ?? null;
       setDataEdit(canvasing);
+      // (canvasing?.reference_transaction || []).forEach((element) => {
+      //   console.log("references", element);
+      // });
     }
   } catch (error: any) {
     ElMessage.error(error);
@@ -3358,7 +3367,6 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
     contactsFee.value = [];
     (dataCanvassing.reference_transaction ?? []).forEach((element) => {
       if (element.party_type == PartyType.CONTACT) {
-        console.log("to number fee", toNumber(`${element.amount}`));
         contactsFee.value.push({
           ...element,
           tmp_amount_input: handleInput(`${element.amount}`),
@@ -3371,13 +3379,29 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
           unitFee.value = FeeType.PERCENT;
         }
       }
+
       if (
-        (element.adjustments_transaction?.name ?? "").toLowerCase() !== "fee" &&
         (element.adjustments_transaction?.name ?? "").toLowerCase() !==
-          "ongkos kirim"
+        "ongkos kirim"
       ) {
-        references.value.push(element);
+        if (
+          (element.adjustments_transaction?.name ?? "").toLowerCase() != "fee"
+        ) {
+          references.value.push(element);
+        } else {
+          if (!element.party) {
+            references.value.push(element);
+          }
+        }
       }
+
+      // if (
+      //   (element.adjustments_transaction?.name ?? "").toLowerCase() !== "fee" &&
+      //   (element.adjustments_transaction?.name ?? "").toLowerCase() !==
+      //     "ongkos kirim"
+      // ) {
+      //   references.value.push(element);
+      // }
 
       if (
         (element.adjustments_transaction?.name ?? "").toLowerCase() ==
@@ -3493,16 +3517,16 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
       // console.log("tmp ", value.canvassing_vendor[0].selling_price);
 
       item_canvassing.value.push(canvassingItemTmp);
-      references.value = (dataCanvassing.reference_transaction || [])
-        .filter(
-          (value) =>
-            value.adjustments_transaction?.name?.toLowerCase() != "ongkos kirim"
-        )
-        .map((ref) => ({
-          ...ref,
-          tmp_amount_input: handleInput(`${ref.amount}`),
-          amount: toNumber(handleInput(`${ref.amount}`)),
-        }));
+      // references.value = (canvassingItemTmp. || [])
+      //   .filter(
+      //     (value) =>
+      //       value.adjustments_transaction?.name?.toLowerCase() != "ongkos kirim"
+      //   )
+      //   .map((ref) => ({
+      //     ...ref,
+      //     tmp_amount_input: handleInput(`${ref.amount}`),
+      //     amount: toNumber(handleInput(`${ref.amount}`)),
+      //   }));
     });
 
     const equivalent: CanvassingItemForm[] = item_canvassing.value.filter(
@@ -3534,6 +3558,8 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
 
     item_canvassing.value.forEach((element) => setProfit(element));
   }
+
+  console.log("references data edit", references.value);
 };
 
 // Form Submission
@@ -4044,41 +4070,11 @@ watch(
       (acc, item) => Number(acc) + toNumber(handleInput(`${item.amount}`)),
       0
     );
-
-    // const findFee = references.value.findIndex((fee) => (fee.adjustments_transaction || fee.adjustment)?.name.toLowerCase() ==
-    //   "fee");
-
-    // if (findFee < 0) {
-    //   references.value.push({
-    //   unique_id: "",
-    //   reference: ReferenceAdjustment.CANVASSING,
-    //   reference_id: "",
-    //   adjustment_id: `${adjustmentContact.value?.unique_id}`,
-    //   adjustment: adjustmentContact.value,
-    //   adjustments_transaction: adjustmentContact.value,
-    //   value: null,
-    //   type: unitFee.value,
-    //   amount: contactsFee.value.reduce(
-    //     (sum, c) => Number(sum) + toNumber(`${c.amount || 0}`),
-    //     0
-    //   ),
-    //   created_at: 0,
-    // })
-    // } else {
-    //   references.value[findFee].amount = toNumber(handleInput(`${totalAmount}`));
-    //   references.value[findFee].tmp_amount_input = handleInput(`${totalAmount.toFixed(2)}`);
-    //   references.value.forEach((ref) => {
-
-    // });
-    // }
-
     references.value.forEach((ref) => {
       if (
         (ref.adjustments_transaction || ref.adjustment)?.name.toLowerCase() ==
         "fee"
       ) {
-        console.log("to number", totalAmount);
-
         ref.amount = toNumber(handleInput(`${totalAmount}`));
         ref.tmp_amount_input = handleInput(`${totalAmount.toFixed(2)}`);
       }
@@ -4106,13 +4102,13 @@ watchDebounced(
   { debounce: 500 }
 );
 
-watch(item_canvassing.value, (newValue) => calcucateSummaryaData());
-watch(adjustmentTransactionFeeTotal, (newValue) => calcucateSummaryaData(), {
+watch(item_canvassing.value, (newValue) => calculateSummaryaData());
+watch(adjustmentTransactionFeeTotal, (newValue) => calculateSummaryaData(), {
   deep: true,
 });
 watch(
   () => adjustmentTransactionOngkirTotal.value,
-  (newValue) => calcucateSummaryaData(),
+  (newValue) => calculateSummaryaData(),
   { deep: true }
 );
 
@@ -4140,7 +4136,9 @@ watch(
 
 watch(
   () => references.value,
-  () => calcucateSummaryaData(),
+  () => {
+    calculateSummaryaData();
+  },
   { deep: true }
 );
 
@@ -4153,7 +4151,7 @@ watch(
         value.name?.toLowerCase().includes("fee") &&
         value.operator === feeState.value
     );
-    console.log("new value", trxFee);
+
     if (trxFee) {
       adjustmentTransactionFeeTotal.value = {
         unique_id: "",
@@ -4337,7 +4335,7 @@ const summeryData = computed(() => {
   return tableData;
 });
 
-const calcucateSummaryaData = () => {
+const calculateSummaryaData = () => {
   const grandTotalValue = item_canvassing.value.reduce(
     (acc, row: CanvassingItemForm) => {
       if (row.type === "parent") {
@@ -4362,10 +4360,8 @@ const calcucateSummaryaData = () => {
   if (adjustmentTransactionFeeTotal.value.type == FeeType.AMOUNT) {
     fee = adjustmentTransactionFeeTotal.value.amount;
   } else if (adjustmentTransactionFeeTotal.value.type == FeeType.PERCENT) {
-    console.log("adjustment fee total", adjustmentTransactionFeeTotal.value);
     fee = (grandTotalValue * adjustmentTransactionFeeTotal.value.amount) / 100;
   }
-
   if (adjustmentTransactionOngkirTotal.value.type == FeeType.AMOUNT) {
     ongkir = adjustmentTransactionOngkirTotal.value.amount;
   } else if (adjustmentTransactionOngkirTotal.value.type == FeeType.PERCENT) {
@@ -4376,10 +4372,6 @@ const calcucateSummaryaData = () => {
   var tmp_gross = grossProfit;
 
   references.value.forEach((element) => {
-    console.log(
-      "ok references",
-      (element.amount / totalBuyingPrice.value) * 100
-    );
     if (element.type === FeeType.PERCENT) {
       tmp_gross -= displayAmount(element, grandTotalValue);
     } else {
@@ -4388,11 +4380,6 @@ const calcucateSummaryaData = () => {
   });
 
   const netProfit = Number(tmp_gross) - Number(ongkir);
-  // const netProfit = Number(tmp_gross);
-  console.log("temp gross", tmp_gross);
-  console.log("temp fee", fee);
-  console.log("temp ongkir", ongkir);
-
   summeryView.value = [];
 
   const data: {
@@ -4457,7 +4444,6 @@ const calcucateSummaryaData = () => {
   ];
 
   references.value.forEach((element) => {
-    console.log("element references", element);
     data.push({
       label: element.adjustment?.name
         ? element.adjustment?.name
