@@ -10,7 +10,11 @@
       </el-col>
     </el-row>
 
-    <el-table :data="data" style="width: 100%">
+    <el-table
+      :data="data"
+      style="width: 100%; cursor: pointer"
+      @row-click="(any) => handleSelect(any)"
+    >
       <el-table-column label="Nomor Referensi" width="300">
         <template #default="scope">
           <NuxtLink
@@ -26,12 +30,12 @@
           <p>{{ scope.row.request_to?.name ?? "-" }}</p>
         </template>
       </el-table-column>
-      <el-table-column label="Jumlah Item">
+      <el-table-column label="Jumlah Item" width="150" align="center">
         <template #default="scope">
           <p>{{ scope.row.item_request?.length ?? "-" }}</p>
         </template>
       </el-table-column>
-      <el-table-column label="Aksi">
+      <!-- <el-table-column label="Aksi">
         <template #default="scope">
           <el-button
             size="default"
@@ -41,7 +45,7 @@
             Tambahkan
           </el-button>
         </template>
-      </el-table-column>
+      </el-table-column> -->
     </el-table>
 
     <div class="flex justify-end mt-3">

@@ -15,6 +15,27 @@ export const useAuth = () => {
     expiredAt.value = `${expired}`;
   };
 
+  const isAuthenticated = computed(() => {
+    if (accessToken.value && isTokenValid.value) {
+      return true;
+    } else {
+      return false;
+    }
+  });
+
+  const isTokenValid = computed(() => {
+    if (expiredAt.value) {
+      const now = Math.floor(Date.now() / 1000);
+      if (Number(expiredAt.value) < now) {
+        return false;
+      } else {
+        return true;
+      }
+    } else {
+      return false;
+    }
+  });
+
   const clearAuth = () => {
     accessToken.value = null;
     refreshToken.value = null;
@@ -29,6 +50,7 @@ export const useAuth = () => {
     refreshToken,
     isRefreshing,
     requestQueue,
+    isAuthenticated,
     setToken,
     clearAuth,
     setExpiredAt,

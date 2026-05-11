@@ -137,16 +137,38 @@
             <el-descriptions-item v-if="canvassingData?.source" label="PIC">
               {{ canvassingData?.source?.request_by?.name ?? "-" }}
             </el-descriptions-item>
-            <el-descriptions-item label="Dikirim Ke">
-              <div v-if="canvassingData">
-                {{
-                  generateResultSearchAddress(canvassingData?.address ?? null)
-                    .street
-                }}
-              </div>
-              <span v-else>-</span>
+            <el-descriptions-item
+              label="Approval Note"
+              v-if="
+                canvassingData?.status == CanvassingStatus.DONE ||
+                canvassingData?.status == CanvassingStatus.CANCEL
+              "
+            >
+              {{ canvassingData?.note || "" }}
             </el-descriptions-item>
           </el-descriptions>
+        </div>
+      </div>
+      <div>
+        <h5
+          class="font-bold text-black text-md mt-6 mb-3"
+          v-if="[CanvassingStatus.RAB, CanvassingStatus.PENDING_APPROVAL, CanvassingStatus.DONE].includes(canvassingData?.status as CanvassingStatus) &&canvassingData?.address"
+        >
+          Dikirim ke
+        </h5>
+        <div class="flex flex-col mb-5">
+          <div class="flex justify-between items-center">
+            <p class="font-bold text-sm mb-1">
+              {{ canvassingData?.address?.address_name }} |
+              {{ canvassingData?.address?.phone }}
+            </p>
+          </div>
+          <p class="text-sm text-gray-600" style="line-height: 15px">
+            {{ canvassingData?.address?.street }}
+          </p>
+          <p class="text-sm text-gray-600">
+            {{ generateAddressView(canvassingData!.address!) }}
+          </p>
         </div>
       </div>
 
@@ -176,6 +198,21 @@
         <el-table-column prop="item_name" label="Item" width="500" fixed="left">
           <template #default="{ row }">
             {{ row.catalogue_name }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="vendor_name"
+          label="Vendor"
+          width="200"
+          fixed="left"
+        >
+          <template #default="{ row }">
+            <el-button
+              type="primary"
+              link
+              @click="() => openDetailVendor(row.pricetag_item_id)"
+              >{{ row.vendor_name || "" }}</el-button
+            >
           </template>
         </el-table-column>
         <!-- 
@@ -310,7 +347,7 @@
       </el-table>
     </el-card>
 
-    <el-card class="mb-3" shadow="never">
+    <!-- <el-card class="mb-3" shadow="never">
       <template #header>
         <div class="card-header">
           <span>Daftar Penawaran Vendor</span>
@@ -363,7 +400,7 @@
           </el-collapse-item>
         </el-collapse>
       </div>
-    </el-card>
+    </el-card> -->
 
     <el-card
       class="mb-4"
@@ -825,6 +862,21 @@
         </div>
       </template>
     </el-dialog>
+
+    <el-dialog v-model="offerDialogState" title="Detail Penawaran Vendor">
+      <OfferDetail
+        :data-interface="{
+          code: 200,
+          data:
+            (offerDetail.data.value?.data || []).length > 0
+              ? offerDetail.data.value!.data[0]
+              : null,
+          message: offerDetail?.data.value?.message ?? '',
+          pending: offerDetail.status.value === 'pending',
+          privilege: offerDetail?.data.value?.privilege ?? [],
+        }"
+      />
+    </el-dialog>
   </div>
 </template>
 
@@ -883,6 +935,7 @@ import {
   ReferencePriceTag,
   VariablePriceTag,
   type Pricetag,
+  type Pricetag_condition,
   type Pricetag_item,
 } from "~/types/pricetag";
 import FeeDrawer from "~/components/trums/FeeDrawer.vue";
@@ -897,6 +950,8 @@ import {
   type TermOfPayment,
 } from "~/types/payment_term";
 import { safePercent } from "#imports";
+import OfferDetail from "../../offer/components/OfferDetail.vue";
+import { generateAddressView } from "#imports";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -978,6 +1033,45 @@ const bulkProfitUnit = ref("percent");
 const bulkFee = ref("");
 const bulkFeeUnit = ref("percent");
 const bulkOngkir = ref("");
+
+const request_search_vendor = ref<RequestSearch>({
+  keyword: "",
+  table: "pricetag",
+  column: [],
+  sort: null,
+  offset: "1",
+  limit: "1",
+});
+const offerDialogState = ref<boolean>(false);
+const offerDetail = await useAsyncData("pricetag-item-detail", async () => {
+  const res = await useFetchApi<ResponsePagination<Pricetag[]>>(
+    `/search/`,
+    "pricetag-detail",
+    "post",
+    request_search_vendor.value
+  );
+  return res.data.value;
+});
+
+watch(
+  () => request_search_vendor.value,
+  () => offerDetail.refresh(),
+  { deep: true }
+);
+
+const openDetailVendor = (item_id: string) => {
+  request_search_vendor.value.column = [
+    {
+      pricetag_item: {
+        unique_id: [item_id],
+      },
+    },
+  ];
+
+  if (offerDetail.status.value !== "pending") {
+    offerDialogState.value = true;
+  }
+};
 
 const availableStatuses = [
   CanvassingStatus.DRAFT,
@@ -1099,8 +1193,6 @@ watch(
         changeType: false,
       };
     }
-
-    console.log("adjustment ongkir", adjustmentOngkir.value);
   },
   { immediate: true }
 );
@@ -1113,7 +1205,6 @@ const handleAdjustmentSubmit = () => {
 watch(
   () => contactsFee.value,
   () => {
-    console.log("masuk kontak fee", contactsFee.value);
     if (contactsFee.value.length > 0) {
       adjustmentTransactionFeeTotal.value.amount = contactsFee.value.reduce(
         (sum, c) => Number(sum) + Number(c.amount || 0),
@@ -1850,8 +1941,6 @@ const totalBuyingPriceSelected = computed(() => {
     }
   });
 
-  console.log("total harga beli selected", total);
-
   return total;
 });
 
@@ -1904,10 +1993,6 @@ const netProfitForBuying = computed(() => {
         (grandTotal.value * adjustmentTransactionFeeTotal.value.amount) / 100;
     }
   }
-
-  console.log("net profit for buying", totalForGrossProfitForBuying.value);
-  console.log("gran total", grandTotal.value);
-  console.log("fee", fee);
 
   return Number(totalForGrossProfitForBuying.value || 0) - Number(fee || 0);
 });
@@ -2155,8 +2240,6 @@ const summeryData = computed(() => {
     });
   }
 
-  console.log("preference", references.value);
-
   references.value.forEach((element) => {
     console.log("reference", element);
     console.log("reference value", displayAmount(element, grandTotal.value));
@@ -2197,8 +2280,11 @@ const summeryData = computed(() => {
     });
   });
 
-  tableData.push(
-    {
+  if (
+    adjustmentTransactionFeeTotal.value.adjustment &&
+    adjustmentTransactionFeeTotal.value.adjustments_transaction
+  ) {
+    tableData.push({
       label: adjustmentTransactionFeeTotal.value?.adjustments_transaction?.name,
       max: currency(
         displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value)
@@ -2236,33 +2322,29 @@ const summeryData = computed(() => {
         displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
         grandTotal.value
       )} %`,
-    },
-
-    {
-      label: "Net Profit",
-      max: currency(netProfitForBuying.value),
-      beli: `${safePercent(
-        netProfitForBuying.value,
-        totalBuyingPrice.value
-      )} %`,
-      jual: `${safePercent(netProfitForBuying.value, grandTotal.value)} %`,
-      min: currency(netProfitForBuyingMin.value),
-      beliMin: `${safePercent(
-        netProfitForBuying.value,
-        totalBuyingPriceMin.value
-      )} %`,
-      jualMin: `${safePercent(netProfitForBuying.value, grandTotal.value)} %`,
-      selected: currency(netProfitForBuyingSelected.value),
-      selectedBeli: `${safePercent(
-        netProfitForBuyingSelected.value,
-        totalBuyingPriceSelected.value
-      )} %`,
-      selectedJual: `${safePercent(
-        netProfitForBuyingSelected.value,
-        grandTotal.value
-      )} %`,
-    }
-  );
+    });
+  }
+  tableData.push({
+    label: "Net Profit",
+    max: currency(netProfitForBuying.value),
+    beli: `${safePercent(netProfitForBuying.value, totalBuyingPrice.value)} %`,
+    jual: `${safePercent(netProfitForBuying.value, grandTotal.value)} %`,
+    min: currency(netProfitForBuyingMin.value),
+    beliMin: `${safePercent(
+      netProfitForBuying.value,
+      totalBuyingPriceMin.value
+    )} %`,
+    jualMin: `${safePercent(netProfitForBuying.value, grandTotal.value)} %`,
+    selected: currency(netProfitForBuyingSelected.value),
+    selectedBeli: `${safePercent(
+      netProfitForBuyingSelected.value,
+      totalBuyingPriceSelected.value
+    )} %`,
+    selectedJual: `${safePercent(
+      netProfitForBuyingSelected.value,
+      grandTotal.value
+    )} %`,
+  });
 
   return tableData;
 });
@@ -2274,7 +2356,6 @@ const tableRowClassName = ({
   row: CanvassingItemForm;
   rowIndex: number;
 }) => {
-  console.log("row", row);
   if (row.type_item != "request" && row.type_item != "equivalent") {
     if (row.status === CanvassingVendorStatus.SELECTED) {
       return "success-row";
@@ -2413,7 +2494,6 @@ const fetchPriceTagWithItems = async () => {
 
 const initialCanvassing = (data: Canvassing) => {
   canvassingData.value = data;
-  console.log("item canvassing", canvassingData.value.reference_transaction);
 
   contactsFee.value = [];
   (canvassingData.value.reference_transaction ?? []).forEach((element) => {
@@ -2684,10 +2764,6 @@ const initialCanvassing = (data: Canvassing) => {
       }
     });
   });
-
-  // references.value = data.reference_transaction || [];
-
-  // item_canvassing.value.forEach((item) => (item.children = []));
 
   fetchPriceTagWithItems();
 };
@@ -3717,6 +3793,10 @@ const updateStatus = async (status: CanvassingStatus) => {
       );
 
       element.canvassing_vendor.forEach((vendor, vI) => {
+        console.log(
+          `canvassing_items[${i}][canvassing_vendor][${vI}][status]`,
+          vendor.status
+        );
         formData.append(
           `canvassing_items[${i}][canvassing_vendor][${vI}][unique_id]`,
           `${vendor.unique_id}`
@@ -3782,17 +3862,17 @@ const decline = async () => {
 const submitApprove = async () => {
   // canvassingData.value?.canvassing_item.forEach((element) => {
   //   element.canvassing_vendor.forEach((vendor) => {
-  //     console.log("canvassing ", vendor.status);
-  //     if (vendor.status === CanvassingVendorStatus.SELECTED) {
-  //       vendor.status = CanvassingVendorStatus.SELECTED;
-  //     } else if ((vendor.status = CanvassingVendorStatus.SUBMITTED)) {
-  //       vendor.status = CanvassingVendorStatus.SUBMITTED;
-  //     } else {
-  //       vendor.status = CanvassingVendorStatus.REJECTED;
-  //     }
+  // console.log("canvassing ", vendor.status);
+  // if (vendor.status === CanvassingVendorStatus.SELECTED) {
+  //   vendor.status = CanvassingVendorStatus.SELECTED;
+  // } else if ((vendor.status = CanvassingVendorStatus.SUBMITTED)) {
+  //   vendor.status = CanvassingVendorStatus.SUBMITTED;
+  // } else {
+  //   vendor.status = CanvassingVendorStatus.REJECTED;
+  // }
   //   });
   // });
-  // console
+  // // console
   await updateStatus(CanvassingStatus.DONE);
 
   visibleApproveDialog.value = false;

@@ -125,6 +125,12 @@ export type PurchaseOrderItem = {
   status: PurchaseOrderItemStatus;
   catalogue?: Catalogue;
   checked?: boolean;
+  po_unit_price?: number;
+  display_po_unit_price?: string;
+  buy_price?: number;
+  display_buy_price?: string;
+  pricetag_item_id?: string;
+  pricetag_item_version?: number;
 };
 
 export type PurchaseOrderItemTax = {

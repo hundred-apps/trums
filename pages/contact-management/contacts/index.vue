@@ -18,6 +18,7 @@ import {
 } from "element-plus";
 import type { ColumnTable } from "~/types/ColumnTable";
 import customTable from "~/components/trums/table/customTable.vue";
+import type { BaseResponse } from "~/types/response";
 const config = useRuntimeConfig();
 
 definePageMeta({
@@ -207,13 +208,11 @@ const handleDelete = async (row: Contact) => {
       }
     )
       .then(async () => {
-        const response = await useFetch(
-          `${config.public.baseURL}/contact-delete`,
-          {
-            method: "delete",
-            body: [row.unique_id],
-            lazy: true,
-          }
+        const response = await useFetchApi<BaseResponse<any>>(
+          `contact-delete`,
+          "delete-contact",
+          "post",
+          [row.unique_id]
         );
         if (response.status.value == "success") {
           await refreshNuxtData("contacts");
@@ -279,7 +278,7 @@ console.log("data:", data);
       /></el-col>
       <NuxtLink
         class="el-button el-button--primary"
-        href="/contact-management/contacts/form/add"
+        href="/contact-management/contacts/form/add?mode=add"
         >Buat Kontak</NuxtLink
       >
     </el-row>

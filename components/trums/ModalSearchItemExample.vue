@@ -7,7 +7,7 @@
     <el-row :gutter="20" class="mb-3">
       <el-col :span="6">
         <el-input
-          v-model="searchParams.keyword"
+          v-model="keywordSearch"
           size="default"
           placeholder="Type to search"
         />
@@ -90,8 +90,8 @@
 
     <div class="flex justify-end mt-3">
       <el-pagination
-        v-model:current-page="searchParams.offset"
-        v-model:page-size="searchParams.limit"
+        v-model:current-page="offset"
+        v-model:page-size="limit"
         background
         layout="sizes, prev, pager, next"
         :total="totalData"
@@ -128,6 +128,7 @@ import type { Pricelist_item } from "~/types/pricelist";
 import type { Pricetag_item } from "~/types/pricetag";
 import ItemImageUpload from "~/pages/sales/inquiry/components/ItemImageUpload.vue";
 import type { ComponentSize } from "element-plus";
+import type { RequestSearch } from "~/types/request_search";
 
 const size = ref<ComponentSize>("default");
 const fileList = ref<string[]>([]);
@@ -137,7 +138,7 @@ const previewImage = ref<boolean>(false);
 interface Props {
   visible: boolean;
   data: Pricetag_item[];
-  searchParams: any;
+  searchParams: RequestSearch;
   totalData: number;
   selectedItems: any[];
   currentItemName: string;
@@ -149,10 +150,15 @@ interface Emits {
   (e: "create-new"): void;
   (e: "pagination-change", page: number): void;
   (e: "pagination-size-change", page: number): void;
+  (e: "onSearch", value: string): void;
 }
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
+
+const keywordSearch = ref<string>(props.searchParams.keyword);
+const limit = ref<number>(Number(props.searchParams.limit || "0"));
+const offset = ref<number>(Number(props.searchParams.offset || "0"));
 
 const visible = computed({
   get: () => props.visible,
@@ -174,6 +180,21 @@ watch(visible, (newVal) => {
     });
   }
 });
+watch(
+  () => keywordSearch.value,
+  (newVal) => {
+    console.log("search disni");
+    emit("onSearch", newVal);
+  },
+  { deep: true }
+);
+watch(
+  () => props.searchParams.keyword,
+  (newVal) => {
+    keywordSearch.value = newVal;
+  },
+  { deep: true }
+);
 
 const handleSelectionChange = (val: Pricetag_item[]) => {
   selectedItems.value = val;

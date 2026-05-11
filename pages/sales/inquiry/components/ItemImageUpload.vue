@@ -9,7 +9,7 @@
           alt="Item Image"
         />
         <div v-else class="empty-state">
-          <el-icon class="upload-icon"><Plus /></el-icon>
+          <el-icon class="upload-icon"><Picture /></el-icon>
           <span class="empty-text" v-if="showText">Add Image</span>
         </div>
 
@@ -24,7 +24,7 @@
 
 <script lang="ts" setup>
 import { computed, type StyleValue } from "vue";
-import { Plus } from "@element-plus/icons-vue";
+import { Picture, Plus } from "@element-plus/icons-vue";
 import type { UploadUserFile } from "element-plus";
 
 interface Props {

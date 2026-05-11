@@ -98,7 +98,10 @@
             </div>
           </el-form-item>
 
-          <el-form-item prop="pic_name" label="PIC">
+          <el-form-item
+            prop="pic_name"
+            :label="`PIC ${ruleForm?.type == 'in' ? 'Vendor' : 'Customer'}`"
+          >
             <div class="flex items-center gap-3">
               <el-autocomplete
                 v-model="ruleForm.pic_name"
@@ -106,6 +109,15 @@
                 placeholder="Cari Kontak"
                 @select="(item) => onHandleSelectVendor(item, 'pic')"
                 style="width: 100%"
+                @input="
+                  (val) => {
+                    if (!val) {
+                      ruleForm.pic = undefined;
+                      ruleForm.pic_name = '';
+                      ruleForm.pic_id = undefined;
+                    }
+                  }
+                "
               >
                 <template #default="{ item }">
                   <div
@@ -198,6 +210,7 @@
                 :min="1"
               />
             </el-form-item>
+
             <el-form-item class="mb-0 form-bulk" label="Unit">
               <el-autocomplete
                 :fetch-suggestions="querySearchUnit"
@@ -336,7 +349,8 @@
                     (val) => {
                       const parsed = parseCurrencyID(val);
                       scope.row.price = parsed;
-                      scope.row.displayPrice = formatCurrencyID(parsed);
+                      const formatted = formatCurrencyID(parsed);
+                      scope.row.displayPrice = formatted;
                     }
                   "
                   @blur="
@@ -348,6 +362,16 @@
                   "
                 />
               </el-form-item>
+            </template>
+          </el-table-column>
+          <el-table-column prop="total" label="Total" class="mb-0" width="150">
+            <template #default="scope">
+              {{
+                currencyWithoutSymbol(
+                  Number(scope.row.price) * Number(scope.row.quantity),
+                  0
+                )
+              }}
             </template>
           </el-table-column>
           <el-table-column prop="note" label="Catatan" class="mb-0" width="150">
@@ -569,9 +593,9 @@
     <el-dialog v-model="dialogContact" title="Detail Kontak">
       <AddContact
         ref="formFieldsRefContact"
-        :contact-data="stateActiveTypeContat == 'customer' ? ruleForm.to! : stateActiveTypeContat == 'pic' ? ruleForm.pic! : ruleForm.owner!"
+        :data="stateActiveTypeContat == 'customer' ? ruleForm.to! : stateActiveTypeContat == 'pic' ? ruleForm.pic! : ruleForm.owner!"
         :loading="loading"
-        @submit="handleSubmitContact"
+        v-on:submit="handleSubmitContact"
         @reset="handleResetContact"
       />
     </el-dialog>
@@ -644,6 +668,15 @@ import {
   TermOfPaymentReference,
   type TermOfPayment,
 } from "~/types/payment_term";
+import {
+  formatCurrencyID,
+  parseCurrencyID,
+  parseFormatColon,
+  toNumber,
+  handleInput,
+  formatInputCurrency,
+} from "#imports";
+import { currencyWithoutSymbol } from "#imports";
 
 const props = defineProps<{
   onSubmit: (data: Pricetag | undefined) => void;
@@ -682,7 +715,7 @@ const ruleForm = reactive<Pricetag>(
     name: "",
     location_id: "",
     start_date: Date.now(),
-    end_date: Date.now(),
+    end_date: 0,
     start_date_view: "",
     end_date_view: "",
     owner_id: "",
@@ -774,14 +807,6 @@ const ruleForm = reactive<Pricetag>(
     pic_version: 0,
   }
 );
-
-const formatCurrencyID = (value: number | null) => {
-  if (value === null || value === undefined) return "";
-  return value.toLocaleString("id-ID", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  });
-};
 
 const tmpCatalogue = ref<Catalogue | null>(null);
 const tmpEditBulk = ref<{
@@ -1074,38 +1099,42 @@ const dppComponent = computed(() => {
       value.adjustment?.unique_code == "DPPL"
   );
 });
-const handleSubmitContact = async (formData: Contact) => {
+const handleSubmitContact = async (formData: Contact | undefined) => {
+  if (!formData) {
+    return;
+  }
   try {
-    const contact: Contact | null = await createNewContact({
-      parent_id: formData.parent_id,
-      parent_version: formData.parent_version,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      tax_id: formData.tax_id,
-      website: formData.website,
-      title: formData.title,
-      is_personal: formData.is_personal,
-      is_company: formData.is_company,
-      tags: formData.tmp_tags?.join(","),
-      unique_id: formData.unique_id,
-      ownership: formData.ownership,
-    });
-    if (contact !== null) {
+    if (formData) {
       if (stateActiveTypeContat.value == "customer") {
-        ruleForm.to_id = contact.unique_id;
-        ruleForm.to_name = contact.name;
-        ruleForm.to_version = contact.version;
-        ruleForm.to = contact;
+        ruleForm.to_id = formData.unique_id;
+        ruleForm.to_name = formData.name;
+        ruleForm.to_version = formData.version;
+        ruleForm.to = formData;
+
+        if ((formData.children || []).length > 0) {
+          const picVendor: Contact = formData.children![0];
+          ruleForm.pic_id = picVendor.unique_id;
+          ruleForm.pic_name = picVendor.name;
+          ruleForm.pic_version = picVendor.version;
+          ruleForm.pic = picVendor;
+        }
       } else if (stateActiveTypeContat.value == "pic") {
-        ruleForm.pic_id = contact.unique_id;
-        ruleForm.pic_name = contact.name;
-        ruleForm.pic_version = contact.version;
-        ruleForm.pic = contact;
+        ruleForm.pic_id = formData.unique_id;
+        ruleForm.pic_name = formData.name;
+        ruleForm.pic_version = formData.version;
+        ruleForm.pic = formData;
       } else if (stateActiveTypeContat.value == "vendor") {
-        ruleForm.owner_id = contact.unique_id;
-        ruleForm.owner_name = contact.name;
-        ruleForm.owner = contact;
+        ruleForm.owner_id = formData.unique_id;
+        ruleForm.owner_name = formData.name;
+        ruleForm.owner = formData;
+
+        if ((formData.children || []).length > 0) {
+          const picVendor: Contact = formData.children![0];
+          ruleForm.pic_id = picVendor.unique_id;
+          ruleForm.pic_name = picVendor.name;
+          ruleForm.pic_version = picVendor.version;
+          ruleForm.pic = picVendor;
+        }
       }
     }
     dialogContact.value = false;
@@ -1787,6 +1816,14 @@ const onHandleSelectVendor = (item: any, type: "to" | "vendor" | "pic") => {
       ruleForm.owner_id = customer.unique_id;
       ruleForm.owner_name = customer.name;
       ruleForm.owner = customer;
+
+      if ((customer.children || []).length > 0) {
+        const picVendor: Contact = customer.children![0];
+        ruleForm.pic_id = picVendor.unique_id;
+        ruleForm.pic_name = picVendor.name;
+        ruleForm.pic_version = picVendor.version;
+        ruleForm.pic = picVendor;
+      }
     } else if (type == "pic") {
       ruleForm.pic_id = customer.unique_id;
       ruleForm.pic_name = customer.name;
@@ -1796,6 +1833,14 @@ const onHandleSelectVendor = (item: any, type: "to" | "vendor" | "pic") => {
       ruleForm.to_name = customer.name;
       ruleForm.to_version = customer.version;
       ruleForm.to = customer;
+
+      if ((customer.children || []).length > 0) {
+        const picVendor: Contact = customer.children![0];
+        ruleForm.pic_id = picVendor.unique_id;
+        ruleForm.pic_name = picVendor.name;
+        ruleForm.pic_version = picVendor.version;
+        ruleForm.pic = picVendor;
+      }
     }
   }
 };
@@ -2169,6 +2214,14 @@ const onSubmit = async (formEl: FormInstance) => {
       );
       formData.append(`pricetag_item[${index}][quantity]`, `${value.quantity}`);
       formData.append(`pricetag_item[${index}][note]`, `${value.note}`);
+      formData.append(
+        `pricetag_item[${index}][reference]`,
+        `${value.reference}`
+      );
+      formData.append(
+        `pricetag_item[${index}][reference_id]`,
+        `${value.reference_id}`
+      );
 
       (value.fileUploads ?? []).forEach((file) => {
         if (file.raw) {
@@ -2244,6 +2297,9 @@ const onSubmit = async (formEl: FormInstance) => {
     ElMessage.error(error);
   } finally {
     loading.value = false;
+    formEl.resetFields();
+    ruleForm.pricetag_item = [];
+    addNewLine();
   }
 };
 
@@ -2268,21 +2324,6 @@ const resetForm = (formEl: FormInstance | undefined) => {
     ruleForm.pricetag_condition = [];
     // table
   }
-};
-
-// watch(requestSearchInventory, fetchData, {immediate: true});
-
-const parseCurrencyID = (val: string): number => {
-  if (!val) return 0;
-
-  // hapus ribuan
-  let clean = val.replace(/\./g, "");
-  // ubah koma ke titik
-  clean = clean.replace(",", ".");
-  // hanya angka & titik
-  clean = clean.replace(/[^0-9.]/g, "");
-
-  return Number(clean) || 0;
 };
 
 const fetchInitialData = async () => {
@@ -2431,11 +2472,6 @@ const fetchCanvassing = async () => {
         canvassing.canvassing_item.forEach((element) => {
           element.canvassing_vendor.forEach((cvendor) => {
             if (cvendor.status == CanvassingVendorStatus.SELECTED) {
-              // console.log(
-              //   "canvassing vendor selected",
-              //   cvendor.catalogue?.name
-              // );
-
               ruleForm.pricetag_item.push({
                 unique_id: null,
                 tag_id: null,
@@ -2452,29 +2488,32 @@ const fetchCanvassing = async () => {
                 sn: cvendor.catalogue?.sn ?? "N/A",
                 checked: false,
                 item_name: cvendor.catalogue?.name ?? "",
-                quantity: 1,
+                quantity: cvendor.quantity,
                 fileUploads: [],
+                reference: ReferencePriceTag.CANVASING_VENDOR,
+                reference_id: cvendor.unique_id || "",
               });
             }
           });
         });
 
-        references.value = (canvassing.reference_transaction ?? []).map(
-          (ref) => ({
-            ...ref,
-            unique_id: "",
-            reference: ReferenceAdjustment.OFFER,
-            adjustment: ref.adjustments_transaction,
-          })
-        );
+        // references.value = (canvassing.reference_transaction ?? []).map(
+        //   (ref) => ({
+        //     ...ref,
+        //     unique_id: "",
+        //     reference: ReferenceAdjustment.OFFER,
+        //     adjustment: ref.adjustments_transaction,
+        //   })
+        // );
 
-        termOfPayments.value = (canvassing.payment_terms ?? []).map((ref) => ({
-          ...ref,
-          unique_id: "",
-          reference: TermOfPaymentReference.OFFER,
-          unique_code: "",
-        }));
-        console.log("payment terms", termOfPayments.value);
+        // termOfPayments.value = (canvassing.payment_terms ?? []).map((ref) => ({
+        //   ...ref,
+        //   unique_id: "",
+        //   reference: TermOfPaymentReference.OFFER,
+        //   unique_code: "",
+        // }));
+
+        // console.log("payment terms", termOfPayments.value);
         // console.log("references", canvassing.reference_transaction);
 
         // ruleForm.pricetag_item = canvassing.canvassing_item.map((item) => ({

@@ -43,6 +43,24 @@ const request_search_rab_approval = ref<RequestSearch>({
     order: OrderColumn.DESC,
   },
 });
+const request_search_canvassing_approval = ref<RequestSearch>({
+  keyword: "",
+  column: [
+    {
+      inquiries: {
+        type: [TypeInquiry.SALES_INQUIRY],
+      },
+      status: [CanvassingStatus.PENDING_APPROVAL_RAB],
+    },
+  ],
+  limit: "10",
+  offset: "1",
+  table: "canvassing",
+  sort: {
+    column: "created_at",
+    order: OrderColumn.DESC,
+  },
+});
 
 const tableRABRef = ref<{
   reloadData: () => Promise<void>;
@@ -64,6 +82,36 @@ onMounted(async () => {
 <template>
   <TrumsWrapper>
     <OrderSummery v-if="canReadPO" />
+    <ElCard class="mt-2 mb-5" shadow="never" v-if="canReadCanvassing">
+      <template #header>
+        <div class="card-header">
+          <span>CANVASSING Pending Approval</span>
+        </div>
+      </template>
+      <el-row :gutter="20" class="mb-3">
+        <el-col :span="6">
+          <el-input
+            v-model="request_search_canvassing_approval.keyword"
+            size="default"
+            placeholder="Cari RAB..."
+            clearable
+          />
+        </el-col>
+        <el-button
+          size="default"
+          :loading-icon="Eleme"
+          @click="refreshNuxtData('get-rab')"
+        >
+          Muat Ulang
+        </el-button>
+      </el-row>
+      <CanvassingTable
+        :refresh-trigger="refreshTrigger"
+        :request_search="request_search_canvassing_approval"
+        :fetchKey="'get-canvassing-pending-approval'"
+        type="CANVASSING"
+      />
+    </ElCard>
     <ElCard class="mt-2 mb-5" shadow="never" v-if="canReadCanvassing">
       <template #header>
         <div class="card-header">

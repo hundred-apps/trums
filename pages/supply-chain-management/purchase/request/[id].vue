@@ -82,8 +82,10 @@
         </div>
       </div>
 
-      <el-descriptions title="Catatan" v-if="notes">
-        <el-descriptions-item label="">{{ notes }}</el-descriptions-item>
+      <el-descriptions title="Catatan" v-if="purchaseRequestData?.note">
+        <el-descriptions-item label="">{{
+          purchaseRequestData?.note
+        }}</el-descriptions-item>
       </el-descriptions>
     </el-card>
 
@@ -139,7 +141,7 @@
             {{ scope.row.item_request?.unit_name }}
           </template>
         </el-table-column>
-        <el-table-column
+        <!-- <el-table-column
           label="Aksi"
           align="center"
           width="300"
@@ -185,7 +187,7 @@
               {{ formatStatusItem(scope.row.status) }}
             </el-tag>
           </template>
-        </el-table-column>
+        </el-table-column> -->
       </el-table>
     </el-card>
 
@@ -592,7 +594,7 @@ const updateStatus = async (status: PurchaseRequestStatus) => {
         );
         formData.append(
           `item_request_trail[${index}][status]`,
-          `${item.status}`
+          `${ItemRequestTrailStatus.DONE}`
         );
       }
     );
@@ -621,7 +623,7 @@ const approvePurchaseRequest = async () => {
   // await updateStatus(PurchaseRequestStatus.APPROVED)
 
   const validate = (purchaseRequestData.value?.items_request_trail ?? []).find(
-    (value) => value.status === ItemRequestTrailStatus.WAITING
+    (value) => value.quantity === 0
   );
 
   if (validate) {
@@ -637,6 +639,10 @@ const submitForApproval = async () => {
   await updateStatus(PurchaseRequestStatus.WAITING_APPROVAL);
 };
 const submitForApprove = async () => {
+  (purchaseRequestData.value?.items_request_trail ?? []).forEach((element) => {
+    element.status == ItemRequestTrailStatus.DONE;
+  });
+
   await updateStatus(PurchaseRequestStatus.APPROVED);
   visibleApproveDialog.value = false;
 };

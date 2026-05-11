@@ -146,7 +146,7 @@
           </template>
         </el-table-column>
 
-        <el-table-column label="Image" fixed="left" width="100">
+        <el-table-column label="Image" fixed="left" width="70">
           <template #default="scope">
             <ItemImageUpload
               v-model="scope.row.files"
@@ -193,7 +193,8 @@
                   :fetch-suggestions="querySearchCatalogue"
                   v-model="row.catalogue_name"
                   placeholder="Cari item"
-                  :trigger-on-focus="true"
+                  :trigger-on-focus="false"
+                  :autofocus="true"
                   @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteItem(item, row.index, row)"
                 >
                   <template #default="{ item }">
@@ -254,6 +255,8 @@
                   :fetch-suggestions="querySearchCatalogueEquivalent"
                   v-model="row.catalogue_name"
                   placeholder="Cari item"
+                  :trigger-on-focus="false"
+                  :autofocus="true"
                   @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteItemEquivalent(item, row.index, row)"
                 >
                   <template #default="{ item }">
@@ -380,9 +383,11 @@
     <ModalSearchItemExample
       v-model:visible="visibleModalSearchItemExample"
       :search-params="request_search_pricetag_item"
-      :data="priceTagItem.data ?? []"
-      :total-data="priceTagItem?.total_data ?? 0"
+      v-model:keyword-search="request_search_pricetag_item.keyword"
+      :data="priceTagItem.data.value?.data ?? []"
+      :total-data="priceTagItem?.data.value?.total_data ?? 0"
       :selected-items="itemChecked"
+      @on-search="onSearchPricetag"
       @select-items="addToOfferVendor"
       @create-new="
         () => {
@@ -662,29 +667,32 @@ const request_search_contact = ref<RequestSearch>({
   flag: "form",
 });
 
-const request_search_pricetag_item = ref({
+const request_search_pricetag_item = ref<RequestSearch>({
+  column: [
+    {
+      pricetag: {
+        category: ["penawaran"],
+        type: ["in"],
+      },
+    },
+  ],
   keyword: "",
-  catalogue_id: "",
-  location: [],
-  contact: [],
-  quantity: 1,
-  category: ["penawaran"],
-  owner_id: "",
-  type: "multi" as "single" | "multi",
-  offset: 1,
-  limit: 10,
+  limit: "10",
+  offset: "1",
+  sort: null,
+  table: "pricetag_item",
   flag: "form",
 });
 
 // API Calls
-const priceTagItem = ref<ResponsePagination<Pricetag_item[]>>({
-  currentPage: 0,
-  data: [],
-  success: true,
-  total_data: 0,
-  total_page: 0,
-  message: "",
-  privilege: [],
+const priceTagItem = await useAsyncData("pricetag-search-items", async () => {
+  const res = await useFetchApi<ResponsePagination<Pricetag_item[]>>(
+    `/search`,
+    "pricetag-search-items",
+    "post",
+    request_search_pricetag_item.value
+  );
+  return res.data.value;
 });
 
 const inquiry = ref<ResponsePagination<Inquiry[]>>();
@@ -1577,6 +1585,8 @@ function findChildIndex(tree: CanvassingItemForm[], key: string): number {
 const showPricetag = (row: CanvassingItemForm) => {
   const parent = findParent(item_canvassing.value, row.index);
   if (parent != null) {
+    request_search_pricetag_item.value.keyword = parent.catalogue_name;
+
     itemIndex.value = parent.index;
     itemStartIndex.value = row.index;
     visibleModalSearchItemExample.value = true;
@@ -2121,6 +2131,10 @@ const addNewItem = () => {
   });
 };
 
+const onSearchPricetag = (keyword: string) => {
+  request_search_pricetag_item.value.keyword = keyword;
+};
+
 const addToOfferVendor = (val: Pricetag_item[]) => {
   const getIndex = item_canvassing.value.findIndex(
     (value) => value.index == itemIndex.value
@@ -2307,7 +2321,7 @@ const addChildItem = (
     parent_catalogue_id: item_canvassing.value[parentIndex].catalogue_id,
     catalogue_name: item.catalogue?.name ?? "",
     sn: item.catalogue?.sn ?? "",
-    quantity: 1,
+    quantity: item_canvassing.value[parentIndex].quantity,
     unit_price: item.price,
     total_price: 0,
     status: CanvassingVendorStatus.SUBMITTED,
@@ -2626,9 +2640,9 @@ const handleSelectUnit = async (
 const querySearchCatalogue = (queryString: string, cb: (arg: any) => void) => {
   if (queryString != "") {
     request_search_pricetag_item.value.keyword = queryString;
-
+    // request_search_pricetag_item.value.c
     useFetchApi<ResponsePagination<Pricetag_item[]>>(
-      `/pricetag-item-read`,
+      `/search`,
       "pricetag-search-items",
       "post",
       request_search_pricetag_item.value
@@ -2789,7 +2803,7 @@ const onHandleSelectItemAutocompleteItem = async (
               child.unit_price = selected.price ?? 0;
               child.vendor_id = selected.pricetag?.owner?.unique_id ?? "";
               child.vendor_name = selected.pricetag?.owner?.name ?? "";
-              child.quantity = 1;
+              child.quantity = item.quantity;
               child.pricetag_item_id = selected.unique_id ?? "";
               child.pricetag_item_version = selected.version ?? 0;
             }
@@ -3460,10 +3474,10 @@ const paginationClick = (val: number) => {
 
 const paginationClickPriceTag = (val: number) => {
   console.log("pagination change");
-  request_search_pricetag_item.value.offset = val;
+  request_search_pricetag_item.value.offset = val.toString();
 };
 const paginationSizeChange = (val: number) => {
-  request_search_pricetag_item.value.limit = val;
+  request_search_pricetag_item.value.limit = val.toString();
 };
 
 const paginationClickContact = (val: number) => {
@@ -3521,11 +3535,16 @@ watchDebounced(request_search_contact.value, () => fetchContact(), {
 
 watch(
   () => request_search_pricetag_item.value,
-  () => fetchPricetagItem(),
+  () => {
+    console.log("masuk watch");
+    refreshPricetagItem();
+  },
   {
     deep: true,
   }
 );
+
+const refreshPricetagItem = () => priceTagItem.refresh();
 
 const summeryData = computed(() => {
   const tableData: any[] = [
@@ -3587,18 +3606,33 @@ const summeryData = computed(() => {
     },
   ];
 
+  console.log("refereces", references.value);
   references.value.forEach((element) => {
+    console.log("to number", `${toNumber(`${element.amount}`)}`);
     tableData.push({
       label: element.adjustment?.name ?? "-",
-      max: currency(displayAmount(element, totalBuyingPrice.value)),
+      max: currency(
+        displayAmount(toNumber(`${element.amount}`), totalBuyingPrice.value)
+      ),
       beli: `${safePercent(
-        displayPercentage(element, totalBuyingPrice.value),
+        displayPercentage(
+          toNumber(`${element.amount}`),
+          totalBuyingPrice.value
+        ),
         1
       )}`,
-      jual: `${safePercent(displayPercentage(element, grandTotal.value), 1)}`,
-      min: currency(displayAmount(element, totalBuyingPriceMin.value)),
+      jual: `${safePercent(
+        displayPercentage(toNumber(`${element.amount}`), grandTotal.value),
+        1
+      )}`,
+      min: currency(
+        displayAmount(toNumber(`${element.amount}`), totalBuyingPriceMin.value)
+      ),
       beliMin: `${safePercent(
-        displayPercentage(element, totalBuyingPriceMin.value),
+        displayPercentage(
+          toNumber(`${element.amount}`),
+          totalBuyingPriceMin.value
+        ),
         1
       )}`,
       jualMin: `${safePercent(
@@ -3693,28 +3727,6 @@ const fetchInquiryDetail = async () => {
   }
 };
 
-const fetchPricetagItem = async () => {
-  loadingPriceTag.value = true;
-  try {
-    const response = await useFetchApi<ResponsePagination<Pricetag_item[]>>(
-      `/pricetag-item-read`,
-      "pricetag-search-items",
-      "post",
-      request_search_pricetag_item.value
-    );
-
-    if (response.status.value == "success" && response.data.value != null) {
-      priceTagItem.value = response.data.value;
-
-      console.log("pricetag item", priceTagItem);
-    }
-  } catch (error: any) {
-    ElMessage.error(error?.respnse?.message ?? error);
-  } finally {
-    loadingPriceTag.value = false;
-  }
-};
-
 // Lifecycle
 onMounted(() => {
   if (id.value) {
@@ -3727,8 +3739,6 @@ onMounted(() => {
 
   fetchInquiry();
   fetchContact();
-
-  fetchPricetagItem();
 
   // remove
   // initItemCanvassing();
@@ -3751,6 +3761,11 @@ onMounted(() => {
   height: 75px;
 }
 
+:deep(.image-preview-container) {
+  width: 45px;
+  height: 45px;
+}
+
 :deep(.avatar-uploader .avatar-uploader-icon) {
   width: 50px;
   height: 50px;
@@ -3765,19 +3780,6 @@ onMounted(() => {
   display: flex;
   align-items: center;
 }
-
-/* :deep(.different-unit-row) {
-  background-color: rgba(255, 0, 0, 0.05) !important;
-} */
-
-/* :deep(.different-unit-row td) {
-  border-left: 3px solid #f56c6c !important;
-  border-right: 3px solid #f56c6c !important;
-} */
-
-/* :deep(.different-unit-row:first-child td) {
-  border-top: 3px solid #f56c6c !important;
-} */
 
 :deep(.different-unit-row:last-child td) {
   /* border-top: 2px solid #f56c6c !important; */

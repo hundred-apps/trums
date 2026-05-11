@@ -56,6 +56,7 @@ export type ReferenceTransactionAdjustment = {
   value: number | null; // optional override value
   type: FeeType; // optional override value
   amount: number; // final calculated amount
+  tmp_amount_input?: string;
   amount_nominal?: number;
   amount_nominal_display?: string;
   adjustment?: AdjustmentTransaction;

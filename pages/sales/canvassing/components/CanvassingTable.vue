@@ -51,7 +51,7 @@ const props = defineProps<{
   onSelectionChange: (data: Canvassing[]) => void;
   request_search: RequestSearch;
   fetchKey: string;
-  type: "RAB" | "CANASSING";
+  type: "RAB" | "CANVASSING";
   refreshTrigger: number;
 }>();
 
@@ -95,7 +95,15 @@ const columns: ColumnTable<Canvassing>[] = [
     width: 300,
     sortable: true,
     cellRenderer: ({ rowData: row }) =>
-      props.type == "RAB" ? (
+      props.type == "CANVASSING" &&
+      row.status === CanvassingStatus.PENDING_APPROVAL_RAB ? (
+        <NuxtLink
+          href={`/sales/quotation/${row.unique_id}`}
+          class="text-blue-500"
+        >
+          {row.unique_code}
+        </NuxtLink>
+      ) : props.type == "RAB" ? (
         <NuxtLink
           href={`/sales/quotation/${row.unique_id}`}
           class="text-blue-500"
@@ -370,9 +378,9 @@ const renderStatusTag = (status: CanvassingStatus) => {
     case CanvassingStatus.CANVASSING:
       return <el-tag type="primary">ON CANVASSING</el-tag>;
     case CanvassingStatus.PENDING_APPROVAL_RAB:
-      return <el-tag type="warning">PENDING APPROVAL</el-tag>;
+      return <el-tag type="warning">APPROVAL CANVASSING</el-tag>;
     case CanvassingStatus.PENDING_APPROVAL:
-      return <el-tag type="warning">PENDING APPROVAL</el-tag>;
+      return <el-tag type="warning">APPROVAL RAB</el-tag>;
     case CanvassingStatus.CANCEL:
       return <el-tag type="danger">CANCELED</el-tag>;
     case CanvassingStatus.DONE:

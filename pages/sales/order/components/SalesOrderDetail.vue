@@ -132,18 +132,9 @@
       </template>
       <el-table :data="purchaseOrderData?.purchase_order_item ?? []" border>
         <el-table-column prop="catalogue_name" label="Item" />
-        <el-table-column
-          prop="quantity"
-          label="QTY"
-          align="right"
-          :width="
-            purchaseOrderData?.status === PurchaseOrderStatus.PENDING_APPROVAL
-              ? 200
-              : 70
-          "
-        >
+        <el-table-column prop="quantity" label="QTY" align="right" :width="70">
           <template #default="scope">
-            <el-input-number
+            <!-- <el-input-number
               v-model="scope.row.quantity"
               width="100"
               :min="1"
@@ -156,7 +147,8 @@
             />
             <p v-else>
               {{ scope.row.quantity }}
-            </p>
+            </p> -->
+            {{ scope.row.quantity }}
           </template>
         </el-table-column>
         <el-table-column
@@ -185,7 +177,7 @@
             {{ currency(scope.row.total_price) }}
           </template>
         </el-table-column>
-        <el-table-column label="Garansi" width="150">
+        <!-- <el-table-column label="Garansi" width="150">
           <template #default="scope">
             {{
               scope.row.is_warranty
@@ -204,9 +196,9 @@
                 : "Tidak ada"
             }}
           </template>
-        </el-table-column>
+        </el-table-column> -->
 
-        <el-table-column
+        <!-- <el-table-column
           label="Aksi"
           align="center"
           width="300"
@@ -248,7 +240,7 @@
               {{ formatStatusItem(scope.row.status) }}
             </el-tag>
           </template>
-        </el-table-column>
+        </el-table-column> -->
       </el-table>
     </el-card>
 
@@ -302,11 +294,12 @@
       title="Approve Purchase Order!"
       width="500"
     >
-      <el-form :model="approveForm" :label-position="formApproveLabel">
+      <!-- <el-form :model="approveForm" :label-position="formApproveLabel">
         <el-form-item label="Catatan" prop="note">
           <el-input v-model="approveForm.note" type="textarea" />
         </el-form-item>
-      </el-form>
+      </el-form> -->
+      Data Yang Sudah Di Setujui Atau Ditolak Tidak Dapat Diubah!
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="visibleApproveDialog = false">Cancel</el-button>
@@ -601,6 +594,7 @@ const updateStatus = async (status: PurchaseOrderStatus, note: string = "") => {
 
     (purchaseOrderData.value.purchase_order_item ?? []).forEach(
       (item: PurchaseOrderItem, index: number) => {
+        formData.append(`item[${index}][item_id]`, `${item.catalogue_id}`);
         formData.append(`item[${index}][unique_id]`, item.unique_id);
         formData.append(`item[${index}][quantity]`, `${item.quantity}`);
         formData.append(
@@ -702,15 +696,15 @@ const deletePurchaseOrder = async () => {
   loading.value = true;
   try {
     const response = await useFetchApi<BaseResponse<any>>(
-      `/purchase-order-delete/${purchaseOrderData.value?.unique_id}`,
+      `/purchase-order-delete/`,
       "delete-purchase-order",
-      "delete",
-      null
+      "post",
+      [purchaseOrderData.value?.unique_id]
     );
 
     if (response.status.value === "success") {
       ElMessage.success("Purchase order berhasil dihapus");
-      router.push("/purchase-management/purchase-orders");
+      router.push("/sales/order");
     }
   } catch (error) {
     ElMessage.error("Gagal menghapus purchase order");
@@ -768,31 +762,14 @@ const ppnComponent = computed(() => {
   const dppComponent = getDppComponent(
     purchaseOrderData.value?.reference_transaction ?? []
   );
-  console.log("ppn componen", ppnComponentRef);
   if (ppnComponentRef) {
-    if (dppComponent) {
-      const dppValue = getDPPFormula(dppComponent, subtotal.value || 0);
-      if (ppnComponentRef.include) {
-        return 0;
-      } else {
-        return getPPNFormula(ppnComponentRef, dppValue);
-      }
-    } else {
-      if (ppnComponentRef.include) {
-        return 0;
-      } else {
-        return getPPNFormula(ppnComponentRef, subtotal.value || 0);
-      }
-    }
+    return getPPNFormula(ppnComponentRef!, getDPPNilaiLain.value || 0);
   } else {
     return 0;
   }
 });
 
 const grandTotal = computed(() => {
-  console.log("subtotal", subtotal.value);
-  console.log("plus", getPlus.value);
-  console.log("ppn", ppnComponent.value);
   return subtotal.value + getPlus.value + ppnComponent.value;
 });
 
@@ -810,6 +787,27 @@ const subtotal = computed(() => {
   return sum - (getMinus.value || 0);
 });
 
+const getDPPNilaiLain = computed(() => {
+  let dpp = 0;
+  (purchaseOrderData.value?.reference_transaction ?? []).forEach((element) => {
+    if (
+      element.adjustments_transaction?.category == "tax" &&
+      element.adjustments_transaction.name.toLowerCase() === "ppn"
+    ) {
+      console.log("type", element.type);
+      if (element.type != "amount" && element.amount == 12) {
+        dpp = (subtotal.value * 11) / 12;
+        console.log("dpp 12", dpp);
+      } else {
+        dpp = subtotal.value;
+        console.log("dpp 11", dpp);
+      }
+    }
+  });
+
+  return dpp;
+});
+
 const summeryData = computed(() => {
   const tableData: any[] = [
     {
@@ -818,15 +816,31 @@ const summeryData = computed(() => {
     },
   ];
 
-  (purchaseOrderData.value?.reference_transaction ?? []).forEach((element) => {
+  if (getDPPNilaiLain.value > 0) {
     tableData.push({
-      label: element.adjustments_transaction?.name
-        ? `${element.adjustments_transaction?.name} (${Number(
-            displayPercentage(element, subtotal.value) || 0
-          ).toFixed(2)}%)`
-        : "-",
-      value: currency(displayAmount(element, subtotal.value)),
+      label: "DPP Nilai Lain",
+      value: currency(getDPPNilaiLain.value),
     });
+  }
+  (purchaseOrderData.value?.reference_transaction ?? []).forEach((element) => {
+    if (
+      element.adjustments_transaction?.category == "tax" &&
+      element.adjustments_transaction.name.toLowerCase() === "ppn"
+    ) {
+      tableData.push({
+        label: element.adjustments_transaction?.name
+          ? `${element.adjustments_transaction?.name}`
+          : "-",
+        value: currency(displayAmount(element, getDPPNilaiLain.value)),
+      });
+    } else {
+      tableData.push({
+        label: element.adjustments_transaction?.name
+          ? `${element.adjustments_transaction?.name}`
+          : "-",
+        value: currency(displayAmount(element, subtotal.value)),
+      });
+    }
   });
 
   tableData.push({

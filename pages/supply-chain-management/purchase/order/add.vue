@@ -2206,6 +2206,27 @@ const fetchDataEdit = async () => {
   }
 };
 
+const getDPPNilaiLain = computed(() => {
+  let dpp = 0;
+  references.value.forEach((element) => {
+    if (
+      element.adjustment?.category == "tax" &&
+      element.adjustment.name.toLowerCase() === "ppn"
+    ) {
+      console.log("type", element.type);
+      if (element.type != "amount" && element.amount == 12) {
+        dpp = (subtotal.value * 11) / 12;
+        console.log("dpp 12", dpp);
+      } else {
+        dpp = subtotal.value;
+        console.log("dpp 11", dpp);
+      }
+    }
+  });
+
+  return dpp;
+});
+
 const summeryData = computed(() => {
   const tableData: any[] = [
     {
@@ -2214,15 +2235,28 @@ const summeryData = computed(() => {
     },
   ];
 
-  references.value.forEach((element) => {
+  if (getDPPNilaiLain.value > 0) {
     tableData.push({
-      label: element.adjustment?.name
-        ? `${element.adjustment?.name} (${Number(
-            displayPercentage(element, subtotal.value) || 0
-          ).toFixed(2)}%)`
-        : "-",
-      value: currency(displayAmount(element, subtotal.value)),
+      label: "DPP Nilai Lain",
+      value: currency(getDPPNilaiLain.value),
     });
+  }
+
+  references.value.forEach((element) => {
+    if (
+      element.adjustment?.category == "tax" &&
+      element.adjustment.name.toLowerCase() === "ppn"
+    ) {
+      tableData.push({
+        label: element.adjustment?.name ? `${element.adjustment?.name}` : "-",
+        value: currency(displayAmount(element, getDPPNilaiLain.value)),
+      });
+    } else {
+      tableData.push({
+        label: element.adjustment?.name ? `${element.adjustment?.name}` : "-",
+        value: currency(displayAmount(element, subtotal.value)),
+      });
+    }
   });
 
   tableData.push({

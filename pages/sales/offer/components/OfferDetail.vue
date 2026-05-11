@@ -71,9 +71,24 @@
           size="small"
           placeholder="Type to search"
       /></el-col>
+      <el-col :span="6"
+        ><el-button
+          type="primary"
+          :disabled="selectedPricetagItems.length == 0"
+        >
+          Tambahkan Selected ({{ selectedPricetagItems.length }})
+        </el-button></el-col
+      >
     </el-row>
 
-    <el-table :data="items.data ?? []" size="small" border>
+    <el-table
+      :data="items.data ?? []"
+      size="small"
+      border
+      ref="offerItemTableRef"
+      @selection-change="handlePricetagSelectionChange"
+    >
+      <el-table-column type="selection" width="30" />
       <el-table-column prop="image" label="Image" width="75">
         <template #default="scope">
           <div class="demo-image__preview flex items-center">
@@ -249,7 +264,7 @@
 <script lang="tsx" setup>
 import { TrumsWrapper } from "#components";
 import { Edit, Picture } from "@element-plus/icons-vue";
-import type { ComponentSize } from "element-plus";
+import type { ComponentSize, ElTable } from "element-plus";
 import jsPDF from "jspdf";
 import autoTable, {
   type CellDef,
@@ -300,6 +315,10 @@ const modalSelectContact = ref<boolean>(false);
 const fileList = ref<string[]>([]);
 const initialIndexImage = ref<number>(0);
 const previewImage = ref<boolean>(false);
+
+const offerItemTableRef = ref<InstanceType<typeof ElTable>>();
+const selectedPricetagItems = ref<Pricetag_item[]>([]);
+
 const items = ref<ResponsePagination<Pricetag_item[]>>({
   currentPage: 0,
   data: [],
@@ -337,6 +356,10 @@ const pdfBlob = ref<Blob | null>(null);
 
 const config = useRuntimeConfig();
 const baseImageURL = config.public.baseImageURL;
+
+const handlePricetagSelectionChange = (selection: Pricetag_item[]) => {
+  selectedPricetagItems.value = selection;
+};
 
 const handlePageChange = (page: number) => {
   request_search_pricelist_item.value.offset = `${page}`;

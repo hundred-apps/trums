@@ -555,6 +555,21 @@
               <p>{{ currencyWithoutSymbol(subtotal || 0) }}</p>
             </div>
 
+            <!-- <div
+              v-if="
+                references.find(
+                  (value) =>
+                    (
+                      value.adjustments_transaction || value.adjustment
+                    )?.name.toLowerCase() == 'ppn'
+                )
+              "
+              class="flex justify-between items-center"
+            >
+              <p>DPP Nilai Lain</p>
+              <p>{{ currencyWithoutSymbol(subtotal || 0) }}</p>
+            </div> -->
+
             <div
               class="flex justify-between items-center"
               v-for="ref in references.filter(
@@ -1119,6 +1134,27 @@ const displayAmount = (ref: any, multiplier: number) => {
   }
 };
 
+const getDPPNilaiLain = computed(() => {
+  let dpp = 0;
+  references.value.forEach((element) => {
+    if (
+      element.adjustment?.category == "tax" &&
+      element.adjustment.name.toLowerCase() === "ppn"
+    ) {
+      console.log("type", element.type);
+      if (element.type != "amount" && element.amount == 12) {
+        dpp = (subtotal.value * 11) / 12;
+        console.log("dpp 12", dpp);
+      } else {
+        dpp = subtotal.value;
+        console.log("dpp 11", dpp);
+      }
+    }
+  });
+
+  return dpp;
+});
+
 const paidAmount = computed(() => {
   return Number(grandTotal.value);
 });
@@ -1133,15 +1169,15 @@ const showTransactionAdjustmentValue = (
       ref.adjustment?.category == "tax" &&
       ref.adjustment.name.toLowerCase() === "ppn"
     ) {
-      const dpp: ReferenceTransactionAdjustment | undefined =
-        references.value.find(
-          (value) => value.adjustment?.unique_code == "DPPL"
-        );
-      if (dpp) {
-        const dppValue = getDPPFormula(dpp, ruleForm.subtotal || 0);
-        return getPPNFormula(ref, dppValue || ruleForm.subtotal);
+      if (ref.type == "amount") {
+        return ref.amount;
       } else {
-        return getPPNFormula(ref, ruleForm.subtotal || 0);
+        // if (ref.amount == 11) {
+        //   return subtotal.value * ref.amount;
+        // } else if (ref.amount == 12) {
+        //   return ((subtotal.value * 11) / 12) * ref.amount;
+        // }
+        return displayAmount(ref, getDPPNilaiLain.value);
       }
     } else {
       return ref.type == "amount"

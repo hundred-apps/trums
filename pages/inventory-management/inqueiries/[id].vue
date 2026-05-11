@@ -122,6 +122,7 @@
           style="width: 100%"
           border
         >
+          <!-- <el-table-column type="selection" width="55" :fixed="true" /> -->
           <el-table-column
             prop="catalogue_name"
             label="Nama Item"
@@ -272,6 +273,14 @@ const releatedItemRequest = ref<ResponsePagination<Inventory[]>>({
 const inquiryData = ref<Inquiry>();
 const loading = ref<boolean>(false);
 const loadingBook = ref<boolean>(false);
+
+const selectedItems = ref<any[]>([]);
+
+const handleSelectionChange = (val: any[]) => {
+  selectedItems.value = val;
+
+  console.log("selected items", val);
+};
 
 const confirmDelete = () => {
   ElMessageBox.confirm(

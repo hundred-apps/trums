@@ -148,11 +148,6 @@
         </div>
       </div>
 
-      <el-descriptions title="Dikirim Ke">
-        <el-descriptions-item label="">{{
-          generateResultSearchAddress(canvassingData?.address ?? null).street
-        }}</el-descriptions-item>
-      </el-descriptions>
       <h5 class="font-bold text-black text-1xl mt-6">Lampiran</h5>
       <div v-for="(file, key) in canvassingData?.files" :key="key">
         <NuxtLink
@@ -363,6 +358,17 @@
         </el-table-column>
 
         <el-table-column
+          prop="vendor_name"
+          label="Vendor"
+          width="200"
+          fixed="left"
+        >
+          <template #default="{ row }">
+            {{ row.vendor_name || "" }}
+          </template>
+        </el-table-column>
+
+        <el-table-column
           prop="type_item"
           label="Item Type"
           width="150"
@@ -420,12 +426,6 @@
             {{ row.unit_name }}
           </template>
         </el-table-column>
-        <el-table-column prop="vendor" label="Vendor" width="200">
-          <template #default="{ row }">
-            {{ row.vendor_name }}
-          </template>
-        </el-table-column>
-
         <el-table-column label="Harga Beli" width="300" align="center">
           <el-table-column label="Harga" width="150" align="center">
             <template #default="{ row }">
@@ -668,7 +668,7 @@
           </el-autocomplete>
         </el-form-item>
 
-        <el-form-item v-if="address" label="Dikirim ke">
+        <!-- <el-form-item v-if="address && " label="Dikirim ke">
           <div>
             <div>{{ address.address_name }}</div>
             <div>
@@ -676,7 +676,7 @@
               {{ generateResultSearchAddress(address).name }}
             </div>
           </div>
-        </el-form-item>
+        </el-form-item> -->
 
         <el-form-item label="Deskripsi" prop="description">
           <el-input
@@ -1329,8 +1329,6 @@ watch(
         changeType: false,
       };
     }
-
-    console.log("adjustment ongkir", adjustmentOngkir.value);
   },
   { immediate: true }
 );
@@ -2070,8 +2068,6 @@ const totalBuyingPriceSelected = computed(() => {
     }
   });
 
-  console.log("total harga beli selected", total);
-
   return total;
 });
 
@@ -2124,10 +2120,6 @@ const netProfitForBuying = computed(() => {
         (grandTotal.value * adjustmentTransactionFeeTotal.value.amount) / 100;
     }
   }
-
-  console.log("net profit for buying", totalForGrossProfitForBuying.value);
-  console.log("gran total", grandTotal.value);
-  console.log("fee", fee);
 
   return Number(totalForGrossProfitForBuying.value || 0) - Number(fee || 0);
 });

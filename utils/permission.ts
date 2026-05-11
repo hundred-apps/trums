@@ -9,9 +9,7 @@ export function canAccess(
   step?: number
 ): boolean {
   const found = privilage.findLast((value) => value.slug == name);
-  console.log("find", name);
-  console.log("privilage", privilage);
-  console.log("found", found);
+
   if (found) {
     if (found.type == PermissionType.APPROVAL) {
       if (found.approval_permission_pic?.findLast((app) => app.step == step)) {

@@ -1242,6 +1242,21 @@ const handleSelectContact = (data: Contact, type: "to" | "pic") => {
     ruleForm.to_unique_id = data.unique_id;
     ruleForm.to_version = data.version;
     ruleForm.to_name = data.name ?? "";
+
+    if ((data.children ?? []).length > 0) {
+      picContact.value = data.children![0];
+      ruleForm.request_by = data.children![0].unique_id;
+      ruleForm.request_by_version = data.children![0].version;
+      ruleForm.request_by_name = data.children![0].name;
+    }
+
+    if ((data.address || []).length > 0) {
+      const addressFirst: AddressType = data.address[0];
+      ruleForm.address_id = addressFirst.unique_id;
+      ruleForm.address_version = addressFirst.version;
+      ruleForm.address_view = "";
+      address.value = addressFirst;
+    }
   } else {
     picContact.value = data;
     ruleForm.request_by = data.unique_id;
@@ -1703,32 +1718,13 @@ const handleDeleteAddress = () => {
         status-icon
         :disabled="loading"
       >
-        <el-form-item label="Diminta oleh?" prop="to_name">
+        <el-form-item label="Nama Perusahaan/Perorangan" prop="to_name">
           <AutocompleteContact
             v-model="ruleForm.to_name"
             :contact="toContact"
             :fetch-suggestions="(queryString: string, cb: (arg: any) => void) => querySearchContact(queryString, cb, 'to')"
             @save-contact="(data: Contact) => handleSelectContact(data, 'to')"
           />
-          <!-- <div class="flex items-center gap-3">
-            <el-autocomplete
-              :fetch-suggestions="(queryString: string, cb: (arg: any) => void) => querySearchContact(queryString, cb, 'to')"
-              v-model="ruleForm.to_name"
-              placeholder="Cari Kontak"
-              @select="(item: Record<string, any>) => onHandleSelectContact(item, 'to')"
-            >
-              <template #default="{ item }">
-                <div v-if="!item.isNew">{{ item.name }}</div>
-                <div v-else class="text-blue-600">{{ item.value }}</div>
-              </template>
-            </el-autocomplete>
-            <el-button
-              type="primary"
-              v-if="toContact"
-              @click="openDialogTo"
-              :icon="User"
-            />
-          </div> -->
         </el-form-item>
         <el-form-item
           v-if="toContact && toContact.is_company"
@@ -1748,7 +1744,7 @@ const handleDeleteAddress = () => {
           <TrumsUploadFile v-model:file-list="fileList" />
         </el-form-item>
 
-        <el-form-item label="Cari Alamat" prop="address_view">
+        <el-form-item label="Alamat Perusahaan/Perorangan" prop="address_view">
           <el-autocomplete
             v-model="ruleForm.address_view"
             :fetch-suggestions="querySearchAddress"

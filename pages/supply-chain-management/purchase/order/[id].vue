@@ -222,7 +222,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column
+        <!-- <el-table-column
           label="Aksi"
           align="center"
           width="300"
@@ -252,7 +252,7 @@
               <el-icon class="me-2"><Close /></el-icon> Reject
             </el-button>
           </template>
-        </el-table-column>
+        </el-table-column> -->
       </el-table>
     </el-card>
 
@@ -585,14 +585,18 @@ const updateStatus = async (status: PurchaseOrderStatus, note: string = "") => {
           `${item.item_request_trail_id}`
         );
 
-        if (status == PurchaseOrderStatus.PENDING_APPROVAL) {
-          formData.append(
-            `item[${index}][status]`,
-            `${PurchaseOrderItemStatus.PENDING_APPROVAL}`
-          );
-        } else {
-          formData.append(`item[${index}][status]`, `${item.status}`);
-        }
+        // if (status == PurchaseOrderStatus.PENDING_APPROVAL) {
+        //   formData.append(
+        //     `item[${index}][status]`,
+        //     `${PurchaseOrderItemStatus.PENDING_APPROVAL}`
+        //   );
+        // } else {
+        //   formData.append(`item[${index}][status]`, `${item.status}`);
+        // }
+        formData.append(
+          `item[${index}][status]`,
+          `${PurchaseOrderStatus.DONE}`
+        );
       }
     );
 
@@ -974,20 +978,7 @@ const ppnComponent = computed(() => {
   );
 
   if (ppnComponentRef) {
-    if (dppComponent.value) {
-      const dppValue = getDPPFormula(dppComponent.value, subtotal.value || 0);
-      if (ppnComponentRef.include) {
-        return 0;
-      } else {
-        return getPPNFormula(ppnComponentRef, dppValue);
-      }
-    } else {
-      if (ppnComponentRef.include) {
-        return 0;
-      } else {
-        return getPPNFormula(ppnComponentRef, subtotal.value || 0);
-      }
-    }
+    return getPPNFormula(ppnComponentRef!, getDPPNilaiLain.value || 0);
   } else {
     return 0;
   }
@@ -1013,12 +1004,30 @@ const getMinus = computed(() => {
   return minus;
 });
 const grandTotal = computed(() => {
-  console.log("subtotal", subtotal.value);
-  console.log("getPlus", getPlus.value);
-  console.log("ppnComponent", ppnComponent.value);
-  console.log("getMinus", getMinus.value);
   return subtotal.value + getPlus.value + ppnComponent.value - getMinus.value;
 });
+
+const getDPPNilaiLain = computed(() => {
+  let dpp = 0;
+  (data.value?.data?.reference_transaction || []).forEach((element) => {
+    if (
+      element.adjustments_transaction?.category == "tax" &&
+      element.adjustments_transaction.name.toLowerCase() === "ppn"
+    ) {
+      console.log("type", element.type);
+      if (element.type != "amount" && element.amount == 12) {
+        dpp = (subtotal.value * 11) / 12;
+        console.log("dpp 12", dpp);
+      } else {
+        dpp = subtotal.value;
+        console.log("dpp 11", dpp);
+      }
+    }
+  });
+
+  return dpp;
+});
+
 const summeryData = computed(() => {
   const tableData: any[] = [
     {
@@ -1027,15 +1036,32 @@ const summeryData = computed(() => {
     },
   ];
 
-  (data.value?.data?.reference_transaction ?? []).forEach((element) => {
+  if (getDPPNilaiLain.value > 0) {
     tableData.push({
-      label: element.adjustments_transaction?.name
-        ? `${element.adjustments_transaction?.name} (${Number(
-            displayPercentage(element, subtotal.value) || 0
-          ).toFixed(2)}%)`
-        : "-",
-      value: currency(displayAmount(element, subtotal.value)),
+      label: "DPP Nilai Lain",
+      value: currency(getDPPNilaiLain.value),
     });
+  }
+
+  (data.value?.data?.reference_transaction ?? []).forEach((element) => {
+    if (
+      element.adjustments_transaction?.category == "tax" &&
+      element.adjustments_transaction.name.toLowerCase() === "ppn"
+    ) {
+      tableData.push({
+        label: element.adjustments_transaction?.name
+          ? `${element.adjustments_transaction?.name}`
+          : "-",
+        value: currency(displayAmount(element, getDPPNilaiLain.value)),
+      });
+    } else {
+      tableData.push({
+        label: element.adjustments_transaction?.name
+          ? `${element.adjustments_transaction?.name}`
+          : "-",
+        value: currency(displayAmount(element, subtotal.value)),
+      });
+    }
   });
 
   tableData.push({

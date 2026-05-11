@@ -28,4 +28,5 @@ export type Contact = {
   checked?: boolean;
   parent?: Contact;
   people_internal?: People;
+  children?: Contact[];
 };
