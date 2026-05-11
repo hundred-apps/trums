@@ -884,6 +884,7 @@
       @create-new="visibleModalNewAdjustment = true"
       :data="adjustmentTransactions.data?.value?.data ?? []"
       :search-params="querySearchAdjustmentTransaction"
+      @on-search="onSearchAdjsutment"
     />
 
     <el-dialog
@@ -1259,21 +1260,26 @@ const querySearchAdjustmentTransaction = ref<RequestSearch>({
   flag: "form",
 });
 
-const adjustmentTransactions = await useFetchApi<
-  ResponsePagination<AdjustmentTransaction[]>
->(
-  "/search",
+const adjustmentTransactions = await useAsyncData(
   "search-adjustment",
-  "post",
-  querySearchAdjustmentTransaction.value
+  async () => {
+    const res = await useFetchApi<ResponsePagination<AdjustmentTransaction[]>>(
+      `/search`,
+      "search-adjustment",
+      "post",
+      querySearchAdjustmentTransaction.value
+    );
+    return res.data.value;
+  }
 );
+
+const onSearchAdjsutment = (keyword: string) =>
+  (querySearchAdjustmentTransaction.value.keyword = keyword);
 
 const adjustmentContact = computed(() => {
   const data = adjustmentTransactions.data.value?.data || [];
-  return data.find(
-    (value: AdjustmentTransaction) =>
-      value.name?.toLowerCase().includes("fee") &&
-      value.operator === feeState.value
+  return data.find((value: AdjustmentTransaction) =>
+    value.name?.toLowerCase().includes("fee")
   );
 });
 
@@ -2711,6 +2717,30 @@ const addContact = () => {
       address: [],
     },
   });
+
+  const findTrAdjustment = references.value.findIndex(
+    (value) =>
+      (value.adjustments_transaction || value.adjustment)?.name.toLowerCase() ==
+      "fee"
+  );
+  if (findTrAdjustment < 0) {
+    console.log("adjustment", adjustmentContact.value);
+    references.value.push({
+      unique_id: "",
+      reference: ReferenceAdjustment.CANVASSING,
+      reference_id: "",
+      adjustment_id: `${adjustmentContact.value?.unique_id}`,
+      adjustment: adjustmentContact.value,
+      adjustments_transaction: adjustmentContact.value,
+      value: null,
+      type: unitFee.value,
+      amount: contactsFee.value.reduce(
+        (sum, c) => Number(sum) + toNumber(`${c.amount || 0}`),
+        0
+      ),
+      created_at: 0,
+    });
+  }
 };
 
 const removeContact = (index: number) => {
@@ -3996,9 +4026,11 @@ watchDebounced(
 );
 
 watchDebounced(
-  querySearchAdjustmentTransaction.value,
-  () => refreshNuxtData("search-adjustment"),
-  { debounce: 500 }
+  () => querySearchAdjustmentTransaction.value,
+  () => {
+    adjustmentTransactions.refresh();
+  },
+  { deep: true }
 );
 
 watchDebounced(request_search_contact.value, () => fetchContact(), {
@@ -4012,6 +4044,33 @@ watch(
       (acc, item) => Number(acc) + toNumber(handleInput(`${item.amount}`)),
       0
     );
+
+    // const findFee = references.value.findIndex((fee) => (fee.adjustments_transaction || fee.adjustment)?.name.toLowerCase() ==
+    //   "fee");
+
+    // if (findFee < 0) {
+    //   references.value.push({
+    //   unique_id: "",
+    //   reference: ReferenceAdjustment.CANVASSING,
+    //   reference_id: "",
+    //   adjustment_id: `${adjustmentContact.value?.unique_id}`,
+    //   adjustment: adjustmentContact.value,
+    //   adjustments_transaction: adjustmentContact.value,
+    //   value: null,
+    //   type: unitFee.value,
+    //   amount: contactsFee.value.reduce(
+    //     (sum, c) => Number(sum) + toNumber(`${c.amount || 0}`),
+    //     0
+    //   ),
+    //   created_at: 0,
+    // })
+    // } else {
+    //   references.value[findFee].amount = toNumber(handleInput(`${totalAmount}`));
+    //   references.value[findFee].tmp_amount_input = handleInput(`${totalAmount.toFixed(2)}`);
+    //   references.value.forEach((ref) => {
+
+    // });
+    // }
 
     references.value.forEach((ref) => {
       if (

@@ -3,7 +3,7 @@
     <el-row :gutter="20" class="mb-3">
       <el-col :span="6">
         <el-input
-          v-model="searchParams.keyword"
+          v-model="searchKeyword"
           size="default"
           placeholder="Type to search"
         />
@@ -59,10 +59,13 @@ interface Props {
   searchParams: any;
 }
 
+const searchKeyword = ref<string>("");
+
 interface Emits {
   (e: "update:visible", value: boolean): void;
   (e: "select-adjustment", items: AdjustmentTransaction[]): void;
   (e: "create-new"): void;
+  (e: "on-search", value: string): void;
 }
 
 const props = defineProps<Props>();
@@ -80,6 +83,13 @@ const tableRef = ref<InstanceType<typeof ElTable>>();
 const handleSelectionChange = (val: AdjustmentTransaction[]) => {
   selectedItems.value = val;
 };
+
+watch(
+  () => searchKeyword.value,
+  (value) => {
+    emit("on-search", value);
+  }
+);
 
 const onCreateNew = () => {
   console.log("emit");
