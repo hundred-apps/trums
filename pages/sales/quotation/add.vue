@@ -2749,8 +2749,23 @@ const addContact = () => {
   }
 };
 
-const removeContact = (index: number) => {
-  contactsFee.value.splice(index, 1);
+// const removeFee = async (index: number): Promise<boolean> => {
+//   loading.value = true;
+//   try {
+//     const response = await useFetchApi('/')
+//   } catch (error: any) {
+//     console.log(`${error?.response?.message ?? error}`);
+//   } finally {
+//     loading.value = false;
+//     return false;
+//   }
+
+// };
+
+const removeContact = async (index: number) => {
+  submitRemoveCost([contactsFee.value[index].unique_id]).then((response) => {
+    contactsFee.value.splice(index, 1);
+  });
 };
 
 const onHandleSelectContact = async (
