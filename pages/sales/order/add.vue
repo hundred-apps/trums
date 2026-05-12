@@ -206,11 +206,11 @@
             </template>
           </el-table-column>
           <el-table-column prop="unit_name" label="Satuan" width="100" />
-          <el-table-column prop="buy_price" label="Harga Beli" width="100">
+          <!-- <el-table-column prop="buy_price" label="Harga Beli" width="100">
             <template #default="scope">
               {{ scope.row.display_buy_price }}
             </template>
-          </el-table-column>
+          </el-table-column> -->
           <el-table-column
             prop="unit_price"
             label="Harga PNW"
@@ -438,7 +438,7 @@
     <el-dialog
       v-model="visiblePricetagModal"
       title="Pilih Item dari Penawaran"
-      width="1000"
+      width="1200"
     >
       <el-row :gutter="20" class="mb-3">
         <el-col :span="4">
@@ -1188,7 +1188,7 @@ const querySearchCustomer = (
 };
 
 const generateResultSearchAddress = (address: AddressType) => {
-  const name = `(${address.contact_name}) - ${
+  const name = `(${address.address_name}) - ${
     address.village ? address.village + "," : ""
   } ${address.city ? address.city + "," : ""} ${
     address.regency ? address.regency + "," : ""
@@ -1505,11 +1505,7 @@ const addSelectedPricetagItems = () => {
       status: PurchaseOrderItemStatus.DRAFT,
       po_unit_price: value.price,
       display_po_unit_price: formatCurrencyID(value.price),
-      buy_price: value.data_reference?.unit_price || 0,
-      display_buy_price: currencyWithoutSymbol(
-        value.data_reference?.unit_price || 0,
-        0
-      ),
+
       pricetag_item_id: value.unique_id!,
       pricetag_item_version: value.version,
     });

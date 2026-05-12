@@ -7,15 +7,19 @@
         </span>
       </template>
     </el-page-header>
-    <SalesOrderDetail v-if="!loading" :purchase-order="purchaseOrderData!" />
+    <SalesOrderDetail
+      v-if="!loading"
+      :purchase-order="purchaseOrderData!"
+      :privillage="privilage || []"
+    />
   </TrumsWrapper>
 </template>
 
 <script lang="ts" setup>
-
-import { type PurchaseOrder } from '~/types/scm/purchase_order'
-import type { BaseResponse } from '~/types/response'
-import SalesOrderDetail from './components/SalesOrderDetail.vue';
+import { type PurchaseOrder } from "~/types/scm/purchase_order";
+import type { BaseResponse } from "~/types/response";
+import SalesOrderDetail from "./components/SalesOrderDetail.vue";
+import type { Permission } from "~/types/menu";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -23,46 +27,40 @@ definePageMeta({
   name: "Sales Order Detail",
 });
 
+const router = useRouter();
+const route = useRoute();
+const purchaseOrderId = ref<string>(route.params.id as string);
 
-const router = useRouter()
-const route = useRoute()
-const purchaseOrderId = ref<string>(route.params.id as string)
-
-
-
-const loading = ref(false)
-const purchaseOrderData = ref<PurchaseOrder | null>(null)
-
+const loading = ref(false);
+const purchaseOrderData = ref<PurchaseOrder | null>(null);
+const privilage = ref<Permission[] | null>([]);
 
 const goBack = () => router.back();
 
 // Fetch purchase order data
 const fetchPurchaseOrder = async () => {
-  loading.value = true
+  loading.value = true;
   try {
     const response = await useFetchApi<BaseResponse<PurchaseOrder>>(
-      `/purchase-order-read/${purchaseOrderId.value}`, 
-      'detail-purchase-order', 
-      'get', 
+      `/purchase-order-read/${purchaseOrderId.value}`,
+      "detail-purchase-order",
+      "get",
       null
-    )
+    );
 
-    if (response.status.value === 'success') {
+    if (response.status.value === "success") {
       purchaseOrderData.value = response.data.value?.data ?? null;
-    //   await fetchPurchaseOrderItems()
-    //   await fetchRelatedDocuments()
+      privilage.value = response.data.value?.privilege || [];
     }
   } catch (error) {
-    ElMessage.error('Gagal mengambil data purchase order')
-    goBack()
+    ElMessage.error("Gagal mengambil data purchase order");
+    goBack();
   } finally {
-    loading.value = false
+    loading.value = false;
   }
-}
-
-
+};
 
 onMounted(() => {
-  fetchPurchaseOrder()
-})
+  fetchPurchaseOrder();
+});
 </script>

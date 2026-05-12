@@ -86,16 +86,22 @@
           <el-input v-model="scope.row.email" />
         </template>
       </el-table-column>
+      <el-table-column label="Aksi" width="75">
+        <template #default="scope">
+          <el-button
+            :icon="Delete"
+            type="danger"
+            @click="() => handleDeletePIC(scope.$index)"
+          ></el-button>
+        </template>
+      </el-table-column>
     </el-table>
   </el-card>
   <el-card class="mt-3" shadow="never">
     <template #header>
       <div class="card-header flex items-center justify-between">
         <span>Alamat</span>
-        <el-button
-          :icon="Plus"
-          type="primary"
-          @click="() => (dialogNewAddress = true)"
+        <el-button :icon="Plus" type="primary" @click="showDialogAddress"
           >Tambahkan Alamat</el-button
         >
       </div>
@@ -428,6 +434,10 @@ const handleDeleteAddress = async (index: number) => {
   }
 };
 
+const handleDeletePIC = (index: number) => {
+  ruleForm.children.splice(index, 1);
+};
+
 const handleEditAddress = (index: number) => {
   ruleFormAddress.value = ruleForm.address[index];
 
@@ -588,6 +598,12 @@ const querySearchGeolocation = (
   });
 };
 
+const showDialogAddress = () => {
+  ruleFormAddress.value.address_name = ruleForm.name;
+  ruleFormAddress.value.phone = ruleForm.phone || "";
+  dialogNewAddress.value = true;
+};
+
 const submitFormAddress = async (address: AddressType) => {
   if (address.unique_id) {
     const findIndex = ruleForm.address.findIndex(
@@ -645,6 +661,6 @@ watch(
 
     console.log("masuk watch", newValue);
   },
-  { deep: true }
+  { immediate: true }
 );
 </script>

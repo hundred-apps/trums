@@ -506,12 +506,16 @@
         <el-table-column label="Harga Beli" width="400" align="center">
           <el-table-column label="Harga Beli" width="200">
             <template #default="{ row }">
-              {{ currency(row.unit_price) }}
+              <span v-if="row.type == 'child'">{{
+                currency(row.unit_price)
+              }}</span>
             </template>
           </el-table-column>
           <el-table-column label="Total Harga" width="200">
             <template #default="{ row }">
-              {{ currency(row.total_price) }}
+              <span v-if="row.type == 'child'">{{
+                currency(row.total_price)
+              }}</span>
             </template>
           </el-table-column>
         </el-table-column>
@@ -617,40 +621,26 @@
           <el-table-column label="Harga Jual" width="200">
             <template #default="{ row }">
               <div v-if="row.type === 'parent'">
-                {{ currency(row.selling_price) }}
-              </div>
-              <div v-else class="flex">
-                <el-radio-group
-                  v-model="item_canvassing[row.parent_index].tmp_child_selected"
-                >
-                  <el-radio
-                    size="default"
-                    @change="
-                      (val) =>
-                        calculateSellingPriceSelected(row, row.parent_index)
-                    "
-                    :value="row.index"
-                  >
-                    &nbsp;
-                  </el-radio>
-                </el-radio-group>
                 <el-input-number
                   v-model="row.selling_price"
                   :min="0"
                   @change="
-                    (cur, prev) => {
-                      row.selling_price = cur;
-                      calculatePricing(row, 'selling_price');
-                    }
-                  "
-                  @input="
                     (value) => {
-                      row.selling_price = value;
+                      row.children?.forEach((child: any) => {
+                        child.selling_price = value || 0;
+
+                        child.total_selling_price =
+                          (child.quantity || 0) * (child.selling_price || 0);
+
+                        calculatePricing(child, 'selling_price');
+                      });
                       calculatePricing(row, 'selling_price');
                     }
                   "
-                  placeholder="Harga Jual"
                 />
+              </div>
+              <div v-else class="flex">
+                {{ currencyWithoutSymbol(row.selling_price) }}
               </div>
             </template>
           </el-table-column>
@@ -987,6 +977,7 @@
       <FormAddress
         :onSetInitital="{ contact_id: '', contact_name: '' }"
         :onSuccess="onAddNewAddress"
+        :use-tmp="false"
       />
     </el-dialog>
   </TrumsWrapper>
@@ -1038,6 +1029,7 @@ import {
 import type { Pricetag, Pricetag_item } from "~/types/pricetag";
 import type { ResponsePagination } from "~/types/response_pagination";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
+import { currencyWithoutSymbol } from "#imports";
 
 // Components
 import AddPriceTagComponent from "~/components/trums/AddPriceTagComponent.vue";
@@ -2139,6 +2131,12 @@ function calculatePricing(
   }
 
   row.total_selling_price = Number(row.quantity) * Number(row.selling_price);
+
+  console.log("type", row.type);
+  console.log("quantity", row.quantity);
+  console.log("selling price", row.selling_price);
+  console.log("total selling price", row.total_selling_price);
+
   // ==============================
   // MODE 2: SELLING PRICE DIINPUT → HITUNG PROFIT
   // ==============================
@@ -2175,8 +2173,6 @@ function calculatePricing(
   if (parent.tmp_child_selected == row.index) {
     parent.selling_price = row.selling_price;
     parent.total_selling_price = row.total_selling_price;
-    console.log("parent selected", row.selling_price);
-    console.log("row index", row.total_selling_price);
   }
 }
 
@@ -2259,14 +2255,14 @@ const calculateSellingPrice = (row: CanvassingItemForm) => {
 
   const parent = findParent(item_canvassing.value, row.index);
 
-  if (parent && parent.tmp_child_selected == row.index) {
-    console.log("parent", parent);
+  // if (parent && parent.tmp_child_selected == row.index) {
+  //   console.log("parent", parent);
 
-    parent.unit_price = row.unit_price;
-    parent.total_price = row.total_price;
-    parent.selling_price = row.selling_price;
-    parent.total_selling_price = row.total_selling_price;
-  }
+  //   parent.unit_price = row.unit_price;
+  //   parent.total_price = row.total_price;
+  //   parent.selling_price = row.selling_price;
+  //   parent.total_selling_price = row.total_selling_price;
+  // }
 };
 
 const removeItem = async (item: CanvassingItemForm) => {
@@ -3439,6 +3435,7 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
     payment_terms.value = dataCanvassing.payment_terms ?? [];
 
     dataCanvassing.canvassing_item.forEach((value, index) => {
+      console.log("canvassing item", value.quantity);
       let canvassingItemTmp = {
         type_item: value.type_item,
         index: `${value.unique_id}`,
@@ -3776,17 +3773,10 @@ const submit = async (formEl: FormInstance | undefined) => {
       // Append canvassing_vendor
       // Append canvassing_vendor fields satu per satu
       item.children.forEach((vendor: CanvassingItemForm, j: any) => {
-        if (vendor.index == item.tmp_child_selected) {
-          formData.append(
-            `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
-            CanvassingVendorStatus.SELECTED
-          );
-        } else {
-          formData.append(
-            `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
-            CanvassingVendorStatus.SUBMITTED
-          );
-        }
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
+          CanvassingVendorStatus.SUBMITTED
+        );
 
         formData.append(
           `canvassing_items[${i}][canvassing_vendor][${j}][unique_id]`,

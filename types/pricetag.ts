@@ -6,11 +6,12 @@ import type { Inventory } from "./inventory";
 import type { Canvassing } from "./scm/canvasing";
 import type { TermOfPayment } from "./payment_term";
 import type { ReferenceTransactionAdjustment } from "./attribute_adjustment";
-import type { CanvassingVendor } from "./canvassing";
+import type { CanvassingItem, CanvassingVendor } from "./scm/canvasing";
 
 export enum ReferencePriceTag {
   CANVASING_VENDOR = "canvassing_vendor",
   CANVASSING = "canvassing",
+  CANVASSING_ITEM = "canvassing_item",
 }
 
 export type Pricetag = {
@@ -86,7 +87,7 @@ export type Pricetag_item = {
   note?: string;
   reference?: ReferencePriceTag;
   reference_id?: string;
-  data_reference?: CanvassingVendor;
+  data_reference?: CanvassingVendor | CanvassingItem;
 };
 
 export type Pricetag_condition = {

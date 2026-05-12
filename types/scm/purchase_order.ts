@@ -6,6 +6,7 @@ import type { PaymentMethod } from "../finance/bill";
 import type { Invoice } from "../finance/invoice";
 import type { ItemRequestTrail } from "../item_request";
 import type { TermOfPayment } from "../payment_term";
+import type { Pricetag_item } from "../pricetag";
 import type { Tax } from "../tax";
 import type { DiscountUnit } from "./offers";
 // import { WarrantyUnit } from "./offers";
@@ -131,6 +132,7 @@ export type PurchaseOrderItem = {
   display_buy_price?: string;
   pricetag_item_id?: string;
   pricetag_item_version?: number;
+  pricetag_item?: Pricetag_item;
 };
 
 export type PurchaseOrderItemTax = {

@@ -109,11 +109,10 @@
     <div class="flex justify-end mt-3">
       <el-pagination
         background
-        layout="prev, pager, next, size"
+        layout="prev, pager, next, sizes, total"
         :total="data?.total_data"
-        @next-click="paginationClick"
-        @prev-click="paginationClick"
-        @change="paginationClick"
+        @current-change="handlePageChange"
+        @size-change="handleSizeChange"
       />
     </div>
   </TrumsWrapper>
@@ -171,13 +170,15 @@ const request_search = ref<RequestSearch>({
   },
 });
 
-// Data state
-const { data } = await useFetchApi<ResponsePagination<Menu[]>>(
-  "/search",
-  "get-menus",
-  "post",
-  request_search.value
-);
+const { data, refresh } = await useAsyncData("get-menus", async () => {
+  const res = await useFetchApi<ResponsePagination<Menu[]>>(
+    `/search`,
+    "get-menus",
+    "post",
+    request_search.value
+  );
+  return res.data.value;
+});
 
 const selectedMenus = ref<Menu[]>([]);
 const loading = ref<boolean>(false);
@@ -417,10 +418,6 @@ const handleSizeChange = (size: number) => {
   // fetchData()
 };
 
-const paginationClick = (val: number) => {
-  request_search.value.offset = val.toString();
-};
-
 const onEdit = (menu: Menu) => {
   navigateTo(`/menu/edit/${menu.unique_id}`);
 };
@@ -456,6 +453,8 @@ const onDelete = async (uniques: string[]) => {
     }
   }
 };
+
+const onRefresh = () => refresh();
 
 const batchDelete = async () => {
   const ids =
@@ -523,10 +522,8 @@ const onChangeMenuFilter = (val: string) => {
 
 // Watch search query
 watchDebounced(
-  request_search,
-  () => {
-    refreshNuxtData("get-menus");
-  },
+  () => request_search.value,
+  () => onRefresh(),
   { debounce: 500, deep: true }
 );
 </script>

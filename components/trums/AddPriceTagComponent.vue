@@ -991,7 +991,7 @@ const onUpdatePaymentTerms = (data: TermOfPayment[]) => {
 
 const totalPrice = computed(() => {
   return ruleForm.pricetag_item.reduce((accumulator, currentValue) => {
-    return accumulator + currentValue.price;
+    return accumulator + currentValue.price * currentValue.quantity;
   }, 0);
 });
 const subtotal = computed(() => {
@@ -1791,25 +1791,8 @@ const onHandleSelectVendor = (item: any, type: "to" | "vendor" | "pic") => {
       stateActiveTypeContat.value = "customer";
     }
 
+    console.log("owner data", ruleForm.owner);
     dialogContact.value = true;
-    // createNewVendor({ name: item.keyword }).then((customer) => {
-    //   if (customer) {
-    //     if (type == "vendor") {
-    //       ruleForm.owner_id = customer.unique_id;
-    //       ruleForm.owner_name = customer.name;
-    //       ruleForm.owner = customer;
-    //     } else if (type == "pic") {
-    //       ruleForm.pic_id = customer.unique_id;
-    //       ruleForm.pic_name = customer.name;
-    //       ruleForm.pic_version = customer.version;
-    //     } else {
-    //       ruleForm.to_id = customer.unique_id;
-    //       ruleForm.to_name = customer.name;
-    //       ruleForm.to_version = customer.version;
-    //       ruleForm.to = customer;
-    //     }
-    //   }
-    // });
   } else {
     const customer = item.data as Contact;
     if (type == "vendor") {
@@ -2590,18 +2573,18 @@ const initialSetting = () => {
   }
 };
 
-onMounted(() => {
-  loadingGetEditData.value = false;
-  if (canvassing_id.value) {
-    fetchCanvassing();
-  }
+// onMounted(() => {
+//   loadingGetEditData.value = false;
+//   if (canvassing_id.value) {
+//     fetchCanvassing();
+//   }
 
-  if (id.value) {
-    fetchInitialData();
-  } else {
-    initialSetting();
-  }
-});
+//   if (id.value) {
+//     fetchInitialData();
+//   } else {
+//     initialSetting();
+//   }
+// });
 </script>
 
 <style scoped>

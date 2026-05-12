@@ -86,6 +86,27 @@
           </el-descriptions>
         </div>
       </div>
+      <el-card class="mt-3" shadow="never">
+        <template #header>
+          <div class="card-header flex items-center justify-between">
+            <span>Daftar PIC</span>
+          </div>
+        </template>
+        <el-table :data="contactData?.children ?? []" border>
+          <el-table-column label="Nama" prop="name" />
+          <el-table-column label="Telepon" prop="phone" />
+          <el-table-column label="Email" prop="email" />
+          <el-table-column label="Aksi" width="75">
+            <template #default="scope">
+              <el-button
+                :icon="Delete"
+                type="danger"
+                @click="() => handleDeletePIC(scope.$index)"
+              ></el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-card>
 
       <!-- Addresses -->
       <el-card shadow="never" class="mt-3">
@@ -108,7 +129,7 @@
 </template>
 
 <script lang="ts" setup>
-import { Delete, Edit } from "@element-plus/icons-vue";
+import { Delete, Edit, Plus } from "@element-plus/icons-vue";
 import type { Contact } from "~/types/contact";
 import type { BaseResponse } from "~/types/response";
 
@@ -157,11 +178,70 @@ const fetchContact = async () => {
   }
 };
 
+const submitDeleteContact = async (ids: string[]): Promise<boolean> => {
+  loading.value = true;
+  try {
+    const response = await useFetchApi<BaseResponse<any>>(
+      "/contact-delete",
+      "delete-pic",
+      "post",
+      ids
+    );
+    if (response.status.value === "success") {
+      return true;
+    } else {
+      return false;
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message || error);
+    loading.value = false;
+    return false;
+  }
+};
+
+const handleDeletePIC = async (index: number) => {
+  await ElMessageBox.confirm("Yakin ingin menghapus data PIC", "Warning", {
+    confirmButtonText: "Hapus",
+    cancelButtonText: "Batal",
+    type: "warning",
+  });
+
+  const exist = contactData.value?.children?.[index];
+  if (exist) {
+    if (exist.unique_id) {
+      await submitDeleteContact([exist.unique_id ?? ""]);
+    }
+    contactData.value?.children?.splice(index, 1);
+  }
+};
+
 // Format date
 const formatDate = (timestamp?: number | null) => {
   if (!timestamp) return "-";
   return new Date(timestamp * 1000).toLocaleDateString("id-ID");
 };
+
+const addLineContact = () =>
+  contactData.value!.children!.push({
+    id: 0,
+    unique_id: "",
+    unique_code: "",
+    is_personal: false,
+    is_company: null,
+    internal_id: "",
+    name: "",
+    email: "",
+    phone: null,
+    tax_id: null,
+    website: null,
+    title: null,
+    tags: "",
+    created_at: 0,
+    created_by: "",
+    updated_at: 0,
+    version: 0,
+    address: [],
+  });
 
 // Delete Contact
 const confirmDelete = () => {

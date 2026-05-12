@@ -127,7 +127,7 @@
         align="right"
       >
         <template #default="scope">
-          {{ currency(scope.row.price) }}
+          {{ currency(scope.row.price * scope.row.quantity) }}
         </template>
       </el-table-column>
       <el-table-column prop="note" label="Note" width="150" />
@@ -422,7 +422,7 @@ const generateResultSearchAddress = (address: AddressType | null) => {
 const totalPrice = computed(() => {
   return (props.dataInterface.data?.pricetag_item ?? []).reduce(
     (accumulator, currentValue) => {
-      return accumulator + currentValue.price;
+      return accumulator + currentValue.price * currentValue.quantity;
     },
     0
   );

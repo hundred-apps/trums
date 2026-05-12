@@ -23,7 +23,7 @@
           <el-button
             type="success"
             v-if="canvassingData?.status === CanvassingStatus.RAB"
-            @click="() => submitApproveRab(CanvassingStatus.PENDING_APPROVAL)"
+            @click="() => (dialogSelectedItem = true)"
           >
             <el-icon class="me-2"><CircleCheck /></el-icon> Submit for Approval
           </el-button>
@@ -334,6 +334,7 @@
         :tree-props="{ children: 'children' }"
         :row-class-name="tableRowClassName"
         :expand-row-keys="getExpandRowKeys ?? []"
+        :size="'small'"
         border
       >
         <el-table-column
@@ -864,6 +865,7 @@
         :tree-props="{ children: 'children' }"
         :row-class-name="tableRowClassName"
         :expand-row-keys="getExpandRowKeys ?? []"
+        :size="'small'"
         border
       >
         <el-table-column
@@ -877,33 +879,6 @@
           </template>
         </el-table-column>
 
-        <el-table-column
-          prop="type_item"
-          label="Item Type"
-          width="130"
-          fixed="left"
-        >
-          <template #default="{ row }">
-            <div v-if="row.type === 'parent'">
-              {{ row.type_item == "request" ? "Permintaan" : "Equivalent" }}
-            </div>
-            <div v-else>
-              {{
-                row.type_item == "original"
-                  ? "AS Requested"
-                  : row.type_item == "quotation"
-                  ? "Subtitution"
-                  : "Equivalent"
-              }}
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column prop="sn" label="SN/PN" width="150">
-          <template #default="{ row }">
-            {{ row.sn ?? "N/A" }}
-          </template>
-        </el-table-column>
         <el-table-column prop="qty" label="Qty" width="78">
           <template #default="{ row }">
             {{ row.quantity }}
@@ -2491,7 +2466,6 @@ const tableRowClassName = ({
   row: CanvassingItemForm;
   rowIndex: number;
 }) => {
-  console.log("status", row.status);
   if (row.type_item != "request" && row.type_item != "equivalent") {
     if (row.status === CanvassingVendorStatus.SELECTED) {
       return "success-row";
@@ -2978,14 +2952,6 @@ const isRowSelected = (
 watch(
   () => item_canvassing.value,
   () => {
-    updateSelectedChildrenFromChecked();
-  },
-  { deep: true }
-);
-
-watch(
-  () => item_canvassing.value,
-  () => {
     item_canvassing.value.forEach((element) => {
       const findCanvassingItem = (
         canvassingData.value?.canvassing_item ?? []
@@ -3031,31 +2997,29 @@ const handleSelect = (
 ): void => {
   const isSelected = selection.some((selected) => selected.index === row.index);
 
+  // Parent
   if (row.type === "parent") {
-    // Parent di-check/uncheck → update semua children
-    if (isSelected) {
-      // Check parent dan semua children
-      row.checked = true;
-      row.children?.forEach((child) => {
-        child.checked = true;
-      });
-    } else {
-      // Uncheck parent dan semua children
-      row.checked = false;
-      row.children?.forEach((child) => {
-        child.checked = false;
-      });
-    }
-  } else {
-    // Child di-check/uncheck → update child saja
-    row.checked = isSelected;
-
-    // Update parent state berdasarkan children
-    updateParentCheckedState(row);
+    row.children?.forEach((child) => {
+      tableRef.value?.toggleRowSelection(child, isSelected);
+    });
   }
 
-  // Update selectedChildren array berdasarkan checked state
-  updateSelectedChildrenFromChecked();
+  // Child
+  else {
+    const parent = item_canvassing.value.find(
+      (item) => item.index === row.index
+    );
+
+    if (parent) {
+      const allChildrenSelected = parent.children?.every((child) =>
+        selection.some((selected) => selected.index === child.index)
+      );
+
+      tableRef.value?.toggleRowSelection(parent, !!allChildrenSelected);
+    }
+  }
+
+  updateSelectedChildrenFromChecked(selection);
 };
 
 const updateParentCheckedState = (changedChild?: CanvassingItemForm): void => {
@@ -3080,18 +3044,8 @@ const updateParentCheckedState = (changedChild?: CanvassingItemForm): void => {
   });
 };
 
-const updateSelectedChildrenFromChecked = (): void => {
-  selectedChildren.value = [];
-
-  item_canvassing.value.forEach((parent) => {
-    if (parent.children) {
-      parent.children.forEach((child) => {
-        if (child.checked) {
-          selectedChildren.value.push(child);
-        }
-      });
-    }
-  });
+const updateSelectedChildrenFromChecked = (selection: CanvassingItemForm[]) => {
+  selectedChildren.value = selection.filter((item) => item.type === "child");
 };
 
 const updateTableSelection = (): void => {
@@ -3335,20 +3289,36 @@ const submitApproveRab = async (status: CanvassingStatus) => {
         //   }`
         // );
 
-        if (vendor.status == CanvassingVendorStatus.SELECTED) {
+        // if (vendor.status == CanvassingVendorStatus.SELECTED) {
+        //   formData.append(
+        //     `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
+        //     `${CanvassingVendorStatus.SELECTED}`
+        //   );
+        // } else if (vendor.checked) {
+        //   formData.append(
+        //     `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
+        //     `${CanvassingVendorStatus.SUBMITTED}`
+        //   );
+        // } else {
+        //   formData.append(
+        //     `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
+        //     `${CanvassingVendorStatus.REJECTED}`
+        //   );
+        // }
+
+        if (
+          selectedChildren.value.find(
+            (child) => child.unique_id == vendor.unique_id
+          )
+        ) {
           formData.append(
             `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
             `${CanvassingVendorStatus.SELECTED}`
           );
-        } else if (vendor.checked) {
-          formData.append(
-            `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
-            `${CanvassingVendorStatus.SUBMITTED}`
-          );
         } else {
           formData.append(
             `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
-            `${CanvassingVendorStatus.REJECTED}`
+            `${CanvassingVendorStatus.SUBMITTED}`
           );
         }
 
@@ -3807,25 +3777,22 @@ const findRowById = (id: string): CanvassingItemForm | null => {
   return findRecursive(item_canvassing.value);
 };
 
-const handleSelectAll = (selection: CanvassingItemForm[]): void => {
-  if (selection.length === 0) {
-    // Unselect all
-    selectedChildren.value = [];
-  } else {
-    // Select all children
-    selectedChildren.value = [];
-    item_canvassing.value.forEach((parent) => {
-      if (parent.children) {
-        parent.children.forEach((child) => {
-          if (
-            !selectedChildren.value.find((selected) => selected.sn === child.sn)
-          ) {
-            selectedChildren.value.push(child);
-          }
-        });
-      }
+const handleSelectAll = (selection: CanvassingItemForm[]) => {
+  const isChecked = selection.length > 0;
+
+  item_canvassing.value.forEach((parent) => {
+    // select parent
+    tableRef.value?.toggleRowSelection(parent, isChecked);
+
+    // select children
+    parent.children?.forEach((child) => {
+      tableRef.value?.toggleRowSelection(child, isChecked);
     });
-  }
+  });
+
+  selectedChildren.value = isChecked
+    ? item_canvassing.value.flatMap((parent) => parent.children || [])
+    : [];
 };
 
 const getStatusTagType = (

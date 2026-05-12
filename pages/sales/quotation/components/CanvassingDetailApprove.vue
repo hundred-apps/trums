@@ -193,6 +193,7 @@
         :tree-props="{ children: 'children' }"
         :row-class-name="tableRowClassName"
         :expand-row-keys="getExpandRowKeys ?? []"
+        :size="'small'"
         border
       >
         <el-table-column prop="item_name" label="Item" width="500" fixed="left">
@@ -257,23 +258,25 @@
         <el-table-column label="Harga Beli" width="300" align="center">
           <el-table-column label="Harga" width="150" align="center">
             <template #default="{ row }">
-              {{ currency(row.unit_price) }}
+              <span v-if="row.type == 'child'">{{
+                currency(row.unit_price)
+              }}</span>
             </template>
           </el-table-column>
           <el-table-column label="Total" width="150" align="center">
             <template #default="{ row }">
-              {{ currency(row.total_price) }}
+              {{ currency(Number(row.total_price)) }}
             </template>
           </el-table-column>
         </el-table-column>
 
         <el-table-column label="Profit" width="200">
           <template #default="{ row }">
-            {{
+            <span v-if="row.type == 'child'">{{
               `${currency(Math.round(row.profit_nominal || 0))} (${
                 row.profit
               } %)`
-            }}
+            }}</span>
           </template>
         </el-table-column>
         <el-table-column label="Fee" width="200">
@@ -917,6 +920,7 @@ import {
   type FormInstance,
   type FormProps,
   type FormRules,
+  type TableColumnCtx,
 } from "element-plus";
 import {
   FeeType,
@@ -1908,19 +1912,13 @@ const grandTotal = computed(() => {
 });
 
 const totalBuyingPrice = computed(() => {
-  let total = 0;
-
-  item_canvassing.value.forEach((element) => {
-    if (element.children.length > 0) {
-      let dataMin = element.children.reduce((max, data) =>
-        data.unit_price < max.unit_price ? data : max
-      );
-
-      total += Number(dataMin.unit_price) * Number(dataMin.quantity);
+  return item_canvassing.value.reduce((acc, row: CanvassingItemForm) => {
+    if (row.type === "parent") {
+      acc += Number(row.total_price || 0);
     }
-  });
 
-  return total;
+    return acc;
+  }, 0);
 });
 const totalBuyingPriceSelected = computed(() => {
   let total = 0;
@@ -2546,7 +2544,13 @@ const initialCanvassing = (data: Canvassing) => {
         sn: element.catalogue?.sn ?? "N/A",
         quantity: element.quantity ?? 1,
         unit_price: 0,
-        total_price: 0,
+        total_price: element.canvassing_vendor.reduce((sum, item) => {
+          if (item.status === CanvassingVendorStatus.SELECTED) {
+            return sum + item.total_price;
+          }
+
+          return sum;
+        }, 0),
         total_selling_price: element.total_selling_price ?? 0,
         status: CanvassingVendorStatus.SUBMITTED,
         taxes: [],
@@ -2659,7 +2663,13 @@ const initialCanvassing = (data: Canvassing) => {
         sn: element.catalogue?.sn ?? "N/A",
         quantity: element.quantity ?? 1,
         unit_price: 0,
-        total_price: element.total_selling_price ?? 0,
+        total_price: element.canvassing_vendor.reduce((sum, item) => {
+          if (item.status === CanvassingVendorStatus.SELECTED) {
+            return sum + item.total_price;
+          }
+
+          return sum;
+        }, 0),
         total_selling_price: element.total_selling_price ?? 0,
         status: CanvassingVendorStatus.SUBMITTED,
         taxes: [],
@@ -2747,26 +2757,58 @@ const initialCanvassing = (data: Canvassing) => {
     }
   });
 
-  item_canvassing.value.forEach((parent) => {
-    parent.children.forEach((child) => {
-      if (child.selling_price == parent.selling_price) {
-        parent.unit_price = child.unit_price;
-        parent.total_price = child.total_price;
-        parent.profit = child.profit;
-        parent.profit_nominal = child.profit_nominal;
-        parent.profit_unit = child.profit_unit;
-        parent.fee = child.fee;
-        parent.fee_nominal = child.fee_nominal;
-        parent.fee_unit = child.fee_unit;
-        parent.ongkir = child.ongkir;
-        parent.ongkir_nominal = child.ongkir_nominal;
-        parent.ongkir_unit = child.ongkir_unit;
-      }
-    });
-  });
+  // item_canvassing.value.forEach((parent) => {
+  //   parent.children.forEach((child) => {
+  //     if (child.selling_price == parent.selling_price) {
+  //       parent.unit_price = child.unit_price;
+  //       parent.total_price = child.total_price;
+  //       parent.profit = child.profit;
+  //       parent.profit_nominal = child.profit_nominal;
+  //       parent.profit_unit = child.profit_unit;
+  //       parent.fee = child.fee;
+  //       parent.fee_nominal = child.fee_nominal;
+  //       parent.fee_unit = child.fee_unit;
+  //       parent.ongkir = child.ongkir;
+  //       parent.ongkir_nominal = child.ongkir_nominal;
+  //       parent.ongkir_unit = child.ongkir_unit;
+  //     }
+  //   });
+  // });
 
   fetchPriceTagWithItems();
 };
+
+// interface SummaryMethodProps<T = CanvassingItemForm> {
+//   columns: TableColumnCtx<T>[]
+//   data: T[]
+// }
+// const getSummaries = (param: SummaryMethodProps) => {
+//   const { columns, data } = param
+//   const sums: (string | VNode)[] = []
+//   columns.forEach((column, index) => {
+//     if (index === 0) {
+//       sums[index] = h('div', { style: { textDecoration: 'underline' } }, [
+//         'Total',
+//       ])
+//       return
+//     }
+//     const values = data.map((item) => Number(item[column.property]))
+//     if (!values.every((value) => Number.isNaN(value))) {
+//       sums[index] = `$ ${values.reduce((prev, curr) => {
+//         const value = Number(curr)
+//         if (!Number.isNaN(value)) {
+//           return prev + curr
+//         } else {
+//           return prev
+//         }
+//       }, 0)}`
+//     } else {
+//       sums[index] = 'N/A'
+//     }
+//   })
+
+//   return sums
+// }
 
 // Fetch canvassing data
 const fetchCanvassing = async () => {
@@ -2801,7 +2843,10 @@ const getSelectedVendorId = (itemId: string) => {
 };
 
 function calculateMargin(row: CanvassingItemForm) {
-  return ((row.selling_price - row.unit_price) / row.unit_price) * 100;
+  return (
+    ((row.total_selling_price - row.total_price) / row.total_selling_price) *
+    100
+  );
 }
 
 const formatDate = (timestamp: number) => {

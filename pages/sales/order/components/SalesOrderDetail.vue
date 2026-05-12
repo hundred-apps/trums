@@ -130,27 +130,14 @@
           <span>Purchase Order Items</span>
         </div>
       </template>
-      <el-table :data="purchaseOrderData?.purchase_order_item ?? []" border>
-        <el-table-column prop="catalogue_name" label="Item" />
-        <el-table-column prop="quantity" label="QTY" align="right" :width="70">
-          <template #default="scope">
-            <!-- <el-input-number
-              v-model="scope.row.quantity"
-              width="100"
-              :min="1"
-              v-if="
-                scope.row.status === PurchaseOrderItemStatus.PENDING_APPROVAL ||
-                (scope.row.status === PurchaseOrderItemStatus.DRAFT &&
-                  purchaseOrderData?.status ===
-                    PurchaseOrderStatus.PENDING_APPROVAL)
-              "
-            />
-            <p v-else>
-              {{ scope.row.quantity }}
-            </p> -->
-            {{ scope.row.quantity }}
-          </template>
-        </el-table-column>
+      <el-table :data="purchaseOrderItemsView ?? []" row-key="unique_id" border>
+        <el-table-column prop="item_name" label="Item" />
+        <el-table-column
+          prop="quantity"
+          label="QTY"
+          align="right"
+          :width="70"
+        />
         <el-table-column
           prop="unit_name"
           label="UOM"
@@ -158,25 +145,35 @@
           width="100"
         />
         <el-table-column
-          prop="unit_price"
-          label="Harga Unit"
+          prop="harga_quo"
+          label="Harga PNW"
           align="right"
           width="150"
         >
-          <template #default="scope">
-            {{ currency(scope.row.unit_price) }}
+          <template #default="{ row }">
+            {{ currencyWithoutSymbol(row.harga_quo, 0) }}
           </template>
         </el-table-column>
         <el-table-column
-          prop="total_price"
+          prop="harga_po"
+          label="Harga PO"
+          align="right"
+          width="150"
+        >
+          <template #default="{ row }">
+            {{ currencyWithoutSymbol(row.harga_po, 0) }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="total"
           label="Total Harga"
           align="right"
           width="150"
         >
-          <template #default="scope">
-            {{ currency(scope.row.total_price) }}
-          </template>
-        </el-table-column>
+          <template #default="{ row }">
+            {{ currencyWithoutSymbol(row.total, 0) }}
+          </template></el-table-column
+        >
         <!-- <el-table-column label="Garansi" width="150">
           <template #default="scope">
             {{
@@ -242,6 +239,16 @@
           </template>
         </el-table-column> -->
       </el-table>
+
+      <div class="flex justify-end mt-3">
+        <el-pagination
+          background
+          layout="prev, pager, next, sizes, total"
+          :total="purchaseOrderItem?.data.value?.total_data"
+          @current-change="handlePageChange"
+          @size-change="handleSizeChange"
+        />
+      </div>
     </el-card>
 
     <el-card class="mb-3" v-if="relatedDocuments.length > 0" shadow="hover">
@@ -352,6 +359,14 @@ import {
 } from "~/types/attribute_adjustment";
 import { formatLocalDate, currency, formattedText } from "#imports";
 import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
+import {
+  CanvassingVendorStatus,
+  type CanvassingItem,
+} from "~/types/scm/canvasing";
+import { OrderColumn, type RequestSearch } from "~/types/request_search";
+import type { ResponsePagination } from "~/types/response_pagination";
+import { currencyWithoutSymbol } from "#imports";
+import type { Permission } from "~/types/menu";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -359,6 +374,7 @@ definePageMeta({
 
 const props = defineProps<{
   purchaseOrder: PurchaseOrder;
+  privillage?: Permission[];
 }>();
 
 const visibleApproveDialog = ref<boolean>(false);
@@ -379,9 +395,90 @@ const svg = `
   " style="stroke-width: 4px; fill: rgba(0, 0, 0, 0)"/>
 `;
 
+type PurchasOrderViewTree = {
+  unique_id: string;
+  item_name: string;
+  item_id: string;
+  quantity: number;
+  unit_name: string;
+  harga_quo: number;
+  harga_po: number;
+  total: number;
+  children: PurchasOrderViewTree[];
+};
+
+const request_search_po_item = ref<RequestSearch>({
+  keyword: "",
+  column: [],
+  limit: "10",
+  offset: "1",
+  table: "purchase_order_item",
+  sort: {
+    column: "created_at",
+    order: OrderColumn.DESC,
+  },
+  flag: "list",
+});
+
 const loading = ref(false);
 const purchaseOrderData = ref<PurchaseOrder | null>(props.purchaseOrder);
-const purchaseOrderItems = ref<PurchaseOrderItem[]>([]);
+
+const purchaseOrderItem = await useAsyncData("fetch-inquiries", async () => {
+  let res: ResponsePagination<PurchaseOrderItem[]> = {
+    success: false,
+    currentPage: 0,
+    total_page: 0,
+    total_data: 0,
+    data: [],
+  };
+  console.log("fetch ", request_search_po_item.value.column);
+  if (request_search_po_item.value.column.length > 0) {
+    const response = await useFetchApi<ResponsePagination<PurchaseOrderItem[]>>(
+      `/search`,
+      "fetch-order-item",
+      "post",
+      request_search_po_item.value
+    );
+
+    res = response.data.value ?? {
+      success: false,
+      currentPage: 0,
+      total_page: 0,
+      total_data: 0,
+      data: [],
+    };
+  }
+
+  return res;
+});
+
+watch(
+  () => request_search_po_item.value,
+  () => purchaseOrderItem.refresh(),
+  { deep: true }
+);
+watch(
+  () => purchaseOrderData.value,
+  (newValue) => {
+    request_search_po_item.value.column = [
+      {
+        order_id: [newValue?.unique_id],
+      },
+    ];
+    console.log("newValue ", request_search_po_item.value.column);
+  },
+  { immediate: true }
+);
+
+const handlePageChange = (page: number) => {
+  request_search_po_item.value.offset = `${page}`;
+};
+
+const handleSizeChange = (size: number) => {
+  request_search_po_item.value.limit = `${size}`;
+};
+
+const purchaseOrderItemsView = ref<PurchasOrderViewTree[]>([]);
 const relatedDocuments = ref<any[]>([]);
 const approveForm = reactive({
   note: "",
@@ -422,26 +519,6 @@ const formatStatusItem = (status: PurchaseOrderItemStatus) => {
     return "REJECTED";
   } else {
     return status;
-  }
-};
-
-// Fetch purchase order items
-const fetchPurchaseOrderItems = async () => {
-  if (!purchaseOrderData.value) return;
-
-  try {
-    const response = await useFetchApi<BaseResponse<PurchaseOrderItem[]>>(
-      `/purchase-order-items/${purchaseOrderData.value.unique_id}`,
-      "purchase-order-items",
-      "get",
-      null
-    );
-
-    if (response.status.value === "success") {
-      purchaseOrderItems.value = response.data.value?.data || [];
-    }
-  } catch (error) {
-    console.error("Failed to fetch purchase order items", error);
   }
 };
 
@@ -850,6 +927,49 @@ const summeryData = computed(() => {
 
   return tableData;
 });
+
+const getOrderItem = async () => {};
+
+watch(
+  () => purchaseOrderItem.data.value?.data,
+  () => {
+    (purchaseOrderItem.data.value?.data || []).forEach((element) => {
+      let childs: PurchasOrderViewTree[] = [];
+      if (canAccess("purchase-order-approve", props.privillage || [], 1)) {
+        childs = (
+          element.pricetag_item?.data_reference as CanvassingItem
+        ).canvassing_vendor
+          .filter((vendor) => vendor.status === CanvassingVendorStatus.SELECTED)
+          .map((vendor) => ({
+            unique_id: vendor.unique_id || "",
+            item_name: vendor.vendor?.name || "N/A",
+            item_id: vendor.catalogue_id || "",
+            quantity: vendor.quantity || 0,
+            unit_name: vendor.unit_name || "N/A",
+            harga_quo: vendor.unit_price || 0,
+            harga_po: 0,
+            total: vendor.unit_price * vendor.quantity,
+            children: [],
+          }));
+      }
+
+      purchaseOrderItemsView.value.push({
+        unique_id: element.unique_id,
+        item_name: element.catalogue_name,
+        item_id: element.catalogue_id || "",
+        quantity: element.quantity,
+        unit_name: element.unit_name || "N/A",
+        harga_quo: element.pricetag_item?.price || 0,
+        harga_po: element.po_unit_price || 0,
+        total: element.total_price || 0,
+        children: childs,
+      });
+    });
+  },
+  {
+    immediate: true,
+  }
+);
 </script>
 
 <style scoped>

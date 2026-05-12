@@ -1476,34 +1476,55 @@ const fetchCanvassing = async () => {
         }
         ruleForm.pricetag_item = [];
         canvassing.canvassing_item.forEach((element) => {
-          element.canvassing_vendor.forEach((cvendor) => {
-            if (cvendor.status == CanvassingVendorStatus.SELECTED) {
-              // console.log(
-              //   "canvassing vendor selected",
-              //   cvendor.catalogue?.name
-              // );
-
-              ruleForm.pricetag_item.push({
-                unique_id: null,
-                tag_id: null,
-                catalogue: cvendor.catalogue ?? null,
-                catalogue_id: cvendor.catalogue_id,
-                inventory_id: "",
-                inventory: null,
-                price: element.unit_selling_price,
-                displayPrice: formatCurrencyID(element.unit_selling_price),
-                is_new: true,
-                unit_id: cvendor.unit_id,
-                unit_name: cvendor.unit_name,
-                unit_version: cvendor.unit_version,
-                sn: cvendor.catalogue?.sn ?? "N/A",
-                checked: false,
-                item_name: cvendor.catalogue?.name ?? "",
-                quantity: 1,
-                fileUploads: [],
-              });
-            }
+          ruleForm.pricetag_item.push({
+            unique_id: null,
+            tag_id: null,
+            catalogue: element.catalogue ?? null,
+            catalogue_id: element.catalogue_id,
+            inventory_id: "",
+            inventory: null,
+            price: element.unit_selling_price,
+            displayPrice: formatCurrencyID(element.unit_selling_price),
+            is_new: true,
+            unit_id: element.unit_id,
+            unit_name: element.unit_name,
+            unit_version: element.unit_version,
+            sn: element.catalogue?.sn ?? "N/A",
+            checked: false,
+            item_name: element.catalogue?.name ?? "",
+            quantity: element.quantity,
+            reference: ReferencePriceTag.CANVASSING_ITEM,
+            reference_id: element.unique_id,
+            fileUploads: [],
           });
+          // element.canvassing_vendor.forEach((cvendor) => {
+          //   if (cvendor.status == CanvassingVendorStatus.SELECTED) {
+          //     // console.log(
+          //     //   "canvassing vendor selected",
+          //     //   cvendor.catalogue?.name
+          //     // );
+
+          //     ruleForm.pricetag_item.push({
+          //       unique_id: null,
+          //       tag_id: null,
+          //       catalogue: cvendor.catalogue ?? null,
+          //       catalogue_id: cvendor.catalogue_id,
+          //       inventory_id: "",
+          //       inventory: null,
+          //       price: element.unit_selling_price,
+          //       displayPrice: formatCurrencyID(element.unit_selling_price),
+          //       is_new: true,
+          //       unit_id: cvendor.unit_id,
+          //       unit_name: cvendor.unit_name,
+          //       unit_version: cvendor.unit_version,
+          //       sn: cvendor.catalogue?.sn ?? "N/A",
+          //       checked: false,
+          //       item_name: cvendor.catalogue?.name ?? "",
+          //       quantity: 1,
+          //       fileUploads: [],
+          //     });
+          //   }
+          // });
         });
 
         references.value = (canvassing.reference_transaction ?? []).map(
