@@ -64,7 +64,7 @@
             :refresh-trigger="canvassingRefreshTrigger"
             :request_search="canvassing_search"
             :fetch-key="'get-canvassing-inquiry'"
-            :type="'CANASSING'"
+            :type="'CANVASSING'"
             @selection-change="(value) => {}"
           />
         </div>
@@ -164,7 +164,8 @@
         <div v-if="!loading && !inquiryData.pending && inquiryData.data">
           <OrderTable
             :request_search="so_search"
-            :key="'get-sales-order'"
+            :refresh-key="'get-sales-order'"
+            :refresh-trigger="refreshTrigger"
             @has-bulk="(value) => {}"
             v-on:on-pending="(value) => (loading = value)"
             @on-success="

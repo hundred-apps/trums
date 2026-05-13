@@ -9,6 +9,7 @@
     </el-page-header>
 
     <el-card
+      shadow="hover"
       class="my-3"
       v-if="status === 'success'"
       element-loading-text="Loading..."
@@ -146,7 +147,7 @@
       </div>
     </el-card>
 
-    <el-card class="mb-3">
+    <el-card class="mb-3" shadow="hover">
       <template #header>
         <div class="card-header">
           <span>Purchase Order Items</span>
@@ -256,7 +257,7 @@
       </el-table>
     </el-card>
 
-    <el-card class="mb-3" v-if="relatedDocuments.length > 0">
+    <el-card shadow="hover" class="mb-3" v-if="relatedDocuments.length > 0">
       <template #header>
         <div class="card-header">
           <span>Dokumen Terkait</span>
@@ -580,10 +581,10 @@ const updateStatus = async (status: PurchaseOrderStatus, note: string = "") => {
       (item: PurchaseOrderItem, index: number) => {
         formData.append(`item[${index}][unique_id]`, item.unique_id);
         formData.append(`item[${index}][quantity]`, `${item.quantity}`);
-        formData.append(
-          `item[${index}][item_request_trail_id]`,
-          `${item.item_request_trail_id}`
-        );
+        // formData.append(
+        //   `item[${index}][item_request_trail_id]`,
+        //   `${item.item_request_trail_id}`
+        // );
 
         // if (status == PurchaseOrderStatus.PENDING_APPROVAL) {
         //   formData.append(

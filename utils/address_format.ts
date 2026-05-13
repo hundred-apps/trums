@@ -38,6 +38,8 @@ export const generateAddressView = (address: AddressType) => {
     addressView = addressView + address.province + ", ";
   }
 
+  addressView = addressView + `${address.codepos}`;
+
   // return `${address.villages?.name || address.village}, ${
   //   address.villages?.districts?.name || address.city
   // }, ${

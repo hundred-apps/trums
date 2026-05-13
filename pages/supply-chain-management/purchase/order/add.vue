@@ -435,7 +435,7 @@
     <el-dialog
       v-model="visibleCanvassingModal"
       title="Pilih Item dari Canvassing"
-      width="1000"
+      width="1200"
     >
       <el-row :gutter="20" class="mb-3">
         <el-col :span="12">
@@ -458,7 +458,7 @@
       >
         <el-table-column type="selection" width="55" />
         <el-table-column prop="catalogue.name" label="Item" />
-        <el-table-column prop="catalogue.sn" label="SN" />
+        <el-table-column prop="catalogue.sn" label="SN" width="100" />
         <el-table-column prop="unit_name" label="Satuan" width="100" />
         <el-table-column
           prop="unit_price"
@@ -470,8 +470,8 @@
             {{ formatCurrency(scope.row.unit_price) }}
           </template>
         </el-table-column>
-        <el-table-column prop="vendor.name" label="Vendor" />
-        <el-table-column label="Nomor Canvassing">
+        <!-- <el-table-column prop="vendor.name" label="Vendor" /> -->
+        <el-table-column label="Nomor Canvassing" width="200">
           <template #default="scope">
             {{ scope.row.canvassing_item?.canvassing?.unique_code ?? "N/A" }}
           </template>
@@ -490,11 +490,7 @@
       </div>
     </el-dialog>
 
-    <el-dialog
-      v-model="visibleModalRequest"
-      title="Cari Permintaan"
-      width="1000"
-    >
+    <el-dialog v-model="visibleModalRequest" title="Cari Nomor PR" width="1200">
       <el-row :gutter="20" class="mb-3">
         <el-col :span="6"
           ><el-input
@@ -504,7 +500,7 @@
         /></el-col>
       </el-row>
       <el-table :data="itemRequest?.data.value?.data ?? []" style="width: 100%">
-        <el-table-column label="Nama Item" width="180">
+        <el-table-column label="Nama Item">
           <template #default="scope">
             <NuxtLink
               class="text-blue-500"
@@ -513,7 +509,7 @@
             >
           </template>
         </el-table-column>
-        <el-table-column label="Nomor PR">
+        <el-table-column label="Nomor PR" width="200">
           <template #default="scope">
             <p>
               {{
@@ -523,12 +519,12 @@
             </p>
           </template>
         </el-table-column>
-        <el-table-column label="Serial Number">
+        <el-table-column label="Serial Number" width="150">
           <template #default="scope">
             <p>{{ scope.row.item_request?.sn ?? "-" }}</p>
           </template>
         </el-table-column>
-        <el-table-column label="Quantity">
+        <el-table-column label="QTY" width="100">
           <template #default="scope">
             <p>
               {{ scope.row.quantity }}
@@ -536,15 +532,7 @@
             </p>
           </template>
         </el-table-column>
-        <el-table-column label="Quantity">
-          <template #default="scope">
-            <p>
-              {{ scope.row.quantity }}
-              {{ scope.row.item_request?.unit_name ?? "" }}
-            </p>
-          </template>
-        </el-table-column>
-        <el-table-column label="Aksi">
+        <el-table-column label="Aksi" width="100">
           <template #default="scope">
             <el-button
               size="small"

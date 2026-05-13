@@ -112,7 +112,7 @@
             {{ scope.row.item_request?.request_qty }}
           </template>
         </el-table-column>
-        <el-table-column
+        <!-- <el-table-column
           prop="request_purchase_quantity"
           label="Qty"
           align="right"
@@ -129,7 +129,7 @@
               {{ scope.row.quantity }}
             </p>
           </template>
-        </el-table-column>
+        </el-table-column> -->
 
         <el-table-column
           prop="unit_name"

@@ -232,6 +232,7 @@ import type { PurchaseOrder } from "~/types/scm/purchase_order";
 import type { AddressType } from "~/types/address";
 import { formatLocalDate } from "#imports";
 import type { JSX } from "vue/jsx-runtime";
+import type { InventoryMovementItem } from "~/types/inventory_movement";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -436,11 +437,7 @@ const getStatusItemType = (
   item_request: ItemRequest
 ): "success" | "warning" | "info" | "danger" | "primary" => {
   if (item_request.item_request_trail.length > 0) {
-    switch (
-      item_request.item_request_trail[
-        item_request.item_request_trail.length - 1
-      ].status
-    ) {
+    switch (item_request.item_request_trail[0].status) {
       case ItemRequestTrailStatus.DRAFT:
         return "info";
       case ItemRequestTrailStatus.WAITING:
@@ -460,11 +457,20 @@ const getStatusItemType = (
 
 const getStatusItem = (item_request: ItemRequest) => {
   if (item_request.item_request_trail.length > 0) {
-    return (
-      item_request.item_request_trail[
-        item_request.item_request_trail.length - 1
-      ].reference ?? "INQ"
+    const status = (
+      item_request.item_request_trail[0].reference ?? "INQ"
     ).toUpperCase();
+
+    if (status == "MOVEMENT_ITEM") {
+      const ref = item_request.item_request_trail[0]
+        .data_reference as InventoryMovementItem;
+      if (ref.inventory_movement?.type == "in") {
+        return "CHECK IN";
+      } else if (ref.inventory_movement?.type == "out") {
+        return "CHECK OUT";
+      }
+    }
+    return status;
   } else {
     return "Waiting";
   }

@@ -120,7 +120,7 @@
           <el-table-column prop="street" label="Jalan" />
           <el-table-column prop="city" label="Kota" />
           <el-table-column prop="province" label="Provinsi" />
-          <el-table-column prop="postal_code" label="Kode Pos" />
+          <el-table-column prop="codepos" label="Kode Pos" />
           <el-table-column prop="country" label="Negara" />
         </el-table>
       </el-card>

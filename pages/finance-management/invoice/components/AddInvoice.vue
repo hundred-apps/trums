@@ -1328,11 +1328,17 @@ const deliveryOrders = await useAsyncData("fetch-delivery-order", async () => {
   return res.data.value;
 });
 
-const purchase_order = await useFetchApi<ResponsePagination<PurchaseOrder[]>>(
-  "/search",
+const purchase_order = await useAsyncData(
   "search-reference-purchase-order",
-  "post",
-  request_search_purchase_order.value
+  async () => {
+    const res = await useFetchApi<ResponsePagination<PurchaseOrder[]>>(
+      `/search`,
+      "search-reference-purchase-order",
+      "post",
+      request_search_purchase_order.value
+    );
+    return res.data.value;
+  }
 );
 
 const paginationClick = (page: number) => {
@@ -1424,9 +1430,9 @@ const onHandleSelectDO = (values: InventoryMovement[]) => {
 };
 
 watch(
-  request_search_purchase_order.value,
-  () => refreshNuxtData("search-reference-purchase-order"),
-  { immediate: true }
+  () => request_search_purchase_order.value,
+  () => purchase_order.refresh(),
+  { deep: true }
 );
 
 watch(

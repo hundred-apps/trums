@@ -860,9 +860,6 @@ const handleSelectAddress = (record: Record<string, any>) => {
 };
 
 const onSelectReference_id = async (data: Inquiry) => {
-  console.log("reference", data.reference_data);
-  console.log("data", data.item_request);
-
   tableItem.value = [];
   if (formInline.type == "out") {
     formInline.reference_view = data.unique_code ?? "";

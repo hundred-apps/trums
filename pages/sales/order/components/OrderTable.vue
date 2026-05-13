@@ -372,6 +372,6 @@ watch(
   (val) => {
     refresh();
   },
-  { immediate: true }
+  { deep: true }
 );
 </script>

@@ -145,6 +145,12 @@
           width="100"
         />
         <el-table-column
+          prop="quo_number"
+          label="No.QUO"
+          align="center"
+          width="200"
+        />
+        <el-table-column
           prop="harga_quo"
           label="Harga PNW"
           align="right"
@@ -401,6 +407,7 @@ type PurchasOrderViewTree = {
   item_id: string;
   quantity: number;
   unit_name: string;
+  quo_number: string;
   harga_quo: number;
   harga_po: number;
   total: number;
@@ -949,6 +956,7 @@ watch(
             harga_quo: vendor.unit_price || 0,
             harga_po: 0,
             total: vendor.unit_price * vendor.quantity,
+            quo_number: "",
             children: [],
           }));
       }
@@ -962,6 +970,7 @@ watch(
         harga_quo: element.pricetag_item?.price || 0,
         harga_po: element.po_unit_price || 0,
         total: element.total_price || 0,
+        quo_number: element.pricetag_item?.pricetag?.unique_code || "",
         children: childs,
       });
     });

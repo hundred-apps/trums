@@ -673,15 +673,19 @@ const onSort = (sortBy: { prop: string; order: string }) => {
 };
 
 watch(
-  request_search,
+  () => request_search.value,
   () => {
     refresh();
   },
-  { immediate: true }
+  { deep: true }
 );
 
 const paginationClick = (val: number) => {
   request_search.value.offset = val.toString();
+};
+
+const handlePageChange = (page: number) => {
+  request_search.value.offset = `${page}`;
 };
 
 const handleSizeChange = (size: number) => {
@@ -787,9 +791,7 @@ onMounted(() => {
           background
           layout="prev, pager, next, sizes"
           :total="data?.total_data"
-          :page-size="parseInt(request_search.limit)"
-          :current-page="parseInt(request_search.offset)"
-          @current-change="paginationClick"
+          @current-change="handlePageChange"
           @size-change="handleSizeChange"
         />
       </div>
