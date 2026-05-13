@@ -940,6 +940,7 @@ const getOrderItem = async () => {};
 watch(
   () => purchaseOrderItem.data.value?.data,
   () => {
+    purchaseOrderItemsView.value = [];
     (purchaseOrderItem.data.value?.data || []).forEach((element) => {
       let childs: PurchasOrderViewTree[] = [];
       if (canAccess("purchase-order-approve", props.privillage || [], 1)) {
