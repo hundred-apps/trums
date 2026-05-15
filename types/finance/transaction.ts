@@ -36,7 +36,8 @@ export type Transaction = {
   account_bank_number: string | null;
   account_bank_version?: number;
 
-  bank_account?: BankAccount;
+  bank_account?: BankAccount | null;
+  bank_account_to?: BankAccount | null;
 
   recipient_bank_to?: string;
   recipient_bank_to_version?: number;

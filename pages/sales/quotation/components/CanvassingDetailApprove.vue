@@ -55,6 +55,16 @@
             Batalkan Pengajuan
           </el-button>
           <el-button
+            type="default"
+            @click="printSCMMemo"
+            v-if="
+              canvassingData?.status === CanvassingStatus.PENDING_APPROVAL ||
+              canvassingData?.status === CanvassingStatus.DONE
+            "
+          >
+            Cetak SCM Memo
+          </el-button>
+          <el-button
             v-if="
               canvassingData?.status ===
                 CanvassingStatus.PENDING_APPROVAL_RAB && editState == false
@@ -880,6 +890,28 @@
         }"
       />
     </el-dialog>
+
+    <el-dialog
+      v-model="previewSCMMemoDialog"
+      title="Preview PDF"
+      width="80%"
+      destroy-on-close
+    >
+      <iframe
+        v-if="pdfUrl"
+        :src="pdfUrl"
+        width="100%"
+        height="600px"
+        style="border: none"
+      ></iframe>
+
+      <template #footer>
+        <el-button @click="previewSCMMemoDialog = false">Tutup</el-button>
+        <el-button type="success" @click="downloadSCMMemo"
+          >Download PDF</el-button
+        >
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -933,7 +965,7 @@ import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { Contact } from "~/types/contact";
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import autoTable, { type RowInput } from "jspdf-autotable";
 import {
   OperationPriceTag,
   ReferencePriceTag,
@@ -981,6 +1013,7 @@ const svg = `
     L 15 15
   " style="stroke-width: 4px; fill: rgba(0, 0, 0, 0)"/>
 `;
+const previewSCMMemoDialog = ref<boolean>(false);
 const paymentTermError = ref(false);
 const dialogCancelApproval = ref(false);
 const dialogNewAddress = ref(false);
@@ -1037,6 +1070,8 @@ const bulkProfitUnit = ref("percent");
 const bulkFee = ref("");
 const bulkFeeUnit = ref("percent");
 const bulkOngkir = ref("");
+
+const pdfBlob = ref<Blob | null>(null);
 
 const request_search_vendor = ref<RequestSearch>({
   keyword: "",
@@ -1737,71 +1772,38 @@ async function getBase64ImageFromUrl(imageUrl: string): Promise<string> {
   });
 }
 
-const generateQuotationPdf = async (items: CanvassingItem[]) => {
-  const doc = new jsPDF();
-  const today = new Date();
-  const formatted = today.toLocaleDateString("id-ID", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
+const printSCMMemo = async () => {
+  const { doc } = await generateSCMMemo();
+  const blob = doc.output("blob");
+  pdfUrl.value = URL.createObjectURL(blob);
+  previewSCMMemoDialog.value = true;
+};
 
-  // Logo
-  const imgLogo = await getBase64ImageFromUrl("/images/trumecs-logo.png"); // path logo (public/logo.png)
-  const tmsLogo = await getBase64ImageFromUrl("/images/tms-logo.png"); // path logo (public/logo.png)
-  doc.addImage(imgLogo, "PNG", 160, 10, 40, 20);
-  doc.addImage(tmsLogo, "PNG", 10, 10, 40, 20);
+const downloadSCMMemo = () => {
+  if (!pdfBlob.value) {
+    ElMessage.warning("Tidak ada PDF untuk di-download");
+    return;
+  }
 
-  // Header
-  doc.setFontSize(18);
-  doc.text("Quotation", 105, 20, { align: "center" });
+  const filename = `SCM-MEMO-${
+    canvassingData.value?.unique_code || "document"
+  }.pdf`;
 
-  // Info
-  doc.setFontSize(11);
-  doc.text(`Number: ${canvassingData.value?.unique_code}`, 10, 40);
-  doc.text(`Subject: -`, 10, 46);
-  doc.text(`Jakarta, ${formatted}`, 160, 40);
+  // Buat URL object untuk blob
+  const url = URL.createObjectURL(pdfBlob.value);
 
-  doc.text(`To: ${canvassingData.value?.source?.request_by?.name}`, 10, 60);
-  doc.text(`PIC: ${canvassingData.value?.source?.request_by?.name}`, 10, 66);
+  // Buat anchor element untuk download
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
 
-  // Body text
-  doc.text("Bersama ini kami kirimkan penawaran sebagai berikut:", 10, 80);
+  // Cleanup
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
 
-  // Table
-  autoTable(doc, {
-    startY: 90,
-    head: [["No", "Item", "Qty", "Unit", "Price", "Total"]],
-    body: items.map((item: CanvassingItem, i: number) => [
-      i + 1,
-      item.catalogue?.name ?? "",
-      item.quantity,
-      item.unit_name,
-      `${currency(item.unit_selling_price || 0)}`,
-      `${currency(item.quantity * (item.unit_selling_price || 0))}`,
-    ]),
-    styles: { fontSize: 10 },
-    margin: { left: 10 },
-    headStyles: { fillColor: [200, 200, 200] },
-  });
-
-  // // Summary
-  let finalY = (doc as any).lastAutoTable.finalY + 10;
-  // doc.text(`Total Price: Rp ${currency(grandTotal.value)}`, 140, finalY)
-
-  // finalY += 10
-  // doc.text(`Grand Total: Rp ${currency(grandTotal.value)}`, 140, finalY)
-
-  // Notes
-  doc.text("Notes:", 10, finalY + 20);
-  doc.text(`${canvassingData.value?.description ?? "-"}`, 20, finalY + 30);
-
-  // Signature
-  doc.text("Best Regards,", 10, finalY + 60);
-  doc.text("Stanislaus Adrian Pratama,", 10, finalY + 90);
-  doc.text("Operation Manager", 10, finalY + 100);
-
-  return doc;
+  // ElMessage.success('PDF berhasil di-download')
 };
 
 const generateResultSearchAddress = (address: AddressType | null) => {
@@ -2278,50 +2280,50 @@ const summeryData = computed(() => {
     });
   });
 
-  if (
-    adjustmentTransactionFeeTotal.value.adjustment &&
-    adjustmentTransactionFeeTotal.value.adjustments_transaction
-  ) {
-    tableData.push({
-      label: adjustmentTransactionFeeTotal.value?.adjustments_transaction?.name,
-      max: currency(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value)
-      ),
-      beli: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
-        totalBuyingPrice.value
-      )} %`,
-      jual: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
-        grandTotal.value
-      )} %`,
-      min: currency(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value)
-      ),
-      beliMin: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
-        totalBuyingPriceMin.value
-      )} %`,
-      jualMin: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
-        grandTotal.value
-      )} %`,
-      selected: currency(
-        displayAmount(
-          adjustmentTransactionFeeTotal.value,
-          grossProfitSelected.value
-        )
-      ),
-      selectedBeli: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
-        totalBuyingPriceSelected.value
-      )} %`,
-      selectedJual: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
-        grandTotal.value
-      )} %`,
-    });
-  }
+  // if (
+  //   adjustmentTransactionFeeTotal.value.adjustment &&
+  //   adjustmentTransactionFeeTotal.value.adjustments_transaction
+  // ) {
+  //   tableData.push({
+  //     label: adjustmentTransactionFeeTotal.value?.adjustments_transaction?.name,
+  //     max: currency(
+  //       displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value)
+  //     ),
+  //     beli: `${safePercent(
+  //       displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
+  //       totalBuyingPrice.value
+  //     )} %`,
+  //     jual: `${safePercent(
+  //       displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
+  //       grandTotal.value
+  //     )} %`,
+  //     min: currency(
+  //       displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value)
+  //     ),
+  //     beliMin: `${safePercent(
+  //       displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
+  //       totalBuyingPriceMin.value
+  //     )} %`,
+  //     jualMin: `${safePercent(
+  //       displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
+  //       grandTotal.value
+  //     )} %`,
+  //     selected: currency(
+  //       displayAmount(
+  //         adjustmentTransactionFeeTotal.value,
+  //         grossProfitSelected.value
+  //       )
+  //     ),
+  //     selectedBeli: `${safePercent(
+  //       displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
+  //       totalBuyingPriceSelected.value
+  //     )} %`,
+  //     selectedJual: `${safePercent(
+  //       displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
+  //       grandTotal.value
+  //     )} %`,
+  //   });
+  // }
   tableData.push({
     label: "Net Profit",
     max: currency(netProfitForBuying.value),
@@ -2498,12 +2500,21 @@ const initialCanvassing = (data: Canvassing) => {
     if (element.party_type == PartyType.CONTACT) {
       contactsFee.value.push(element);
     }
+
     if (
-      (element.adjustments_transaction?.name ?? "").toLowerCase() !== "fee" &&
       (element.adjustments_transaction?.name ?? "").toLowerCase() !==
-        "ongkos kirim"
+      "ongkos kirim"
     ) {
-      references.value.push(element);
+      if (
+        (element.adjustments_transaction?.name ?? "").toLowerCase() == "fee" &&
+        element.party == null
+      ) {
+        references.value.push(element);
+      } else if (
+        (element.adjustments_transaction?.name ?? "").toLowerCase() !== "fee"
+      ) {
+        references.value.push(element);
+      }
     }
 
     if (
@@ -4045,40 +4056,6 @@ const getContacts = async (): Promise<Contact | null> => {
   }
 };
 
-const generateQuotation = async () => {
-  const items: any[] = [];
-  const itemsVendor: CanvassingVendor[] = [];
-
-  (canvassingData.value?.canvassing_item ?? []).forEach((element) => {
-    (element.canvassing_vendor ?? []).forEach((vendor) => {
-      items.push({
-        unique_id: null,
-        tag_id: null,
-        catalogue_id: vendor.catalogue_id,
-        inventory_id: null,
-        price: parseInt(`${vendor.selling_price}`),
-        unit_id: vendor.unit_id,
-        unit_name: vendor.unit_name,
-      });
-      itemsVendor.push(vendor);
-    });
-  });
-
-  // const response = await useFetchApi('/pricetag-create', 'pricelist-create', 'post', data_price_tag);
-
-  // if(response.status.value == 'success'){
-  //   ElMessage.success("Berhasil");
-  //   formEl.resetFields();
-  // }
-
-  const doc = await generateQuotationPdf(
-    canvassingData.value?.canvassing_item ?? []
-  );
-  const blob = doc.output("blob");
-  pdfUrl.value = URL.createObjectURL(blob);
-  showPreview.value = true;
-};
-
 const submitRAB = async (formEl: FormInstance | undefined) => {
   if (!formEl) return;
 
@@ -4100,6 +4077,597 @@ const submitRAB = async (formEl: FormInstance | undefined) => {
     }
   });
 };
+
+const generateSCMMemo = async () => {
+  const doc = new jsPDF();
+  const today = new Date();
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const marginX = 10;
+
+  const formatted = today.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  // Logo
+  const imgLogo = await getBase64ImageFromUrl("/images/trumecs-logo.png"); // path logo (public/logo.png)
+  const tmsLogo = await getBase64ImageFromUrl("/images/tms-logo.png"); // path logo (public/logo.png)
+  const headerTop = 10;
+  const headerHeight = 25;
+  const headerCenterY = headerTop + headerHeight / 2;
+
+  const leftLogoWidth = 40;
+  const leftLogoHeight = 35;
+
+  const rightLogoWidth = 40;
+  const rightLogoHeight = 15;
+
+  // Logo kiri
+  doc.addImage(
+    tmsLogo,
+    "PNG",
+    marginX,
+    headerCenterY - leftLogoHeight / 2,
+    leftLogoWidth,
+    leftLogoHeight
+  );
+
+  // Logo kanan
+  doc.addImage(
+    imgLogo,
+    "PNG",
+    pageWidth - marginX - rightLogoWidth,
+    headerCenterY - rightLogoHeight / 3,
+    rightLogoWidth,
+    rightLogoHeight
+  );
+
+  // ================= TITLE =================
+  doc.setFontSize(18);
+  doc.text("SCM MEMO", pageWidth / 2, 50, { align: "center" });
+
+  // ================= INFO =================
+
+  const labelX = marginX;
+  const colonX = marginX + 28;
+  const valueX = marginX + 32;
+
+  doc.setFontSize(8);
+  doc.text("Customer", labelX, 60);
+  doc.text(":", colonX, 60);
+  doc.text(`${canvassingData?.value?.source?.request_to?.name}`, valueX, 60);
+  // doc.text(`Jakarta, ${formatted}`, pageWidth - marginX, 60, {
+  //   align: "right",
+  // });
+
+  doc.text("Supplier", labelX, 66);
+  doc.text(":", colonX, 66);
+  doc.text(`${currentCompany().name ?? "-"}`, valueX, 66);
+
+  doc.text("Quotation Number", labelX, 78);
+  doc.text(":", colonX, 78);
+  doc.text(`${canvassingData?.value?.unique_code ?? "-"}`, valueX, 78);
+  doc.text("Dikirim Ke", labelX, 84);
+  doc.text(":", colonX, 84);
+  doc.text(
+    `${generateAddressView(canvassingData.value!.address!) ?? "-"}`,
+    valueX,
+    84
+  );
+
+  const totalBuyPricePerItem = (row: CanvassingItem) => {
+    return row.canvassing_vendor.reduce((sum, item) => {
+      if (item.status === CanvassingVendorStatus.SELECTED) {
+        return sum + item.total_price;
+      }
+
+      return sum;
+    }, 0);
+  };
+
+  const calculateMargin = (row: CanvassingItem) => {
+    return (
+      (((row.total_selling_price || 0) - Number(totalBuyPricePerItem(row))) /
+        (row.total_selling_price || 0)) *
+      100
+    );
+  };
+
+  let rowData: RowInput[] = (canvassingData.value?.canvassing_item ?? []).map(
+    (item: CanvassingItem, i: number) => [
+      {
+        content: `${i + 1}`,
+        styles: {
+          halign: "center",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${item.catalogue?.name}`,
+        styles: {
+          halign: "left",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${item.quantity}`,
+        styles: {
+          halign: "center",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${item.unit_name}`,
+        styles: {
+          halign: "center",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${currencyWithoutSymbol(
+          item.canvassing_vendor.reduce((sum, item) => {
+            if (item.status === CanvassingVendorStatus.SELECTED) {
+              return sum + item.total_price;
+            }
+
+            return sum;
+          }, 0)
+        )}`,
+        styles: {
+          halign: "right",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${currencyWithoutSymbol(item.unit_selling_price || 0)}`,
+        styles: {
+          halign: "right",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${currencyWithoutSymbol(item.total_selling_price || 0)}`,
+        styles: {
+          halign: "right",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+
+      {
+        content: `${currencyWithoutSymbol(
+          Number(item.total_selling_price) - totalBuyPricePerItem(item)
+        )}`,
+        styles: {
+          halign: "right",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${calculateMargin(item).toFixed(2)}`,
+        styles: {
+          halign: "right",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+    ]
+  );
+
+  // console.log(rowData);
+  // rowData.push(['','','','','Total Price',grandTotal])
+  // rowData.push(['','','','','PPN','11%'])
+
+  let summeryNumber = (canvassingData.value?.canvassing_item ?? []).length + 1;
+
+  const subtotalUnitSellingPrice = (
+    canvassingData.value?.canvassing_item || []
+  ).reduce((sum, item) => {
+    return sum + item.unit_selling_price;
+  }, 0);
+  const subtotalSellingPrice = (
+    canvassingData.value?.canvassing_item || []
+  ).reduce((sum, item) => {
+    return sum + (item.total_selling_price || 0);
+  }, 0);
+  const subtotalMarginNominal = (
+    canvassingData.value?.canvassing_item || []
+  ).reduce((sum, item) => {
+    return (
+      sum + (Number(item.total_selling_price || 0) - totalBuyPricePerItem(item))
+    );
+  }, 0);
+  const subtotalMargin = (subtotalMarginNominal / totalBuyingPrice.value) * 100;
+
+  summeryNumber++;
+  rowData.push([
+    {
+      content: `Subtotal`,
+      colSpan: 4,
+      styles: {
+        halign: "right",
+        fontStyle: "bold",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${currencyWithoutSymbol(subtotalBuyPrice.value)}`,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${currencyWithoutSymbol(subtotalUnitSellingPrice)}`,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${currencyWithoutSymbol(subtotalSellingPrice)}`,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${currencyWithoutSymbol(subtotalMarginNominal)}`,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${currencyWithoutSymbol(subtotalMargin)}`,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+  ]);
+
+  rowData.push([
+    {
+      content: `${adjustmentTransactionOngkirTotal?.value.adjustments_transaction?.name}`,
+      colSpan: 4,
+      styles: {
+        halign: "right",
+        fontStyle: "bold",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${currencyWithoutSymbol(
+        adjustmentTransactionOngkirTotal.value?.amount ?? 0
+      )}`,
+      colSpan: 4,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${safePercent(
+        adjustmentTransactionOngkirTotal.value?.amount ?? 0,
+        grandTotal.value
+      )}`,
+
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+  ]);
+
+  (references.value ?? []).forEach((element) => {
+    rowData.push([
+      {
+        content: `${element.adjustments_transaction?.name}`,
+        colSpan: 4,
+        styles: {
+          halign: "right",
+          fontStyle: "bold",
+          cellWidth: 0.0,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${currencyWithoutSymbol(
+          showTransactionAdjustmentValue(element)
+        )}`,
+        colSpan: 4,
+        styles: {
+          halign: "right",
+          cellWidth: 0.0,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${safePercent(
+          displayAmount(element, grandTotal.value),
+          grandTotal.value
+        )}`,
+        styles: {
+          halign: "right",
+          cellWidth: 0.0,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+    ]);
+  });
+
+  summeryNumber++;
+  rowData.push([
+    {
+      content: `Grand Total`,
+      colSpan: 4,
+      styles: {
+        halign: "right",
+        fontStyle: "bold",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${currencyWithoutSymbol(netProfitForBuying.value || 0)}`,
+      colSpan: 4,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${safePercent(netProfitForBuying.value, grandTotal.value)}`,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+  ]);
+
+  // Table
+
+  autoTable(doc, {
+    startY: 90,
+    theme: "grid",
+    head: [
+      [
+        {
+          content: "No",
+          rowSpan: 2,
+        },
+        {
+          content: "Nama Barang",
+          rowSpan: 2,
+        },
+        {
+          content: "Jml Order",
+          rowSpan: 2,
+        },
+        {
+          content: "Kemasan",
+          rowSpan: 2,
+        },
+        {
+          content: "Harga Beli",
+          rowSpan: 2,
+        },
+        {
+          content: "Harga Jual",
+          colSpan: 2,
+        },
+        {
+          content: "Margin",
+          rowSpan: 2,
+        },
+        {
+          content: "% Margin",
+          rowSpan: 2,
+        },
+      ],
+      [
+        {
+          content: "Harga Jual",
+        },
+        {
+          content: "Total Harga",
+        },
+      ],
+    ],
+    body: rowData,
+    styles: {
+      fontSize: 6,
+    },
+    margin: { left: marginX, right: marginX },
+    headStyles: {
+      fillColor: [248, 248, 248], // background
+      textColor: [0, 0, 0], // warna text
+      fontStyle: "bold", // bold
+      halign: "center", // center text
+      valign: "middle", // vertical align
+      lineWidth: 0.1, // border
+      lineColor: [0, 0, 0], // warna border
+    },
+  });
+
+  // // Summary
+  let finalY = (doc as any).lastAutoTable.finalY + 10;
+  // doc.text(`Total Price: Rp ${currency(grandTotal)}`, 140, finalY)
+  // doc.text(`PPN: Rp ${currency(grandTotal)}`, 140, finalY + 10)
+
+  // finalY += 10
+  // doc.text(`Grand Total: Rp ${currency(grandTotal.value)}`, 140, finalY)
+  // Notes
+  doc.text("Notes:", 10, finalY + 5);
+
+  let finalNotesY = 0;
+  let currentY = finalY + 15;
+  doc.setFontSize(8);
+  const writeWrappedText = (text: string) => {
+    const lines = doc.splitTextToSize(text, pageWidth - 30);
+    doc.text(lines, 20, currentY);
+    currentY += lines.length * 5;
+  };
+
+  writeWrappedText(
+    `\u2022 Dikirim ke ${
+      generateResultSearchAddress(canvassingData?.value?.address ?? null).name
+    }`
+  );
+
+  (canvassingData.value?.payment_terms ?? []).forEach((element) => {
+    writeWrappedText(
+      `\u2022 ${element.name} ${
+        element.term_of_payment == PaymentTerm.TEMPO
+          ? `${element.duration}D`
+          : ""
+      }`
+    );
+  });
+
+  if (canvassingData.value?.note) {
+    const splits = `${canvassingData.value?.note}`.split("\n");
+
+    let yFinal = Number(finalNotesY);
+    splits.forEach((value) => {
+      writeWrappedText(`\u2022 ${value ?? "-"}`);
+      // yFinal = yFinal + Number(5);
+      // console.log("final Y", yFinal);
+      // doc.text(`\u2022 ${value ?? "-"}`, 20, yFinal);
+    });
+  }
+
+  doc.setFontSize(8);
+
+  const pageHeight = doc.internal.pageSize.height;
+
+  // posisi footer fix dari bawah halaman
+  const footerY = pageHeight - 40;
+
+  doc.text(
+    `Jakarta, ${formatLocalDate(canvassingData.value!.created_at!)}`,
+    14,
+    footerY
+  );
+
+  doc.text("Diketahui Oleh,", 120, footerY);
+  doc.text("Disetujui Oleh,", 160, footerY);
+
+  doc.text("Stanislaus Adrian Pratama", 14, footerY + 25);
+  doc.text("Nina", 120, footerY + 25);
+  doc.text("Chairil Juwono", 160, footerY + 25);
+
+  doc.text("Operation", 14, footerY + 31);
+  doc.text("Finance", 120, footerY + 31);
+  doc.text("Direktur", 160, footerY + 31);
+  // doc.text("Best Regards,", 10, finalY + 80);
+
+  // if (props.dataInterface?.data?.type === "in") {
+  //   doc.text(props.dataInterface?.data?.owner?.name ?? "", 10, finalY + 110);
+  // } else {
+  //   doc.text("Stanislaus Adrian Pratama,", 10, finalY + 110);
+  //   doc.text("Operation Manager", 10, finalY + 120);
+  // }
+
+  const blob = doc.output("blob");
+  pdfBlob.value = blob;
+  pdfUrl.value = URL.createObjectURL(blob);
+
+  return { doc, blob };
+};
+
+const showTransactionAdjustmentValue = (
+  ref: ReferenceTransactionAdjustment
+) => {
+  if (ref.include) {
+    return 0;
+  } else {
+    return ref.type == "amount"
+      ? ref.amount
+      : displayAmount(ref, subtotal.value || 0);
+  }
+};
+
+const subtotal = computed(() => {
+  return (canvassingData.value?.canvassing_item || []).reduce((sum, item) => {
+    return sum + (item.total_selling_price || 0);
+  }, 0);
+});
+const subtotalBuyPrice = computed(() => {
+  let subtotalBeli = 0;
+  (canvassingData.value?.canvassing_item || []).forEach((element) => {
+    const totalBuyPrice = element.canvassing_vendor.reduce((sum, item) => {
+      if (item.status === CanvassingVendorStatus.SELECTED) {
+        return sum + item.total_price;
+      }
+
+      return sum;
+    }, 0);
+    subtotalBeli += Number(totalBuyPrice);
+  });
+
+  return subtotalBeli;
+});
 
 watch(
   () => props.canvassingData,

@@ -6,21 +6,7 @@
       </template>
     </el-page-header>
 
-    <el-card class="my-3">
-      <template #header>
-        <div class="card-header">
-          <el-form-item>
-            <el-button
-              type="primary"
-              :loading="loading"
-              @click="submitForm(ruleFormRef)"
-              >Simpan</el-button
-            >
-            <el-button @click="resetForm(ruleFormRef)">Reset</el-button>
-          </el-form-item>
-        </div>
-      </template>
-
+    <el-card class="my-3" shadow="never">
       <el-form
         ref="ruleFormRef"
         :model="ruleForm"
@@ -31,7 +17,7 @@
         :label-position="labelPosition"
         status-icon
       >
-        <div class="flex">
+        <div class="flex gap-5">
           <div class="flex-1">
             <!-- Transaction Type -->
             <el-form-item label="Jenis Transaksi" prop="type">
@@ -96,6 +82,8 @@
                 :fetch-suggestions="querySearchBanks"
                 placeholder="Cari rekening bank"
                 class="w-full"
+                clearable
+                @clear="() => clearSelectionBank('from')"
                 @select="(item) => handleSelectBank(item, 'from')"
               >
                 <template #default="{ item }">
@@ -111,6 +99,18 @@
                   </div>
                 </template>
               </el-autocomplete>
+              <div
+                v-if="ruleForm.bank_account"
+                class="flex flex-col el-card p-2 gap-2 mt-3"
+              >
+                <p style="line-height: 1">
+                  {{ ruleForm.bank_account.bank_name }} |
+                  {{ ruleForm.bank_account.account_name }}
+                </p>
+                <span style="line-height: 1">{{
+                  ruleForm.bank_account.account_number
+                }}</span>
+              </div>
             </el-form-item>
 
             <h3
@@ -130,6 +130,8 @@
                 :fetch-suggestions="querySearchBanks"
                 placeholder="Cari rekening bank"
                 class="w-full"
+                clearable
+                @clear="() => clearSelectionBank('to')"
                 @select="(item) => handleSelectBank(item, 'to')"
               >
                 <template #default="{ item }">
@@ -145,6 +147,18 @@
                   </div>
                 </template>
               </el-autocomplete>
+              <div
+                v-if="ruleForm.bank_account_to"
+                class="flex flex-col el-card p-2 gap-2 mt-3"
+              >
+                <p style="line-height: 1">
+                  {{ ruleForm.bank_account_to.bank_name }} |
+                  {{ ruleForm.bank_account_to.account_name }}
+                </p>
+                <span style="line-height: 1">{{
+                  ruleForm.bank_account_to.account_number
+                }}</span>
+              </div>
             </el-form-item>
 
             <el-divider
@@ -205,7 +219,7 @@
         </el-form-item> -->
       </el-form>
     </el-card>
-    <el-card class="my-3">
+    <el-card class="my-3" shadow="never">
       <template #header>
         <div class="flex justify-between items-center">
           <span class="text-lg font-medium">Daftar Item Transaksi</span>
@@ -451,6 +465,18 @@
         }}</el-descriptions-item>
         <!-- <el-descriptions-item :width="100" label="Grand Total">{{ currency(grandTotal) }}</el-descriptions-item> -->
       </el-descriptions>
+    </el-card>
+
+    <el-card shadow="never">
+      <div class="flex justify-end">
+        <el-button @click="resetForm(ruleFormRef)">Reset</el-button>
+        <el-button
+          type="primary"
+          :loading="loading"
+          @click="submitForm(ruleFormRef)"
+          >Simpan</el-button
+        >
+      </div>
     </el-card>
   </TrumsWrapper>
 </template>
@@ -1087,20 +1113,36 @@ const querySearchBanks = (query: string, cb: (arg: any) => void) => {
 };
 
 const handleSelectBank = (item: any, type: "from" | "to") => {
-  console.log(item);
   if (item.isNew == false) {
     const bank: BankAccount = item as BankAccount;
     if (type == "from") {
+      ruleForm.bank_account = bank;
       ruleForm.recipient_bank = bank.unique_id;
       ruleForm.account_bank_name = bank.account_name;
       ruleForm.account_bank_number = bank.account_number;
       ruleForm.account_bank_version = bank.version;
     } else {
+      ruleForm.bank_account_to = bank;
       ruleForm.recipient_bank_to = bank.unique_id;
       ruleForm.account_bank_to_name = bank.account_name;
       ruleForm.account_bank_to_number = bank.account_number;
       ruleForm.account_bank_to_version = bank.version;
     }
+  }
+};
+const clearSelectionBank = (type: "from" | "to") => {
+  if (type == "from") {
+    ruleForm.bank_account = null;
+    ruleForm.recipient_bank = null;
+    ruleForm.account_bank_name = null;
+    ruleForm.account_bank_number = null;
+    ruleForm.account_bank_version = 0;
+  } else {
+    ruleForm.bank_account_to = null;
+    ruleForm.recipient_bank_to = "";
+    ruleForm.account_bank_to_name = "";
+    ruleForm.account_bank_to_number = "";
+    ruleForm.account_bank_to_version = 0;
   }
 };
 

@@ -138,7 +138,19 @@ const previewImage = ref<boolean>(false);
 interface Props {
   visible: boolean;
   data: Pricetag_item[];
-  searchParams: RequestSearch;
+  searchParams: {
+    keyword: string;
+    catalogue_id: string;
+    location: never[];
+    contact: never[];
+    quantity: number;
+    category: string[];
+    owner_id: string;
+    type: "single" | "multi";
+    offset: number;
+    limit: number;
+    flag: string;
+  };
   totalData: number;
   selectedItems: any[];
   currentItemName: string;

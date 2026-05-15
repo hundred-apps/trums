@@ -228,7 +228,15 @@
     <!-- Items Section -->
     <el-card class="mb-3">
       <template #header>
-        <div class="card-header"><span>Items</span></div>
+        <div class="card-header">
+          <span>Items</span>
+          <el-button
+            type="primary"
+            :icon="Search"
+            @click="() => (dialogItemRequest = true)"
+            >Cari Item Permintaan</el-button
+          >
+        </div>
       </template>
 
       <div class="bulk-actions mb-4 p-4 el-card el-card__body">
@@ -335,7 +343,7 @@
           fixed="left"
         >
           <template #default="scope">
-            <div class="flex items-center">
+            <div class="flex items-center justify-between">
               <el-button
                 type="danger"
                 :icon="Delete"
@@ -359,6 +367,15 @@
                 @click="addEquivalent(scope.row)"
                 >EQ</el-button
               >
+              <el-checkbox
+                v-if="scope.row.type === 'child'"
+                :model-value="
+                  selectedRowsVendors.some(
+                    (item) => item.index === scope.row.index
+                  )
+                "
+                @change="(val) => handleCheck(val, scope.row)"
+              />
             </div>
           </template>
         </el-table-column>
@@ -980,6 +997,65 @@
         :use-tmp="false"
       />
     </el-dialog>
+    <el-dialog v-model="dialogItemRequest" title="RFQ Items" width="1200">
+      <el-row :gutter="20" class="mb-3">
+        <el-col :span="6">
+          <el-input
+            v-model="request_search_item_request.keyword"
+            size="default"
+            placeholder="Type to search"
+          />
+        </el-col>
+        <el-button
+          size="default"
+          :disabled="selectedItemsRequest.length == 0"
+          type="primary"
+          @click="() => addItemRequestToCanvassing(selectedItemsRequest)"
+        >
+          Tambahkan
+          {{
+            selectedItemsRequest.length > 0 ? selectedItemsRequest.length : ""
+          }}</el-button
+        >
+      </el-row>
+      <el-table
+        ref="tableItemRequestRef"
+        :data="item_request.data.value?.data || []"
+        @selection-change="handleSelectionChange"
+        border
+      >
+        <el-table-column type="selection" width="55" />
+        <el-table-column label="Nama Item">
+          <template #default="{ row }">
+            {{ (row as ItemRequest).catalogue?.name }}
+          </template>
+        </el-table-column>
+        <el-table-column label="QTY" align="right" width="100">
+          <template #default="{ row }">
+            {{ (row as ItemRequest).quantity }}
+          </template>
+        </el-table-column>
+        <el-table-column label="UoM" width="100">
+          <template #default="{ row }">
+            {{ (row as ItemRequest).unit_name }}
+          </template>
+        </el-table-column>
+        <el-table-column label="No.RFQ" width="200">
+          <template #default="{ row }">
+            {{ (row as ItemRequest).inquiry?.unique_code }}
+          </template>
+        </el-table-column>
+      </el-table>
+      <div class="flex justify-end mt-3">
+        <el-pagination
+          background
+          layout="prev, pager, next, sizes, total"
+          :total="item_request.data.value?.total_data"
+          @current-change="handlePageChangeItemRequest"
+          @size-change="handleSizeChangeItemRequest"
+        />
+      </div>
+    </el-dialog>
   </TrumsWrapper>
 </template>
 
@@ -1002,6 +1078,7 @@ import {
   type FormRules,
   type UploadUserFile,
   valueEquals,
+  ElTable,
 } from "element-plus";
 import {
   CanvassingStatus,
@@ -1057,6 +1134,7 @@ import {
 import TableSelectionRFQ from "~/components/trums/TableSelectionRFQ.vue";
 import TableSelectionCanvassing from "~/components/trums/TableSelectionCanvassing.vue";
 import { handleInput } from "#imports";
+import type { ItemRequest } from "~/types/item_request";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -1087,6 +1165,7 @@ const visibleModalNewAdjustment = ref(false);
 const visibleModalContact = ref(false);
 const drawerFeeVisible = ref(false);
 const dialogNewAddress = ref(false);
+const dialogItemRequest = ref(false);
 
 // Index References
 const itemStartIndex = ref<string>("");
@@ -1157,6 +1236,84 @@ const ongkirState = ref<string>("minus");
 const unitFee = ref<FeeType>(FeeType.PERCENT);
 
 const item_canvassing = ref<CanvassingItemForm[]>([]);
+const selectedRowsVendors = ref<CanvassingItemForm[]>([]);
+const handleCheck = (checked: any, row: any) => {
+  if (checked) {
+    const exists = selectedRowsVendors.value.some(
+      (item) => item.index === row.index
+    );
+
+    if (!exists) {
+      selectedRowsVendors.value.push(row);
+    }
+  } else {
+    selectedRowsVendors.value = selectedRowsVendors.value.filter(
+      (item) => item.index !== row.index
+    );
+  }
+
+  calculateSummaryaData();
+};
+
+const autoSelectSingleChild = (parentRow: any) => {
+  const children = parentRow.children || [];
+
+  if (children.length === 1) {
+    const child = children[0];
+
+    const exists = selectedRowsVendors.value.some(
+      (item) => item.index === child.index
+    );
+
+    if (!exists) {
+      selectedRowsVendors.value.push(child);
+    }
+  }
+};
+
+const request_search_item_request = ref<RequestSearch>({
+  keyword: "",
+  table: "item_request",
+  column: [
+    {
+      inquiry: {
+        type: ["sales_inquiry"],
+      },
+    },
+  ],
+  sort: null,
+  offset: "1",
+  limit: "10",
+});
+
+const tableItemRequestRef = ref<InstanceType<typeof ElTable>>();
+const selectedItemsRequest = ref<ItemRequest[]>([]);
+const item_request = await useAsyncData("fetch-item-request", async () => {
+  const res = await useFetchApi<ResponsePagination<ItemRequest[]>>(
+    `/search`,
+    "fetch-item-request",
+    "post",
+    request_search_item_request.value
+  );
+  return res.data.value;
+});
+
+const handleSelectionChange = (val: ItemRequest[]) => {
+  selectedItemsRequest.value = val;
+};
+const handlePageChangeItemRequest = (page: number) => {
+  request_search_item_request.value.offset = `${page}`;
+};
+
+const handleSizeChangeItemRequest = (size: number) => {
+  request_search_item_request.value.limit = `${size}`;
+};
+
+watch(
+  () => request_search_item_request.value,
+  () => item_request.refresh(),
+  { deep: true }
+);
 
 // Search Parameters
 const request_search_inquiry = ref<RequestSearch>({
@@ -1328,24 +1485,6 @@ const updateAllFeeType = () => {
   });
 };
 
-// const updateFeeTypeItem = (items: CanvassingItemForm[], feeType: FeeType) => {
-//   for (const it of items) {
-//     if (it.index === index) {
-//       if(contactsFee){
-//         it.fee = contactsFee.reduce((sum, c) => sum + (c.fee || 0), 0);
-//       }else{
-//         it.fee = fee ?? 0;
-//       }
-//       // it.contactsFee = contactsFee
-//       return true
-//     }
-//     if (it.children && updateItemFee(it.children, index, contactsFee)) {
-//       return true
-//     }
-//   }
-//   return false
-// }
-
 const address = ref<AddressType>();
 const contactsFee = ref<ReferenceTransactionAdjustment[]>([]);
 const contactsFeeToEdit = ref<ReferenceTransactionAdjustment[]>([]);
@@ -1445,13 +1584,12 @@ const totalForGrossProfitForBuyingMin = computed(() => {
 });
 
 const totalBuyingPrice = computed(() => {
-  let total = 0;
-  item_canvassing.value.forEach((element) => {
-    total += Number(element.total_price);
-  });
-  // console.log("total", total);
-  return total;
+  return selectedRowsVendors.value.reduce(
+    (acc, row: CanvassingItemForm) => (acc += Number(row.total_price)),
+    0
+  );
 });
+
 const totalBuyingPriceMin = computed(() => {
   let total = 0;
 
@@ -1836,6 +1974,14 @@ const addItemVendor = (row: CanvassingItemForm) => {
       });
     }
   });
+
+  const findParent = item_canvassing.value.find(
+    (find) => find.index == itemIndex.value
+  );
+
+  if (findParent) {
+    autoSelectSingleChild(findParent);
+  }
 };
 
 const addEquivalent = (row: CanvassingItemForm) => {
@@ -1887,6 +2033,10 @@ const addEquivalent = (row: CanvassingItemForm) => {
   };
 
   item_canvassing.value.splice(indexParent + 1, 0, equivalentItem);
+
+  if (indexParent >= 0) {
+    autoSelectSingleChild(item_canvassing.value[indexParent]);
+  }
 };
 
 function findParent(
@@ -2486,6 +2636,54 @@ const addToForm = (val: Inquiry) => {
   });
 
   visibleModalRequest.value = false;
+};
+
+const addItemRequestToCanvassing = (items: ItemRequest[]) => {
+  items.forEach((item, index) => {
+    item_canvassing.value.push({
+      type_item: "request",
+      index: `${index}`,
+      canvassing_id: null,
+      canvaasing_version: null,
+      item_request_trail_version: null,
+      item_request_trail_id: null,
+      unique_id: null,
+      vendor_id: null,
+      vendor_name: "",
+      unit_id: item.unit_id,
+      unit_name: item.unit_name,
+      unit_version: 1,
+      offer_item_id: null,
+      offer_item_version: 0,
+      catalogue_id: item.catalogue_id ?? "",
+      parent_catalogue_id: "",
+      catalogue_name: item.catalogue_name ?? "",
+      sn: item.sn ?? "N/A",
+      quantity: item.request_qty ?? 1,
+      unit_price: 0,
+      total_price: 0,
+      total_selling_price: 0,
+      status: CanvassingVendorStatus.SUBMITTED,
+      taxes: [],
+      editing: null,
+      type: "parent",
+      children: [],
+      selling_price: 0,
+      profit: 0,
+      profit_unit: "percent",
+      fee: 0,
+      fee_unit: "percent",
+      ongkir: 0,
+      ongkir_unit: "percent",
+      pricetag_item_id: "",
+      pricetag_item_version: 0,
+      contacts_fee: contactsFee.value,
+      equivalent_id: null,
+    });
+  });
+
+  tableItemRequestRef.value?.clearSelection();
+  dialogItemRequest.value = false;
 };
 
 const addNewPaymentTerm = () => {
@@ -3571,7 +3769,9 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
     item_canvassing.value.forEach((element) => setProfit(element));
   }
 
-  console.log("references data edit", references.value);
+  item_canvassing.value.forEach((element) => {
+    autoSelectSingleChild(element);
+  });
 };
 
 // Form Submission
@@ -3773,10 +3973,23 @@ const submit = async (formEl: FormInstance | undefined) => {
       // Append canvassing_vendor
       // Append canvassing_vendor fields satu per satu
       item.children.forEach((vendor: CanvassingItemForm, j: any) => {
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
-          CanvassingVendorStatus.SUBMITTED
+        const isSelected = selectedRowsVendors.value.find(
+          (find) =>
+            find.vendor_id == vendor.vendor_id &&
+            find.catalogue_id == vendor.catalogue_id
         );
+
+        if (isSelected) {
+          formData.append(
+            `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
+            CanvassingVendorStatus.SELECTED
+          );
+        } else {
+          formData.append(
+            `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
+            CanvassingVendorStatus.SUBMITTED
+          );
+        }
 
         formData.append(
           `canvassing_items[${i}][canvassing_vendor][${j}][unique_id]`,
@@ -4036,9 +4249,9 @@ const validateChildren = (
 
 const paymentTermError = ref(false);
 const rules: FormRules = {
-  source_document: [
-    { required: true, message: "Nomor referensi wajib diisi", trigger: "blur" },
-  ],
+  // source_document: [
+  //   { required: true, message: "Nomor referensi wajib diisi", trigger: "blur" },
+  // ],
   status: [
     { required: true, message: "Status wajib dipilih", trigger: "change" },
   ],
@@ -4352,12 +4565,7 @@ const calculateSummaryaData = () => {
     0
   );
 
-  const buyingPrice = item_canvassing.value.reduce(
-    (acc, row: CanvassingItemForm) => (acc += Number(row.total_price)),
-    0
-  );
-
-  const grossProfit = Number(grandTotalValue) - Number(buyingPrice);
+  const grossProfit = Number(grandTotalValue) - Number(totalBuyingPrice.value);
 
   let fee = 0;
   let ongkir = 0;
@@ -4407,17 +4615,17 @@ const calculateSummaryaData = () => {
     },
     {
       label: "Total Harga Beli",
-      max: currency(buyingPrice),
+      max: currency(totalBuyingPrice.value),
       beli: "",
       jual: "",
-      min: currency(buyingPrice),
+      min: currency(totalBuyingPriceMin.value),
       beliMin: "",
       jualMin: "",
     },
     {
       label: "Total",
       max: currency(grossProfit),
-      beli: `${safePercent(grossProfit, buyingPrice)} %`,
+      beli: `${safePercent(grossProfit, totalBuyingPrice.value)} %`,
       jual: `${
         grandTotalValue == 0 ? 0 : safePercent(grossProfit, grandTotalValue)
       } %`,
@@ -4471,7 +4679,7 @@ const calculateSummaryaData = () => {
   data.push({
     label: "Net Profit",
     max: currency(netProfit),
-    beli: `${safePercent(netProfit, buyingPrice)} %`,
+    beli: `${safePercent(netProfit, totalBuyingPrice.value)} %`,
     jual: `${safePercent(netProfit, grandTotalValue)} %`,
     min: currency(0),
     beliMin: ``,
