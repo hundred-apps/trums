@@ -2,16 +2,6 @@
   <TrumsWrapper>
     <div class="w-auto">
       <el-card class="my-3" shadow="never">
-        <template #header>
-          <div class="card-header">
-            <el-form-item>
-              <el-button type="primary" @click="submitForm(ruleFormRef)"
-                >Simpan</el-button
-              >
-              <el-button @click="resetForm(ruleFormRef)">Batal</el-button>
-            </el-form-item>
-          </div>
-        </template>
         <el-form
           ref="ruleFormRef"
           style="max-width: 600px"
@@ -23,12 +13,8 @@
           status-icon
           :disabled="loading"
         >
-          <el-form-item
-            prop="owner_name"
-            v-if="ruleForm.type == 'in'"
-            label="Vendor"
-          >
-            <div class="flex items-center gap-3">
+          <el-form-item prop="owner_name" v-if="ruleForm.type == 'in'" label="">
+            <!-- <div class="flex items-center gap-3 w-full">
               <el-autocomplete
                 v-model="ruleForm.owner_name"
                 :fetch-suggestions="querySearchVendors"
@@ -55,19 +41,32 @@
                 @click="() => openModalContact('vendor')"
                 :icon="ElUserIcon"
               />
-            </div>
+            </div> -->
+            <el-autocomplete
+              v-model="ruleForm.owner_name"
+              :fetch-suggestions="querySearchVendors"
+              placeholder="Cari vendor"
+              @select="(item) => onHandleSelectVendor(item, 'vendor')"
+              style="width: 100%"
+            >
+              <template #default="{ item }">
+                <div v-if="item.isNew" class="flex items-center text-blue-500">
+                  <el-icon><Plus /></el-icon>
+                  <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                </div>
+                <div v-else>
+                  {{ item.value }}
+                </div>
+              </template>
+            </el-autocomplete>
           </el-form-item>
-          <el-form-item label="Subject" prop="subject">
+          <el-form-item label="" prop="subject">
             <el-input
               v-model="ruleForm.subject"
               placeholder="Masukan Subject"
             />
           </el-form-item>
-          <el-form-item
-            prop="to_name"
-            label="Kepada"
-            v-if="ruleForm.type == 'out'"
-          >
+          <el-form-item prop="to_name" label="" v-if="ruleForm.type == 'out'">
             <div class="flex items-center gap-3">
               <el-autocomplete
                 v-model="ruleForm.to_name"
@@ -89,20 +88,17 @@
                   </div>
                 </template>
               </el-autocomplete>
-              <el-button
+              <!-- <el-button
                 type="primary"
                 v-if="ruleForm.to_id"
                 @click="() => openModalContact('customer')"
                 :icon="ElUserIcon"
-              />
+              /> -->
             </div>
           </el-form-item>
 
-          <el-form-item
-            prop="pic_name"
-            :label="`PIC ${ruleForm?.type == 'in' ? 'Vendor' : 'Customer'}`"
-          >
-            <div class="flex items-center gap-3">
+          <el-form-item prop="pic_name" :label="``">
+            <div class="flex items-center gap-3 w-full">
               <el-autocomplete
                 v-model="ruleForm.pic_name"
                 :fetch-suggestions="querySearchPIC"
@@ -132,50 +128,48 @@
                   </div>
                 </template>
               </el-autocomplete>
-              <el-button
+              <!-- <el-button
                 type="primary"
                 v-if="ruleForm.pic_id"
                 @click="() => openModalContact('pic')"
                 :icon="ElUserIcon"
-              />
+              /> -->
             </div>
           </el-form-item>
 
-          <el-form-item prop="start_date" label="Tanggal Mulai Berlaku">
+          <el-form-item prop="start_date" label="">
             <el-date-picker
               v-model="ruleForm.start_date"
               type="date"
               aria-label="Pilih Tanggal"
               placeholder="Pilih Tanggal"
               style="width: 100%"
-              ,
             />
           </el-form-item>
-          <el-form-item prop="end_date" label="Tanggal Akhir Berlaku">
+          <el-form-item prop="end_date" label="">
             <el-date-picker
               v-model="ruleForm.end_date"
               type="date"
               aria-label="Pilih Tanggal"
               placeholder="Pilih Tanggal"
               style="width: 100%"
-              ,
             />
           </el-form-item>
-          <el-form-item label="File Lampiran" prop="files">
-            <TrumsUploadFile v-model:file-list="fileList" />
-          </el-form-item>
-          <el-form-item label="Catatan" prop="note">
+          <el-form-item label="" prop="note">
             <el-input
               v-model="ruleForm.note"
               type="textarea"
               placeholder="Masukkan deskripsi"
             />
           </el-form-item>
+          <el-form-item label="" prop="files">
+            <TrumsUploadFile v-model:file-list="fileList" />
+          </el-form-item>
         </el-form>
       </el-card>
 
       <el-card class="mb-3" v-if="!loading" shadow="never">
-        <el-form
+        <!-- <el-form
           :label-position="'top'"
           label-width="auto"
           :model="tmpEditBulk"
@@ -241,10 +235,10 @@
               Reset All
             </el-button>
           </div>
-        </el-form>
+        </el-form> -->
 
-        <el-table :data="ruleForm.pricetag_item">
-          <el-table-column prop="fileUploads" label="image" width="75">
+        <el-table :data="ruleForm.pricetag_item" :size="'small'">
+          <!-- <el-table-column prop="fileUploads" label="image" width="75">
             <template #default="scope">
               <ItemImageUpload
                 v-model="scope.row.fileUploads"
@@ -253,15 +247,23 @@
                 @open-modal="() => openImageModal(scope.$index, scope.row)"
               />
             </template>
-          </el-table-column>
+          </el-table-column> -->
           <el-table-column
             prop="item_name"
             label="item"
             class="my-0"
-            width="300"
+            width="160"
+            fixed="left"
+            align="center"
           >
             <template #default="scope">
-              <el-autocomplete
+              <p
+                class="text-start text-blue-600"
+                @click="() => detailItem(scope.row, scope.$index)"
+              >
+                {{ scope.row.item_name }}
+              </p>
+              <!-- <el-autocomplete
                 :disabled="loading"
                 :fetch-suggestions="querySearchAsyncInventories"
                 v-model="scope.row.item_name"
@@ -277,7 +279,7 @@
                     <span class="ml-2">Tambahkan "{{ item.value }}"</span>
                   </div>
                   <div v-else class="flex items-center gap-2">
-                    <!-- Thumbnail file pertama -->
+                  
                     <div class="flex-shrink-0 mt-1">
                       <div
                         v-if="item.files && item.files.length > 0"
@@ -297,7 +299,7 @@
                       </div>
                     </div>
 
-                    <!-- Informasi produk -->
+                    
                     <div class="flex-1 min-w-0">
                       <p style="line-height: 15px" class="font-bold truncate">
                         {{ item.catalogue_name || item.value }}
@@ -309,33 +311,18 @@
                     </div>
                   </div>
                 </template>
-              </el-autocomplete>
-            </template>
-          </el-table-column>
-          <el-table-column prop="sn" label="Serial Number" />
-          <el-table-column prop="quantity" label="QTY" class="mb-0" width="200">
-            <template #default="scope">
-              <el-input-number v-model="scope.row.quantity" />
-            </template>
-          </el-table-column>
-          <el-table-column prop="unit" label="Unit" width="100">
-            <template #default="scope">
-              <el-autocomplete
-                :fetch-suggestions="querySearchUnit"
-                v-model="scope.row.unit_name"
-                placeholder="Input Units"
-                @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteUnit(item, scope)"
-              />
+              </el-autocomplete> -->
             </template>
           </el-table-column>
           <el-table-column
             prop="selling_price"
             label="Harga"
             class="mb-0"
-            width="150"
+            width="120"
+            align="center"
           >
             <template #default="scope">
-              <el-form-item
+              <!-- <el-form-item
                 label=""
                 :prop="`items.${scope.index}.price`"
                 class="mb-0"
@@ -361,9 +348,35 @@
                     }
                   "
                 />
-              </el-form-item>
+              </el-form-item> -->
+              {{ currencyWithoutSymbol(scope.row.price, 0) }}
             </template>
           </el-table-column>
+          <!-- <el-table-column prop="sn" label="Serial Number" /> -->
+          <el-table-column
+            prop="quantity"
+            label="QTY"
+            class="mb-0"
+            width="50"
+            align="center"
+          >
+            <template #default="scope">
+              <!-- <el-input-number v-model="scope.row.quantity" /> -->
+              {{ scope.row.quantity }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="unit" label="Unit" width="100">
+            <template #default="scope">
+              <!-- <el-autocomplete
+                :fetch-suggestions="querySearchUnit"
+                v-model="scope.row.unit_name"
+                placeholder="Input Units"
+                @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteUnit(item, scope)"
+              /> -->
+              {{ scope.row.unit_name }}
+            </template>
+          </el-table-column>
+
           <el-table-column prop="total" label="Total" class="mb-0" width="150">
             <template #default="scope">
               {{
@@ -376,14 +389,7 @@
           </el-table-column>
           <el-table-column prop="note" label="Catatan" class="mb-0" width="150">
             <template #default="scope">
-              <el-form-item
-                label=""
-                :prop="`items.${scope.index}.price`"
-                class="mb-0"
-                style="margin-bottom: 0px !important"
-              >
-                <el-input v-model="scope.row.note" class="mb-0" />
-              </el-form-item>
+              {{ scope.row.note }}
             </template>
           </el-table-column>
 
@@ -413,8 +419,8 @@
             </template>
           </el-table-column>
         </el-table>
-        <el-button class="mt-4" style="width: 100%" @click="addNewLine">
-          Tambahkan Baris Baru
+        <el-button class="mt-4" style="width: 100%" @click="addNewItem">
+          Tambahkan Item
         </el-button>
       </el-card>
 
@@ -509,6 +515,21 @@
           <!-- <el-descriptions-item :width="100" label="Grand Total">{{ currency(grandTotal) }}</el-descriptions-item> -->
         </el-descriptions>
       </el-card>
+      <div class="flex px-4">
+        <el-button
+          class="w-full"
+          style="height: 39px"
+          @click="resetForm(ruleFormRef)"
+          >Batal</el-button
+        >
+        <el-button
+          class="w-full"
+          style="height: 39px"
+          type="primary"
+          @click="submitForm(ruleFormRef)"
+          >Simpan</el-button
+        >
+      </div>
     </div>
 
     <el-dialog
@@ -598,6 +619,122 @@
         v-on:submit="handleSubmitContact"
         @reset="handleResetContact"
       />
+    </el-dialog>
+    <el-dialog v-model="dialogAddItem" title="Tambah Item" width="100%">
+      <el-form
+        ref="ruleFormRefDialogItem"
+        :model="ruleFormDialogAddItem"
+        :rules="rulesDialogItem"
+        label-width="auto"
+        class="demo-ruleForm"
+        :size="formSize"
+        status-icon
+        :disabled="loading"
+      >
+        <el-form-item prop="item_name" label="">
+          <div class="flex items-center gap-3 w-full">
+            <el-autocomplete
+              :disabled="loading"
+              :fetch-suggestions="querySearchAsyncInventories"
+              v-model="ruleFormDialogAddItem.item_name"
+              placeholder="Cari item"
+              @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteModal(item)"
+            >
+              <template #default="{ item }">
+                <div v-if="item.isNew" class="flex items-center text-blue-500">
+                  <el-icon><Plus /></el-icon>
+                  <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                </div>
+                <div v-else class="flex items-center gap-2">
+                  <!-- Thumbnail file pertama -->
+                  <div class="flex-shrink-0 mt-1">
+                    <div
+                      v-if="item.files && item.files.length > 0"
+                      class="w-10 h-10 rounded overflow-hidden border"
+                    >
+                      <img
+                        :src="getFirstFileUrl(item.files)"
+                        :alt="item.catalogue_name"
+                        class="w-full h-full object-cover"
+                      />
+                    </div>
+                    <div
+                      v-else
+                      class="w-10 h-10 rounded border flex items-center justify-center text-gray-400"
+                    >
+                      <el-icon><Picture /></el-icon>
+                    </div>
+                  </div>
+
+                  <!-- Informasi produk -->
+                  <div class="flex-1 min-w-0">
+                    <p style="line-height: 15px" class="font-bold truncate">
+                      {{ item.catalogue_name || item.value }}
+                    </p>
+                    <p class="text-sm text-gray-500 truncate">
+                      PN/SN: {{ item.sn_number || "Tidak Ada" }} | Brand:
+                      {{ item.brand_name || "N/A" }}
+                    </p>
+                  </div>
+                </div>
+              </template>
+            </el-autocomplete>
+          </div>
+        </el-form-item>
+        <div class="flex gap-2">
+          <el-form-item label="" prop="quantity" class="w-full">
+            <el-input
+              v-model="ruleFormDialogAddItem.quantity"
+              placeholder="QTY"
+              class="w-full"
+            />
+          </el-form-item>
+          <el-form-item prop="unit_name" label="">
+            <div class="flex items-center gap-3 w-full">
+              <el-autocomplete
+                :fetch-suggestions="querySearchUnit"
+                v-model="ruleFormDialogAddItem.unit_name!"
+                placeholder="Unit"
+                class="w-full"
+                @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteModalUnit(item)"
+              />
+            </div>
+          </el-form-item>
+        </div>
+        <el-form-item prop="displayPrice" :label="``">
+          <el-form-item
+            label=""
+            :prop="`ruleFormDialogAddItem.price`"
+            class="mb-0 w-full"
+            style="margin-bottom: 0px !important"
+          >
+            <el-input
+              v-model="ruleFormDialogAddItem.price"
+              class="mb-0"
+              inputmode="decimal"
+              placeholder="Harga"
+              :formatter="(value: any) => `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
+              :parser="(value: any) => value.replace(/\Rp\s?|(,*)/g, '')"
+            />
+          </el-form-item>
+        </el-form-item>
+
+        <el-form-item label="" prop="note">
+          <el-input
+            v-model="ruleFormDialogAddItem.note"
+            type="textarea"
+            placeholder="Masukkan deskripsi"
+          />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="dialogAddItem = false">Cancel</el-button>
+          <el-button type="primary" @click="submitItemModal">
+            Tambahkan
+          </el-button>
+        </div>
+      </template>
     </el-dialog>
   </TrumsWrapper>
 </template>
@@ -695,6 +832,7 @@ const visibleModalNewAdjustment = ref(false);
 
 const stateActiveTypeContat = ref<"vendor" | "customer" | "pic">("vendor");
 const dialogContact = ref<boolean>(false);
+const dialogAddItem = ref<boolean>(false);
 
 const itemActive = ref<number>(-1);
 const router = useRouter();
@@ -714,7 +852,7 @@ const ruleForm = reactive<Pricetag>(
     unique_id: "",
     name: "",
     location_id: "",
-    start_date: Date.now(),
+    start_date: 0,
     end_date: 0,
     start_date_view: "",
     end_date_view: "",
@@ -726,49 +864,7 @@ const ruleForm = reactive<Pricetag>(
     type: "in",
     note: "",
     subject: "",
-    pricetag_item: [
-      {
-        note: "",
-        catalogue: {
-          id: null,
-          unique_id: null,
-          unique_code: null,
-          name: "",
-
-          brand_id: null,
-          brand_name: null,
-          year: null,
-          sn: null,
-          description: null,
-          berat: null,
-          volume: null,
-          length: null,
-          width: null,
-          height: null,
-          is_asset: null,
-          tmp_asset: null,
-          version: null,
-          type: "",
-          created_at: null,
-          created_by: null,
-          updated_at: null,
-          file_catalogues: [],
-        },
-        unique_id: null,
-        tag_id: null,
-        catalogue_id: "",
-        inventory_id: "",
-        inventory: null,
-        price: 0,
-        is_new: true,
-        unit_id: "",
-        unit_name: "",
-        unit_version: 0,
-        checked: false,
-        quantity: 1,
-        fileUploads: [],
-      },
-    ],
+    pricetag_item: [],
 
     location: {
       id: null,
@@ -807,6 +903,61 @@ const ruleForm = reactive<Pricetag>(
     pic_version: 0,
   }
 );
+
+interface ItemFormDialogType {
+  index: number;
+  catalogue_name: string;
+  catalogue_id: string;
+  qty: number;
+  price: number;
+  display_price: string;
+  note: string;
+  unit_id: string;
+  unit_name: string;
+}
+const ruleFormRefDialogItem = ref<FormInstance>();
+const ruleFormDialogAddItem = reactive<Pricetag_item>({
+  note: "",
+  catalogue: {
+    id: null,
+    unique_id: null,
+    unique_code: null,
+    name: "",
+
+    brand_id: null,
+    brand_name: null,
+    year: null,
+    sn: null,
+    description: null,
+    berat: null,
+    volume: null,
+    length: null,
+    width: null,
+    height: null,
+    is_asset: null,
+    tmp_asset: null,
+    version: null,
+    type: "",
+    created_at: null,
+    created_by: null,
+    updated_at: null,
+    file_catalogues: [],
+  },
+  unique_id: null,
+  tag_id: null,
+  catalogue_id: "",
+  inventory_id: "",
+  inventory: null,
+  price: 0,
+  displayPrice: formatCurrencyID(0),
+  is_new: true,
+  unit_id: "",
+  unit_name: "",
+  unit_version: 0,
+  checked: false,
+  quantity: 1,
+  fileUploads: [],
+});
 
 const tmpCatalogue = ref<Catalogue | null>(null);
 const tmpEditBulk = ref<{
@@ -984,6 +1135,24 @@ const rules = reactive<FormRules>({
     trigger: "change",
   },
 });
+const rulesDialogItem = reactive<FormRules<Pricelist_item>>({
+  item_name: [
+    {
+      required: true,
+      message: "Item Tidak Boleh Kosong!",
+      trigger: "blur",
+    },
+  ],
+  price: [
+    { required: true, message: "Harga Tidak Boleh Kosong!", trigger: "blur" },
+  ],
+  quantity: [
+    { required: true, message: "QTY Tidak Boleh Kosong!", trigger: "blur" },
+  ],
+  unit_name: [
+    { required: true, message: "UoM Tidak Boleh Kosong!", trigger: "blur" },
+  ],
+});
 
 const onUpdatePaymentTerms = (data: TermOfPayment[]) => {
   termOfPayments.value = data;
@@ -1142,6 +1311,62 @@ const handleSubmitContact = async (formData: Contact | undefined) => {
     console.log("eror", error);
     ElMessage.error(`${error}`);
   }
+};
+
+const submitItemModal = () => {
+  console.log("item", ruleFormDialogAddItem);
+  if (itemActive.value >= 0) {
+    ruleForm.pricetag_item[itemActive.value] = {
+      ...ruleFormDialogAddItem,
+      price: Number(ruleFormDialogAddItem.price),
+    };
+  } else {
+    ruleForm.pricetag_item.push({
+      ...ruleFormDialogAddItem,
+      price: Number(ruleFormDialogAddItem.price),
+    });
+  }
+
+  // ruleFormDialogAddItem.note = "";
+  // ruleFormDialogAddItem.catalogue = {
+  //   id: null,
+  //   unique_id: null,
+  //   unique_code: null,
+  //   name: "",
+
+  //   brand_id: null,
+  //   brand_name: null,
+  //   year: null,
+  //   sn: null,
+  //   description: null,
+  //   berat: null,
+  //   volume: null,
+  //   length: null,
+  //   width: null,
+  //   height: null,
+  //   is_asset: null,
+  //   tmp_asset: null,
+  //   version: null,
+  //   type: "",
+  //   created_at: null,
+  //   created_by: null,
+  //   updated_at: null,
+  //   file_catalogues: [],
+  // };
+  // ruleFormDialogAddItem.unique_id = null;
+  // ruleFormDialogAddItem.tag_id = null;
+  // ruleFormDialogAddItem.catalogue_id = "";
+  // ruleFormDialogAddItem.inventory_id = "";
+  // ruleFormDialogAddItem.inventory = null;
+  // ruleFormDialogAddItem.price = 0;
+  // ruleFormDialogAddItem.is_new = true;
+  // ruleFormDialogAddItem.unit_id = "";
+  // ruleFormDialogAddItem.unit_name = "";
+  // ruleFormDialogAddItem.unit_version = 0;
+  // ruleFormDialogAddItem.checked = false;
+  // ruleFormDialogAddItem.quantity = 1;
+  // ruleFormDialogAddItem.fileUploads = [];
+  dialogAddItem.value = false;
 };
 
 const createNewContact = async (data: any): Promise<Contact | null> => {
@@ -1495,6 +1720,36 @@ const handleRemoveImageList = async (
 
 const cancelImageUpload = () => {
   showImageModal.value = false;
+};
+
+const detailItem = (item: Pricetag_item, index: number) => {
+  // const findIndex = ruleForm.pricetag_item.findIndex((value) => value)
+  itemActive.value = index;
+
+  ruleFormDialogAddItem.note = item.note;
+  ruleFormDialogAddItem.item_name =
+    item.item_name || item.catalogue?.name || "";
+  ruleFormDialogAddItem.catalogue_id = item.catalogue_id;
+  ruleFormDialogAddItem.catalogue = item.catalogue;
+  ruleFormDialogAddItem.unique_id = item.unique_id;
+  ruleFormDialogAddItem.tag_id = item.tag_id;
+  ruleFormDialogAddItem.inventory_id = item.inventory_id;
+  ruleFormDialogAddItem.inventory = item.inventory;
+  ruleFormDialogAddItem.price = item.price;
+  ruleFormDialogAddItem.is_new = item.is_new;
+  ruleFormDialogAddItem.unit_id = item.unit_id;
+  ruleFormDialogAddItem.unit_name = item.unit_name;
+  ruleFormDialogAddItem.unit_version = item.unit_version;
+  ruleFormDialogAddItem.checked = item.checked;
+  ruleFormDialogAddItem.quantity = item.quantity;
+  ruleFormDialogAddItem.fileUploads = item.fileUploads;
+
+  dialogAddItem.value = true;
+};
+
+const addNewItem = () => {
+  ruleFormRefDialogItem.value?.resetFields();
+  dialogAddItem.value = true;
 };
 
 const saveItemImages = () => {
@@ -2014,6 +2269,51 @@ const create_catalogue = async (catalogue: Catalogue) => {
   }
 };
 
+const onHandleSelectItemAutocompleteModal = async (
+  record: Record<string, any>
+  // scope: any
+) => {
+  if (record.isNew) {
+    const catalogueInsert: Catalogue = {
+      name: record.value,
+      id: null,
+      unique_id: null,
+      unique_code: null,
+      brand_id: null,
+      brand_name: null,
+      year: null,
+      sn: null,
+      description: null,
+      berat: null,
+      volume: null,
+      length: null,
+      width: null,
+      height: null,
+      is_asset: null,
+      tmp_asset: null,
+      version: null,
+      type: "item",
+      created_at: null,
+      created_by: null,
+      updated_at: null,
+      file_catalogues: [],
+    };
+
+    tmpCatalogue.value = catalogueInsert;
+    // itemActive.value = scope.$index;
+    drawerCatalogue.value = true;
+  } else {
+    const selected: ItemSearch = record as ItemSearch;
+    ruleFormDialogAddItem.item_name = selected.catalogue_name!;
+    ruleFormDialogAddItem.catalogue_id = selected.catalogue_id!;
+    // ruleFormDialogAddItem.unit_id = selected.unit_id ?? "";
+    // ruleFormDialogAddItem.unit_name = selected.unit_name ?? "";
+    // ruleFormDialogAddItem.quantity = 1;
+    ruleFormDialogAddItem.catalogue_id = selected.catalogue_id;
+    // ruleFormDialogAddItem.catalogue = catalogue;
+    // ruleFormDialogAddItem.price = 0;
+  }
+};
 const onHandleSelectItemAutocomplete = async (
   record: Record<string, any>,
   scope: any
@@ -2091,6 +2391,15 @@ const onHandleSelectItemAutocompleteUnit = (
   } else {
     ruleForm.pricetag_item[scope.$index].unit_name = item.value;
     ruleForm.pricetag_item[scope.$index].unit_id = `${item.unique_id}`;
+  }
+};
+const onHandleSelectItemAutocompleteModalUnit = (item: Record<string, any>) => {
+  if (item.unique_id == undefined) {
+    ruleFormDialogAddItem.unit_name = item.label;
+    ruleFormDialogAddItem.unit_id = "";
+  } else {
+    ruleFormDialogAddItem.unit_name = item.value;
+    ruleFormDialogAddItem.unit_id = `${item.unique_id}`;
   }
 };
 
@@ -2590,5 +2899,13 @@ const initialSetting = () => {
 <style scoped>
 :deep(.form-bulk) {
   margin-bottom: 0px !important;
+}
+
+:deep(.el-input__wrapper) {
+  /* height: 30px !important; */
+  /* margin-bottom: 6px !important; */
+}
+:deep(.el-form-item--default) {
+  margin-bottom: 6px !important;
 }
 </style>

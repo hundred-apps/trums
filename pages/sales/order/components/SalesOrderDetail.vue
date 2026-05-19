@@ -944,6 +944,7 @@ watch(
     (purchaseOrderItem.data.value?.data || []).forEach((element) => {
       let childs: PurchasOrderViewTree[] = [];
       if (canAccess("purchase-order-approve", props.privillage || [], 1)) {
+        console.log("pricetag item", element.pricetag_item);
         childs = (
           element.pricetag_item?.data_reference as CanvassingItem
         ).canvassing_vendor
@@ -960,6 +961,8 @@ watch(
             quo_number: "",
             children: [],
           }));
+
+        console.log("children", childs);
       }
 
       purchaseOrderItemsView.value.push({

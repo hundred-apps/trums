@@ -584,16 +584,11 @@ const resetForm = (formEl: FormInstance | undefined) => {
   formEl.resetFields();
 };
 
-const getContacts = async () => {
-  try {
-    const response = await axios.get("/contact-read");
-    if (response.status == 200) {
-      contacts.value = response.data.data;
-    }
-  } catch (error: any) {
-    console.log(`Gagal Mengambil Data Kontak ${error.response.data.message}`);
-  }
-};
+// join purchase_order_item poi on poi.pricetag_item_id = pi.unique_id
+// join inquiries i on i.reference = 'so' and i.reference_id = poi.order_id
+// join item_request ir on ir.inquiry_id = i.unique_id
+// join item_request_trail irt on irt.item_request_id = ir.unique_id and irt.reference = 'pr'
+// join purchase_request pr on pr.unique_id = irt.reference_id
 
 watch(
   request_search_maintenance,

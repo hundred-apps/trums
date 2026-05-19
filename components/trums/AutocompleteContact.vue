@@ -25,9 +25,9 @@
   <el-dialog v-model="dialogContact" title="Detail Kontak">
     <AddContact
       ref="formFieldsRefContact"
-      :contact-data="tmpContact!"
+      :data="tmpContact!"
       :loading="loading"
-      @submit="handleSubmitContact"
+      @submit="(value) => handleSubmitContact(value!)"
       @reset="handleResetContact"
     />
   </el-dialog>

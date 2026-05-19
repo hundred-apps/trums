@@ -40,6 +40,8 @@ import CustomTable from "~/components/trums/table/customTable.vue";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import type { ColumnTable } from "~/types/ColumnTable";
 
+const { isMobile } = useDevice();
+
 const props = defineProps<{
   // onSubmit: (catalogue: Catalogue) => void,
   // onCancel: () => void,
@@ -73,24 +75,17 @@ const paginationClick = (val: number) => {
   refresh();
 };
 
+const generateNumber = (number: string) => {
+  const split = number.split("/");
+  return `${split[0]}...${split[split.length - 1]}`;
+};
+
 const availableColumn: ColumnTable<Pricetag>[] = [
-  {
-    title: "Unique Code",
-    key: "name",
-    dataKey: "name",
-    cellRenderer: ({ rowData }: { rowData: Pricetag }) => (
-      <NuxtLink
-        class={"text-blue-600"}
-        href={`/sales/offer/${rowData.unique_id}`}
-      >
-        {rowData.unique_code || "-"}
-      </NuxtLink>
-    ),
-  },
   {
     title: props.type == "in" ? "Vendor" : "Kepada",
     key: "",
     dataKey: "",
+    width: isMobile ? 200 : 0,
     cellRenderer: ({ rowData }: { rowData: Pricetag }) => (
       <span>
         {props.type === "in"
@@ -100,10 +95,28 @@ const availableColumn: ColumnTable<Pricetag>[] = [
     ),
   },
   {
-    title: "Tanggal Berlaku",
+    title: "Ref No",
+    key: "name",
+    dataKey: "name",
+    align: "center",
+    width: isMobile ? 120 : 0,
+    cellRenderer: ({ rowData }: { rowData: Pricetag }) => (
+      <NuxtLink
+        class={"text-blue-600"}
+        href={`/sales/offer/${rowData.unique_id}`}
+      >
+        {generateNumber(rowData.unique_code || "")}
+      </NuxtLink>
+    ),
+  },
+
+  {
+    title: "Validity",
     key: "start_date",
     dataKey: "start_date",
     sortable: true,
+    width: isMobile ? 120 : 0,
+    align: "center",
     cellRenderer: ({ rowData: row }) => (
       <>{row.start_date ? formatLocalDate(row.start_date) : "-"}</>
     ),
@@ -111,7 +124,7 @@ const availableColumn: ColumnTable<Pricetag>[] = [
   {
     title: "Operasi",
     key: "operasi",
-    width: 100,
+    width: 90,
     align: "center",
 
     cellRenderer: ({ rowData }: { rowData: Pricetag }) => {
@@ -147,43 +160,78 @@ const availableColumn: ColumnTable<Pricetag>[] = [
       );
     },
   },
+  {
+    key: "selection",
+    width: 50,
+    cellRenderer: ({ rowData }) => {
+      const onChange = (value: CheckboxValueType) => (rowData.checked = value);
+      return <SelectionCell value={rowData.checked} onChange={onChange} />;
+    },
+
+    headerCellRenderer: () => {
+      const _data = unref(data);
+      const onChange = (value: CheckboxValueType) =>
+        (data.value = {
+          success: true,
+          currentPage: _data?.currentPage ?? 0,
+          total_data: _data?.total_data ?? 0,
+          total_page: _data?.total_data ?? 0,
+          data: _data?.data?.map((row: any) => {
+            row.checked = value;
+            return row;
+          })!,
+        });
+      const allSelected = _data!.data.every((row) => row.checked);
+      const containsChecked = _data?.data.some((row) => row.checked);
+      selected.value = (_data?.data ?? [])
+        .filter((value) => value.checked)
+        .map((check) => check.unique_id);
+      return (
+        <SelectionCell
+          value={allSelected}
+          interminate={containsChecked && !allSelected}
+          onChange={onChange}
+        />
+      );
+    },
+  },
 ];
 
-availableColumn.unshift({
-  key: "selection",
-  width: 50,
-  cellRenderer: ({ rowData }) => {
-    const onChange = (value: CheckboxValueType) => (rowData.checked = value);
-    return <SelectionCell value={rowData.checked} onChange={onChange} />;
-  },
+// availableColumn.unshift({
+//   key: "selection",
+//   width: 50,
+//   cellRenderer: ({ rowData }) => {
+//     const onChange = (value: CheckboxValueType) => (rowData.checked = value);
+//     return <SelectionCell value={rowData.checked} onChange={onChange} />;
+//   },
 
-  headerCellRenderer: () => {
-    const _data = unref(data);
-    const onChange = (value: CheckboxValueType) =>
-      (data.value = {
-        success: true,
-        currentPage: _data?.currentPage ?? 0,
-        total_data: _data?.total_data ?? 0,
-        total_page: _data?.total_data ?? 0,
-        data: _data?.data?.map((row: any) => {
-          row.checked = value;
-          return row;
-        })!,
-      });
-    const allSelected = _data!.data.every((row) => row.checked);
-    const containsChecked = _data?.data.some((row) => row.checked);
-    selected.value = (_data?.data ?? [])
-      .filter((value) => value.checked)
-      .map((check) => check.unique_id);
-    return (
-      <SelectionCell
-        value={allSelected}
-        interminate={containsChecked && !allSelected}
-        onChange={onChange}
-      />
-    );
-  },
-});
+//   headerCellRenderer: () => {
+//     const _data = unref(data);
+//     const onChange = (value: CheckboxValueType) =>
+//       (data.value = {
+//         success: true,
+//         currentPage: _data?.currentPage ?? 0,
+//         total_data: _data?.total_data ?? 0,
+//         total_page: _data?.total_data ?? 0,
+//         data: _data?.data?.map((row: any) => {
+//           row.checked = value;
+//           return row;
+//         })!,
+//       });
+//     const allSelected = _data!.data.every((row) => row.checked);
+//     const containsChecked = _data?.data.some((row) => row.checked);
+//     selected.value = (_data?.data ?? [])
+//       .filter((value) => value.checked)
+//       .map((check) => check.unique_id);
+//     return (
+//       <SelectionCell
+//         value={allSelected}
+//         interminate={containsChecked && !allSelected}
+//         onChange={onChange}
+//       />
+//     );
+//   },
+// });
 
 const onSort = (sortBy: { order: string; prop: string }) => {
   request_search.value.sort = {

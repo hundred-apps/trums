@@ -19,7 +19,9 @@ import { useRouter } from "vue-router";
 import type { Menu } from "~/types/menu";
 import type { People } from "~/types/people";
 import type { BaseResponse } from "~/types/response";
+import LayoutSidebar from "~/components/layouts/LayoutSidebar.vue";
 
+const { isMobile } = useDevice();
 const config = useRuntimeConfig();
 const imageUrl = config.public.baseImageURL;
 const { t } = useI18n();
@@ -28,6 +30,7 @@ const router = useRouter();
 const authStore = useAuthStore();
 const userdata = ref<People | null>(null);
 const visibleDialogLogOut = ref<boolean>(false);
+const sidebarOpen = ref<boolean>(false);
 
 const id_token = localStorage.getItem("id_token");
 const client_id = config.public.baseOIDCICID;
@@ -41,7 +44,7 @@ const navigateToSetting = (name = "") => {
 };
 
 const auth = useAuth();
-const menus = ref<Menu[]>([]);
+
 const nameFront = ref("");
 const icons = ElementPlusIconsVue as Record<string, any>;
 
@@ -51,7 +54,6 @@ const showIcon = (icon: any) => {
 
 onMounted(() => {
   userdata.value = JSON.parse(localStorage.getItem("user_data") ?? "");
-  menus.value = JSON.parse(localStorage.getItem("menu") ?? "[]");
 
   nameFront.value = userdata.value?.name?.split(" ")[0] || "";
 });
@@ -81,12 +83,13 @@ const handleMenuClick = (menuKey: string) => {
 </script>
 
 <template>
-  <div class="common-layout">
+  <el-container class="layout-container">
     <el-header
-      class="flex fixed backdrop-filter backdrop-blur-md top-0 z-40 w-full flex-none transition-colors duration-300 lg:z-50 border-b border-gray-950/10 dark:border-gray-50/[0.2] bg-white/[0.5] dark:bg-gray-950/[0.5] justify-between"
+      class="flex items-center fixed backdrop-filter backdrop-blur-md top-0 z-40 w-full flex-none transition-colors duration-300 lg:z-50 border-b border-gray-950/10 dark:border-gray-50/[0.2] bg-white/[0.5] dark:bg-gray-950/[0.5] justify-between"
       style="text-align: right"
     >
-      <div class="flex items-center gap-3">
+      <el-button v-if="isMobile" @click="sidebarOpen = true"> ☰ </el-button>
+      <div v-else class="flex items-center gap-3">
         <img
           v-if="$colorMode.value === 'dark'"
           src="/images/logo/logo-white.png"
@@ -137,171 +140,10 @@ const handleMenuClick = (menuKey: string) => {
       </div>
     </el-header>
     <el-aside
+      v-if="!isMobile"
       class="fixed top-0 left-0 z-40 w-64 h-full pt-[60px] transition-transform -translate-x-full backdrop-filter border-r backdrop-blur-md sm:translate-x-0 border-gray-950/10 dark:border-gray-50/[0.2] bg-white/[0.5] dark:bg-gray-950/[0.5]"
     >
-      <el-scrollbar>
-        <el-menu @select="handleMenuClick">
-          <div v-for="menu in menus" :key="menu.unique_id">
-            <el-sub-menu
-              v-if="menu.menus && menu.menus.length > 0"
-              :index="menu.route"
-            >
-              <template #title>
-                <el-icon v-if="showIcon(menu.icon)">
-                  <component :is="showIcon(menu.icon)" />
-                </el-icon>
-                {{ menu.name }}
-              </template>
-              <el-menu-item-group>
-                <el-menu-item v-for="sub in menu.menus" :index="sub.route">{{
-                  sub.name
-                }}</el-menu-item>
-              </el-menu-item-group>
-            </el-sub-menu>
-            <el-menu-item v-else :index="menu.route">
-              <el-icon v-if="showIcon(menu.icon)">
-                <component :is="showIcon(menu.icon)" />
-              </el-icon>
-              <span>{{ menu.name }}</span>
-            </el-menu-item>
-          </div>
-
-          <!-- <el-menu-item index="/catalogue">
-            <el-icon><Collection /></el-icon>
-            <span>Catalog</span>
-          </el-menu-item>
-          <el-sub-menu index="2">
-            <template #title>
-              <el-icon><Box /></el-icon>Inventory Management
-            </template>
-            <el-menu-item-group>
-              <el-menu-item index="/inventory-management/inventories"
-                >Inventory</el-menu-item
-              >
-              <el-menu-item index="/inventory-management/inqueiries">Inquiry</el-menu-item>
-              <el-menu-item index="/inventory-management/checkin">Check In/Out</el-menu-item>
-              <el-menu-item index="/inventory-management/consigment">Consigment</el-menu-item>
-              <el-menu-item index="/inventory-management/location"
-                >Location</el-menu-item
-              >
-            </el-menu-item-group>
-          </el-sub-menu>
-          <el-sub-menu index="3">
-            <template #title>
-              <el-icon><DocumentChecked /></el-icon>Inspection & Maintenance
-            </template>
-            <el-menu-item-group>
-              <el-menu-item index="/inspection-maintenance/inspection"
-                >Inspection</el-menu-item
-              >
-              <el-menu-item index="/inspection-maintenance/maintenance"
-                >Maintenance</el-menu-item
-              >
-              <el-menu-item index="/inspection-maintenance/template"
-                >Template Checklist</el-menu-item
-              >
-            </el-menu-item-group>
-          </el-sub-menu>
-          <el-sub-menu index="4">
-            <template #title>
-              <el-icon><DataAnalysis /></el-icon>Supply Chain Management
-            </template>
-            <el-menu-item-group>
-              <el-menu-item index="/supply-chain-management/purchase/request">Purchase Request</el-menu-item>
-              <el-menu-item index="/supply-chain-management/canvassing">Canvassing</el-menu-item>
-              <el-menu-item index="/supply-chain-management/purchase/order">Purchase Order</el-menu-item>
-              <el-menu-item index="4-4">Delivery</el-menu-item>
-              <el-menu-item index="4-5">Receive</el-menu-item>
-            </el-menu-item-group>
-          </el-sub-menu>
-          <el-sub-menu index="5">
-            <template #title>
-              <el-icon><Sell /></el-icon>Sales
-            </template>
-            <el-menu-item-group>
-              <el-menu-item index="/sales/inquiry">Inquiry</el-menu-item>
-              <el-menu-item index="/sales/canvassing">Canvassing</el-menu-item>
-              <el-menu-item index="/sales/quotation">RAB</el-menu-item>
-              <el-menu-item index="/sales/offer">Penawaran</el-menu-item>
-              <el-menu-item index="/sales/pricelist">Pricelist</el-menu-item>
-              <el-menu-item index="/sales/order">Order</el-menu-item>
-              <el-menu-item index="5-3">Contract</el-menu-item>
-              <el-menu-item index="5-4">Project</el-menu-item>
-            </el-menu-item-group>
-          </el-sub-menu>
-          <el-sub-menu index="6">
-            <template #title>
-              <el-icon><Money /></el-icon>Finance Management
-            </template>
-            <el-menu-item-group>
-              <el-menu-item index="/finance-management/accounts"
-                >Account</el-menu-item
-              >
-              <el-menu-item index="/finance-management/assets"
-                >Assets</el-menu-item
-              >
-              <el-menu-item index="/finance-management/bill">Bill</el-menu-item>
-              <el-menu-item index="/finance-management/invoice">Invoice</el-menu-item>
-              <el-menu-item index="/finance-management/transaction">Transaction</el-menu-item>
-              <el-menu-item index="6-4">Budget</el-menu-item>
-            </el-menu-item-group>
-          </el-sub-menu>
-          <el-sub-menu index="7">
-            <template #title>
-              <el-icon><User /></el-icon>Human Capital
-            </template>
-            <el-menu-item-group>
-              <el-menu-item index="/human-capital-management/people"
-                >People</el-menu-item
-              >
-              <el-menu-item index="/human-capital-management/departement"
-                >Departement</el-menu-item
-              >
-              <el-menu-item index="/human-capital-management/position"
-                >Position</el-menu-item
-              >
-              <el-menu-item index="7-4">Recruitmen</el-menu-item>
-            </el-menu-item-group>
-          </el-sub-menu>
-          <el-sub-menu index="8">
-            <template #title>
-              <el-icon><Notebook /></el-icon>Contact Management
-            </template>
-            <el-menu-item-group>
-              <el-menu-item index="/contact-management/categories"
-                >Categories</el-menu-item
-              >
-              <el-menu-item index="/contact-management/contacts"
-                >Contact</el-menu-item
-              >
-            </el-menu-item-group>
-          </el-sub-menu>
-          <el-sub-menu index="9">
-            <template #title>
-              <el-icon><CreditCard /></el-icon>Bank & E-Wallet
-            </template>
-            <el-menu-item-group>
-              
-              <el-menu-item index="/bank/bank-list">Daftar Bank & E-Wallet</el-menu-item>
-              <el-menu-item index="/bank/rekening">Daftar Rekening</el-menu-item>
-            </el-menu-item-group>
-          </el-sub-menu>
-          <el-sub-menu index="10">
-            <template #title>
-              <el-icon><IconMenu /></el-icon>Master
-            </template>
-            <el-menu-item-group>
-              
-              <el-menu-item index="/master/mycompany">Perusahaan Saya</el-menu-item>
-              <el-menu-item index="/master/tax">Daftar Pajak</el-menu-item>
-              <el-menu-item index="/master/menu">Menu</el-menu-item>
-              <el-menu-item index="9-2">Permission</el-menu-item>
-              <el-menu-item index="9-3">User Permission</el-menu-item>
-              <el-menu-item index="/master/checklist">Pengaturan Checklist</el-menu-item>
-            </el-menu-item-group>
-          </el-sub-menu> -->
-        </el-menu>
-      </el-scrollbar>
+      <LayoutsLayoutSidebar />
     </el-aside>
     <div class="sm:ml-72">
       <TrumsContentDefault>
@@ -318,7 +160,15 @@ const handleMenuClick = (menuKey: string) => {
         </div>
       </template>
     </el-dialog>
-  </div>
+    <el-drawer
+      v-model="sidebarOpen"
+      direction="ltr"
+      size="320px"
+      :with-header="false"
+    >
+      <LayoutSidebar @menu-click="() => (sidebarOpen = false)" />
+    </el-drawer>
+  </el-container>
 </template>
 
 <style scoped>

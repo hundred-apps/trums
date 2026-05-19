@@ -4,7 +4,7 @@ export default defineNuxtRouteMiddleware((to, from) => {
   }
   const auth = useAuth();
 
-  console.log("user data", auth.getUserData());
+  // console.log("user data", auth.getUserData());
 
   if (!auth.accessToken && !auth.getUserData()) {
     window.location.href = "/";

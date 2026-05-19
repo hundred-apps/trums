@@ -307,123 +307,6 @@ const SelectionCell: FunctionalComponent<SelectionCellProps> = ({
     />
   );
 };
-const availableColumn: ColumnTable<Pricetag>[] = [
-  {
-    key: "selection",
-    width: 50,
-    fixed: true,
-    cellRenderer: ({ rowData }) => {
-      const onChange = (value: CheckboxValueType) => (rowData.checked = value);
-      return <SelectionCell value={rowData.checked} onChange={onChange} />;
-    },
-    headerCellRenderer: () => {
-      const _data = unref(data);
-      const onChange = (value: CheckboxValueType) =>
-        (data.value = {
-          success: true,
-          currentPage: _data?.currentPage ?? 0,
-          total_data: _data?.total_data ?? 0,
-          total_page: _data?.total_data ?? 0,
-          data: _data?.data?.map((row: any) => {
-            row.checked = value;
-            return row;
-          })!,
-        });
-      const allSelected = _data!.data.every((row) => row.checked);
-      const containsChecked = _data?.data.some((row) => row.checked);
-
-      return (
-        <SelectionCell
-          value={allSelected}
-          intermediate={containsChecked && !allSelected}
-          onChange={onChange}
-        />
-      );
-    },
-  },
-  {
-    title: "Nomor Penawaran",
-    key: "unique_code",
-    dataKey: "unique_code",
-    width: 200,
-    fixed: true,
-    cellRenderer: ({ rowData }: { rowData: Pricetag }) => (
-      <NuxtLink
-        class={"text-blue-600"}
-        href={`/supply-chain-management/offer/${rowData.unique_id}`}
-      >
-        {rowData.unique_code ?? "N/A"}
-      </NuxtLink>
-    ),
-  },
-  {
-    title: "Vendor",
-    key: "owner",
-    dataKey: "owner",
-    fixed: true,
-    cellRenderer: ({ rowData }: { rowData: Pricetag }) => (
-      <span>{rowData.owner?.name || "-"}</span>
-    ),
-  },
-  {
-    title: "Dibuat Oleh",
-    key: "owner",
-    dataKey: "owner",
-    width: 200,
-    cellRenderer: ({ rowData }: { rowData: Pricetag }) => (
-      <span>{rowData.owner?.name || "-"}</span>
-    ),
-  },
-
-  {
-    title: "Tanggal Berlaku",
-    key: "reference",
-    dataKey: "reference",
-    width: 200,
-    cellRenderer: ({ rowData: row }) => (
-      <span>{formatLocalDate(row.start_date)}</span>
-    ),
-  },
-  {
-    title: "Operasi",
-    key: "operasi",
-    width: 100,
-    align: "center",
-
-    cellRenderer: ({ rowData }: { rowData: Pricetag }) => {
-      const onCommand = (command: string) => {
-        if (command === "edit") {
-          window.location.href = `/supply-chain-management/offer/add?id=${rowData.unique_id}&type=${rowData.type}`;
-        }
-        if (command === "delete") {
-          handleDelete([rowData.unique_id]);
-        }
-      };
-
-      return (
-        <ElDropdown onCommand={onCommand} hideOnClick={false}>
-          {{
-            default: () => (
-              <span class="cursor-pointer text-primary">
-                <ElIcon>
-                  <Setting />
-                </ElIcon>
-              </span>
-            ),
-            dropdown: () => (
-              <ElDropdownMenu>
-                <ElDropdownItem command="edit">Edit</ElDropdownItem>
-                <ElDropdownItem class={"text-red-600"} command="delete" divided>
-                  Delete
-                </ElDropdownItem>
-              </ElDropdownMenu>
-            ),
-          }}
-        </ElDropdown>
-      );
-    },
-  },
-];
 
 const handleDelete = async (ids: string[]) => {
   loading.value = true;
@@ -472,7 +355,10 @@ const paginationClick = (val: number) => {
   request_search.value = data;
 };
 
-const checkSelect = () => data?.value?.data.some((row) => row.checked);
+const checkSelect = () => {
+  console.log("check");
+  return data?.value?.data.some((row) => row.checked);
+};
 
 const deleteBulk = () => {
   const checkeds = data.value?.data.filter((value) => value.checked);
@@ -576,62 +462,67 @@ onMounted(() => {
         </div>
       </el-col>
     </el-row>
-    <el-row :gutter="20" class="mb-3">
-      <el-col :span="6"
+    <el-row :gutter="20" class="mb-3 gap-2">
+      <el-col :xs="24" :sm="12" :md="12">
+        <TrumsCustomGrid class="">
+          <TrumsCustomLinkButton
+            v-if="canAccess('pricetag-create', data?.privilege ?? [])"
+            url="/supply-chain-management/offer/add"
+            @click="
+              () => {
+                const cookie = useCookie('tag_id');
+                cookie.value = null;
+              }
+            "
+            type="primary"
+            text="Buat Penawaran"
+          />
+          <TrumsCustomButton
+            :icon="Eleme"
+            :loading="loading"
+            :disabled="loading"
+            :text="'Refresh'"
+            type="default"
+            v-on:click="onReferesh"
+          />
+          <TrumsCustomButton
+            :loading="loading"
+            :disabled="loading"
+            :text="'Import'"
+            type="success"
+            v-on:click="openImportModal"
+          />
+          <el-popconfirm
+            width="220"
+            :icon="InfoFilled"
+            icon-color="#626AEF"
+            title="Apakah Anda Yakin Ingin Menghapus Data ini?"
+            @cancel="() => {}"
+          >
+            <template #reference>
+              <TrumsCustomButton
+                :loading="loading"
+                :disabled="idsSelected.length == 0"
+                :text="'Hapus'"
+                type="danger"
+                v-on:click="openImportModal"
+              />
+            </template>
+            <template #actions="{ confirm, cancel }">
+              <el-button size="small" @click="cancel">Batal</el-button>
+              <el-button type="danger" size="small" @click="deleteBulk">
+                Hapus
+              </el-button>
+            </template>
+          </el-popconfirm>
+        </TrumsCustomGrid>
+      </el-col>
+      <el-col :xs="24" :sm="12" :md="6"
         ><el-input
           v-model="request_search.keyword"
           size="default"
           placeholder="Type to search"
       /></el-col>
-      <NuxtLink
-        v-if="canAccess('pricetag-create', data?.privilege ?? [])"
-        href="/supply-chain-management/offer/add"
-        @click="
-          () => {
-            const cookie = useCookie('tag_id');
-            cookie.value = null;
-          }
-        "
-        class="el-button el-button--primary el-button--default"
-        >Buat Penawaran</NuxtLink
-      >
-      <el-button
-        size="default"
-        class="ml-3"
-        type="default"
-        :icon="Eleme"
-        :loading="loading"
-        @click="onReferesh"
-        >Reload</el-button
-      >
-      <el-button
-        size="default"
-        type="success"
-        class="ml-3"
-        @click="openImportModal"
-      >
-        Import Penawaran
-      </el-button>
-      <el-popconfirm
-        v-if="checkSelect()"
-        width="220"
-        :icon="InfoFilled"
-        icon-color="#626AEF"
-        title="Apakah Anda Yakin Ingin Menghapus Data ini?"
-        @cancel="() => {}"
-      >
-        <template #reference>
-          <el-button size="default" class="ml-3" type="danger"
-            >Delete</el-button
-          >
-        </template>
-        <template #actions="{ confirm, cancel }">
-          <el-button size="small" @click="cancel">Batal</el-button>
-          <el-button type="danger" size="small" @click="deleteBulk">
-            Hapus
-          </el-button>
-        </template>
-      </el-popconfirm>
     </el-row>
     <OfferTable
       ref="childRef"

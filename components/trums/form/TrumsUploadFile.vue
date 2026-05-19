@@ -1,7 +1,7 @@
 <template>
   <el-upload
     :file-list="internalFileList"
-    class="upload-demo"
+    class="upload-demo w-full"
     multiple
     :on-preview="handlePreview"
     :on-remove="handleRemove"
@@ -10,7 +10,7 @@
     :on-exceed="handleExceed"
     :auto-upload="false"
   >
-    <el-button type="primary">Upload File </el-button>
+    <el-button type="primary" class="w-full">Upload File </el-button>
   </el-upload>
 </template>
 
@@ -76,3 +76,8 @@ watch(
   { deep: true }
 );
 </script>
+<style scoped>
+:deep(.el-upload el-upload--text) {
+  width: 100% !important;
+}
+</style>

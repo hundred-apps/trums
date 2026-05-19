@@ -1,4 +1,4 @@
-import { PermissionType, type Permission } from "~/types/menu";
+import { ApprovalType, PermissionType, type Permission } from "~/types/menu";
 import type { RequestSearch } from "~/types/request_search";
 import type { BaseResponse } from "~/types/response";
 import type { ResponsePagination } from "~/types/response_pagination";
@@ -12,10 +12,16 @@ export function canAccess(
 
   if (found) {
     if (found.type == PermissionType.APPROVAL) {
-      if (found.approval_permission_pic?.findLast((app) => app.step == step)) {
-        return true;
+      if (found.approval_type == ApprovalType.SEQUENTIAL) {
+        if (
+          found.approval_permission_pic?.findLast((app) => app.step == step)
+        ) {
+          return true;
+        } else {
+          return false;
+        }
       } else {
-        return false;
+        return true;
       }
     } else {
       return true;

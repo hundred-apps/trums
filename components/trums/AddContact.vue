@@ -2,62 +2,75 @@
   <el-card class="my-3" shadow="never">
     <el-form
       ref="ruleFormRef"
-      style="max-width: 600px"
       :model="ruleForm"
       :rules="rules"
       label-width="auto"
-      class="demo-ruleForm"
+      class="demo-ruleForm max-w-full"
       :size="formSize"
       status-icon
       :disabled="loading"
     >
-      <el-form-item label="Name" prop="name">
-        <el-input v-model="ruleForm.name" placeholder="Nama" />
-      </el-form-item>
-      <el-form-item label="Email" prop="email">
-        <el-input v-model="ruleForm.email" placeholder="Email" />
-      </el-form-item>
-      <el-form-item label="Phone" prop="phone">
-        <el-input v-model="ruleForm.phone" placeholder="Phone" />
-      </el-form-item>
-      <el-form-item label="NPWP" prop="tax_id">
-        <el-input v-model="ruleForm.tax_id" placeholder="NPWP" />
-      </el-form-item>
-      <el-form-item label="Website" prop="website">
-        <el-input v-model="ruleForm.website" placeholder="Website" />
-      </el-form-item>
-      <el-form-item label="Title" prop="title">
-        <el-input v-model="ruleForm.title" placeholder="Title" />
-      </el-form-item>
-      <el-form-item label="Tipe">
-        <el-checkbox v-model="ruleForm.is_personal" label="Personal" border />
-        <el-checkbox v-model="ruleForm.is_company!" label="Perusahaan" border />
-      </el-form-item>
-      <el-form-item label="Ownership?">
-        <el-switch v-model="ruleForm.ownership" />
-      </el-form-item>
-      <el-form-item label="Tags" prop="tags">
-        <el-input-tag
-          v-model="ruleForm.tags"
-          :max="3"
-          clearable
-          placeholder="enter up to 3 tags"
-        />
-      </el-form-item>
-      <el-form-item label="Parent" prop="parent_name">
-        <el-autocomplete
-          v-model="ruleForm.parent_name!"
-          :fetch-suggestions="querySearchParent"
-          placeholder="Search Parent"
-          @select="onHandleSelectParent"
-        >
-          <template #default="{ item }">
-            <div>
-              {{ item.name }}
-            </div>
-          </template>
-        </el-autocomplete>
-      </el-form-item>
+      <div class="flex">
+        <el-form-item class="flex-1" label="Name" prop="name">
+          <el-input v-model="ruleForm.name" placeholder="Nama" />
+        </el-form-item>
+        <el-form-item class="flex-1" label="Email" prop="email">
+          <el-input v-model="ruleForm.email" placeholder="Email" />
+        </el-form-item>
+      </div>
+      <div class="flex">
+        <el-form-item class="flex-1" label="Phone" prop="phone">
+          <el-input v-model="ruleForm.phone" placeholder="Phone" />
+        </el-form-item>
+        <el-form-item class="flex-1" label="NPWP" prop="tax_id">
+          <el-input v-model="ruleForm.tax_id" placeholder="NPWP" />
+        </el-form-item>
+      </div>
+      <div class="flex">
+        <el-form-item class="flex-1" label="Website" prop="website">
+          <el-input v-model="ruleForm.website" placeholder="Website" />
+        </el-form-item>
+        <el-form-item class="flex-1" label="Title" prop="title">
+          <el-input v-model="ruleForm.title" placeholder="Title" />
+        </el-form-item>
+      </div>
+      <div class="flex">
+        <el-form-item class="flex-1" label="Tipe">
+          <el-checkbox v-model="ruleForm.is_personal" label="Personal" border />
+          <el-checkbox
+            v-model="ruleForm.is_company!"
+            label="Perusahaan"
+            border
+          />
+        </el-form-item>
+        <el-form-item class="flex-1" label="Ownership?">
+          <el-switch v-model="ruleForm.ownership" />
+        </el-form-item>
+      </div>
+      <div class="flex">
+        <el-form-item class="flex-1" label="Tags" prop="tags">
+          <el-input-tag
+            v-model="ruleForm.tags"
+            :max="3"
+            clearable
+            placeholder="enter up to 3 tags"
+          />
+        </el-form-item>
+        <el-form-item class="flex-1" label="Parent" prop="parent_name">
+          <el-autocomplete
+            v-model="ruleForm.parent_name!"
+            :fetch-suggestions="querySearchParent"
+            placeholder="Search Parent"
+            @select="onHandleSelectParent"
+          >
+            <template #default="{ item }">
+              <div>
+                {{ item.name }}
+              </div>
+            </template>
+          </el-autocomplete>
+        </el-form-item>
+      </div>
     </el-form>
   </el-card>
 

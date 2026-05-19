@@ -121,48 +121,7 @@ const ruleForm = reactive<Pricetag>({
   type: "in",
   note: "",
   subject: "",
-  pricetag_item: [
-    {
-      catalogue: {
-        id: null,
-        unique_id: null,
-        unique_code: null,
-        name: "",
-
-        brand_id: null,
-        brand_name: null,
-        year: null,
-        sn: null,
-        description: null,
-        berat: null,
-        volume: null,
-        length: null,
-        width: null,
-        height: null,
-        is_asset: null,
-        tmp_asset: null,
-        version: null,
-        type: "",
-        created_at: null,
-        created_by: null,
-        updated_at: null,
-        file_catalogues: [],
-      },
-      unique_id: null,
-      tag_id: null,
-      catalogue_id: "",
-      inventory_id: "",
-      inventory: null,
-      price: 0,
-      is_new: true,
-      unit_id: "",
-      unit_name: "",
-      unit_version: 0,
-      checked: false,
-      quantity: 1,
-      fileUploads: [],
-    },
-  ],
+  pricetag_item: [],
 
   location: {
     id: null,
@@ -1211,3 +1170,9 @@ onMounted(() => {
   }
 });
 </script>
+
+<style scoped>
+:deep(.cell) {
+  padding: 0px !important;
+}
+</style>

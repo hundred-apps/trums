@@ -708,7 +708,12 @@ const querySearchAdjustmentTransaction = ref<RequestSearch>({
 
 const adjustmentTransactions = await useFetchApi<
   ResponsePagination<AdjustmentTransaction[]>
->("/search", "search-adjustment", "post", querySearchAdjustmentTransaction);
+>(
+  "/search",
+  "search-adjustment",
+  "post",
+  querySearchAdjustmentTransaction.value
+);
 
 const adjustmentContact = computed(() => {
   const data = adjustmentTransactions.data.value?.data || [];
@@ -2911,7 +2916,7 @@ const fetchContact = async () => {
       `/search`,
       "contact-search",
       "post",
-      request_search_contact
+      request_search_contact.value
     );
 
     if (response.status.value === "success") {

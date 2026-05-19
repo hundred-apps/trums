@@ -132,7 +132,7 @@
     </el-form>
     <template #footer>
       <div class="flex">
-        <el-button @click="() => {}">Batal</el-button>
+        <el-button @click="resetFormAddress">Batal</el-button>
         <el-button
           type="primary"
           @click="() => submitFormAddress(ruleFormRefAddress)"

@@ -35,6 +35,7 @@ import { NuxtLink } from "#components";
 import type { BaseResponse } from "~/types/response";
 import { canAccess } from "#imports";
 import type { ColumnTable } from "~/types/ColumnTable";
+import CustomLinkButton from "~/components/trums/CustomLinkButton.vue";
 const column_selected = ref<string[]>([
   "selection",
   "unique_code",
@@ -486,33 +487,38 @@ watch(
 </script>
 <template>
   <el-row :gutter="20" class="mb-3">
-    <el-col :span="6"
+    <el-col :xs="24" :sm="12" :md="6">
+      <div class="flex">
+        <CustomLinkButton
+          :text="'Buat RFQ Baru'"
+          :url="'/sales/inquiry/add'"
+          :type="'primary'"
+        />
+        <TrumsCustomButton
+          :icon="Eleme"
+          type="default"
+          :disabled="loading"
+          :loading="loading"
+          @click="refreshTable"
+          text="Reload"
+        />
+
+        <TrumsCustomButton
+          type="danger"
+          :disabled="!hasSelected"
+          :loading="loading"
+          @click="bulkDelete"
+          text="Hapus"
+        />
+      </div>
+    </el-col>
+    <el-col :xs="24" :sm="12" :md="6"
       ><el-input
         v-model="request_search.keyword"
         size="default"
         placeholder="Type to search"
-    /></el-col>
-    <NuxtLink
-      v-if="canAccess('inquiries-create', data?.privilege ?? [])"
-      class="el-button el-button--default"
-      href="/sales/inquiry/add"
-      >Buat Inquiri</NuxtLink
-    >
-    <el-button
-      type="default"
-      :icon="Eleme"
-      :disabled="loading"
-      :loading="loading"
-      @click="refreshTable"
-      >Reload</el-button
-    >
-    <el-button
-      :disabled="!hasSelected"
-      @click="bulkDelete"
-      size="default"
-      type="danger"
-      >Hapus</el-button
-    >
+      />
+    </el-col>
   </el-row>
   <customTable
     @sort-change="onSort"

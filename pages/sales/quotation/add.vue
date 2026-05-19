@@ -530,9 +530,7 @@
           </el-table-column>
           <el-table-column label="Total Harga" width="200">
             <template #default="{ row }">
-              <span v-if="row.type == 'child'">{{
-                currency(row.total_price)
-              }}</span>
+              {{ currency(row.total_price) }}
             </template>
           </el-table-column>
         </el-table-column>
@@ -666,6 +664,11 @@
               {{ currency(row.total_selling_price) }}
             </template>
           </el-table-column>
+        </el-table-column>
+        <el-table-column label="Margin" width="150">
+          <template #default="{ row }">
+            {{ currency(calculateMarginNominal(row)) }}
+          </template>
         </el-table-column>
         <el-table-column label="Margin (%)" width="150">
           <template #default="{ row }">
@@ -937,7 +940,7 @@
       :total-data="inquiry?.total_data ?? 0"
       @select-request="addToForm"
       @pagination-change="paginationClick"
-    /> -->
+    /> -->\
 
     <ModalSearchItemExample
       v-model:visible="visibleModalSearchItemExample"
@@ -1312,6 +1315,25 @@ const handleSizeChangeItemRequest = (size: number) => {
 watch(
   () => request_search_item_request.value,
   () => item_request.refresh(),
+  { deep: true }
+);
+
+watch(
+  () => selectedRowsVendors.value,
+  () => {
+    (item_canvassing.value || []).forEach((element) => {
+      let total_price = 0;
+      element.children.forEach((child) => {
+        const find = selectedRowsVendors.value.find(
+          (value) => value.index === child.index
+        );
+        if (find) {
+          total_price += find.total_price;
+        }
+      });
+      element.total_price = total_price;
+    });
+  },
   { deep: true }
 );
 
@@ -2088,6 +2110,9 @@ const toggleExpand = (row: any) => {
 const calculateMargin = (row: CanvassingItemForm) => {
   return ((row.selling_price - row.unit_price) / row.unit_price) * 100;
 };
+const calculateMarginNominal = (row: CanvassingItemForm) => {
+  return (row.total_selling_price || 0) - Number(row.total_price);
+};
 
 const changeFeeUnitContacts = (row: CanvassingItemForm) => {
   row.contacts_fee.forEach((element) => {
@@ -2732,6 +2757,25 @@ const removePaymentTerm = async (data: TermOfPayment) => {
   } else {
     submitDeletePaymentTerm(data);
   }
+};
+
+const findTotalBuyPrice = (row: CanvassingItemForm) => {
+  let total = 0;
+  const exist = (item_canvassing.value || []).find(
+    (value) => row.index == value.index
+  );
+  if (exist) {
+    exist.children.forEach((element) => {
+      const isChecked = selectedRowsVendors.value.find(
+        (value) => value.index == element.index
+      );
+      if (isChecked) {
+        total += isChecked.total_price;
+      }
+    });
+  }
+
+  return total;
 };
 
 const addNewItem = () => {

@@ -95,50 +95,40 @@
           <span>Purchase Request Items</span>
         </div>
       </template>
-      <el-table :data="purchaseRequestData?.items_request_trail" border>
-        <el-table-column prop="item_request.catalogue_name" label="Item" />
+      <el-table
+        :data="purchaseRequestItem || []"
+        row-key="index"
+        :summary-method="getSummaries"
+        show-summary
+        border
+      >
+        <el-table-column prop="object_name" label="Item" />
         <el-table-column
-          prop="item_request.inquiry.unique_code"
+          prop="request_number"
           label="Nomor Permintaan"
-          width="300"
+          width="190"
         />
         <el-table-column
-          prop="item_request"
+          prop="quantity"
           label="Qty Diminta"
           align="right"
           width="120"
-        >
-          <template #default="scope">
-            {{ scope.row.item_request?.request_qty }}
-          </template>
-        </el-table-column>
-        <!-- <el-table-column
-          prop="request_purchase_quantity"
-          label="Qty"
-          align="right"
-          width="200"
-        >
-          <template #default="scope">
-            <el-input-number
-              :disabled="true"
-              v-model="scope.row.quantity"
-              :min="1"
-              v-if="scope.row.status === ItemRequestTrailStatus.WAITING"
-            />
-            <p v-else>
-              {{ scope.row.quantity }}
-            </p>
-          </template>
-        </el-table-column> -->
+        />
 
         <el-table-column
           prop="unit_name"
           label="UOM"
           align="center"
           width="100"
+        />
+        <el-table-column
+          prop="total_price"
+          label="Total Harga"
+          align="center"
+          width="150"
         >
-          <template #default="scope">
-            {{ scope.row.item_request?.unit_name }}
+          <template #default="{ row }">
+            {{ currencyWithoutSymbol(row.total_price || 0) }}
           </template>
         </el-table-column>
         <!-- <el-table-column
@@ -281,7 +271,7 @@ import {
   ArrowDown,
   Upload,
 } from "@element-plus/icons-vue";
-import type { FormProps } from "element-plus";
+import type { FormProps, TableColumnCtx } from "element-plus";
 import {
   ItemRequestTrailStatus,
   type ItemRequestTrail,
@@ -295,7 +285,7 @@ import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { BaseResponse } from "~/types/response";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { PurchaseOrderItem } from "~/types/scm/purchase_order";
-import { formatLocalDate, currency } from "#imports";
+import { formatLocalDate, currency, currencyWithoutSymbol } from "#imports";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -322,6 +312,7 @@ const svg = `
 
 const loading = ref(false);
 const purchaseRequestData = ref<PurchaseRequest | null>(null);
+const purchaseRequestItem = ref<PurchaseRequestItemView[]>([]);
 const notes = ref("");
 const relatedPurchaseOrders = ref<ResponsePagination<PurchaseOrderItem[]>>({
   currentPage: 0,
@@ -332,6 +323,132 @@ const relatedPurchaseOrders = ref<ResponsePagination<PurchaseOrderItem[]>>({
 });
 const statusHistory = ref<any[]>([]);
 const attachments = ref<any[]>([]);
+
+type PurchaseRequestItemView = {
+  index: string;
+  unique_id: string;
+  object_unique_id: string;
+  object_name: string;
+  request_number: string;
+  quantity: number;
+  total_price: number;
+  unit_name: string;
+  children: PurchaseRequestItemView[];
+};
+
+const request_search_item_request_trail = ref<RequestSearch>({
+  keyword: "",
+  table: "item_request_trail",
+  column: [
+    {
+      reference: ["pr"],
+      reference_id: [],
+    },
+  ],
+  sort: null,
+  offset: "1",
+  limit: "10",
+});
+
+const item_request_trials = await useAsyncData(
+  "fetch-item-request-trails",
+  async () => {
+    const res = await useFetchApi<ResponsePagination<ItemRequestTrail[]>>(
+      `/search`,
+      "fetch-item-request-trails",
+      "post",
+      request_search_item_request_trail.value
+    );
+    return res.data.value;
+  }
+);
+
+watch(
+  () => purchaseRequestData.value,
+  () => {
+    request_search_item_request_trail.value.column = [
+      {
+        reference: ["pr"],
+        reference_id: [purchaseRequestData.value?.unique_id],
+      },
+    ];
+  },
+  { immediate: true }
+);
+
+watch(
+  () => item_request_trials.data.value?.data,
+  () => {
+    purchaseRequestItem.value = [];
+    (item_request_trials.data.value?.data || []).forEach((element, index) => {
+      purchaseRequestItem.value.push({
+        index: `${index}`,
+        unique_id: element.unique_id,
+        object_unique_id: element.item_request?.unique_id || "",
+        object_name: element.item_request?.catalogue?.name || "",
+        request_number:
+          (element.data_reference as PurchaseRequest).unique_code || "",
+        quantity: element.quantity || 0,
+        total_price:
+          element.vendor?.reduce(
+            (acc, item) => acc + (item.total_price || 0),
+            0
+          ) || 0,
+        unit_name: element.item_request?.unit_name || "",
+        children: (element.vendor || []).map((vendor, vindex) => ({
+          index: `${index}-${vindex}`,
+          unique_id: vendor.unique_id || "",
+          object_name: vendor.vendor?.name || "",
+          object_unique_id: vendor.vendor?.unique_id || "",
+          request_number: "",
+          quantity: vendor.quantity || 0,
+          total_price: vendor.total_price || 0,
+          unit_name: vendor.unit_name ?? "",
+          children: [],
+        })),
+      });
+    });
+  },
+  { immediate: true }
+);
+
+watch(
+  () => request_search_item_request_trail.value,
+  () => item_request_trials.refresh(),
+  { deep: true }
+);
+
+interface SummaryMethodProps<T = PurchaseRequestItemView> {
+  columns: TableColumnCtx<T>[];
+  data: T[];
+}
+
+const getSummaries = (param: SummaryMethodProps) => {
+  const { columns, data } = param;
+  const sums: (string | VNode)[] = [];
+
+  columns.forEach((column, index) => {
+    if (index === 0) {
+      sums[index] = h("div", { style: { fontWeight: "bold" } }, ["Total"]);
+      return;
+    }
+
+    // HANYA total_price
+    if (column.property === "total_price") {
+      const total = data.reduce((prev, curr) => {
+        return prev + Number(curr.total_price || 0);
+      }, 0);
+
+      sums[index] = h("div", { style: { fontWeight: "bold" } }, [
+        currencyWithoutSymbol(total),
+      ]);
+    } else {
+      sums[index] = "";
+    }
+  });
+
+  return sums;
+};
 
 const purchase_request_order_related = ref<RequestSearch>({
   column: [],

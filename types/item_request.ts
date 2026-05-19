@@ -4,6 +4,7 @@ import type { Inquiry } from "./inquiry";
 import type { Inventory } from "./inventory";
 import type { People } from "./people";
 import type { AppFile } from "./file";
+import type { CanvassingVendor } from "./scm/canvasing";
 
 export enum ItemRequestTrailReference {
   BOOK = "inventory",
@@ -70,4 +71,5 @@ export type ItemRequestTrail = {
   created_by: string;
   updated_at: number;
   checked?: boolean;
+  vendor?: CanvassingVendor[];
 };

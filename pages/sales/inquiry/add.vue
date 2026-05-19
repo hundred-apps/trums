@@ -41,6 +41,7 @@ import {
 } from "element-plus";
 import type {
   Column,
+  FormProps,
   InputInstance,
   MainInstance,
   UploadFile,
@@ -87,6 +88,7 @@ import {
 } from "#imports";
 import AutocompleteContact from "~/components/trums/AutocompleteContact.vue";
 
+const { formSize, labelPosition } = useFormConfig();
 const fileList = ref<UploadUserFile[]>([]);
 
 const config = useRuntimeConfig();
@@ -131,7 +133,6 @@ const uploadAction = computed(
 
 const typeContactActive = ref<"to" | "pic">("to");
 
-const formSize = ref<ComponentSize>("default");
 const ruleFormRef = ref<FormInstance>();
 const contacts = ref<Pagination<Contact[]>>();
 const request_search = ref<RequestSearch>({
@@ -454,17 +455,6 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 const resetForm = (formEl: FormInstance | undefined) => {
   if (!formEl) return;
   formEl.resetFields();
-};
-
-const getContacts = async () => {
-  try {
-    const response = await axios.get("/contact-read");
-    if (response.status == 200) {
-      contacts.value = response.data.data;
-    }
-  } catch (error: any) {
-    console.log(`Gagal Mengambil Data Kontak ${error.response.data.message}`);
-  }
 };
 
 watch(
@@ -805,31 +795,39 @@ const querySearchUnit = (queryString: string, cb: (arg: any) => void) => {
   params.table = "units";
   params.column = [];
   params.flag = "form";
-  axios
-    .post("/search", params)
-    .then((response) => {
-      if (response.status == 200) {
-        const resultApi: Unit[] = response.data.data;
 
-        if (resultApi.length > 0) {
-          const callback = resultApi.map((value) => ({
-            ...value,
-            value: value.name,
-          }));
-          cb([
-            ...callback,
-            { value: queryString, label: `${queryString}`, isNew: true },
-          ]);
-        } else {
-          cb([
-            { value: `${queryString}`, label: `${queryString}`, isNew: true },
-          ]);
-        }
-      }
-    })
-    .catch((error: any) => {
-      ElMessage.error(error.response?.data?.message);
-    });
+  useFetchApi<ResponsePagination<Unit[]>>(
+    "/search",
+    "fetch-units",
+    "post",
+    params
+  ).then((response) => {
+    const resultApi: Unit[] = response.data.value?.data || [];
+
+    if (resultApi.length > 0) {
+      const callback = resultApi.map((value) => ({
+        ...value,
+        value: value.name,
+      }));
+      cb([
+        ...callback,
+        { value: queryString, label: `${queryString}`, isNew: true },
+      ]);
+    } else {
+      cb([{ value: `${queryString}`, label: `${queryString}`, isNew: true }]);
+    }
+  });
+
+  // axios
+  //   .post("/search", params)
+  //   .then((response) => {
+  //     if (response.status == 200) {
+
+  //     }
+  //   })
+  //   .catch((error: any) => {
+  //     ElMessage.error(error.response?.data?.message);
+  //   });
 };
 
 const onHandleSelectItemAutocomplete = async (
@@ -1365,7 +1363,6 @@ const handleSelectAddress = (record: Record<string, any>) => {
     ruleForm.address_view = "";
     addressStateForm.value = "new";
     dialogNewAddress.value = true;
-    console.log(addressStateForm.value);
   } else {
     // const address: AddressType = record as AddressType;
     ruleForm.address_id = record.address_id;
@@ -1381,9 +1378,7 @@ const onAddNewAddress = (addressType: AddressType) => {
   ruleForm.address_version = addressType.version || 1;
   address.value = addressType;
 
-  console.log("address value", addressType);
-
-  // dialogNewAddress.value = false;
+  dialogNewAddress.value = false;
 };
 
 const handleSubmit = async (catalogue: Catalogue) => {
@@ -1703,11 +1698,12 @@ const handleDeleteAddress = () => {
   <TrumsWrapper>
     <el-page-header @back="goBack">
       <template #content>
-        <span class="text-large font-600 mr-3"> Buat Inquiri Baru </span>
+        <span class="text-large font-600 mr-3"> Buat RFQ Baru </span>
       </template>
     </el-page-header>
     <el-card class="my-3">
       <el-form
+        :label-position="labelPosition"
         ref="ruleFormRef"
         :model="ruleForm"
         style="max-width: 600px"
@@ -2075,5 +2071,9 @@ const handleDeleteAddress = () => {
 :deep(.image-preview-container) {
   width: 50px !important;
   height: 50px !important;
+}
+
+:deep(.el-form-item) {
+  margin-bottom: 18px;
 }
 </style>
