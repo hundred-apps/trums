@@ -1,8 +1,9 @@
 name: Deploy Nuxt 3
 
+
 on:
   push:
-    branches: ["konsinyasi"]
+    branches: ["konsinyasi", "main"]
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
