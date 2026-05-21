@@ -50,7 +50,12 @@
         </template>
         <div class="flex gap-3 my-3">
           <div class="flex-1">
-            <el-descriptions title="" :column="1" size="small" border>
+            <el-descriptions
+              title=""
+              :column="1"
+              size="small"
+              :border="isMobile ? false : true"
+            >
               <el-descriptions-item label="Prioritas Permintaan">{{
                 inquiryData?.priority.toUpperCase()
               }}</el-descriptions-item>
@@ -61,7 +66,12 @@
             </el-descriptions>
           </div>
           <div class="flex-1">
-            <el-descriptions title="" :column="1" size="small" border>
+            <el-descriptions
+              title=""
+              :column="1"
+              size="small"
+              :border="isMobile ? false : true"
+            >
               <el-descriptions-item label="Diminta Oleh"
                 >{{ inquiryData?.request_to?.name ?? "-" }}
               </el-descriptions-item>
@@ -246,6 +256,7 @@ import type { AddressType } from "~/types/address";
 import { formatLocalDate } from "#imports";
 import ItemImageUpload from "./ItemImageUpload.vue";
 import { getFirstFileUrl } from "#imports";
+const { isMobile } = useDevice();
 
 const config = useRuntimeConfig();
 const imageUrl = config.public.baseImageURL;

@@ -1,12 +1,6 @@
 <template>
   <TrumsWrapper>
-    <el-page-header @back="goBack" v-if="!pending">
-      <template #content>
-        <span class="text-large font-600 mr-3">
-          Detail - {{ data?.data?.unique_code }}
-        </span>
-      </template>
-    </el-page-header>
+    <el-page-header @back="goBack" v-if="!pending" />
     <OfferDetail
       :data-interface="{
         code: 200,

@@ -132,6 +132,8 @@
 import { Delete, Edit, Plus } from "@element-plus/icons-vue";
 import type { Contact } from "~/types/contact";
 import type { BaseResponse } from "~/types/response";
+import type { ResponsePagination } from "~/types/response_pagination";
+import type { PurchaseOrder } from "~/types/scm/purchase_order";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -168,7 +170,7 @@ const fetchContact = async () => {
       null
     );
     if (response.status.value === "success") {
-      contactData.value = response.data.value!.data;
+      contactData.value = response.data.value!.data!;
     }
   } catch (error) {
     ElMessage.error("Gagal memuat data kontak");

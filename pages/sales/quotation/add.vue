@@ -642,15 +642,16 @@
                   v-model="row.selling_price"
                   :min="0"
                   @change="
-                    (value) => {
+  (value) => {
+                    
                       (row as CanvassingItemForm).children?.forEach((child: CanvassingItemForm) => {
                         if (child.type_item == 'original') {
-                        child.selling_price = value || 0;
+                          child.selling_price = value || 0;
 
-                        child.total_selling_price =
-                          (child.quantity || 0) * (child.selling_price || 0);
+                          child.total_selling_price =
+                            (child.quantity || 0) * (child.selling_price || 0);
 
-                        calculatePricing(child, 'selling_price');  
+                          calculatePricing(child, 'selling_price');  
                         }
                       });
                       calculatePricing(row, 'selling_price');
@@ -1328,16 +1329,21 @@ watch(
     (item_canvassing.value || []).forEach((element) => {
       let total_price = 0;
 
-      element.children.forEach((child) => {
-        if (child.type_item == "original") {
-          const find = selectedRowsVendors.value.find(
-            (value) => value.index === child.index
-          );
-          if (find) {
-            total_price += find.total_price;
+      if (element.children.length == 1) {
+        total_price += element.children[0].total_price;
+      } else {
+        element.children.forEach((child) => {
+          if (child.type_item == "original") {
+            const find = selectedRowsVendors.value.find(
+              (value) => value.index === child.index
+            );
+            if (find) {
+              total_price += find.total_price;
+            }
           }
-        }
-      });
+        });
+      }
+
       element.total_price = total_price;
     });
   },
@@ -1636,13 +1642,20 @@ const totalBuyingPriceMin = computed(() => {
 });
 
 const grandTotal = computed(() => {
-  return item_canvassing.value.reduce((acc, row: CanvassingItemForm) => {
-    if (row.type === "parent") {
-      acc += Number(row.total_selling_price || 0);
-    }
+  let total = 0;
 
-    return acc;
-  }, 0);
+  (item_canvassing.value || []).forEach((element) => {
+    if (element.children.length > 1) {
+      total += element.total_selling_price || 0;
+      total += element.children
+        .filter((cv) => cv.type_item === "equivalent")
+        .reduce((acc, sum) => acc + (sum.total_selling_price || 0), 0);
+    } else if (element.children.length === 1) {
+      total += element.children[0].total_selling_price || 0;
+    }
+  });
+
+  return total;
 });
 
 const finalTotal = computed(() => {
@@ -2262,7 +2275,6 @@ function calculatePricing(
   row: CanvassingItemForm,
   activeField: "profit" | "selling_price"
 ) {
-  console.log("row selling price", row.selling_price);
   const hargaBeli = Number(row.unit_price || 0);
   if (hargaBeli <= 0) return;
 
@@ -2314,11 +2326,6 @@ function calculatePricing(
 
   row.total_selling_price = Number(row.quantity) * Number(row.selling_price);
 
-  console.log("type", row.type);
-  console.log("quantity", row.quantity);
-  console.log("selling price", row.selling_price);
-  console.log("total selling price", row.total_selling_price);
-
   // ==============================
   // MODE 2: SELLING PRICE DIINPUT → HITUNG PROFIT
   // ==============================
@@ -2352,10 +2359,17 @@ function calculatePricing(
 
   const parent = item_canvassing.value[row.parent_index || 0];
 
-  if (row.type_item == "original") {
-    if (parent.tmp_child_selected == row.index) {
-      parent.selling_price = row.selling_price;
-      parent.total_selling_price = row.total_selling_price;
+  console.log("calculate pricing");
+
+  if (parent.children.length === 1) {
+    parent.selling_price = row.selling_price;
+    parent.total_selling_price = row.total_selling_price;
+  } else {
+    if (row.type_item == "original") {
+      if (parent.tmp_child_selected == row.index) {
+        parent.selling_price = row.selling_price;
+        parent.total_selling_price = row.total_selling_price;
+      }
     }
   }
 }
@@ -3849,8 +3863,6 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
       (value) => value.type_item === "equivalent"
     );
 
-    console.log("canvassing item", item_canvassing.value);
-
     // item_canvassing.value = item_canvassing.value.filter(
     //   (value) => value.type_item !== "equivalent"
     // );
@@ -3875,6 +3887,14 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
     });
 
     item_canvassing.value.forEach((element) => setProfit(element));
+
+    item_canvassing.value.forEach((element) => {
+      element.children.forEach((child) => {
+        if (child.status == CanvassingVendorStatus.SELECTED) {
+          handleCheck(true, child);
+        }
+      });
+    });
   }
 
   item_canvassing.value.forEach((element) => {
@@ -4500,18 +4520,20 @@ watch(
       value.name?.toLowerCase().includes("ongkos kirim")
     );
 
-    adjustmentTransactionOngkirTotal.value = {
-      unique_id: "",
-      reference: ReferenceAdjustment.CANVASSING,
-      reference_id: "",
-      adjustment_id: `${trxOngkir?.unique_id}`,
-      adjustment: trxOngkir,
-      value: null,
-      type: FeeType.AMOUNT,
-      amount: 0,
-      created_at: 0,
-      changeType: false,
-    };
+    if (!adjustmentTransactionOngkirTotal.value.adjustment_id) {
+      adjustmentTransactionOngkirTotal.value = {
+        unique_id: "",
+        reference: ReferenceAdjustment.CANVASSING,
+        reference_id: "",
+        adjustment_id: `${trxOngkir?.unique_id}`,
+        adjustment: trxOngkir,
+        value: null,
+        type: FeeType.AMOUNT,
+        amount: 0,
+        created_at: 0,
+        changeType: false,
+      };
+    }
   },
   {
     deep: true,
@@ -4662,16 +4684,7 @@ const summeryData = computed(() => {
 });
 
 const calculateSummaryaData = () => {
-  const grandTotalValue = item_canvassing.value.reduce(
-    (acc, row: CanvassingItemForm) => {
-      if (row.type === "parent") {
-        acc += Number(row.total_selling_price || 0);
-      }
-
-      return acc;
-    },
-    0
-  );
+  const grandTotalValue = grandTotal.value;
 
   const grossProfit = Number(grandTotalValue) - Number(totalBuyingPrice.value);
 

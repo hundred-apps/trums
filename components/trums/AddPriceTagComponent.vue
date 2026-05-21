@@ -141,8 +141,8 @@
             <el-date-picker
               v-model="ruleForm.start_date"
               type="date"
-              aria-label="Pilih Tanggal"
-              placeholder="Pilih Tanggal"
+              aria-label="Tanggal Berlaku"
+              placeholder="Tanggal Berlaku"
               style="width: 100%"
             />
           </el-form-item>
@@ -150,8 +150,8 @@
             <el-date-picker
               v-model="ruleForm.end_date"
               type="date"
-              aria-label="Pilih Tanggal"
-              placeholder="Pilih Tanggal"
+              aria-label="Tanggal Berakhir"
+              placeholder="Tanggal Berakhir"
               style="width: 100%"
             />
           </el-form-item>
@@ -236,7 +236,9 @@
             </el-button>
           </div>
         </el-form> -->
-
+        <template #header>
+          <div class="card-header">Item</div>
+        </template>
         <el-table :data="ruleForm.pricetag_item" :size="'small'">
           <!-- <el-table-column prop="fileUploads" label="image" width="75">
             <template #default="scope">
@@ -250,7 +252,7 @@
           </el-table-column> -->
           <el-table-column
             prop="item_name"
-            label="item"
+            label="Nama Barang"
             class="my-0"
             width="160"
             fixed="left"
@@ -446,7 +448,6 @@
         @update:term-of-payments="onUpdatePaymentTerms"
         :data="termOfPayments"
         type="input"
-        v-if="!loadingGetEditData && !loading"
       />
 
       <el-card class="mb-3" shadow="never">
@@ -625,13 +626,14 @@
         ref="ruleFormRefDialogItem"
         :model="ruleFormDialogAddItem"
         :rules="rulesDialogItem"
+        :label-position="labelPositionDialogItem"
         label-width="auto"
         class="demo-ruleForm"
         :size="formSize"
         status-icon
         :disabled="loading"
       >
-        <el-form-item prop="item_name" label="">
+        <el-form-item prop="item_name" label="" class="form-dialog">
           <div class="flex items-center gap-3 w-full">
             <el-autocomplete
               :disabled="loading"
@@ -681,27 +683,7 @@
             </el-autocomplete>
           </div>
         </el-form-item>
-        <div class="flex gap-2">
-          <el-form-item label="" prop="quantity" class="w-full">
-            <el-input
-              v-model="ruleFormDialogAddItem.quantity"
-              placeholder="QTY"
-              class="w-full"
-            />
-          </el-form-item>
-          <el-form-item prop="unit_name" label="">
-            <div class="flex items-center gap-3 w-full">
-              <el-autocomplete
-                :fetch-suggestions="querySearchUnit"
-                v-model="ruleFormDialogAddItem.unit_name!"
-                placeholder="Unit"
-                class="w-full"
-                @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteModalUnit(item)"
-              />
-            </div>
-          </el-form-item>
-        </div>
-        <el-form-item prop="displayPrice" :label="``">
+        <el-form-item prop="price" :label="`Harga Satuan`" class="form-dialog">
           <el-form-item
             label=""
             :prop="`ruleFormDialogAddItem.price`"
@@ -715,11 +697,67 @@
               placeholder="Harga"
               :formatter="(value: any) => `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
               :parser="(value: any) => value.replace(/\Rp\s?|(,*)/g, '')"
+              @input="
+                (value) => {
+                  ruleFormDialogAddItem.total_price =
+                    Number(value) * ruleFormDialogAddItem.quantity;
+                }
+              "
+            />
+          </el-form-item>
+        </el-form-item>
+        <div class="flex gap-2">
+          <el-form-item label="QTY" prop="quantity" class="w-full form-dialog">
+            <el-input
+              v-model="ruleFormDialogAddItem.quantity"
+              placeholder="QTY"
+              class="w-full"
+              type="number"
+              @input="
+                (value) => {
+                  ruleFormDialogAddItem.total_price =
+                    Number(ruleFormDialogAddItem.price) * Number(value);
+                }
+              "
+            />
+          </el-form-item>
+          <el-form-item prop="unit_name" label="UoM" class="form-dialog">
+            <div class="flex items-center gap-3 w-full">
+              <el-autocomplete
+                :fetch-suggestions="querySearchUnit"
+                v-model="ruleFormDialogAddItem.unit_name!"
+                placeholder="Unit"
+                class="w-full"
+                @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteModalUnit(item)"
+              />
+            </div>
+          </el-form-item>
+        </div>
+        <el-form-item prop="total_price" :label="`Total`" class="form-dialog">
+          <el-form-item
+            label=""
+            :prop="`ruleFormDialogAddItem.total_price`"
+            class="mb-0 w-full"
+            style="margin-bottom: 0px !important"
+            :disabled="true"
+          >
+            <el-input
+              v-model="ruleFormDialogAddItem.total_price"
+              class="mb-0"
+              inputmode="decimal"
+              placeholder="Harga"
+              :formatter="(value: any) => `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
+              :parser="(value: any) => value.replace(/\Rp\s?|(,*)/g, '')"
             />
           </el-form-item>
         </el-form-item>
 
-        <el-form-item label="" prop="note">
+        <el-form-item
+          label=""
+          prop="note"
+          class="form-dialog"
+          style="margin-top: 18px"
+        >
           <el-input
             v-model="ruleFormDialogAddItem.note"
             type="textarea"
@@ -729,9 +767,34 @@
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="dialogAddItem = false">Cancel</el-button>
+          <el-popconfirm
+            width="220"
+            :icon="InfoFilled"
+            icon-color="#626AEF"
+            title="Are you sure to delete this?"
+            @cancel="() => {}"
+          >
+            <template #reference>
+              <el-button type="danger">Hapus</el-button>
+            </template>
+            <template #actions="{ confirm, cancel }">
+              <el-button size="small" @click="cancel">No!</el-button>
+              <el-button
+                type="danger"
+                size="small"
+                @click="
+                  () => {
+                    const find = ruleForm.pricetag_item[itemActive];
+                    onDeleteList(find);
+                  }
+                "
+              >
+                Yes?
+              </el-button>
+            </template>
+          </el-popconfirm>
           <el-button type="primary" @click="submitItemModal">
-            Tambahkan
+            Simpan
           </el-button>
         </div>
       </template>
@@ -754,6 +817,7 @@ import {
   type Column,
   type ComponentSize,
   type FormInstance,
+  type FormProps,
   type FormRules,
   type SortBy,
   type UploadUserFile,
@@ -957,6 +1021,8 @@ const ruleFormDialogAddItem = reactive<Pricetag_item>({
   checked: false,
   quantity: 1,
   fileUploads: [],
+  total_price: 0,
+  display_total_price: formatCurrencyID(0),
 });
 
 const tmpCatalogue = ref<Catalogue | null>(null);
@@ -1135,6 +1201,8 @@ const rules = reactive<FormRules>({
     trigger: "change",
   },
 });
+
+const labelPositionDialogItem = ref<FormProps["labelPosition"]>("top");
 const rulesDialogItem = reactive<FormRules<Pricelist_item>>({
   item_name: [
     {
@@ -1743,12 +1811,16 @@ const detailItem = (item: Pricetag_item, index: number) => {
   ruleFormDialogAddItem.checked = item.checked;
   ruleFormDialogAddItem.quantity = item.quantity;
   ruleFormDialogAddItem.fileUploads = item.fileUploads;
+  ruleFormDialogAddItem.total_price = item.price * item.quantity;
 
   dialogAddItem.value = true;
 };
 
 const addNewItem = () => {
   ruleFormRefDialogItem.value?.resetFields();
+  ruleFormDialogAddItem.price = 0;
+  ruleFormDialogAddItem.total_price = 0;
+  ruleFormDialogAddItem.quantity = 1;
   dialogAddItem.value = true;
 };
 
@@ -2432,6 +2504,7 @@ const onDeleteList = (data: any) => {
   } else {
     ruleForm.pricetag_item.splice(data.$index, 1);
   }
+  itemActive.value = -1;
 };
 
 const onSort = (sortBy: SortBy) => {
@@ -2907,5 +2980,10 @@ const initialSetting = () => {
 }
 :deep(.el-form-item--default) {
   margin-bottom: 6px !important;
+}
+
+:deep(.form-dialog .el-form-item__label) {
+  font-size: 10px;
+  margin-bottom: 0px;
 }
 </style>

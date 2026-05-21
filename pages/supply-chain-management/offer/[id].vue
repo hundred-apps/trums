@@ -2,7 +2,7 @@
   <TrumsWrapper>
     <el-page-header @back="goBack">
       <template #content>
-        <span class="text-large font-600 mr-3">
+        <span class="text-sm font-600 mr-3">
           Detail - {{ data?.data?.unique_code ?? "N/A" }}
         </span>
       </template>

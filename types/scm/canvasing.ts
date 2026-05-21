@@ -137,7 +137,7 @@ export type CanvassingItem = {
 
 export type CanvassingVendor = {
   unique_id: string | null;
-  type_item: "request" | "quotation" | "equivalent";
+  type_item: "request" | "quotation" | "equivalent" | "original";
   equivalent_id: string | null;
   canvassing_item_id: string;
   canvassing_item?: CanvassingItem;

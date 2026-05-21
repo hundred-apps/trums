@@ -226,7 +226,7 @@
             >
           </template>
         </el-table-column>
-        <!-- 
+
         <el-table-column
           prop="type_item"
           label="Item Type"
@@ -234,9 +234,7 @@
           fixed="left"
         >
           <template #default="{ row }">
-            <div v-if="row.type === 'parent'">
-              {{ row.type_item == "request" ? "Permintaan" : "Equivalent" }}
-            </div>
+            <div v-if="row.type === 'parent'">{{}}</div>
             <div v-else>
               {{
                 row.type_item == "original"
@@ -248,12 +246,6 @@
             </div>
           </template>
         </el-table-column>
-
-        <el-table-column prop="sn" label="SN/PN" width="150">
-          <template #default="{ row }">
-            {{ row.sn ?? "N/A" }}
-          </template>
-        </el-table-column> -->
         <el-table-column prop="qty" label="Qty" width="78">
           <template #default="{ row }">
             {{ row.quantity }}
@@ -1904,13 +1896,20 @@ const handleProfitUnitChange = (row: CanvassingItemForm) => {
 };
 
 const grandTotal = computed(() => {
-  return item_canvassing.value.reduce((acc, row: CanvassingItemForm) => {
-    if (row.type === "parent") {
-      acc += Number(row.total_selling_price || 0);
-    }
+  let total = 0;
 
-    return acc;
-  }, 0);
+  (item_canvassing.value || []).forEach((element) => {
+    if (element.children.length > 1) {
+      total += element.total_selling_price || 0;
+      total += element.children
+        .filter((cv) => cv.type_item === "equivalent")
+        .reduce((acc, sum) => acc + (sum.total_selling_price || 0), 0);
+    } else if (element.children.length === 1) {
+      total += element.children[0].total_selling_price || 0;
+    }
+  });
+
+  return total;
 });
 
 const totalBuyingPrice = computed(() => {
@@ -2022,7 +2021,7 @@ const getAnotherFee = computed(() => {
 });
 
 const grossProfit = computed(() => {
-  return Number(grandTotal.value) - Number(totalBuyingPrice.value);
+  return Number(grandTotal.value) - Number(subtotalBuyPrice.value);
 });
 
 const grossProfitSelected = computed(() => {
@@ -2092,7 +2091,7 @@ const totalForGrossProfitForBuying = computed(() => {
   if (getAnotherFee.value) {
     getAnotherFee.value.forEach((element) => {
       if (element.type === FeeType.PERCENT) {
-        gross -= (element.amount / totalBuyingPrice.value) * 100;
+        gross -= (element.amount / subtotalBuyPrice.value) * 100;
       } else {
         gross -= element.amount;
       }
@@ -2170,7 +2169,7 @@ const summeryData = computed(() => {
     },
     {
       label: "Total Harga Beli",
-      max: currency(totalBuyingPrice.value),
+      max: currency(subtotalBuyPrice.value),
       beli: "",
       jual: "",
       min: currency(totalBuyingPriceMin.value),
@@ -2241,9 +2240,6 @@ const summeryData = computed(() => {
   }
 
   references.value.forEach((element) => {
-    console.log("reference", element);
-    console.log("reference value", displayAmount(element, grandTotal.value));
-
     tableData.push({
       label: element.adjustments_transaction?.name
         ? element.adjustments_transaction?.name
@@ -2280,54 +2276,10 @@ const summeryData = computed(() => {
     });
   });
 
-  // if (
-  //   adjustmentTransactionFeeTotal.value.adjustment &&
-  //   adjustmentTransactionFeeTotal.value.adjustments_transaction
-  // ) {
-  //   tableData.push({
-  //     label: adjustmentTransactionFeeTotal.value?.adjustments_transaction?.name,
-  //     max: currency(
-  //       displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value)
-  //     ),
-  //     beli: `${safePercent(
-  //       displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
-  //       totalBuyingPrice.value
-  //     )} %`,
-  //     jual: `${safePercent(
-  //       displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
-  //       grandTotal.value
-  //     )} %`,
-  //     min: currency(
-  //       displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value)
-  //     ),
-  //     beliMin: `${safePercent(
-  //       displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
-  //       totalBuyingPriceMin.value
-  //     )} %`,
-  //     jualMin: `${safePercent(
-  //       displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
-  //       grandTotal.value
-  //     )} %`,
-  //     selected: currency(
-  //       displayAmount(
-  //         adjustmentTransactionFeeTotal.value,
-  //         grossProfitSelected.value
-  //       )
-  //     ),
-  //     selectedBeli: `${safePercent(
-  //       displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
-  //       totalBuyingPriceSelected.value
-  //     )} %`,
-  //     selectedJual: `${safePercent(
-  //       displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
-  //       grandTotal.value
-  //     )} %`,
-  //   });
-  // }
   tableData.push({
     label: "Net Profit",
     max: currency(netProfitForBuying.value),
-    beli: `${safePercent(netProfitForBuying.value, totalBuyingPrice.value)} %`,
+    beli: `${safePercent(netProfitForBuying.value, subtotalBuyPrice.value)} %`,
     jual: `${safePercent(netProfitForBuying.value, grandTotal.value)} %`,
     min: currency(netProfitForBuyingMin.value),
     beliMin: `${safePercent(
@@ -2356,7 +2308,7 @@ const tableRowClassName = ({
   row: CanvassingItemForm;
   rowIndex: number;
 }) => {
-  if (row.type_item != "request" && row.type_item != "equivalent") {
+  if (row.type_item != "request") {
     if (row.status === CanvassingVendorStatus.SELECTED) {
       return "success-row";
     }
@@ -2534,120 +2486,112 @@ const initialCanvassing = (data: Canvassing) => {
   });
 
   (canvassingData.value.canvassing_item ?? []).forEach((element) => {
-    if (element.type_item !== "equivalent") {
-      item_canvassing.value.push({
-        index: `${element.unique_id}`,
-        canvassing_id: element.canvassing_id,
-        canvaasing_version: element.canvaasing_version,
-        item_request_trail_version: element.item_request_trail_version,
-        item_request_trail_id: element.item_request_trail_id,
-        unique_id: element.unique_id,
-        vendor_id: null,
-        vendor_name: "",
-        unit_id: element.unit_id,
-        unit_name: element.unit_name,
-        unit_version: null,
-        offer_item_id: null,
-        offer_item_version: 0,
-        catalogue_id: element.catalogue_id ?? "",
-        parent_catalogue_id: "",
-        catalogue_name: element.catalogue_name ?? "",
-        sn: element.catalogue?.sn ?? "N/A",
-        quantity: element.quantity ?? 1,
-        unit_price: 0,
-        total_price: element.canvassing_vendor.reduce((sum, item) => {
-          if (item.status === CanvassingVendorStatus.SELECTED) {
-            return sum + item.total_price;
-          }
-
-          return sum;
-        }, 0),
-        total_selling_price: element.total_selling_price ?? 0,
-        status: CanvassingVendorStatus.SUBMITTED,
-        taxes: [],
-        editing: null,
-        type: "parent",
-        type_item: element.type_item,
-        equivalent_id: element.equivalent_id,
-        children: element.canvassing_vendor.map((child) => {
-          return {
-            type_item: child.type_item,
-            equivalent_id: child.equivalent_id,
-            index: `${child.unique_id}`,
-            canvassing_id: null,
-            canvaasing_version: null,
-            item_request_trail_version: null,
-            item_request_trail_id: null,
-            unique_id: child.unique_id,
-            vendor_id: child.vendor_id ?? "",
-            vendor_name: child.vendor?.name ?? "",
-            unit_id: child.unit_id,
-            unit_name: child.unit_name,
-            unit_version: null,
-            offer_item_id: null,
-            offer_item_version: 0,
-            catalogue_id: child.catalogue_id ?? "",
-            parent_catalogue_id: child.catalogue_id,
-            catalogue_name: child.catalogue?.name ?? "",
-            sn: child.catalogue?.sn ?? "",
-            quantity: child.quantity,
-            unit_price: child.unit_price,
-            total_price: child.total_price,
-            total_selling_price: child.total_selling_price ?? 0,
-            status: child.status,
-            checked:
-              child.status == CanvassingVendorStatus.SUBMITTED ? true : false,
-            taxes: [],
-            editing: null,
-            type: "child" as "parent" | "child",
-            children: [],
-            selling_price: child.selling_price ?? 0,
-            profit:
-              child.profit_unit == "percent"
-                ? child.profit
-                : nominalToPercent(child.profit, child.unit_price),
-            profit_unit: child.profit_unit,
-            profit_nominal:
-              child.profit_unit == "percent"
-                ? percentToNominal(child.profit, child.unit_price || 0)
-                : child.profit,
-            fee:
-              child.fee_unit == "percent"
-                ? child.fee
-                : nominalToPercent(child.fee, child.unit_price),
-            fee_unit: child.fee_unit,
-            fee_nominal:
-              child.fee_unit == "percent"
-                ? percentToNominal(child.fee, child.unit_price || 0)
-                : child.fee,
-            ongkir:
-              child.ongkir_unit == "percent"
-                ? child.ongkir
-                : nominalToPercent(child.ongkir, child.unit_price),
-            ongkir_unit: child.ongkir_unit,
-            ongkir_nominal:
-              child.ongkir_unit == "percent"
-                ? percentToNominal(child.ongkir, child.unit_price || 0)
-                : child.ongkir,
-            pricetag_item_id: child.pricetag_item_id ?? "",
-            pricetag_item_version: child.pricetag_item_version ?? 0,
-            contacts_fee: (child.reference_transaction ?? []).filter(
-              (value) => value.party_type == PartyType.CONTACT
-            ),
-          };
-        }),
-        selling_price: element.unit_selling_price,
-        profit: 0,
-        profit_unit: "percent",
-        fee: 0,
-        fee_unit: "percent",
-        ongkir: 0,
-        ongkir_unit: "percent",
-        pricetag_item_id: "",
-        pricetag_item_version: 0,
-        contacts_fee: [],
-      });
-    }
+    item_canvassing.value.push({
+      index: `${element.unique_id}`,
+      canvassing_id: element.canvassing_id,
+      canvaasing_version: element.canvaasing_version,
+      item_request_trail_version: element.item_request_trail_version,
+      item_request_trail_id: element.item_request_trail_id,
+      unique_id: element.unique_id,
+      vendor_id: null,
+      vendor_name: "",
+      unit_id: element.unit_id,
+      unit_name: element.unit_name,
+      unit_version: null,
+      offer_item_id: null,
+      offer_item_version: 0,
+      catalogue_id: element.catalogue_id ?? "",
+      parent_catalogue_id: "",
+      catalogue_name: element.catalogue_name ?? "",
+      sn: element.catalogue?.sn ?? "N/A",
+      quantity: element.quantity ?? 1,
+      unit_price: 0,
+      total_price: sumTotalBuyingPrice(element.canvassing_vendor),
+      total_selling_price: element.total_selling_price ?? 0,
+      status: CanvassingVendorStatus.SUBMITTED,
+      taxes: [],
+      editing: null,
+      type: "parent",
+      type_item: element.type_item,
+      equivalent_id: element.equivalent_id,
+      children: element.canvassing_vendor.map((child) => {
+        return {
+          type_item: child.type_item,
+          equivalent_id: child.equivalent_id,
+          index: `${child.unique_id}`,
+          canvassing_id: null,
+          canvaasing_version: null,
+          item_request_trail_version: null,
+          item_request_trail_id: null,
+          unique_id: child.unique_id,
+          vendor_id: child.vendor_id ?? "",
+          vendor_name: child.vendor?.name ?? "",
+          unit_id: child.unit_id,
+          unit_name: child.unit_name,
+          unit_version: null,
+          offer_item_id: null,
+          offer_item_version: 0,
+          catalogue_id: child.catalogue_id ?? "",
+          parent_catalogue_id: child.catalogue_id,
+          catalogue_name: child.catalogue?.name ?? "",
+          sn: child.catalogue?.sn ?? "",
+          quantity: child.quantity,
+          unit_price: child.unit_price,
+          total_price: child.total_price,
+          total_selling_price: child.total_selling_price ?? 0,
+          status: child.status,
+          checked:
+            child.status == CanvassingVendorStatus.SUBMITTED ? true : false,
+          taxes: [],
+          editing: null,
+          type: "child" as "parent" | "child",
+          children: [],
+          selling_price: child.selling_price ?? 0,
+          profit:
+            child.profit_unit == "percent"
+              ? child.profit
+              : nominalToPercent(child.profit, child.unit_price),
+          profit_unit: child.profit_unit,
+          profit_nominal:
+            child.profit_unit == "percent"
+              ? percentToNominal(child.profit, child.unit_price || 0)
+              : child.profit,
+          fee:
+            child.fee_unit == "percent"
+              ? child.fee
+              : nominalToPercent(child.fee, child.unit_price),
+          fee_unit: child.fee_unit,
+          fee_nominal:
+            child.fee_unit == "percent"
+              ? percentToNominal(child.fee, child.unit_price || 0)
+              : child.fee,
+          ongkir:
+            child.ongkir_unit == "percent"
+              ? child.ongkir
+              : nominalToPercent(child.ongkir, child.unit_price),
+          ongkir_unit: child.ongkir_unit,
+          ongkir_nominal:
+            child.ongkir_unit == "percent"
+              ? percentToNominal(child.ongkir, child.unit_price || 0)
+              : child.ongkir,
+          pricetag_item_id: child.pricetag_item_id ?? "",
+          pricetag_item_version: child.pricetag_item_version ?? 0,
+          contacts_fee: (child.reference_transaction ?? []).filter(
+            (value) => value.party_type == PartyType.CONTACT
+          ),
+        };
+      }),
+      selling_price: element.unit_selling_price,
+      profit: 0,
+      profit_unit: "percent",
+      fee: 0,
+      fee_unit: "percent",
+      ongkir: 0,
+      ongkir_unit: "percent",
+      pricetag_item_id: "",
+      pricetag_item_version: 0,
+      contacts_fee: [],
+    });
   });
 
   const equivalent: CanvassingItemForm[] = [];
@@ -2787,6 +2731,22 @@ const initialCanvassing = (data: Canvassing) => {
   // });
 
   fetchPriceTagWithItems();
+};
+
+const sumTotalBuyingPrice = (children: CanvassingVendor[]) => {
+  let total = 0;
+  if (children.length === 1) {
+    total += children[0].total_price;
+  } else {
+    children.forEach((element) => {
+      console.log("type item sum total", element.type_item);
+      if (element.type_item === "original") {
+        total += element.total_price;
+      }
+    });
+  }
+
+  return total;
 };
 
 // interface SummaryMethodProps<T = CanvassingItemForm> {
@@ -4157,120 +4117,286 @@ const generateSCMMemo = async () => {
     84
   );
 
-  const totalBuyPricePerItem = (row: CanvassingItem) => {
-    return row.canvassing_vendor.reduce((sum, item) => {
-      if (item.status === CanvassingVendorStatus.SELECTED) {
-        return sum + item.total_price;
+  const calculateMargin = (totalBuy: number, totalSell: number) => {
+    // const totalBuy = Number(getTotalBuyingPrice(row));
+    // const totalSell = Number(getTotalSellingPrice(row));
+
+    console.log("total buy price", totalBuy);
+    console.log("total sell price", totalSell);
+
+    // Hindari division by zero
+    if (totalSell === 0) {
+      return 0;
+    }
+
+    return ((totalSell - totalBuy) / totalSell) * 100;
+  };
+
+  const getSellingPrice = (row: CanvassingItem) => {
+    if (
+      row.canvassing_vendor.length == 1 &&
+      row.canvassing_vendor[0].type_item === "equivalent"
+    ) {
+      return 0;
+    } else {
+      return row.unit_selling_price || 0;
+    }
+  };
+  const getTotalSellingPrice = (row: CanvassingItem) => {
+    if (
+      row.canvassing_vendor.length == 1 &&
+      row.canvassing_vendor[0].type_item === "equivalent"
+    ) {
+      return 0;
+    } else {
+      return row.total_selling_price || 0;
+    }
+  };
+
+  const getTotalBuyingPrice = (row: CanvassingItem) => {
+    if (
+      row.canvassing_vendor.length == 1 &&
+      row.canvassing_vendor[0].type_item == "equivalent"
+    ) {
+      return 0;
+    } else {
+      return row.canvassing_vendor.reduce((sum, vendor) => {
+        if (
+          vendor.status === CanvassingVendorStatus.SELECTED &&
+          vendor.type_item !== "equivalent"
+        ) {
+          return sum + vendor.total_price;
+        }
+
+        return sum;
+      }, 0);
+    }
+  };
+
+  const generateRowData = () => {
+    const rows: RowInput[] = [];
+
+    (canvassingData.value?.canvassing_item ?? []).forEach(
+      (item: CanvassingItem, index: number) => {
+        // =========================
+        // ORIGINAL ITEM
+        // =========================
+        rows.push([
+          {
+            content: `${index + 1}`,
+            styles: {
+              halign: "center",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: `${item.catalogue?.name}`,
+            styles: {
+              halign: "left",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: `${item.quantity}`,
+            styles: {
+              halign: "center",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: `${item.unit_name}`,
+            styles: {
+              halign: "center",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: `${currencyWithoutSymbol(getTotalBuyingPrice(item))}`,
+            styles: {
+              halign: "right",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: `${currencyWithoutSymbol(getSellingPrice(item))}`,
+            styles: {
+              halign: "right",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: `${currencyWithoutSymbol(
+              getTotalSellingPrice(item) || 0
+            )}`,
+            styles: {
+              halign: "right",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: `${currencyWithoutSymbol(
+              Number(getTotalSellingPrice(item)) - getTotalBuyingPrice(item)
+            )}`,
+            styles: {
+              halign: "right",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: `${calculateMargin(
+              getTotalBuyingPrice(item),
+              getTotalSellingPrice(item)
+            ).toFixed(2)}`,
+            styles: {
+              halign: "right",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+        ]);
+
+        // =========================
+        // EQUIVALENT ITEM
+        // =========================
+        const equivalentItems = item.canvassing_vendor.filter(
+          (vendor) => vendor.type_item === "equivalent"
+        );
+
+        equivalentItems.forEach((vendor, eqIndex) => {
+          rows.push([
+            {
+              content: `${index + 1}.${eqIndex + 1}`,
+              styles: {
+                halign: "center",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `(Equivalent) ${vendor.catalogue?.name || "-"}`,
+              styles: {
+                halign: "left",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `${vendor.quantity}`,
+              styles: {
+                halign: "center",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `${vendor.unit_name}`,
+              styles: {
+                halign: "center",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `${currencyWithoutSymbol(vendor.total_price || 0)}`,
+              styles: {
+                halign: "right",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `${currencyWithoutSymbol(vendor.selling_price || 0)}`,
+              styles: {
+                halign: "right",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `${currencyWithoutSymbol(
+                vendor.total_selling_price || 0
+              )}`,
+              styles: {
+                halign: "right",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `${currencyWithoutSymbol(
+                Number(vendor.total_selling_price || 0) -
+                  Number(vendor.total_price || 0)
+              )}`,
+              styles: {
+                halign: "right",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `${calculateMargin(
+                vendor.total_price,
+                vendor.total_selling_price || 0
+              ).toFixed(2)}`,
+              styles: {
+                halign: "right",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+          ]);
+        });
       }
-
-      return sum;
-    }, 0);
-  };
-
-  const calculateMargin = (row: CanvassingItem) => {
-    return (
-      (((row.total_selling_price || 0) - Number(totalBuyPricePerItem(row))) /
-        (row.total_selling_price || 0)) *
-      100
     );
+
+    return rows;
   };
 
-  let rowData: RowInput[] = (canvassingData.value?.canvassing_item ?? []).map(
-    (item: CanvassingItem, i: number) => [
-      {
-        content: `${i + 1}`,
-        styles: {
-          halign: "center",
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
-        },
-      },
-      {
-        content: `${item.catalogue?.name}`,
-        styles: {
-          halign: "left",
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
-        },
-      },
-      {
-        content: `${item.quantity}`,
-        styles: {
-          halign: "center",
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
-        },
-      },
-      {
-        content: `${item.unit_name}`,
-        styles: {
-          halign: "center",
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
-        },
-      },
-      {
-        content: `${currencyWithoutSymbol(
-          item.canvassing_vendor.reduce((sum, item) => {
-            if (item.status === CanvassingVendorStatus.SELECTED) {
-              return sum + item.total_price;
-            }
-
-            return sum;
-          }, 0)
-        )}`,
-        styles: {
-          halign: "right",
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
-        },
-      },
-      {
-        content: `${currencyWithoutSymbol(item.unit_selling_price || 0)}`,
-        styles: {
-          halign: "right",
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
-        },
-      },
-      {
-        content: `${currencyWithoutSymbol(item.total_selling_price || 0)}`,
-        styles: {
-          halign: "right",
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
-        },
-      },
-
-      {
-        content: `${currencyWithoutSymbol(
-          Number(item.total_selling_price) - totalBuyPricePerItem(item)
-        )}`,
-        styles: {
-          halign: "right",
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
-        },
-      },
-      {
-        content: `${calculateMargin(item).toFixed(2)}`,
-        styles: {
-          halign: "right",
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
-        },
-      },
-    ]
-  );
+  let rowData: RowInput[] = generateRowData();
 
   // console.log(rowData);
   // rowData.push(['','','','','Total Price',grandTotal])
@@ -4278,25 +4404,46 @@ const generateSCMMemo = async () => {
 
   let summeryNumber = (canvassingData.value?.canvassing_item ?? []).length + 1;
 
-  const subtotalUnitSellingPrice = (
-    canvassingData.value?.canvassing_item || []
-  ).reduce((sum, item) => {
-    return sum + item.unit_selling_price;
-  }, 0);
-  const subtotalSellingPrice = (
-    canvassingData.value?.canvassing_item || []
-  ).reduce((sum, item) => {
-    return sum + (item.total_selling_price || 0);
-  }, 0);
-  const subtotalMarginNominal = (
-    canvassingData.value?.canvassing_item || []
-  ).reduce((sum, item) => {
-    return (
-      sum + (Number(item.total_selling_price || 0) - totalBuyPricePerItem(item))
-    );
-  }, 0);
-  const subtotalMargin = (subtotalMarginNominal / totalBuyingPrice.value) * 100;
+  const subtotalUnitSellingPrice = () => {
+    let total = 0;
+    canvassingData.value?.canvassing_item.forEach((element) => {
+      if (element.canvassing_vendor.length > 1) {
+        total += element.unit_selling_price;
 
+        total += element.canvassing_vendor
+          .filter((cv) => cv.type_item === "equivalent")
+          .reduce((sum, acc) => sum + (acc.selling_price || 0), 0);
+      } else if (element.canvassing_vendor.length == 1) {
+        console.log(
+          "total unit selling price",
+          element.canvassing_vendor[0].selling_price
+        );
+        total += element.canvassing_vendor[0].selling_price || 0;
+      }
+    });
+
+    return total;
+  };
+  const subtotalSellingPrice = () => {
+    let total = 0;
+    canvassingData.value?.canvassing_item.forEach((element) => {
+      if (element.canvassing_vendor.length > 1) {
+        total += element.total_selling_price || 0;
+
+        total += element.canvassing_vendor
+          .filter((cv) => cv.type_item === "equivalent")
+          .reduce((sum, acc) => sum + (acc.total_selling_price || 0), 0);
+      } else if (element.canvassing_vendor.length == 1) {
+        total += element.canvassing_vendor[0].total_selling_price || 0;
+      }
+    });
+
+    return total;
+  };
+  const subtotalMarginNominal = subtotalSellingPrice() - subtotalBuyPrice.value;
+  const subtotalMargin = (subtotalMarginNominal / subtotalBuyPrice.value) * 100;
+  console.log("margin nominal", subtotalMarginNominal);
+  console.log("total harga beli", netProfitForBuying.value);
   summeryNumber++;
   rowData.push([
     {
@@ -4322,7 +4469,7 @@ const generateSCMMemo = async () => {
       },
     },
     {
-      content: `${currencyWithoutSymbol(subtotalUnitSellingPrice)}`,
+      content: `${currencyWithoutSymbol(subtotalUnitSellingPrice())}`,
       styles: {
         halign: "right",
         cellWidth: 0.0,
@@ -4332,7 +4479,7 @@ const generateSCMMemo = async () => {
       },
     },
     {
-      content: `${currencyWithoutSymbol(subtotalSellingPrice)}`,
+      content: `${currencyWithoutSymbol(subtotalSellingPrice())}`,
       styles: {
         halign: "right",
         cellWidth: 0.0,
@@ -4474,7 +4621,10 @@ const generateSCMMemo = async () => {
       },
     },
     {
-      content: `${safePercent(netProfitForBuying.value, grandTotal.value)}`,
+      content: `${safePercent(
+        netProfitForBuying.value,
+        subtotalBuyPrice.value
+      )}`,
       styles: {
         halign: "right",
         cellWidth: 0.0,

@@ -60,7 +60,7 @@
         size="default"
         :loading-icon="Eleme"
         :loading="loading"
-        @click="fetchData"
+        @click="onRefresh"
       >
         Muat Ulang
       </el-button>
@@ -160,12 +160,14 @@ const request_statistic = ref<RequestStatistic>({
 });
 
 // Data state
-const data = ref<ResponsePagination<Canvassing[]>>({
-  currentPage: 1,
-  data: [],
-  success: true,
-  total_data: 0,
-  total_page: 1,
+const { data, refresh } = await useAsyncData("fetch-canvassing", async () => {
+  const res = await useFetchApi<ResponsePagination<Canvassing[]>>(
+    `/search`,
+    "fetch-canvassing",
+    "post",
+    request_search.value
+  );
+  return res.data.value;
 });
 
 const statistic = await useFetchApi<BaseResponse<StatisticCanvassing>>(
@@ -442,12 +444,10 @@ const handleSelectionChange = (selection: Canvassing[]) => {
 
 const handlePageChange = (page: number) => {
   request_search.value.offset = `${page}`;
-  fetchData();
 };
 
 const handleSizeChange = (size: number) => {
   request_search.value.limit = `${size}`;
-  fetchData();
 };
 
 const onEdit = (canvassing: Canvassing) => {
@@ -462,6 +462,13 @@ const onDelete = async (uniques: string[]) => {
     // User canceled or error occurred
   }
 };
+
+watch(
+  () => request_search.value,
+  () => onRefresh(),
+  { deep: true }
+);
+const onRefresh = () => refresh();
 
 const batchDelete = async () => {
   const ids =
@@ -483,45 +490,6 @@ const onSort = async (sortBy: { prop: string; order: string }) => {
         : OrderColumn.ASC,
   };
 };
-
-// Fetch data
-const fetchData = async () => {
-  loading.value = true;
-  try {
-    const response = await useFetchApi<ResponsePagination<Canvassing[]>>(
-      "/search",
-      "get-canvasing",
-      "post",
-      request_search
-    );
-    if (response.status.value == "success") {
-      data.value = response.data.value ?? {
-        currentPage: 0,
-        data: [],
-        success: true,
-        total_data: 0,
-        total_page: 0,
-      };
-    }
-  } catch (error) {
-    ElMessage.error("Gagal memuat data canvassing");
-  } finally {
-    loading.value = false;
-  }
-};
-
-// Watch search query
-watchDebounced(
-  request_search,
-  () => {
-    fetchData();
-  },
-  { debounce: 500, deep: true }
-);
-
-onMounted(() => {
-  fetchData();
-});
 </script>
 
 <style scoped>

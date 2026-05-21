@@ -36,6 +36,8 @@ import type { BaseResponse } from "~/types/response";
 import { canAccess } from "#imports";
 import type { ColumnTable } from "~/types/ColumnTable";
 import CustomLinkButton from "~/components/trums/CustomLinkButton.vue";
+const { isMobile } = useDevice();
+
 const column_selected = ref<string[]>([
   "selection",
   "unique_code",
@@ -128,10 +130,22 @@ const availableColumn: ColumnTable<Inquiry>[] = [
       );
     },
   },
+
+  {
+    title: "Diminta Oleh",
+    dataKey: "request_to.name",
+    key: "request_to.name",
+    sortable: true,
+    width: isMobile ? 250 : 0,
+    cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
+      <p>{rowData.request_to?.name ?? "Tidak Ada"}</p>
+    ),
+  },
   {
     title: "Unique Code",
     dataKey: "unique_code",
     key: "unique_code",
+    width: isMobile ? 250 : 0,
     cellRenderer: ({ rowData: row }) => (
       <NuxtLink
         href={`/sales/inquiry/${row.unique_id}`}
@@ -139,15 +153,6 @@ const availableColumn: ColumnTable<Inquiry>[] = [
       >
         {row.unique_code}
       </NuxtLink>
-    ),
-  },
-  {
-    title: "Diminta Oleh",
-    dataKey: "request_to.name",
-    key: "request_to.name",
-    sortable: true,
-    cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
-      <p>{rowData.request_to?.name ?? "Tidak Ada"}</p>
     ),
   },
   {
@@ -488,7 +493,7 @@ watch(
 <template>
   <el-row :gutter="20" class="mb-3">
     <el-col :xs="24" :sm="12" :md="6">
-      <div class="flex">
+      <div class="flex gap-3 mb-3 md:mb-0">
         <CustomLinkButton
           :text="'Buat RFQ Baru'"
           :url="'/sales/inquiry/add'"

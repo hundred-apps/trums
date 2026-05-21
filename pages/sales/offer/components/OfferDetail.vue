@@ -1,59 +1,110 @@
 <template>
   <el-card class="my-3" shadow="never">
     <template #header>
-      <div class="card-header flex justify-between">
-        <el-form-item label="Tipe Summery" style="margin: 0 !important">
+      <div class="card-header">
+        <el-form-item
+          v-if="dataInterface.data?.type == 'out'"
+          label="Tipe Summery"
+          style="margin: 0 !important"
+          size="small"
+        >
           <el-radio-group v-model="typeSummery">
             <el-radio value="satuan">Satuan</el-radio>
             <el-radio value="total">Total</el-radio>
           </el-radio-group>
         </el-form-item>
-        <div>
+        <div class="flex items-center justify-between">
+          <span>{{ dataInterface.data?.unique_code }}</span>
           <NuxtLink
+            v-if="canAccess('pricetag-update', dataInterface?.privilege ?? [])"
+            :href="`/sales/offer/add?id=${dataInterface?.data?.unique_id}&type=${dataInterface?.data?.type}`"
+            class="el-button el-button--default"
+          >
+            <el-icon><Edit /></el-icon>
+          </NuxtLink>
+
+          <!-- <NuxtLink
             v-if="canAccess('pricetag-update', dataInterface?.privilege ?? [])"
             :href="`/sales/offer/add?id=${dataInterface?.data?.unique_id}&type=${dataInterface?.data?.type}`"
             class="el-button el-button--defult"
           >
             Edit
-          </NuxtLink>
-          <el-button type="primary" @click="generateQuotation">
-            Cetak Penawaran
-          </el-button>
+          </NuxtLink> -->
+          <!-- <TrumsCustomButton
+            :type="'primary'"
+            text="Cetak Penawaran"
+            @click="generateQuotation"
+            :loading="loading"
+            :disabled="false"
+          /> -->
         </div>
       </div>
     </template>
     <!-- <el-button type="primary" @click="onCheckout" :loading="loading">Proses</el-button> -->
     <div class="flex gap-3 my-3">
       <div class="flex-1">
-        <el-descriptions title="" :column="1" size="small" border>
-          <el-descriptions-item label="Nomor Penawaran">{{
-            dataInterface?.data?.unique_code
-          }}</el-descriptions-item>
-          <el-descriptions-item label="Dari">{{
-            dataInterface?.data?.owner?.name ?? "N/A"
-          }}</el-descriptions-item>
-          <el-descriptions-item label="Kepada">{{
-            dataInterface?.data?.to?.name ?? "N/A"
-          }}</el-descriptions-item>
-          <el-descriptions-item label="Subject">{{
-            dataInterface?.data?.subject ?? "N/A"
-          }}</el-descriptions-item>
-          <el-descriptions-item label="Berlaku Mulai Tanggal">{{
+        <el-descriptions
+          title=""
+          :column="1"
+          :size="isMobile ? 'small' : 'default'"
+        >
+          <el-descriptions-item
+            label="No"
+            label-class-name="font-bold"
+            :label-width="isMobile ? 50 : 100"
+            >{{ dataInterface?.data?.unique_code }}</el-descriptions-item
+          >
+          <el-descriptions-item
+            :label="`Vendor`"
+            :label-width="isMobile ? 50 : 100"
+            v-if="dataInterface?.data?.type == 'in'"
+            label-class-name="font-bold"
+            >{{
+              dataInterface?.data?.owner?.name ?? "N/A"
+            }}</el-descriptions-item
+          >
+          <el-descriptions-item
+            label="Kepada"
+            v-if="dataInterface?.data?.type == 'out'"
+            label-class-name="font-bold"
+            :label-width="isMobile ? 50 : 100"
+            >{{ dataInterface?.data?.to?.name ?? "N/A" }}</el-descriptions-item
+          >
+          <el-descriptions-item
+            label="Subject"
+            label-class-name="font-bold"
+            :label-width="isMobile ? 50 : 100"
+            >{{ dataInterface?.data?.subject ?? "N/A" }}</el-descriptions-item
+          >
+          <!-- <el-descriptions-item label="Berlaku Mulai Tanggal">{{
             formatLocalDate(dataInterface?.data?.start_date ?? 0)
-          }}</el-descriptions-item>
-          <el-descriptions-item label="Berakhir Tanggal">{{
-            dataInterface?.data?.end_date != 0
-              ? formatLocalDate(dataInterface?.data?.end_date ?? 0)
-              : "-"
-          }}</el-descriptions-item>
+          }}</el-descriptions-item> -->
+          <el-descriptions-item
+            label="S/d"
+            label-class-name="font-bold"
+            :label-width="isMobile ? 50 : 100"
+            v-if="dataInterface?.data?.end_date"
+            >{{
+              dataInterface?.data?.end_date != 0
+                ? formatLocalDate(dataInterface?.data?.end_date ?? 0)
+                : "-"
+            }}</el-descriptions-item
+          >
         </el-descriptions>
       </div>
     </div>
 
-    <h1 class="font-bold">Note</h1>
+    <h1 class="font-bold text-sm" v-if="props.dataInterface?.data?.note">
+      Note
+    </h1>
     <div class="text-sm" v-html="getNote"></div>
 
-    <h5 class="font-bold text-black text-1xl mt-6">Lampiran</h5>
+    <h5
+      class="font-bold text-black text-1xl mt-6 text-sm"
+      v-if="(dataInterface?.data?.files || []).length > 0"
+    >
+      Lampiran
+    </h5>
     <div v-for="(file, key) in dataInterface?.data?.files" :key="key">
       <NuxtLink
         class="text-blue-600 text-sm"
@@ -65,31 +116,31 @@
   </el-card>
   <el-card class="mb-3" shadow="never">
     <el-row :gutter="20" class="mb-3">
-      <el-col :span="6"
+      <el-col :span="12"
         ><el-input
           v-model="request_search_pricelist_item.keyword"
-          size="small"
+          :size="isMobile ? 'small' : 'default'"
           placeholder="Type to search"
       /></el-col>
-      <el-col :span="6"
+      <!-- <el-col :span="6"
         ><el-button
           type="primary"
           :disabled="selectedPricetagItems.length == 0"
         >
           Tambahkan Selected ({{ selectedPricetagItems.length }})
         </el-button></el-col
-      >
+      > -->
     </el-row>
 
-    <el-table
+    <!-- <el-table
       :data="items.data ?? []"
       size="small"
       border
       ref="offerItemTableRef"
       @selection-change="handlePricetagSelectionChange"
-    >
-      <el-table-column type="selection" width="30" />
-      <el-table-column prop="image" label="Image" width="75">
+    > -->
+    <!-- <el-table-column type="selection" width="30" /> -->
+    <!-- <el-table-column prop="image" label="Image" width="75">
         <template #default="scope">
           <div class="demo-image__preview flex items-center">
             <ItemImageUpload
@@ -111,8 +162,8 @@
             </div>
           </div>
         </template>
-      </el-table-column>
-      <el-table-column prop="name" label="item">
+      </el-table-column> -->
+    <!-- <el-table-column prop="name" label="item">
         <template #default="scope">
           {{ scope.row.catalogue?.name ?? "-" }}
         </template>
@@ -130,7 +181,84 @@
           {{ currency(scope.row.price * scope.row.quantity) }}
         </template>
       </el-table-column>
-      <el-table-column prop="note" label="Note" width="150" />
+      <el-table-column prop="note" label="Note" width="150" /> -->
+    <!-- </el-table> -->
+    <el-table :data="items.data ?? []" :size="isMobile ? 'small' : 'default'">
+      <!-- <el-table-column prop="fileUploads" label="image" width="75">
+            <template #default="scope">
+              <ItemImageUpload
+                v-model="scope.row.fileUploads"
+                :image-url="scope.row.image"
+                :show-text="false"
+                @open-modal="() => openImageModal(scope.$index, scope.row)"
+              />
+            </template>
+          </el-table-column> -->
+      <el-table-column
+        prop="item_name"
+        label="Nama Barang"
+        class="my-0"
+        :width="isMobile ? 160 : 0"
+        fixed="left"
+        :align="isMobile ? 'center' : 'left'"
+      >
+        <template #default="scope">
+          <p class="text-start text-blue-600">
+            {{ scope.row.catalogue?.name }}
+          </p>
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="selling_price"
+        label="Harga"
+        class="mb-0"
+        width="120"
+        align="center"
+      >
+        <template #default="scope">
+          {{ currencyWithoutSymbol(scope.row.price, 0) }}
+        </template>
+      </el-table-column>
+      <!-- <el-table-column prop="sn" label="Serial Number" /> -->
+      <el-table-column
+        prop="quantity"
+        label="QTY"
+        class="mb-0"
+        :width="isMobile ? 50 : 80"
+        align="center"
+      >
+        <template #default="scope">
+          <!-- <el-input-number v-model="scope.row.quantity" /> -->
+          {{ scope.row.quantity }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="unit" label="Unit" width="100">
+        <template #default="scope">
+          <!-- <el-autocomplete
+                :fetch-suggestions="querySearchUnit"
+                v-model="scope.row.unit_name"
+                placeholder="Input Units"
+                @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteUnit(item, scope)"
+              /> -->
+          {{ scope.row.unit_name }}
+        </template>
+      </el-table-column>
+
+      <el-table-column prop="total" label="Total" class="mb-0" width="150">
+        <template #default="scope">
+          {{
+            currencyWithoutSymbol(
+              Number(scope.row.price) * Number(scope.row.quantity),
+              0
+            )
+          }}
+        </template>
+      </el-table-column>
+      <el-table-column prop="note" label="Catatan" class="mb-0" width="150">
+        <template #default="scope">
+          {{ scope.row.note }}
+        </template>
+      </el-table-column>
     </el-table>
     <div class="flex justify-end">
       <el-pagination
@@ -263,7 +391,7 @@
 
 <script lang="tsx" setup>
 import { TrumsWrapper } from "#components";
-import { Edit, Picture } from "@element-plus/icons-vue";
+import { Edit, InfoFilled, Picture } from "@element-plus/icons-vue";
 import type { ComponentSize, ElTable } from "element-plus";
 import jsPDF from "jspdf";
 import autoTable, {
@@ -299,6 +427,8 @@ import ItemImageUpload from "../../inquiry/components/ItemImageUpload.vue";
 import type { ReferenceTransactionAdjustment } from "~/types/attribute_adjustment";
 import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
 import type { _0 } from "#tailwind-config/theme/backdropBlur";
+import { currencyWithoutSymbol } from "#imports";
+const { isMobile } = useDevice();
 
 const router = useRouter();
 const loading = ref<boolean>(false);

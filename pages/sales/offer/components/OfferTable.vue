@@ -6,9 +6,11 @@
   />
   <div class="flex justify-end mt-3">
     <el-pagination
+      :size="`${isMobile ? 'small' : 'default'}`"
       background
       layout="prev, pager, next, sizes"
       :total="data?.total_data"
+      :pager-count="5"
       @next-click="paginationClick"
       @prev-click="paginationClick"
       @change="paginationClick"
