@@ -1,4 +1,4 @@
-name: Deploy Nuxt 3 Test
+name: Deploy Nuxt 3
 
 on:
   push:
