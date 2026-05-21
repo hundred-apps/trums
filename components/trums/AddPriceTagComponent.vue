@@ -4,7 +4,6 @@
       <el-card class="my-3" shadow="never">
         <el-form
           ref="ruleFormRef"
-          style="max-width: 600px"
           :model="ruleForm"
           :rules="rules"
           label-width="auto"
@@ -254,7 +253,7 @@
             prop="item_name"
             label="Nama Barang"
             class="my-0"
-            width="160"
+            :width="isMobile ? 160 : 0"
             fixed="left"
             align="center"
           >
@@ -621,7 +620,11 @@
         @reset="handleResetContact"
       />
     </el-dialog>
-    <el-dialog v-model="dialogAddItem" title="Tambah Item" width="100%">
+    <el-dialog
+      v-model="dialogAddItem"
+      title="Tambah Item"
+      :width="isMobile ? '100%' : '800'"
+    >
       <el-form
         ref="ruleFormRefDialogItem"
         :model="ruleFormDialogAddItem"
@@ -878,6 +881,7 @@ import {
   formatInputCurrency,
 } from "#imports";
 import { currencyWithoutSymbol } from "#imports";
+const { isMobile } = useDevice();
 
 const props = defineProps<{
   onSubmit: (data: Pricetag | undefined) => void;
@@ -2550,6 +2554,7 @@ const onSubmit = async (formEl: FormInstance) => {
 
     // Append pricetag_item array
     ruleForm.pricetag_item.forEach((value, index) => {
+      console.log("pricetag item", value);
       formData.append(
         `pricetag_item[${index}][unique_id]`,
         `${value.unique_id}`
