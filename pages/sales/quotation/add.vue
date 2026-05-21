@@ -390,7 +390,7 @@
               >
                 <component :is="row._expanded ? ArrowDown : ArrowRight" />
               </el-icon>
-              <div v-if="row.type == 'parent' && row.type_item == 'request'">
+              <div v-if="row.type == 'parent'">
                 {{ row.catalogue_name }}
               </div>
               <div style="width: 100%" v-else>
@@ -635,19 +635,23 @@
         <el-table-column label="Harga Jual" width="400" align="center">
           <el-table-column label="Harga Jual" width="200">
             <template #default="{ row }">
-              <div v-if="row.type === 'parent'">
+              <div
+                v-if="(row as CanvassingItemForm).type_item === 'request' || (row as CanvassingItemForm).type_item === 'equivalent'"
+              >
                 <el-input-number
                   v-model="row.selling_price"
                   :min="0"
                   @change="
                     (value) => {
-                      row.children?.forEach((child: any) => {
+                      (row as CanvassingItemForm).children?.forEach((child: CanvassingItemForm) => {
+                        if (child.type_item == 'original') {
                         child.selling_price = value || 0;
 
                         child.total_selling_price =
                           (child.quantity || 0) * (child.selling_price || 0);
 
-                        calculatePricing(child, 'selling_price');
+                        calculatePricing(child, 'selling_price');  
+                        }
                       });
                       calculatePricing(row, 'selling_price');
                     }
@@ -940,7 +944,7 @@
       :total-data="inquiry?.total_data ?? 0"
       @select-request="addToForm"
       @pagination-change="paginationClick"
-    /> -->\
+    /> -->
 
     <ModalSearchItemExample
       v-model:visible="visibleModalSearchItemExample"
@@ -1323,12 +1327,15 @@ watch(
   () => {
     (item_canvassing.value || []).forEach((element) => {
       let total_price = 0;
+
       element.children.forEach((child) => {
-        const find = selectedRowsVendors.value.find(
-          (value) => value.index === child.index
-        );
-        if (find) {
-          total_price += find.total_price;
+        if (child.type_item == "original") {
+          const find = selectedRowsVendors.value.find(
+            (value) => value.index === child.index
+          );
+          if (find) {
+            total_price += find.total_price;
+          }
         }
       });
       element.total_price = total_price;
@@ -2345,9 +2352,11 @@ function calculatePricing(
 
   const parent = item_canvassing.value[row.parent_index || 0];
 
-  if (parent.tmp_child_selected == row.index) {
-    parent.selling_price = row.selling_price;
-    parent.total_selling_price = row.total_selling_price;
+  if (row.type_item == "original") {
+    if (parent.tmp_child_selected == row.index) {
+      parent.selling_price = row.selling_price;
+      parent.total_selling_price = row.total_selling_price;
+    }
   }
 }
 
@@ -3677,7 +3686,6 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
     payment_terms.value = dataCanvassing.payment_terms ?? [];
 
     dataCanvassing.canvassing_item.forEach((value, index) => {
-      console.log("canvassing item", value.quantity);
       let canvassingItemTmp = {
         type_item: value.type_item,
         index: `${value.unique_id}`,
@@ -3705,7 +3713,7 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
         taxes: [],
         editing: null,
         type: "parent" as "parent" | "child",
-        children: value.canvassing_vendor.map((vendor) => ({
+        children: (value.canvassing_vendor || []).map((vendor) => ({
           type_item: vendor.type_item,
           index: `${vendor.unique_id}`,
           canvassing_id: null,
@@ -3771,6 +3779,60 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
       // console.log("tmp ", value.canvassing_vendor[0].selling_price);
 
       item_canvassing.value.push(canvassingItemTmp);
+      // if (dataCanvassing.status == CanvassingStatus.PENDING_APPROVAL_RAB) {
+      //   value.canvassing_vendor.forEach((element) => {
+      //     if (element.type_item == "equivalent") {
+      //       let canvassingItemTmpEq = {
+      //         catalogue_id: element.catalogue_id,
+      //         type_item: element.type_item,
+      //         index: `${element.unique_id}`,
+      //         canvassing_id: value.canvassing_id,
+      //         canvaasing_version: value.canvaasing_version,
+      //         item_request_trail_version: null,
+      //         item_request_trail_id: null,
+      //         unique_id: element.unique_id,
+      //         vendor_id: null,
+      //         vendor_name: "",
+      //         unit_id: element.unit_id,
+      //         unit_name: element.unit_name,
+      //         unit_version: 1,
+      //         offer_item_id: null,
+      //         offer_item_version: 0,
+      //         parent_catalogue_id: "",
+      //         catalogue_name: element.catalogue?.name ?? "",
+      //         sn: element.catalogue?.sn ?? "N/A",
+      //         quantity: element.quantity ?? 1,
+      //         unit_price: 0,
+      //         total_price: 0,
+      //         total_selling_price: element.total_selling_price || 0,
+      //         status: CanvassingVendorStatus.SUBMITTED,
+      //         taxes: [],
+      //         editing: null,
+      //         type: "parent" as "parent" | "child",
+      //         children: [],
+      //         selling_price: 0,
+      //         tmp_child_selected: "",
+      //         profit: 0,
+      //         profit_unit: "percent" as "amount" | "percent",
+      //         fee: 0,
+      //         fee_unit: "percent" as "amount" | "percent",
+      //         ongkir: 0,
+      //         ongkir_unit: "percent" as "amount" | "percent",
+      //         pricetag_item_id: "",
+      //         pricetag_item_version: 0,
+      //         contacts_fee: [],
+      //         equivalent_id: element.equivalent_id,
+      //       };
+      //       console.log("item equivalent", canvassingItemTmpEq);
+      //       console.log("item", element);
+      //       item_canvassing.value.push(canvassingItemTmpEq);
+      //     }
+      //   });
+
+      //   // value.canvassing_vendor = value.canvassing_vendor.filter(
+      //   //   (value) => value.type_item != "equivalent"
+      //   // );
+      // }
       // references.value = (canvassingItemTmp. || [])
       //   .filter(
       //     (value) =>
@@ -3787,18 +3849,20 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
       (value) => value.type_item === "equivalent"
     );
 
-    item_canvassing.value = item_canvassing.value.filter(
-      (value) => value.type_item !== "equivalent"
-    );
+    console.log("canvassing item", item_canvassing.value);
 
-    equivalent.forEach((element) => {
-      const indexParent = item_canvassing.value.findIndex(
-        (data) => data.unique_id === element.equivalent_id
-      );
-      if (indexParent >= 0) {
-        item_canvassing.value.splice(indexParent + 1, 0, element);
-      }
-    });
+    // item_canvassing.value = item_canvassing.value.filter(
+    //   (value) => value.type_item !== "equivalent"
+    // );
+
+    // equivalent.forEach((element) => {
+    //   const indexParent = item_canvassing.value.findIndex(
+    //     (data) => data.unique_id === element.equivalent_id
+    //   );
+    //   if (indexParent >= 0) {
+    //     item_canvassing.value.splice(indexParent + 1, 0, element);
+    //   }
+    // });
 
     item_canvassing.value.forEach((element) => {
       element.children.forEach((child) => {
