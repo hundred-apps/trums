@@ -8,7 +8,6 @@ export const currency = (number: number, digit?: number) => {
 };
 
 export const currencyWithoutSymbol = (number: number, digit?: number) => {
-  console.log("without symbol", digit);
   return new Intl.NumberFormat("id-ID", {
     minimumFractionDigits: digit ?? 2, // atau 2 kalau mau selalu ada desimal
     maximumFractionDigits: 2,

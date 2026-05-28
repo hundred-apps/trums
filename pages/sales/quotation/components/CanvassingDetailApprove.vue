@@ -199,127 +199,136 @@
     </el-card>
 
     <el-card class="mb-3" shadow="never">
-      <el-table
-        ref="tableRef"
-        :data="item_canvassing"
-        row-key="index"
-        @select="handleSelect"
-        @select-all="handleSelectAll"
-        :tree-props="{ children: 'children' }"
-        :row-class-name="tableRowClassName"
-        :expand-row-keys="getExpandRowKeys ?? []"
-        :size="'small'"
-        border
-      >
-        <el-table-column prop="item_name" label="Item" width="500" fixed="left">
-          <template #default="{ row }">
-            {{ row.catalogue_name }}
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="vendor_name"
-          label="Vendor"
-          width="200"
-          fixed="left"
+      <TrumsDragScrollTable>
+        <el-table
+          ref="tableRef"
+          :data="item_canvassing"
+          row-key="index"
+          @select="handleSelect"
+          @select-all="handleSelectAll"
+          :tree-props="{ children: 'children' }"
+          :row-class-name="tableRowClassName"
+          :expand-row-keys="getExpandRowKeys ?? []"
+          :size="'small'"
+          border
         >
-          <template #default="{ row }">
-            <el-button
-              type="primary"
-              link
-              @click="() => openDetailVendor(row.pricetag_item_id)"
-              >{{ row.vendor_name || "" }}</el-button
-            >
-          </template>
-        </el-table-column>
+          <el-table-column
+            prop="item_name"
+            label="Item"
+            width="500"
+            fixed="left"
+          >
+            <template #default="{ row }">
+              {{ row.catalogue_name }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="vendor_name"
+            label="Vendor"
+            width="200"
+            fixed="left"
+          >
+            <template #default="{ row }">
+              <el-button
+                type="primary"
+                link
+                @click="() => openDetailVendor(row.pricetag_item_id)"
+                >{{ row.vendor_name || "" }}</el-button
+              >
+            </template>
+          </el-table-column>
 
-        <el-table-column
-          prop="type_item"
-          label="Item Type"
-          width="150"
-          fixed="left"
-        >
-          <template #default="{ row }">
-            <div v-if="row.type === 'parent'">{{}}</div>
-            <div v-else>
-              {{
-                row.type_item == "original"
-                  ? "AS Requested"
-                  : row.type_item == "quotation"
-                  ? "Subtitution"
-                  : "Equivalent"
-              }}
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column prop="qty" label="Qty" width="78">
-          <template #default="{ row }">
-            {{ row.quantity }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="unit_name" label="UOM" width="100">
-          <template #default="{ row }">
-            {{ row.unit_name }}
-          </template>
-        </el-table-column>
+          <el-table-column
+            prop="type_item"
+            label="Item Type"
+            width="150"
+            fixed="left"
+          >
+            <template #default="{ row }">
+              <div v-if="row.type === 'parent'">{{}}</div>
+              <div v-else>
+                {{
+                  row.type_item == "original"
+                    ? "AS Requested"
+                    : row.type_item == "quotation"
+                    ? "Subtitution"
+                    : "Equivalent"
+                }}
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column prop="qty" label="Qty" width="78" fixed="left">
+            <template #default="{ row }">
+              {{ row.quantity }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="unit_name" label="UOM" width="100">
+            <template #default="{ row }">
+              {{ row.unit_name }}
+            </template>
+          </el-table-column>
 
-        <el-table-column label="Harga Beli" width="300" align="center">
-          <el-table-column label="Harga" width="150" align="center">
+          <el-table-column label="Harga Beli" width="300" align="center">
+            <el-table-column label="Harga" width="150" align="center">
+              <template #default="{ row }">
+                <span v-if="row.type == 'child'">{{
+                  currency(row.unit_price)
+                }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="Total" width="150" align="center">
+              <template #default="{ row }">
+                {{ currency(Number(row.total_price)) }}
+              </template>
+            </el-table-column>
+          </el-table-column>
+
+          <el-table-column label="Profit" width="200">
             <template #default="{ row }">
               <span v-if="row.type == 'child'">{{
-                currency(row.unit_price)
+                `${currency(Math.round(row.profit_nominal || 0))} (${
+                  row.profit
+                } %)`
               }}</span>
             </template>
           </el-table-column>
-          <el-table-column label="Total" width="150" align="center">
+          <el-table-column label="Fee" width="200">
             <template #default="{ row }">
-              {{ currency(Number(row.total_price)) }}
+              {{ `${row.fee_nominal || 0} (${row.fee} %)` }}
             </template>
           </el-table-column>
-        </el-table-column>
-
-        <el-table-column label="Profit" width="200">
-          <template #default="{ row }">
-            <span v-if="row.type == 'child'">{{
-              `${currency(Math.round(row.profit_nominal || 0))} (${
-                row.profit
-              } %)`
-            }}</span>
-          </template>
-        </el-table-column>
-        <el-table-column label="Fee" width="200">
-          <template #default="{ row }">
-            {{ `${row.fee_nominal || 0} (${row.fee} %)` }}
-          </template>
-        </el-table-column>
-        <el-table-column label="Ongkir" width="200">
-          <template #default="{ row }">
-            {{ `${row.ongkir_nominal || 0} (${safePercent(row.ongkir, 1)} %)` }}
-          </template>
-        </el-table-column>
-
-        <el-table-column label="Harga Jual" width="200" align="center">
-          <el-table-column label="Harga Jual" width="150" align="center">
+          <el-table-column label="Ongkir" width="200">
             <template #default="{ row }">
-              <div class="text-right">
-                {{ currency(row.selling_price ?? 0) }}
-              </div>
+              {{
+                `${row.ongkir_nominal || 0} (${safePercent(row.ongkir, 1)} %)`
+              }}
             </template>
           </el-table-column>
-          <el-table-column label="Total Harga" width="150" align="center">
+
+          <el-table-column label="Harga Jual" width="200" align="center">
+            <el-table-column label="Harga Jual" width="150" align="center">
+              <template #default="{ row }">
+                <div class="text-right">
+                  {{ currency(row.selling_price ?? 0) }}
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="Total Harga" width="150" align="center">
+              <template #default="{ row }">
+                <div class="text-right">
+                  {{ currency(row.total_selling_price ?? 0) }}
+                </div>
+              </template>
+            </el-table-column>
+          </el-table-column>
+
+          <el-table-column label="Margin (%)" width="150">
             <template #default="{ row }">
-              <div class="text-right">
-                {{ currency(row.total_selling_price ?? 0) }}
-              </div>
+              {{ calculateMargin(row).toFixed(2) }} %
             </template>
           </el-table-column>
-        </el-table-column>
-
-        <el-table-column label="Margin (%)" width="150">
-          <template #default="{ row }">
-            {{ calculateMargin(row).toFixed(2) }} %
-          </template>
-        </el-table-column>
-      </el-table>
+        </el-table>
+      </TrumsDragScrollTable>
     </el-card>
 
     <el-card class="mb-3" shadow="never">
@@ -671,152 +680,159 @@
       title="Pilih Item Yang Akan Diajukan!"
       width="1200"
     >
-      <el-table
-        ref="tableRef"
-        :data="item_canvassing"
-        row-key="index"
-        @select="handleSelect"
-        @select-all="handleSelectAll"
-        :tree-props="{ children: 'children' }"
-        :row-class-name="tableRowClassName"
-        :expand-row-keys="getExpandRowKeys ?? []"
-        border
-      >
-        <el-table-column
-          type="selection"
-          width="55"
-          :selectable="(row: any, index: any) => selectableCheckbox(row, index)"
-        />
-        <el-table-column prop="item_name" label="Item" width="400" fixed="left">
-          <template #default="{ row }">
-            {{ row.catalogue_name }}
-          </template>
-        </el-table-column>
-
-        <el-table-column
-          prop="type_item"
-          label="Item Type"
-          width="130"
-          fixed="left"
+      <TrumsDragScrollTable>
+        <el-table
+          ref="tableRef"
+          :data="item_canvassing"
+          row-key="index"
+          @select="handleSelect"
+          @select-all="handleSelectAll"
+          :tree-props="{ children: 'children' }"
+          :row-class-name="tableRowClassName"
+          :expand-row-keys="getExpandRowKeys ?? []"
+          border
         >
-          <template #default="{ row }">
-            <div v-if="row.type === 'parent'">
-              {{ row.type_item == "request" ? "Permintaan" : "Equivalent" }}
-            </div>
-            <div v-else>
-              {{
-                row.type_item == "original"
-                  ? "AS Requested"
-                  : row.type_item == "quotation"
-                  ? "Subtitution"
-                  : "Equivalent"
-              }}
-            </div>
-          </template>
-        </el-table-column>
+          <el-table-column
+            type="selection"
+            width="55"
+            :selectable="(row: any, index: any) => selectableCheckbox(row, index)"
+          />
+          <el-table-column
+            prop="item_name"
+            label="Item"
+            width="400"
+            fixed="left"
+          >
+            <template #default="{ row }">
+              {{ row.catalogue_name }}
+            </template>
+          </el-table-column>
 
-        <el-table-column prop="sn" label="SN/PN" width="150">
-          <template #default="{ row }">
-            {{ row.sn ?? "N/A" }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="qty" label="Qty" width="78">
-          <template #default="{ row }">
-            {{ row.quantity }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="unit_name" label="UOM" width="100">
-          <template #default="{ row }">
-            {{ row.unit_name }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="vendor" label="Vendor" width="200">
-          <template #default="{ row }">
-            {{ row.vendor_name }}
-          </template>
-        </el-table-column>
+          <el-table-column
+            prop="type_item"
+            label="Item Type"
+            width="130"
+            fixed="left"
+          >
+            <template #default="{ row }">
+              <div v-if="row.type === 'parent'">
+                {{ row.type_item == "request" ? "Permintaan" : "Equivalent" }}
+              </div>
+              <div v-else>
+                {{
+                  row.type_item == "original"
+                    ? "AS Requested"
+                    : row.type_item == "quotation"
+                    ? "Subtitution"
+                    : "Equivalent"
+                }}
+              </div>
+            </template>
+          </el-table-column>
 
-        <el-table-column label="Harga Beli" width="200" align="center">
-          <el-table-column label="Harga Beli" width="150" align="center">
+          <el-table-column prop="sn" label="SN/PN" width="150">
+            <template #default="{ row }">
+              {{ row.sn ?? "N/A" }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="qty" label="Qty" width="78">
+            <template #default="{ row }">
+              {{ row.quantity }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="unit_name" label="UOM" width="100">
+            <template #default="{ row }">
+              {{ row.unit_name }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="vendor" label="Vendor" width="200">
+            <template #default="{ row }">
+              {{ row.vendor_name }}
+            </template>
+          </el-table-column>
+
+          <el-table-column label="Harga Beli" width="200" align="center">
+            <el-table-column label="Harga Beli" width="150" align="center">
+              <template #default="{ row }">
+                <div v-if="row.type === 'child'" class="text-right">
+                  {{ currency(row.unit_price) }}
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="Total Harga" width="150" align="center">
+              <template #default="{ row }">
+                <div v-if="row.type === 'child'" class="text-right">
+                  {{ currency(row.total_price) }}
+                </div>
+              </template>
+            </el-table-column>
+          </el-table-column>
+
+          <el-table-column label="Profit" width="200">
+            <template #default="{ row }">
+              <div v-if="row.type === 'child'">
+                <div class="text-right">
+                  {{
+                    row.profit_unit == "percent"
+                      ? currency(Math.round(row.profit_nominal || 0))
+                      : row.profit
+                  }}
+                  ({{ row.profit }}%)
+                </div>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="Fee" width="200">
+            <template #default="{ row }">
+              <div v-if="row.type === 'child'">
+                <div class="text-right">
+                  {{
+                    row.fee_unit == "percent"
+                      ? currency(Math.round(row.fee_nominal || 0))
+                      : row.fee
+                  }}
+                  ({{ row.fee }}%)
+                </div>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="Ongkir" width="200">
             <template #default="{ row }">
               <div v-if="row.type === 'child'" class="text-right">
-                {{ currency(row.unit_price) }}
+                {{ currency(row.ongkir) }}
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="Total Harga" width="150" align="center">
-            <template #default="{ row }">
-              <div v-if="row.type === 'child'" class="text-right">
-                {{ currency(row.total_price) }}
-              </div>
-            </template>
-          </el-table-column>
-        </el-table-column>
 
-        <el-table-column label="Profit" width="200">
-          <template #default="{ row }">
-            <div v-if="row.type === 'child'">
-              <div class="text-right">
-                {{
-                  row.profit_unit == "percent"
-                    ? currency(Math.round(row.profit_nominal || 0))
-                    : row.profit
-                }}
-                ({{ row.profit }}%)
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="Fee" width="200">
-          <template #default="{ row }">
-            <div v-if="row.type === 'child'">
-              <div class="text-right">
-                {{
-                  row.fee_unit == "percent"
-                    ? currency(Math.round(row.fee_nominal || 0))
-                    : row.fee
-                }}
-                ({{ row.fee }}%)
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="Ongkir" width="200">
-          <template #default="{ row }">
-            <div v-if="row.type === 'child'" class="text-right">
-              {{ currency(row.ongkir) }}
-            </div>
-          </template>
-        </el-table-column>
+          <el-table-column label="Harga Jual" width="200" align="center">
+            <el-table-column label="Harga Jual" width="150" align="center">
+              <template #default="{ row }">
+                <div class="text-right">
+                  {{ currency(row.selling_price ?? 0) }}
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="Total Harga" width="150" align="center">
+              <template #default="{ row }">
+                <div class="text-right">
+                  {{ currency(row.total_selling_price ?? 0) }}
+                </div>
+              </template>
+            </el-table-column>
+          </el-table-column>
 
-        <el-table-column label="Harga Jual" width="200" align="center">
-          <el-table-column label="Harga Jual" width="150" align="center">
+          <el-table-column label="Margin (%)" width="100" align="center">
             <template #default="{ row }">
-              <div class="text-right">
-                {{ currency(row.selling_price ?? 0) }}
+              <div
+                v-if="row.type === 'child' && row.unit_price"
+                class="text-right"
+              >
+                {{ calculateMargin(row!).toFixed(2) }} %
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="Total Harga" width="150" align="center">
-            <template #default="{ row }">
-              <div class="text-right">
-                {{ currency(row.total_selling_price ?? 0) }}
-              </div>
-            </template>
-          </el-table-column>
-        </el-table-column>
-
-        <el-table-column label="Margin (%)" width="100" align="center">
-          <template #default="{ row }">
-            <div
-              v-if="row.type === 'child' && row.unit_price"
-              class="text-right"
-            >
-              {{ calculateMargin(row!).toFixed(2) }} %
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
+        </el-table>
+      </TrumsDragScrollTable>
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="dialogSelectedItem = false">Cancel</el-button>
@@ -2692,7 +2708,7 @@ const initialCanvassing = (data: Canvassing) => {
       contacts_fee: [],
     });
   });
-
+  console.log("to item canvassing", item_canvassing.value[2]);
   const equivalent: CanvassingItemForm[] = [];
 
   (canvassingData.value.canvassing_item ?? []).forEach((element) => {
@@ -2838,9 +2854,10 @@ const sumTotalBuyingPrice = (children: CanvassingVendor[]) => {
     total += children[0].total_price;
   } else {
     children.forEach((element) => {
-      console.log("type item sum total", element.type_item);
       if (element.type_item === "original") {
-        total += element.total_price;
+        if (element.status === CanvassingVendorStatus.SELECTED) {
+          total += element.total_price;
+        }
       }
     });
   }

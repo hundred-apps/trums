@@ -6,7 +6,11 @@
           <span class="text-large font-600 mr-3"> Buat Penawaran </span>
         </template>
       </el-page-header>
-      <AddPriceTagComponent @submit="onSubmit" :data="ruleForm" />
+      <AddPriceTagComponent
+        v-if="!loading"
+        @submit="onSubmit"
+        :data="ruleForm"
+      />
     </div>
   </TrumsWrapper>
 </template>
@@ -1330,6 +1334,48 @@ const initialSpecialPrice = () => {
   ];
 };
 
+const fetchPricetagItems = async (
+  unique_id: string
+): Promise<Pricetag_item[]> => {
+  loading.value = true;
+  try {
+    const request_search: RequestSearch = {
+      keyword: "",
+      table: "pricetag_item",
+      column: [
+        {
+          tag_id: [unique_id],
+        },
+      ],
+      sort: null,
+      offset: "1",
+      limit: "200",
+    };
+
+    const response = await useFetchApi<ResponsePagination<Pricetag_item[]>>(
+      "/search",
+      "fetch-items",
+      "post",
+      request_search
+    );
+
+    if (response.status.value == "success") {
+      const pricetagItem: Pricetag_item[] = (
+        response.data.value?.data || []
+      ).map((item) => ({ ...item, item_name: item.catalogue?.name || "" }));
+      loading.value = false;
+      return pricetagItem;
+    } else {
+      loading.value = false;
+      return [];
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+    loading.value = false;
+    return [];
+  }
+};
+
 const fetchInitialData = async () => {
   loadingGetEditData.value = true;
 
@@ -1374,18 +1420,8 @@ const fetchInitialData = async () => {
       ruleForm.created_by = pricetagEdit.created_by;
       ruleForm.updated_at = pricetagEdit.updated_at;
       ruleForm.version = pricetagEdit.version;
-
-      ruleForm.pricetag_item = pricetagEdit.pricetag_item.map((value) => {
-        const parsed = parseCurrencyID(`${value.price}`);
-        return {
-          ...value,
-          price: parsed,
-          displayPrice: formatCurrencyID(parsed),
-          item_name: value.catalogue?.name ?? "",
-          sn: value.catalogue?.sn ?? "N/A",
-          is_new: false,
-        };
-      });
+      console.log("unique_id", pricetagEdit.unique_id);
+      ruleForm.pricetag_item = await fetchPricetagItems(pricetagEdit.unique_id);
 
       console.log("pricetag item", ruleForm.pricetag_item);
       ruleForm.pricetag_condition = pricetagEdit.pricetag_condition;

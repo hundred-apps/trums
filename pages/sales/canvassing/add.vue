@@ -108,7 +108,15 @@
     <!-- Items Section -->
     <el-card class="mb-3">
       <template #header>
-        <div class="card-header"><span>Items</span></div>
+        <div class="card-header">
+          <span>Items</span>
+          <!-- <el-button
+            type="primary"
+            :icon="Search"
+            @click="() => (dialogItemRequest = true)"
+            >Cari Item Permintaan</el-button
+          > -->
+        </div>
       </template>
 
       <TrumsDragScrollTable>
@@ -675,20 +683,17 @@ const request_search_contact = ref<RequestSearch>({
   flag: "form",
 });
 
-const request_search_pricetag_item = ref<RequestSearch>({
-  column: [
-    {
-      pricetag: {
-        category: ["penawaran"],
-        type: ["in"],
-      },
-    },
-  ],
+const request_search_pricetag_item = ref({
   keyword: "",
-  limit: "10",
-  offset: "1",
-  sort: null,
-  table: "pricetag_item",
+  catalogue_id: "",
+  location: [],
+  contact: [],
+  quantity: 1,
+  category: ["penawaran"],
+  owner_id: "",
+  type: "multi" as "single" | "multi",
+  offset: 1,
+  limit: 10,
   flag: "form",
 });
 
@@ -936,8 +941,10 @@ const updateAllFeeType = () => {
   contactsFee.value.map((value) => (value.type = unitFee.value));
 
   item_canvassing.value.forEach((element) => {
-    element.fee_unit = unitFee.value;
-    element.children.map((value) => (value.fee_unit = unitFee.value));
+    element.fee_unit = unitFee.value as "percent" | "amount";
+    element.children.map(
+      (value) => (value.fee_unit = unitFee.value as "percent" | "amount")
+    );
   });
 };
 
@@ -3487,10 +3494,10 @@ const paginationClick = (val: number) => {
 
 const paginationClickPriceTag = (val: number) => {
   console.log("pagination change");
-  request_search_pricetag_item.value.offset = val.toString();
+  request_search_pricetag_item.value.offset = val;
 };
 const paginationSizeChange = (val: number) => {
-  request_search_pricetag_item.value.limit = val.toString();
+  request_search_pricetag_item.value.limit = val;
 };
 
 const paginationClickContact = (val: number) => {

@@ -330,221 +330,223 @@
         </div>
       </div>
 
-      <el-table
-        ref="tableRef"
-        :data="item_canvassing"
-        row-key="index"
-        @select="handleSelect"
-        @select-all="handleSelectAll"
-        :tree-props="{ children: 'children' }"
-        :row-class-name="tableRowClassName"
-        :expand-row-keys="getExpandRowKeys ?? []"
-        :size="'small'"
-        border
-      >
-        <el-table-column
-          v-if="
-            statusRAB().includes(
-              canvassingData?.status ?? CanvassingStatus.DRAFT
-            ) || editState
-          "
-          prop="item_name"
-          label="Item"
-          width="500"
-          fixed="left"
+      <TrumsDragScrollTable>
+        <el-table
+          ref="tableRef"
+          :data="item_canvassing"
+          row-key="index"
+          @select="handleSelect"
+          @select-all="handleSelectAll"
+          :tree-props="{ children: 'children' }"
+          :row-class-name="tableRowClassName"
+          :expand-row-keys="getExpandRowKeys ?? []"
+          :size="'small'"
+          border
         >
-          <template #default="{ row }">
-            {{ row.catalogue_name }}
-          </template>
-        </el-table-column>
-        <el-table-column v-else prop="item_name" label="Item" fixed="left">
-          <template #default="{ row }">
-            {{ row.catalogue_name }}
-          </template>
-        </el-table-column>
-
-        <el-table-column
-          prop="vendor_name"
-          label="Vendor"
-          width="200"
-          fixed="left"
-        >
-          <template #default="{ row }">
-            {{ row.vendor_name || "" }}
-          </template>
-        </el-table-column>
-
-        <el-table-column
-          prop="type_item"
-          label="Item Type"
-          width="150"
-          fixed="left"
-        >
-          <template #default="{ row }">
-            <div v-if="row.type === 'parent'">
-              {{ row.type_item == "request" ? "Permintaan" : "Equivalent" }}
-            </div>
-            <div v-else>
-              {{
-                row.type_item == "original"
-                  ? "AS Requested"
-                  : row.type_item == "quotation"
-                  ? "Subtitution"
-                  : "Equivalent"
-              }}
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column
-          prop="status"
-          v-if="
-            canvassingData?.status == CanvassingStatus.PENDING_APPROVAL ||
-            canvassingData?.status == CanvassingStatus.DONE
-          "
-          label="Status"
-          width="130"
-          fixed="left"
-          align="center"
-        >
-          <template #default="{ row }">
-            <div v-if="row.type === 'child'">
-              <el-tag :type="getStatusTagTypeItem(row.status)">
-                {{ getStatusTabLabelItem(row.status) }}
-              </el-tag>
-            </div>
-            <div v-else-if="row.type === 'parent'"></div>
-          </template>
-        </el-table-column>
-
-        <el-table-column prop="sn" label="SN/PN" width="150">
-          <template #default="{ row }">
-            {{ row.sn ?? "N/A" }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="qty" label="Qty" width="78">
-          <template #default="{ row }">
-            {{ row.quantity }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="unit_name" label="UOM" width="100">
-          <template #default="{ row }">
-            {{ row.unit_name }}
-          </template>
-        </el-table-column>
-        <el-table-column label="Harga Beli" width="300" align="center">
-          <el-table-column label="Harga" width="150" align="center">
+          <el-table-column
+            v-if="
+              statusRAB().includes(
+                canvassingData?.status ?? CanvassingStatus.DRAFT
+              ) || editState
+            "
+            prop="item_name"
+            label="Item"
+            width="500"
+            fixed="left"
+          >
             <template #default="{ row }">
-              <div v-if="row.type === 'child'" class="text-right">
-                {{ currency(row.unit_price) }}
+              {{ row.catalogue_name }}
+            </template>
+          </el-table-column>
+          <el-table-column v-else prop="item_name" label="Item" fixed="left">
+            <template #default="{ row }">
+              {{ row.catalogue_name }}
+            </template>
+          </el-table-column>
+
+          <el-table-column
+            prop="vendor_name"
+            label="Vendor"
+            width="200"
+            fixed="left"
+          >
+            <template #default="{ row }">
+              {{ row.vendor_name || "" }}
+            </template>
+          </el-table-column>
+
+          <el-table-column
+            prop="type_item"
+            label="Item Type"
+            width="150"
+            fixed="left"
+          >
+            <template #default="{ row }">
+              <div v-if="row.type === 'parent'">
+                {{ row.type_item == "request" ? "Permintaan" : "Equivalent" }}
+              </div>
+              <div v-else>
+                {{
+                  row.type_item == "original"
+                    ? "AS Requested"
+                    : row.type_item == "quotation"
+                    ? "Subtitution"
+                    : "Equivalent"
+                }}
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="Total" width="150" align="center">
+
+          <el-table-column
+            prop="status"
+            v-if="
+              canvassingData?.status == CanvassingStatus.PENDING_APPROVAL ||
+              canvassingData?.status == CanvassingStatus.DONE
+            "
+            label="Status"
+            width="130"
+            fixed="left"
+            align="center"
+          >
             <template #default="{ row }">
-              <div v-if="row.type === 'child'" class="text-right">
-                {{ currency(Number(row.unit_price) * Number(row.quantity)) }}
+              <div v-if="row.type === 'child'">
+                <el-tag :type="getStatusTagTypeItem(row.status)">
+                  {{ getStatusTabLabelItem(row.status) }}
+                </el-tag>
+              </div>
+              <div v-else-if="row.type === 'parent'"></div>
+            </template>
+          </el-table-column>
+
+          <el-table-column prop="sn" label="SN/PN" width="150">
+            <template #default="{ row }">
+              {{ row.sn ?? "N/A" }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="qty" label="Qty" width="78">
+            <template #default="{ row }">
+              {{ row.quantity }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="unit_name" label="UOM" width="100">
+            <template #default="{ row }">
+              {{ row.unit_name }}
+            </template>
+          </el-table-column>
+          <el-table-column label="Harga Beli" width="300" align="center">
+            <el-table-column label="Harga" width="150" align="center">
+              <template #default="{ row }">
+                <div v-if="row.type === 'child'" class="text-right">
+                  {{ currency(row.unit_price) }}
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="Total" width="150" align="center">
+              <template #default="{ row }">
+                <div v-if="row.type === 'child'" class="text-right">
+                  {{ currency(Number(row.unit_price) * Number(row.quantity)) }}
+                </div>
+              </template>
+            </el-table-column>
+          </el-table-column>
+
+          <el-table-column
+            v-if="
+              statusRAB().includes(
+                canvassingData?.status ?? CanvassingStatus.DRAFT
+              ) || editState
+            "
+            label="Profit"
+            width="200"
+          >
+            <template #default="{ row }">
+              <div v-if="row.type == 'child'">
+                {{
+                  `${currency(Math.round(row.profit_nominal || 0))} (${
+                    row.profit
+                  } %)`
+                }}
               </div>
             </template>
           </el-table-column>
-        </el-table-column>
-
-        <el-table-column
-          v-if="
-            statusRAB().includes(
-              canvassingData?.status ?? CanvassingStatus.DRAFT
-            ) || editState
-          "
-          label="Profit"
-          width="200"
-        >
-          <template #default="{ row }">
-            <div v-if="row.type == 'child'">
-              {{
-                `${currency(Math.round(row.profit_nominal || 0))} (${
-                  row.profit
-                } %)`
-              }}
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column
-          v-if="
-            statusRAB().includes(
-              canvassingData?.status ?? CanvassingStatus.DRAFT
-            ) || editState
-          "
-          label="Fee"
-          width="200"
-        >
-          <template #default="{ row }">
-            <div v-if="row.type === 'child'">
-              {{ `${row.fee_nominal || 0} (${row.fee} %)` }}
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column
-          v-if="
-            statusRAB().includes(
-              canvassingData?.status ?? CanvassingStatus.DRAFT
-            ) || editState
-          "
-          label="Ongkir"
-          width="200"
-        >
-          <template #default="{ row }">
-            <div v-if="row.type === 'child'">
-              {{
-                `${row.ongkir_nominal || 0} (${(row.ongkir as number).toFixed(
-                  2
-                )} %)`
-              }}
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column
-          v-if="
-            statusRAB().includes(
-              canvassingData?.status ?? CanvassingStatus.DRAFT
-            ) || editState
-          "
-          label="Harga Jual"
-          width="200"
-          align="center"
-        >
-          <el-table-column label="Harga Jual" width="150" align="center">
+          <el-table-column
+            v-if="
+              statusRAB().includes(
+                canvassingData?.status ?? CanvassingStatus.DRAFT
+              ) || editState
+            "
+            label="Fee"
+            width="200"
+          >
             <template #default="{ row }">
-              <div class="text-right">
-                {{ currency(row.selling_price ?? 0) }}
+              <div v-if="row.type === 'child'">
+                {{ `${row.fee_nominal || 0} (${row.fee} %)` }}
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="Total Harga" width="150" align="center">
+          <el-table-column
+            v-if="
+              statusRAB().includes(
+                canvassingData?.status ?? CanvassingStatus.DRAFT
+              ) || editState
+            "
+            label="Ongkir"
+            width="200"
+          >
             <template #default="{ row }">
-              <div class="text-right">
-                {{ currency(row.total_selling_price ?? 0) }}
+              <div v-if="row.type === 'child'">
+                {{
+                  `${row.ongkir_nominal || 0} (${(row.ongkir as number).toFixed(
+                    2
+                  )} %)`
+                }}
               </div>
             </template>
           </el-table-column>
-        </el-table-column>
 
-        <el-table-column
-          v-if="
-            statusRAB().includes(
-              canvassingData?.status ?? CanvassingStatus.DRAFT
-            ) || editState
-          "
-          label="Margin (%)"
-          width="150"
-        >
-          <template #default="{ row }">
-            <div v-if="row.type === 'child' && row.unit_price">
-              {{ calculateMargin(row).toFixed(2) }} %
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
+          <el-table-column
+            v-if="
+              statusRAB().includes(
+                canvassingData?.status ?? CanvassingStatus.DRAFT
+              ) || editState
+            "
+            label="Harga Jual"
+            width="200"
+            align="center"
+          >
+            <el-table-column label="Harga Jual" width="150" align="center">
+              <template #default="{ row }">
+                <div class="text-right">
+                  {{ currency(row.selling_price ?? 0) }}
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="Total Harga" width="150" align="center">
+              <template #default="{ row }">
+                <div class="text-right">
+                  {{ currency(row.total_selling_price ?? 0) }}
+                </div>
+              </template>
+            </el-table-column>
+          </el-table-column>
+
+          <el-table-column
+            v-if="
+              statusRAB().includes(
+                canvassingData?.status ?? CanvassingStatus.DRAFT
+              ) || editState
+            "
+            label="Margin (%)"
+            width="150"
+          >
+            <template #default="{ row }">
+              <div v-if="row.type === 'child' && row.unit_price">
+                {{ calculateMargin(row).toFixed(2) }} %
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+      </TrumsDragScrollTable>
     </el-card>
 
     <el-card class="mb-3" shadow="never">
@@ -861,126 +863,133 @@
       title="Pilih Item Yang Akan Diajukan!"
       width="1200"
     >
-      <el-table
-        ref="tableRef"
-        :data="item_canvassing"
-        row-key="index"
-        @select="handleSelect"
-        @select-all="handleSelectAll"
-        :tree-props="{ children: 'children' }"
-        :row-class-name="tableRowClassName"
-        :expand-row-keys="getExpandRowKeys ?? []"
-        :size="'small'"
-        border
-      >
-        <el-table-column
-          type="selection"
-          width="55"
-          :selectable="(row: any, index: any) => selectableCheckbox(row, index)"
-        />
-        <el-table-column prop="item_name" label="Item" width="400" fixed="left">
-          <template #default="{ row }">
-            {{ row.catalogue_name }}
-          </template>
-        </el-table-column>
+      <TrumsDragScrollTable>
+        <el-table
+          ref="tableRef"
+          :data="item_canvassing"
+          row-key="index"
+          @select="handleSelect"
+          @select-all="handleSelectAll"
+          :tree-props="{ children: 'children' }"
+          :row-class-name="tableRowClassName"
+          :expand-row-keys="getExpandRowKeys ?? []"
+          :size="'small'"
+          border
+        >
+          <el-table-column
+            type="selection"
+            width="55"
+            :selectable="(row: any, index: any) => selectableCheckbox(row, index)"
+          />
+          <el-table-column
+            prop="item_name"
+            label="Item"
+            width="400"
+            fixed="left"
+          >
+            <template #default="{ row }">
+              {{ row.catalogue_name }}
+            </template>
+          </el-table-column>
 
-        <el-table-column prop="qty" label="Qty" width="78">
-          <template #default="{ row }">
-            {{ row.quantity }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="unit_name" label="UOM" width="100">
-          <template #default="{ row }">
-            {{ row.unit_name }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="vendor" label="Vendor" width="200">
-          <template #default="{ row }">
-            {{ row.vendor_name }}
-          </template>
-        </el-table-column>
+          <el-table-column prop="qty" label="Qty" width="78">
+            <template #default="{ row }">
+              {{ row.quantity }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="unit_name" label="UOM" width="100">
+            <template #default="{ row }">
+              {{ row.unit_name }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="vendor" label="Vendor" width="200">
+            <template #default="{ row }">
+              {{ row.vendor_name }}
+            </template>
+          </el-table-column>
 
-        <el-table-column label="Harga Beli" width="200" align="center">
-          <el-table-column label="Harga Beli" width="150" align="center">
+          <el-table-column label="Harga Beli" width="200" align="center">
+            <el-table-column label="Harga Beli" width="150" align="center">
+              <template #default="{ row }">
+                <div v-if="row.type === 'child'" class="text-right">
+                  {{ currency(row.unit_price) }}
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="Total Harga" width="150" align="center">
+              <template #default="{ row }">
+                <div v-if="row.type === 'child'" class="text-right">
+                  {{ currency(row.total_price) }}
+                </div>
+              </template>
+            </el-table-column>
+          </el-table-column>
+
+          <el-table-column label="Profit" width="200">
+            <template #default="{ row }">
+              <div v-if="row.type === 'child'">
+                <div class="text-right">
+                  {{
+                    row.profit_unit == "percent"
+                      ? currency(Math.round(row.profit_nominal || 0))
+                      : row.profit
+                  }}
+                  ({{ row.profit }}%)
+                </div>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="Fee" width="200">
+            <template #default="{ row }">
+              <div v-if="row.type === 'child'">
+                <div class="text-right">
+                  {{
+                    row.fee_unit == "percent"
+                      ? currency(Math.round(row.fee_nominal || 0))
+                      : row.fee
+                  }}
+                  ({{ row.fee }}%)
+                </div>
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="Ongkir" width="200">
             <template #default="{ row }">
               <div v-if="row.type === 'child'" class="text-right">
-                {{ currency(row.unit_price) }}
+                {{ currency(row.ongkir) }}
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="Total Harga" width="150" align="center">
-            <template #default="{ row }">
-              <div v-if="row.type === 'child'" class="text-right">
-                {{ currency(row.total_price) }}
-              </div>
-            </template>
-          </el-table-column>
-        </el-table-column>
 
-        <el-table-column label="Profit" width="200">
-          <template #default="{ row }">
-            <div v-if="row.type === 'child'">
-              <div class="text-right">
-                {{
-                  row.profit_unit == "percent"
-                    ? currency(Math.round(row.profit_nominal || 0))
-                    : row.profit
-                }}
-                ({{ row.profit }}%)
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="Fee" width="200">
-          <template #default="{ row }">
-            <div v-if="row.type === 'child'">
-              <div class="text-right">
-                {{
-                  row.fee_unit == "percent"
-                    ? currency(Math.round(row.fee_nominal || 0))
-                    : row.fee
-                }}
-                ({{ row.fee }}%)
-              </div>
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="Ongkir" width="200">
-          <template #default="{ row }">
-            <div v-if="row.type === 'child'" class="text-right">
-              {{ currency(row.ongkir) }}
-            </div>
-          </template>
-        </el-table-column>
+          <el-table-column label="Harga Jual" width="200" align="center">
+            <el-table-column label="Harga Jual" width="150" align="center">
+              <template #default="{ row }">
+                <div class="text-right">
+                  {{ currency(row.selling_price ?? 0) }}
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="Total Harga" width="150" align="center">
+              <template #default="{ row }">
+                <div class="text-right">
+                  {{ currency(row.total_selling_price ?? 0) }}
+                </div>
+              </template>
+            </el-table-column>
+          </el-table-column>
 
-        <el-table-column label="Harga Jual" width="200" align="center">
-          <el-table-column label="Harga Jual" width="150" align="center">
+          <el-table-column label="Margin (%)" width="100" align="center">
             <template #default="{ row }">
-              <div class="text-right">
-                {{ currency(row.selling_price ?? 0) }}
+              <div
+                v-if="row.type === 'child' && row.unit_price"
+                class="text-right"
+              >
+                {{ calculateMargin(row!).toFixed(2) }} %
               </div>
             </template>
           </el-table-column>
-          <el-table-column label="Total Harga" width="150" align="center">
-            <template #default="{ row }">
-              <div class="text-right">
-                {{ currency(row.total_selling_price ?? 0) }}
-              </div>
-            </template>
-          </el-table-column>
-        </el-table-column>
-
-        <el-table-column label="Margin (%)" width="100" align="center">
-          <template #default="{ row }">
-            <div
-              v-if="row.type === 'child' && row.unit_price"
-              class="text-right"
-            >
-              {{ calculateMargin(row!).toFixed(2) }} %
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
+        </el-table>
+      </TrumsDragScrollTable>
       <template #footer>
         <div class="dialog-footer">
           <el-button @click="dialogSelectedItem = false">Cancel</el-button>
@@ -2833,6 +2842,8 @@ const initialCanvassing = (data: Canvassing) => {
           toItemCanvassing.selling_price = element.selling_price;
         }
       });
+
+      console.log("to item canvassing", toItemCanvassing);
       item_canvassing.value.push(toItemCanvassing);
     }
   });
@@ -3195,287 +3206,288 @@ const updateParentSelectionState = (
 };
 
 const submitApproveRab = async (status: CanvassingStatus) => {
-  loading.value = true;
-  try {
-    const referenceAdjustment: ReferenceTransactionAdjustment[] = [
-      ...references.value,
-      ...contactsFee.value,
-      adjustmentTransactionOngkirTotal.value as ReferenceTransactionAdjustment,
-    ];
-    const referenceAdjustmentVendor: ReferenceTransactionAdjustment[] = [];
+  console.log("selected", selectedChildren.value);
+  // loading.value = true;
+  // try {
+  //   const referenceAdjustment: ReferenceTransactionAdjustment[] = [
+  //     ...references.value,
+  //     ...contactsFee.value,
+  //     adjustmentTransactionOngkirTotal.value as ReferenceTransactionAdjustment,
+  //   ];
+  //   const referenceAdjustmentVendor: ReferenceTransactionAdjustment[] = [];
 
-    item_canvassing.value.forEach((element) => {
-      element.children.forEach((child) => {
-        child.contacts_fee.forEach((fee) => {
-          fee.reference_id = child.unique_id ?? "";
-          referenceAdjustmentVendor.push(fee);
-        });
-        referenceAdjustmentVendor.push({
-          unique_id: "",
-          reference: ReferenceAdjustment.CANVASSINGVENDOR,
-          reference_id: child.unique_id ?? "",
-          adjustment_id: `${adjustmentOngkir.value?.unique_id}`,
-          adjustment: adjustmentOngkir.value,
-          value: child.ongkir,
-          type: child.ongkir_unit as FeeType,
-          amount: child.ongkir,
-        });
-      });
-    });
+  //   item_canvassing.value.forEach((element) => {
+  //     element.children.forEach((child) => {
+  //       child.contacts_fee.forEach((fee) => {
+  //         fee.reference_id = child.unique_id ?? "";
+  //         referenceAdjustmentVendor.push(fee);
+  //       });
+  //       referenceAdjustmentVendor.push({
+  //         unique_id: "",
+  //         reference: ReferenceAdjustment.CANVASSINGVENDOR,
+  //         reference_id: child.unique_id ?? "",
+  //         adjustment_id: `${adjustmentOngkir.value?.unique_id}`,
+  //         adjustment: adjustmentOngkir.value,
+  //         value: child.ongkir,
+  //         type: child.ongkir_unit as FeeType,
+  //         amount: child.ongkir,
+  //       });
+  //     });
+  //   });
 
-    // Membuat FormData
-    const formData = new FormData();
+  //   // Membuat FormData
+  //   const formData = new FormData();
 
-    // Menambahkan data utama
-    formData.append("unique_id", canvassingData.value?.unique_id || "");
-    formData.append(
-      "source_document",
-      canvassingData.value?.source_document || ""
-    );
-    formData.append("description", canvassingData.value?.description || "");
-    formData.append("status", status || "");
-    formData.append(`payment_term`, `${canvassingData.value?.payment_term}`);
-    formData.append(`tempo_value`, `${canvassingData.value?.tempo_value}`);
-    formData.append(`tempo_unit`, `${canvassingData.value?.tempo_unit}`);
-    formData.append(`address_id`, `${canvassingData.value?.address_id}`);
-    formData.append(
-      `address_version`,
-      `${canvassingData.value?.address_version}`
-    );
+  //   // Menambahkan data utama
+  //   formData.append("unique_id", canvassingData.value?.unique_id || "");
+  //   formData.append(
+  //     "source_document",
+  //     canvassingData.value?.source_document || ""
+  //   );
+  //   formData.append("description", canvassingData.value?.description || "");
+  //   formData.append("status", status || "");
+  //   formData.append(`payment_term`, `${canvassingData.value?.payment_term}`);
+  //   formData.append(`tempo_value`, `${canvassingData.value?.tempo_value}`);
+  //   formData.append(`tempo_unit`, `${canvassingData.value?.tempo_unit}`);
+  //   formData.append(`address_id`, `${canvassingData.value?.address_id}`);
+  //   formData.append(
+  //     `address_version`,
+  //     `${canvassingData.value?.address_version}`
+  //   );
 
-    // Append canvassing_items dengan individual fields
-    item_canvassing.value.forEach((item: CanvassingItemForm, i: number) => {
-      formData.append(`canvassing_items[${i}][unique_id]`, `${item.unique_id}`);
-      formData.append(
-        `canvassing_items[${i}][canvassing_id]`,
-        `${canvassingData.value?.unique_id}`
-      );
-      formData.append(`canvassing_items[${i}][quantity]`, `${item.quantity}`);
-      formData.append(
-        `canvassing_items[${i}][catalogue_id]`,
-        `${item.catalogue_id}`
-      );
-      formData.append(
-        `canvassing_items[${i}][catalogue_name]`,
-        `${item.catalogue_name}`
-      );
-      formData.append(`canvassing_items[${i}][unit_id]`, `${item.unit_id}`);
-      formData.append(`canvassing_items[${i}][unit_name]`, `${item.unit_name}`);
-      formData.append(
-        `canvassing_items[${i}][unit_selling_price]`,
-        `${item.selling_price}`
-      );
-      formData.append(`canvassing_items[${i}][type_item]`, `${item.type_item}`);
-      formData.append(
-        `canvassing_items[${i}][equivalent_id]`,
-        `${item.equivalent_id}`
-      );
+  //   // Append canvassing_items dengan individual fields
+  //   item_canvassing.value.forEach((item: CanvassingItemForm, i: number) => {
+  //     formData.append(`canvassing_items[${i}][unique_id]`, `${item.unique_id}`);
+  //     formData.append(
+  //       `canvassing_items[${i}][canvassing_id]`,
+  //       `${canvassingData.value?.unique_id}`
+  //     );
+  //     formData.append(`canvassing_items[${i}][quantity]`, `${item.quantity}`);
+  //     formData.append(
+  //       `canvassing_items[${i}][catalogue_id]`,
+  //       `${item.catalogue_id}`
+  //     );
+  //     formData.append(
+  //       `canvassing_items[${i}][catalogue_name]`,
+  //       `${item.catalogue_name}`
+  //     );
+  //     formData.append(`canvassing_items[${i}][unit_id]`, `${item.unit_id}`);
+  //     formData.append(`canvassing_items[${i}][unit_name]`, `${item.unit_name}`);
+  //     formData.append(
+  //       `canvassing_items[${i}][unit_selling_price]`,
+  //       `${item.selling_price}`
+  //     );
+  //     formData.append(`canvassing_items[${i}][type_item]`, `${item.type_item}`);
+  //     formData.append(
+  //       `canvassing_items[${i}][equivalent_id]`,
+  //       `${item.equivalent_id}`
+  //     );
 
-      // const valueSelected = selectedVendors.value[item.unique_id];
+  //     // const valueSelected = selectedVendors.value[item.unique_id];
 
-      // Append canvassing_vendor
-      // Append canvassing_vendor fields satu per satu
-      item.children.forEach((vendor: CanvassingItemForm, j: any) => {
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][unique_id]`,
-          `${vendor.unique_id}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][pricetag_item_id]`,
-          `${vendor.pricetag_item_id}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][pricetag_item_version]`,
-          `${vendor.pricetag_item_version}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][vendor_id]`,
-          `${vendor.vendor_id}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][canvassing_item_id]`,
-          `${item.unique_id}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][catalogue_id]`,
-          `${vendor.catalogue_id}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][catalogue_name]`,
-          `${vendor.catalogue_name}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][type_item]`,
-          `${vendor.type_item}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][equivalent_id]`,
-          `${vendor.equivalent_id}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][quantity]`,
-          `${vendor.quantity}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][unit_price]`,
-          `${vendor.unit_price}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][selling_price]`,
-          `${vendor.selling_price}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][unit_id]`,
-          `${item.unit_id}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][unit_name]`,
-          `${item.unit_name}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][total_price]`,
-          `${Number(vendor.quantity) * Number(vendor.unit_price)}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][profit]`,
-          `${vendor.profit}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][profit_unit]`,
-          `${vendor.profit_unit}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][fee]`,
-          `${vendor.fee}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][fee_unit]`,
-          `${vendor.fee_unit}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][ongkir]`,
-          `${vendor.ongkir}`
-        );
-        formData.append(
-          `canvassing_items[${i}][canvassing_vendor][${j}][ongkir_unit]`,
-          `${vendor.ongkir_unit}`
-        );
+  //     // Append canvassing_vendor
+  //     // Append canvassing_vendor fields satu per satu
+  //     item.children.forEach((vendor: CanvassingItemForm, j: any) => {
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][unique_id]`,
+  //         `${vendor.unique_id}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][pricetag_item_id]`,
+  //         `${vendor.pricetag_item_id}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][pricetag_item_version]`,
+  //         `${vendor.pricetag_item_version}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][vendor_id]`,
+  //         `${vendor.vendor_id}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][canvassing_item_id]`,
+  //         `${item.unique_id}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][catalogue_id]`,
+  //         `${vendor.catalogue_id}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][catalogue_name]`,
+  //         `${vendor.catalogue_name}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][type_item]`,
+  //         `${vendor.type_item}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][equivalent_id]`,
+  //         `${vendor.equivalent_id}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][quantity]`,
+  //         `${vendor.quantity}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][unit_price]`,
+  //         `${vendor.unit_price}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][selling_price]`,
+  //         `${vendor.selling_price}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][unit_id]`,
+  //         `${item.unit_id}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][unit_name]`,
+  //         `${item.unit_name}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][total_price]`,
+  //         `${Number(vendor.quantity) * Number(vendor.unit_price)}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][profit]`,
+  //         `${vendor.profit}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][profit_unit]`,
+  //         `${vendor.profit_unit}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][fee]`,
+  //         `${vendor.fee}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][fee_unit]`,
+  //         `${vendor.fee_unit}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][ongkir]`,
+  //         `${vendor.ongkir}`
+  //       );
+  //       formData.append(
+  //         `canvassing_items[${i}][canvassing_vendor][${j}][ongkir_unit]`,
+  //         `${vendor.ongkir_unit}`
+  //       );
 
-        // formData.append(
-        //   `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
-        //   `${
-        //     vendor.checked && vendor.status == CanvassingVendorStatus.SELECTED
-        //       ? CanvassingVendorStatus.SELECTED
-        //       : vendor.checked
-        //       ? CanvassingVendorStatus.SUBMITTED
-        //       : CanvassingVendorStatus.REJECTED
-        //   }`
-        // );
+  //       // formData.append(
+  //       //   `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
+  //       //   `${
+  //       //     vendor.checked && vendor.status == CanvassingVendorStatus.SELECTED
+  //       //       ? CanvassingVendorStatus.SELECTED
+  //       //       : vendor.checked
+  //       //       ? CanvassingVendorStatus.SUBMITTED
+  //       //       : CanvassingVendorStatus.REJECTED
+  //       //   }`
+  //       // );
 
-        // if (vendor.status == CanvassingVendorStatus.SELECTED) {
-        //   formData.append(
-        //     `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
-        //     `${CanvassingVendorStatus.SELECTED}`
-        //   );
-        // } else if (vendor.checked) {
-        //   formData.append(
-        //     `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
-        //     `${CanvassingVendorStatus.SUBMITTED}`
-        //   );
-        // } else {
-        //   formData.append(
-        //     `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
-        //     `${CanvassingVendorStatus.REJECTED}`
-        //   );
-        // }
+  //       // if (vendor.status == CanvassingVendorStatus.SELECTED) {
+  //       //   formData.append(
+  //       //     `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
+  //       //     `${CanvassingVendorStatus.SELECTED}`
+  //       //   );
+  //       // } else if (vendor.checked) {
+  //       //   formData.append(
+  //       //     `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
+  //       //     `${CanvassingVendorStatus.SUBMITTED}`
+  //       //   );
+  //       // } else {
+  //       //   formData.append(
+  //       //     `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
+  //       //     `${CanvassingVendorStatus.REJECTED}`
+  //       //   );
+  //       // }
 
-        if (
-          selectedChildren.value.find(
-            (child) => child.unique_id == vendor.unique_id
-          )
-        ) {
-          formData.append(
-            `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
-            `${CanvassingVendorStatus.SELECTED}`
-          );
-        } else {
-          formData.append(
-            `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
-            `${CanvassingVendorStatus.SUBMITTED}`
-          );
-        }
+  //       if (
+  //         selectedChildren.value.find(
+  //           (child) => child.unique_id == vendor.unique_id
+  //         )
+  //       ) {
+  //         formData.append(
+  //           `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
+  //           `${CanvassingVendorStatus.SELECTED}`
+  //         );
+  //       } else {
+  //         formData.append(
+  //           `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
+  //           `${CanvassingVendorStatus.SUBMITTED}`
+  //         );
+  //       }
 
-        let referenceCanvassingVendor: ReferenceTransactionAdjustment[] =
-          vendor.contacts_fee;
+  //       let referenceCanvassingVendor: ReferenceTransactionAdjustment[] =
+  //         vendor.contacts_fee;
 
-        referenceCanvassingVendor.push({
-          unique_id: "",
-          reference: ReferenceAdjustment.CANVASSINGVENDOR,
-          reference_id: vendor.unique_id ?? "",
-          adjustment_id: `${adjustmentOngkir.value?.unique_id}`,
-          adjustment: adjustmentOngkir.value,
-          value: vendor.ongkir,
-          type: vendor.ongkir_unit as FeeType,
-          amount: vendor.ongkir,
-        });
-      });
-    });
+  //       referenceCanvassingVendor.push({
+  //         unique_id: "",
+  //         reference: ReferenceAdjustment.CANVASSINGVENDOR,
+  //         reference_id: vendor.unique_id ?? "",
+  //         adjustment_id: `${adjustmentOngkir.value?.unique_id}`,
+  //         adjustment: adjustmentOngkir.value,
+  //         value: vendor.ongkir,
+  //         type: vendor.ongkir_unit as FeeType,
+  //         amount: vendor.ongkir,
+  //       });
+  //     });
+  //   });
 
-    referenceAdjustment.forEach((ref, i) => {
-      const refFields = {
-        unique_id: ref.unique_id,
-        adjustment_id: ref.adjustment_id,
-        value: ref.value,
-        amount: ref.amount,
-        type: ref.type,
-        party_type: ref.party_type,
-        party_id: ref.party_id,
-        reference: ref.reference,
-        reference_id: ref.reference_id,
-      };
+  //   referenceAdjustment.forEach((ref, i) => {
+  //     const refFields = {
+  //       unique_id: ref.unique_id,
+  //       adjustment_id: ref.adjustment_id,
+  //       value: ref.value,
+  //       amount: ref.amount,
+  //       type: ref.type,
+  //       party_type: ref.party_type,
+  //       party_id: ref.party_id,
+  //       reference: ref.reference,
+  //       reference_id: ref.reference_id,
+  //     };
 
-      Object.entries(refFields).forEach(([key, value]) => {
-        formData.append(`reference_transaction[${i}][${key}]`, `${value}`);
-      });
-    });
+  //     Object.entries(refFields).forEach(([key, value]) => {
+  //       formData.append(`reference_transaction[${i}][${key}]`, `${value}`);
+  //     });
+  //   });
 
-    (props.canvassingData.payment_terms ?? []).forEach((term, iterm) => {
-      formData.append(`payment_terms[${iterm}][unique_id]`, term.unique_id);
-      formData.append(`payment_terms[${iterm}][name]`, term.name);
-      formData.append(`payment_terms[${iterm}][value]`, `${term.value}`);
-      formData.append(`payment_terms[${iterm}][unit]`, `${term.unit}`);
-      formData.append(
-        `payment_terms[${iterm}][term_of_payment]`,
-        `${term.term_of_payment}`
-      );
-      formData.append(`payment_terms[${iterm}][duration]`, `${term.duration}`);
-    });
+  //   (props.canvassingData.payment_terms ?? []).forEach((term, iterm) => {
+  //     formData.append(`payment_terms[${iterm}][unique_id]`, term.unique_id);
+  //     formData.append(`payment_terms[${iterm}][name]`, term.name);
+  //     formData.append(`payment_terms[${iterm}][value]`, `${term.value}`);
+  //     formData.append(`payment_terms[${iterm}][unit]`, `${term.unit}`);
+  //     formData.append(
+  //       `payment_terms[${iterm}][term_of_payment]`,
+  //       `${term.term_of_payment}`
+  //     );
+  //     formData.append(`payment_terms[${iterm}][duration]`, `${term.duration}`);
+  //   });
 
-    // Untuk debugging: lihat semua entries FormData
-    console.log("=== FORM DATA ENTRIES ===");
-    for (let [key, value] of formData.entries()) {
-      console.log(`${key}:`, value);
-    }
+  //   // Untuk debugging: lihat semua entries FormData
+  //   console.log("=== FORM DATA ENTRIES ===");
+  //   for (let [key, value] of formData.entries()) {
+  //     console.log(`${key}:`, value);
+  //   }
 
-    const response = await useFetchApi<BaseResponse<Canvassing>>(
-      "/canvassing-create",
-      "create-canvasing",
-      "post",
-      formData
-    );
-    if (response.status.value === "success") {
-      ElMessage.success(`Berhasil Membuat Data Canvasing!`);
-      item_canvassing.value = [];
-      contactsFee.value = [];
-      editState.value = false;
-      dialogSelectedItem.value = false;
-      fetchCanvassing();
-    }
-  } catch (error: any) {
-    ElMessage.error(error.response?.message ?? error);
-  } finally {
-    loading.value = false;
-  }
+  //   const response = await useFetchApi<BaseResponse<Canvassing>>(
+  //     "/canvassing-create",
+  //     "create-canvasing",
+  //     "post",
+  //     formData
+  //   );
+  //   if (response.status.value === "success") {
+  //     ElMessage.success(`Berhasil Membuat Data Canvasing!`);
+  //     item_canvassing.value = [];
+  //     contactsFee.value = [];
+  //     editState.value = false;
+  //     dialogSelectedItem.value = false;
+  //     fetchCanvassing();
+  //   }
+  // } catch (error: any) {
+  //   ElMessage.error(error.response?.message ?? error);
+  // } finally {
+  //   loading.value = false;
+  // }
 };
 const cancelSubmissionApproval = async () => {
   loading.value = true;

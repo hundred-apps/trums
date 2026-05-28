@@ -506,6 +506,13 @@
           >
           <el-descriptions-item
             :width="100"
+            label="DPP Nilai Lain"
+            align="right"
+            v-if="getDPPNilaiLain > 0"
+            >{{ currency(getDPPNilaiLain) }}</el-descriptions-item
+          >
+          <el-descriptions-item
+            :width="100"
             align="right"
             v-for="ref in references.filter(
               (value) =>
@@ -1176,6 +1183,27 @@ watch(
   { immediate: true }
 );
 
+const getDPPNilaiLain = computed(() => {
+  let dpp = 0;
+  references.value.forEach((element) => {
+    if (
+      element.adjustment?.category == "tax" &&
+      element.adjustment.name.toLowerCase() === "ppn"
+    ) {
+      console.log("type", element.type);
+      if (element.type != "amount" && element.amount == 12) {
+        dpp = (subtotal.value * 11) / 12;
+        console.log("dpp 12", dpp);
+      } else {
+        dpp = subtotal.value;
+        console.log("dpp 11", dpp);
+      }
+    }
+  });
+
+  return dpp;
+});
+
 const showTransactionAdjustmentValue = (
   ref: ReferenceTransactionAdjustment
 ) => {
@@ -1186,15 +1214,15 @@ const showTransactionAdjustmentValue = (
       ref.adjustment?.category == "tax" &&
       ref.adjustment.name.toLowerCase() === "ppn"
     ) {
-      const dpp: ReferenceTransactionAdjustment | undefined =
-        references.value.find(
-          (value) => value.adjustment?.unique_code == "DPPL"
-        );
-      if (dpp) {
-        const dppValue = getDPPFormula(dpp, subtotal.value || 0);
-        return getPPNFormula(ref, dppValue || subtotal.value);
+      if (ref.type == "amount") {
+        return ref.amount;
       } else {
-        return getPPNFormula(ref, subtotal.value);
+        // if (ref.amount == 11) {
+        //   return subtotal.value * ref.amount;
+        // } else if (ref.amount == 12) {
+        //   return ((subtotal.value * 11) / 12) * ref.amount;
+        // }
+        return displayAmount(ref, getDPPNilaiLain.value);
       }
     } else {
       return ref.type == "amount"
@@ -1386,22 +1414,8 @@ const ppnComponent = computed(() => {
       value.adjustment?.category == "tax" &&
       value.adjustment?.name.toLowerCase() === "ppn"
   );
-
   if (ppnComponentRef) {
-    if (dppComponent.value) {
-      const dppValue = getDPPFormula(dppComponent.value, subtotal.value || 0);
-      if (ppnComponentRef.include) {
-        return 0;
-      } else {
-        return getPPNFormula(ppnComponentRef, dppValue);
-      }
-    } else {
-      if (ppnComponentRef.include) {
-        return 0;
-      } else {
-        return getPPNFormula(ppnComponentRef, subtotal.value || 0);
-      }
-    }
+    return getPPNFormula(ppnComponentRef!, getDPPNilaiLain.value || 0);
   } else {
     return 0;
   }
@@ -2917,6 +2931,54 @@ const fetchCanvassing = async () => {
     loading.value = false;
   }
 };
+
+const fetchPricetagItems = async () => {
+  loading.value = true;
+  try {
+    const request_search: RequestSearch = {
+      keyword: "",
+      table: "pricetag_item",
+      column: [
+        {
+          pricetag: {
+            unique_id: props.data?.unique_id || "",
+          },
+        },
+      ],
+      sort: null,
+      offset: "1",
+      limit: "200",
+    };
+
+    const response = await useFetchApi<ResponsePagination<Pricetag_item[]>>(
+      "/search",
+      "fetch-items",
+      "post",
+      request_search
+    );
+
+    if (response.status.value == "success") {
+      ruleForm.pricetag_item = (response.data.value?.data || []).map(
+        (item) => ({ ...item, item_name: item.catalogue?.name || "" })
+      );
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+// watch(
+//   () => props.data,
+//   () => {
+//     console.log("props", props.data);
+//     if (props.data?.unique_id) {
+//       fetchPricetagItems();
+//     }
+//   },
+//   { immediate: true }
+// );
 
 const initialSetting = () => {
   const store = localStorage.getItem("setting");

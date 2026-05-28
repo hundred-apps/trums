@@ -1,20 +1,22 @@
 <template>
   <el-card class="my-3" shadow="never">
     <template #header>
-      <div class="card-header">
-        <el-form-item
-          v-if="dataInterface.data?.type == 'out'"
-          label="Tipe Summery"
-          style="margin: 0 !important"
-          size="small"
-        >
-          <el-radio-group v-model="typeSummery">
-            <el-radio value="satuan">Satuan</el-radio>
-            <el-radio value="total">Total</el-radio>
-          </el-radio-group>
-        </el-form-item>
-        <div class="flex items-center justify-between">
+      <div class="card-header flex items-center justify-between">
+        <div>
+          <el-form-item
+            v-if="dataInterface.data?.type == 'out'"
+            label="Tipe Summery"
+            style="margin: 0 !important"
+            size="small"
+          >
+            <el-radio-group v-model="typeSummery">
+              <el-radio value="satuan">Satuan</el-radio>
+              <el-radio value="total">Total</el-radio>
+            </el-radio-group>
+          </el-form-item>
           <span>{{ dataInterface.data?.unique_code }}</span>
+        </div>
+        <div class="flex items-center justify-between gap-2">
           <NuxtLink
             v-if="canAccess('pricetag-update', dataInterface?.privilege ?? [])"
             :href="`/${
@@ -36,13 +38,15 @@
           >
             Edit
           </NuxtLink> -->
-          <!-- <TrumsCustomButton
+          <TrumsCustomButton
+            v-if="dataInterface.data?.type == 'out'"
             :type="'primary'"
-            text="Cetak Penawaran"
             @click="generateQuotation"
             :loading="loading"
             :disabled="false"
-          /> -->
+          >
+            <el-icon> <Printer /> </el-icon>
+          </TrumsCustomButton>
         </div>
       </div>
     </template>
@@ -338,6 +342,13 @@
       >
       <el-descriptions-item
         :width="100"
+        label="DPP Nilai Lain"
+        align="right"
+        v-if="getDPPNilaiLain > 0"
+        >{{ currency(getDPPNilaiLain) }}</el-descriptions-item
+      >
+      <el-descriptions-item
+        :width="100"
         align="right"
         v-for="ref in (
           dataInterface.data?.reference_transaction_adjustment ?? []
@@ -403,7 +414,7 @@
 
 <script lang="tsx" setup>
 import { TrumsWrapper } from "#components";
-import { Edit, InfoFilled, Picture } from "@element-plus/icons-vue";
+import { Edit, InfoFilled, Picture, Printer } from "@element-plus/icons-vue";
 import type { ComponentSize, ElTable } from "element-plus";
 import jsPDF from "jspdf";
 import autoTable, {
@@ -614,6 +625,29 @@ const getPlus = computed(() => {
   return plus;
 });
 
+const getDPPNilaiLain = computed(() => {
+  let dpp = 0;
+  (props.dataInterface.data?.reference_transaction_adjustment || []).forEach(
+    (element) => {
+      if (
+        element.adjustments_transaction?.category == "tax" &&
+        element.adjustments_transaction.name.toLowerCase() === "ppn"
+      ) {
+        console.log("type", element.type);
+        if (element.type != "amount" && element.amount == 12) {
+          dpp = (subtotal.value * 11) / 12;
+          console.log("dpp 12", dpp);
+        } else {
+          dpp = subtotal.value;
+          console.log("dpp 11", dpp);
+        }
+      }
+    }
+  );
+
+  return dpp;
+});
+
 const generateQuotationPdf = async () => {
   const doc = new jsPDF();
   const today = new Date();
@@ -692,64 +726,64 @@ const generateQuotationPdf = async () => {
   // ================= BODY TEXT =================
   doc.text("Bersama ini kami kirimkan penawaran sebagai berikut:", marginX, 98);
 
-  let rowData: RowInput[] = (
-    props.dataInterface?.data?.pricetag_item ?? []
-  ).map((item: Pricetag_item, i: number) => [
-    {
-      content: `${i + 1}`,
-      styles: {
-        halign: "center",
-        lineWidth: 0.1,
-        lineColor: [0, 0, 0],
-        fillColor: [255, 255, 255],
+  let rowData: RowInput[] = (items.data.value?.data ?? []).map(
+    (item: Pricetag_item, i: number) => [
+      {
+        content: `${i + 1}`,
+        styles: {
+          halign: "center",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
       },
-    },
-    {
-      content: `${item.catalogue?.name}`,
-      styles: {
-        halign: "left",
-        lineWidth: 0.1,
-        lineColor: [0, 0, 0],
-        fillColor: [255, 255, 255],
+      {
+        content: `${item.catalogue?.name}`,
+        styles: {
+          halign: "left",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
       },
-    },
-    {
-      content: `${item.quantity}`,
-      styles: {
-        halign: "center",
-        lineWidth: 0.1,
-        lineColor: [0, 0, 0],
-        fillColor: [255, 255, 255],
+      {
+        content: `${item.quantity}`,
+        styles: {
+          halign: "center",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
       },
-    },
-    {
-      content: `${item.unit_name}`,
-      styles: {
-        halign: "center",
-        lineWidth: 0.1,
-        lineColor: [0, 0, 0],
-        fillColor: [255, 255, 255],
+      {
+        content: `${item.unit_name}`,
+        styles: {
+          halign: "center",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
       },
-    },
-    {
-      content: `${currencyWithoutSymbol(item.price)}`,
-      styles: {
-        halign: "right",
-        lineWidth: 0.1,
-        lineColor: [0, 0, 0],
-        fillColor: [255, 255, 255],
+      {
+        content: `${currencyWithoutSymbol(item.price)}`,
+        styles: {
+          halign: "right",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
       },
-    },
-    {
-      content: `${currencyWithoutSymbol(item.quantity * (item.price || 0))}`,
-      styles: {
-        halign: "right",
-        lineWidth: 0.1,
-        lineColor: [0, 0, 0],
-        fillColor: [255, 255, 255],
+      {
+        content: `${currencyWithoutSymbol(item.quantity * (item.price || 0))}`,
+        styles: {
+          halign: "right",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
       },
-    },
-  ]);
+    ]
+  );
 
   // console.log(rowData);
   // rowData.push(['','','','','Total Price',grandTotal])
@@ -972,6 +1006,32 @@ const generateQuotationPdf = async () => {
           value.adjustments_transaction?.category == "tax"
       )
       .forEach((element) => {
+        if (element.adjustments_transaction?.name.toLowerCase() == "ppn") {
+          rowData.push([
+            {
+              content: `DPP Nilai Lain`,
+              colSpan: 5,
+              styles: {
+                halign: "right",
+                fontStyle: "bold",
+                cellWidth: 0.0,
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+            {
+              content: `${currencyWithoutSymbol(getDPPNilaiLain.value)}`,
+              styles: {
+                halign: "right",
+                cellWidth: 0.0,
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+          ]);
+        }
         rowData.push([
           {
             content: `${element.adjustments_transaction?.name}`,
@@ -1192,28 +1252,17 @@ const generateQuotationPdf = async () => {
 };
 
 const ppnComponent = computed(() => {
-  const ppnComponentRef = getPPNComponent(
-    props.dataInterface.data?.reference_transaction_adjustment ?? []
+  const ppnComponentRef = (
+    props.dataInterface.data?.reference_transaction_adjustment || []
+  ).find(
+    (value) =>
+      (value.adjustment || value.adjustments_transaction!).category == "tax" &&
+      (
+        value.adjustment || value.adjustments_transaction!
+      ).name.toLowerCase() === "ppn"
   );
-  const dppComponent = getDppComponent(
-    props.dataInterface.data?.reference_transaction_adjustment ?? []
-  );
-  console.log("ppn componen", ppnComponentRef);
   if (ppnComponentRef) {
-    if (dppComponent) {
-      const dppValue = getDPPFormula(dppComponent, subtotal.value || 0);
-      if (ppnComponentRef.include) {
-        return 0;
-      } else {
-        return getPPNFormula(ppnComponentRef, dppValue);
-      }
-    } else {
-      if (ppnComponentRef.include) {
-        return 0;
-      } else {
-        return getPPNFormula(ppnComponentRef, subtotal.value || 0);
-      }
-    }
+    return getPPNFormula(ppnComponentRef!, getDPPNilaiLain.value || 0);
   } else {
     return 0;
   }
@@ -1235,14 +1284,15 @@ const showTransactionAdjustmentValue = (
       ref.adjustments_transaction?.category == "tax" &&
       ref.adjustments_transaction?.name.toLowerCase() === "ppn"
     ) {
-      const dpp: ReferenceTransactionAdjustment | undefined = (
-        props.dataInterface.data?.reference_transaction_adjustment ?? []
-      ).find((value) => value.adjustments_transaction?.unique_code == "DPPL");
-      if (dpp) {
-        const dppValue = getDPPFormula(dpp, subtotal.value || 0);
-        return getPPNFormula(ref, dppValue || subtotal.value);
+      if (ref.type == "amount") {
+        return ref.amount;
       } else {
-        return getPPNFormula(ref, subtotal.value);
+        // if (ref.amount == 11) {
+        //   return subtotal.value * ref.amount;
+        // } else if (ref.amount == 12) {
+        //   return ((subtotal.value * 11) / 12) * ref.amount;
+        // }
+        return displayAmount(ref, getDPPNilaiLain.value);
       }
     } else {
       return ref.type == "amount"

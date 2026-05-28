@@ -28,6 +28,10 @@ onMounted(async () => {
 
   scrollEl.style.cursor = "grab";
 
+  scrollEl.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+  });
+
   scrollEl.addEventListener("mousedown", startDrag);
   scrollEl.addEventListener("mousemove", onDrag);
   scrollEl.addEventListener("mouseup", stopDrag);
@@ -36,7 +40,7 @@ onMounted(async () => {
 
 const startDrag = (e: MouseEvent) => {
   const target = e.target as HTMLElement;
-
+  if (e.button !== 2) return;
   if (
     target.closest("button") ||
     target.closest("input") ||

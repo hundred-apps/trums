@@ -1351,7 +1351,6 @@ watch(
           }
         });
       }
-
       element.total_price = total_price;
     });
   },
@@ -1523,8 +1522,10 @@ const updateAllFeeType = () => {
   contactsFee.value.map((value) => (value.type = unitFee.value));
 
   item_canvassing.value.forEach((element) => {
-    element.fee_unit = unitFee.value;
-    element.children.map((value) => (value.fee_unit = unitFee.value));
+    element.fee_unit = unitFee.value as "percent" | "amount";
+    element.children.map(
+      (value) => (value.fee_unit = unitFee.value as "percent" | "amount")
+    );
   });
 };
 
@@ -3730,6 +3731,7 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
         quantity: value.quantity ?? 1,
         unit_price: 0,
         total_price: 0,
+
         total_selling_price: value.total_selling_price || 0,
         status: CanvassingVendorStatus.SUBMITTED,
         taxes: [],
@@ -3777,7 +3779,10 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
           parent_index: index,
           tmp_child_selected: "",
         })),
-        selling_price: value.unit_selling_price,
+        selling_price:
+          value.unit_selling_price == 0
+            ? (value.total_selling_price ?? 0) / value.quantity
+            : value.unit_selling_price,
         tmp_child_selected: "",
         profit: 0,
         profit_unit: "percent" as "amount" | "percent",
