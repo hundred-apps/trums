@@ -53,6 +53,7 @@ export type Pricetag = {
   pic_version?: number;
   payment_terms?: TermOfPayment[];
   fileUploads?: UploadUserFile[];
+  total_price?: Number;
   reference_transaction_adjustment?: ReferenceTransactionAdjustment[];
 };
 

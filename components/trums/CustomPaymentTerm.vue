@@ -86,12 +86,12 @@
       </el-table-column>
 
       <el-table-column v-if="type == 'input'" label="Aksi" width="60">
-        <template #default="{ $index }">
+        <template #default="scope">
           <el-button
             type="danger"
             :icon="Delete"
             circle
-            @click="() => removePaymentTerm($index)"
+            @click="() => removePaymentTerm(scope.row)"
           />
         </template>
       </el-table-column>
@@ -168,7 +168,7 @@ const removePaymentTerm = async (data: TermOfPayment) => {
     type: "warning",
   });
 
-  if (data.unique_id) {
+  if (data.unique_id == "") {
     termOfPayments.value = (termOfPayments.value ?? []).filter(
       (term) => term.unique_id !== data.unique_id
     );

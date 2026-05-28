@@ -578,12 +578,7 @@ const generateResultSearchAddress = (address: AddressType | null) => {
 };
 
 const totalPrice = computed(() => {
-  return (props.dataInterface.data?.pricetag_item ?? []).reduce(
-    (accumulator, currentValue) => {
-      return accumulator + currentValue.price * currentValue.quantity;
-    },
-    0
-  );
+  return props.dataInterface.data?.total_price || 0;
 });
 const subtotal = computed(() => {
   console.log("get minus", totalPrice.value);

@@ -644,7 +644,7 @@
       :visible="dialogAddItem"
       @on-submit="submitItemModal"
       :with-delete-action="true"
-      ,
+      @on-close="onCloseItemModal"
       @on-delete="
         () => {
           onDeleteList(ruleForm.pricetag_item[itemActive]);
@@ -1312,6 +1312,10 @@ const handleSubmitContact = async (formData: Contact | undefined) => {
     console.log("eror", error);
     ElMessage.error(`${error}`);
   }
+};
+
+const onCloseItemModal = () => {
+  dialogAddItem.value = false;
 };
 
 const submitItemModal = (value: Pricetag_item) => {
@@ -2795,7 +2799,6 @@ const fetchInitialData = async () => {
         ...ref,
         adjustment: ref.adjustments_transaction,
       }));
-      console.log("reference", references.value);
       termOfPayments.value = pricetagEdit.payment_terms ?? [];
     }
   } catch (error: any) {
@@ -2969,16 +2972,17 @@ const fetchPricetagItems = async () => {
   }
 };
 
-// watch(
-//   () => props.data,
-//   () => {
-//     console.log("props", props.data);
-//     if (props.data?.unique_id) {
-//       fetchPricetagItems();
-//     }
-//   },
-//   { immediate: true }
-// );
+watch(
+  () => props.data,
+  () => {
+    console.log("masuk", props.data);
+    references.value = (props.data?.reference_transaction_adjustment || []).map(
+      (value) => ({ ...value, adjustment: value.adjustments_transaction })
+    );
+    termOfPayments.value = props.data?.payment_terms || [];
+  },
+  { deep: true, immediate: true }
+);
 
 const initialSetting = () => {
   const store = localStorage.getItem("setting");

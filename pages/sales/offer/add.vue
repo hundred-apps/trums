@@ -7,7 +7,7 @@
         </template>
       </el-page-header>
       <AddPriceTagComponent
-        v-if="!loading"
+        v-if="!loadingGetEditData"
         @submit="onSubmit"
         :data="ruleForm"
       />
@@ -1430,6 +1430,8 @@ const fetchInitialData = async () => {
       ruleForm.pic_name = pricetagEdit.pic_name;
       ruleForm.pic_version = pricetagEdit.pic_version;
       ruleForm.subject = pricetagEdit.subject;
+      ruleForm.note = pricetagEdit.note;
+      ruleForm.payment_terms = pricetagEdit.payment_terms || [];
 
       pricetagEdit.pricetag_condition.forEach((value) => {
         if (value.variable_pricetag?.name == VariablePriceTag.KONTAK) {
@@ -1469,8 +1471,17 @@ const fetchInitialData = async () => {
         ...ref,
         adjustment: ref.adjustments_transaction,
       }));
-      console.log("reference", references.value);
+
+      ruleForm.reference_transaction_adjustment = (
+        pricetagEdit.reference_transaction_adjustment ?? []
+      ).map((ref) => ({
+        ...ref,
+        adjustment: ref.adjustments_transaction,
+      }));
+
       termOfPayments.value = pricetagEdit.payment_terms ?? [];
+
+      // console.log('')
 
       initialSpecialPrice();
     }
