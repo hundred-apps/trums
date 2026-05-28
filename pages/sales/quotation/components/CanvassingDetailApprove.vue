@@ -10,149 +10,174 @@
       element-loading-background="rgba(122, 122, 122, 0.8)"
     >
       <template #header>
-        <div class="card-header flex justify-end">
-          <el-button type="danger" :icon="Delete" @click="confirmDelete"
-            >Hapus</el-button
-          >
-          <NuxtLink
-            :to="`/sales/quotation/add?id=${canvassingData?.unique_id}`"
-            class="el-button el-button--default"
-          >
-            <el-icon class="me-2"><Edit /></el-icon> Edit
-          </NuxtLink>
-          <el-button
-            type="success"
-            v-if="canvassingData?.status === CanvassingStatus.RAB"
-            @click="() => (dialogSelectedItem = true)"
-          >
-            <el-icon class="me-2"><CircleCheck /></el-icon> Submit for Approval
-          </el-button>
-          <el-button
-            type="success"
-            v-if="
-              canvassingData?.status === CanvassingStatus.PENDING_APPROVAL &&
-              canAccess('canvassing-approve', privilages, 2)
-            "
-            @click="approve"
-          >
-            <el-icon class="me-2"><CircleCheck /></el-icon> Approve
-          </el-button>
-          <el-button
-            type="danger"
-            v-if="
-              canvassingData?.status === CanvassingStatus.PENDING_APPROVAL &&
-              canAccess('canvassing-approve', privilages, 2)
-            "
-            @click="decline"
-          >
-            <el-icon class="me-2"><CircleClose /></el-icon> Tolak
-          </el-button>
-          <el-button
-            type="default"
-            v-if="canvassingData?.status === CanvassingStatus.PENDING_APPROVAL"
-            @click="dialogCancelApproval = true"
-          >
-            Batalkan Pengajuan
-          </el-button>
-          <el-button
-            type="default"
-            @click="printSCMMemo"
-            v-if="
-              canvassingData?.status === CanvassingStatus.PENDING_APPROVAL ||
-              canvassingData?.status === CanvassingStatus.DONE
-            "
-          >
-            Cetak SCM Memo
-          </el-button>
-          <el-button
-            v-if="
-              canvassingData?.status ===
-                CanvassingStatus.PENDING_APPROVAL_RAB && editState == false
-            "
-            type="success"
-            @click="approveWithCreateRAB"
-          >
-            <el-icon class="me-2"><CircleCheck /></el-icon> Approve dan Buat RAB
-          </el-button>
+        <el-scrollbar>
+          <div class="scrollbar-flex-content">
+            <el-button type="danger" :icon="Delete" @click="confirmDelete"
+              >Hapus</el-button
+            >
+            <NuxtLink
+              :to="`/sales/quotation/add?id=${canvassingData?.unique_id}`"
+              class="el-button el-button--default"
+            >
+              <el-icon class="me-2"><Edit /></el-icon> Edit
+            </NuxtLink>
+            <el-button
+              type="success"
+              v-if="canvassingData?.status === CanvassingStatus.RAB"
+              @click="() => (dialogSelectedItem = true)"
+            >
+              <el-icon class="me-2"><CircleCheck /></el-icon> Submit for
+              Approval
+            </el-button>
+            <el-button
+              type="success"
+              v-if="
+                canvassingData?.status === CanvassingStatus.PENDING_APPROVAL &&
+                canAccess('canvassing-approve', privilages, 2)
+              "
+              @click="approve"
+            >
+              <el-icon class="me-2"><CircleCheck /></el-icon> Approve
+            </el-button>
+            <el-button
+              type="danger"
+              v-if="
+                canvassingData?.status === CanvassingStatus.PENDING_APPROVAL &&
+                canAccess('canvassing-approve', privilages, 2)
+              "
+              @click="decline"
+            >
+              <el-icon class="me-2"><CircleClose /></el-icon> Tolak
+            </el-button>
+            <el-button
+              type="default"
+              v-if="
+                canvassingData?.status === CanvassingStatus.PENDING_APPROVAL
+              "
+              @click="dialogCancelApproval = true"
+            >
+              Batalkan Pengajuan
+            </el-button>
+            <el-button
+              type="default"
+              @click="printSCMMemo"
+              v-if="
+                canvassingData?.status === CanvassingStatus.PENDING_APPROVAL ||
+                canvassingData?.status === CanvassingStatus.DONE
+              "
+            >
+              Cetak SCM Memo
+            </el-button>
+            <el-button
+              v-if="
+                canvassingData?.status ===
+                  CanvassingStatus.PENDING_APPROVAL_RAB && editState == false
+              "
+              type="success"
+              @click="approveWithCreateRAB"
+            >
+              <el-icon class="me-2"><CircleCheck /></el-icon> Approve dan Buat
+              RAB
+            </el-button>
 
-          <!-- <NuxtLink
+            <!-- <NuxtLink
             :href="`sales/quotation/add?id=${canvassingData.unique_id}`"
             v-if="canvassingData?.status === CanvassingStatus.PENDING_APPROVAL_RAB"
             class="el-button el-button--success"
           >
             <el-icon class="me-2"><CircleCheck /></el-icon> Approve dan Buat RAP
           </NuxtLink> -->
-          <NuxtLink
-            v-if="canvassingData?.status === CanvassingStatus.DONE"
-            :href="`/sales/offer/add?canvassing_id=${canvassingData?.unique_id}&type=out`"
-            class="el-button el-button--default"
-          >
-            Buat Penawaran
-          </NuxtLink>
-          <el-button
-            v-if="editState"
-            type="default"
-            size="default"
-            @click="() => (editState = false)"
-            class="mr-3"
-          >
-            Batal
-          </el-button>
-          <el-button
-            v-if="editState"
-            type="success"
-            size="default"
-            @click="() => submitRAB(ruleFormRef)"
-            :loading="loading"
-          >
-            <el-icon class="me-2"><CircleCheck /></el-icon>
-            Simpan dan Lanjutkan
-          </el-button>
-          <el-button
-            v-if="editState"
-            type="primary"
-            size="default"
-            @click="() => submitApproveRab(CanvassingStatus.RAB)"
-            :loading="loading"
-          >
-            <el-icon class="me-2"><CircleCheck /></el-icon>
-            Simpan
-          </el-button>
-        </div>
+            <NuxtLink
+              v-if="canvassingData?.status === CanvassingStatus.DONE"
+              :href="`/sales/offer/add?canvassing_id=${canvassingData?.unique_id}&type=out`"
+              class="el-button el-button--default"
+            >
+              Buat Penawaran
+            </NuxtLink>
+            <el-button
+              v-if="editState"
+              type="default"
+              size="default"
+              @click="() => (editState = false)"
+              class="mr-3"
+            >
+              Batal
+            </el-button>
+            <el-button
+              v-if="editState"
+              type="success"
+              size="default"
+              @click="() => submitRAB(ruleFormRef)"
+              :loading="loading"
+            >
+              <el-icon class="me-2"><CircleCheck /></el-icon>
+              Simpan dan Lanjutkan
+            </el-button>
+            <el-button
+              v-if="editState"
+              type="primary"
+              size="default"
+              @click="() => submitApproveRab(CanvassingStatus.RAB)"
+              :loading="loading"
+            >
+              <el-icon class="me-2"><CircleCheck /></el-icon>
+              Simpan
+            </el-button>
+          </div>
+        </el-scrollbar>
       </template>
 
-      <div class="flex gap-3 my-3">
+      <div :class="`flex ${isMobile ? 'flex-col' : ''} gap-3 my-3`">
         <div class="flex-1">
-          <el-descriptions title="" :column="1" size="default" border>
-            <el-descriptions-item label="Canvassing Code">
-              {{ canvassingData?.unique_code || "-" }}
-            </el-descriptions-item>
-            <el-descriptions-item label="Source Document">
+          <el-descriptions
+            title=""
+            :column="1"
+            size="default"
+            :border="isMobile ? false : true"
+          >
+            <el-descriptions-item
+              :label-width="isMobile ? 130 : 0"
+              label="Source Document"
+            >
               {{ canvassingData?.source_document || "-" }}
             </el-descriptions-item>
-            <el-descriptions-item label="Description">
+            <el-descriptions-item
+              :label-width="isMobile ? 130 : 0"
+              label="Description"
+            >
               {{ canvassingData?.description || "-" }}
             </el-descriptions-item>
           </el-descriptions>
         </div>
         <div class="flex-1">
-          <el-descriptions title="" :column="1" size="default" border>
+          <el-descriptions
+            title=""
+            :column="1"
+            size="default"
+            :border="isMobile ? false : true"
+          >
             <el-descriptions-item
               v-if="canvassingData?.source"
               label="Diminta Oleh"
+              :label-width="isMobile ? 130 : 0"
             >
-              <p
+              <span
                 class="text-blue-600 cursor-pointer"
                 @click="() => (dialogCustomerOverview = true)"
               >
                 {{ canvassingData?.source?.request_to?.name ?? "-" }}
-              </p>
+              </span>
             </el-descriptions-item>
 
-            <el-descriptions-item v-if="canvassingData?.source" label="PIC">
+            <el-descriptions-item
+              :label-width="isMobile ? 130 : 0"
+              v-if="canvassingData?.source"
+              label="PIC"
+            >
               {{ canvassingData?.source?.request_by?.name ?? "-" }}
             </el-descriptions-item>
             <el-descriptions-item
+              :label-width="isMobile ? 130 : 0"
               label="Approval Note"
               v-if="
                 canvassingData?.status == CanvassingStatus.DONE ||
@@ -166,29 +191,38 @@
       </div>
       <div>
         <h5
-          class="font-bold text-black text-md mt-6 mb-3"
+          class="font-bold text-black md:text-md text-xs mt-6 mb-3"
           v-if="[CanvassingStatus.RAB, CanvassingStatus.PENDING_APPROVAL, CanvassingStatus.DONE].includes(canvassingData?.status as CanvassingStatus) &&canvassingData?.address"
         >
-          Dikirim ke
+          Alamat Pengiriman
         </h5>
         <div class="flex flex-col mb-5">
           <div class="flex justify-between items-center">
-            <p class="font-bold text-sm mb-1">
+            <p class="font-bold md:text-md text-xs mb-1">
               {{ canvassingData?.address?.address_name }} |
               {{ canvassingData?.address?.phone }}
             </p>
           </div>
-          <p class="text-sm text-gray-600" style="line-height: 15px">
+          <p class="md:text-md text-xs text-gray-600" style="line-height: 15px">
             {{ canvassingData?.address?.street }}
           </p>
-          <p class="text-sm text-gray-600">
+          <p class="md:text-md text-xs text-gray-600">
             {{ generateAddressView(canvassingData!.address!) }}
           </p>
         </div>
       </div>
 
-      <h5 class="font-bold text-black text-md mt-6">Lampiran</h5>
-      <div v-for="(file, key) in canvassingData?.files" :key="key">
+      <h5
+        class="font-bold text-black text-md mt-6"
+        v-if="(canvassingData?.files || []).length > 0"
+      >
+        Lampiran
+      </h5>
+      <div
+        v-for="(file, key) in canvassingData?.files"
+        :key="key"
+        v-if="(canvassingData?.files || []).length > 0"
+      >
         <NuxtLink
           class="text-blue-600 text-sm"
           :href="`${baseImageURL}/${file.image_path}/${file.filename}`"
@@ -209,31 +243,37 @@
           :tree-props="{ children: 'children' }"
           :row-class-name="tableRowClassName"
           :expand-row-keys="getExpandRowKeys ?? []"
+          :span-method="arraySpanMethod"
           :size="'small'"
           border
         >
           <el-table-column
             prop="item_name"
             label="Item"
-            width="500"
-            fixed="left"
+            :width="isMobile ? 150 : 500"
+            :fixed="isMobile ? false : 'left'"
           >
             <template #default="{ row }">
-              {{ row.catalogue_name }}
+              <span v-if="row.type === 'parent'" class="font-bold">
+                {{ row.catalogue_name }}
+              </span>
+              <span v-else>
+                {{ row.catalogue_name }}
+              </span>
             </template>
           </el-table-column>
           <el-table-column
             prop="vendor_name"
             label="Vendor"
-            width="200"
-            fixed="left"
+            :width="isMobile ? 100 : 200"
+            :fixed="isMobile ? false : 'left'"
+            align="center"
           >
             <template #default="{ row }">
-              <el-button
-                type="primary"
-                link
+              <span
+                class="text-blue-600 cursor-pointer"
                 @click="() => openDetailVendor(row.pricetag_item_id)"
-                >{{ row.vendor_name || "" }}</el-button
+                >{{ row.vendor_name || "" }}</span
               >
             </template>
           </el-table-column>
@@ -241,8 +281,8 @@
           <el-table-column
             prop="type_item"
             label="Item Type"
-            width="150"
-            fixed="left"
+            :width="isMobile ? 100 : 150"
+            :fixed="isMobile ? false : 'left'"
           >
             <template #default="{ row }">
               <div v-if="row.type === 'parent'">{{}}</div>
@@ -257,7 +297,7 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column prop="qty" label="Qty" width="78" fixed="left">
+          <el-table-column prop="qty" label="Qty" width="78">
             <template #default="{ row }">
               {{ row.quantity }}
             </template>
@@ -382,7 +422,7 @@
           >
             <div>
               <el-descriptions title="" :column="1" size="small" border>
-                <el-descriptions-item label="Nomor Penawaran">
+                <el-descriptions-item :label-width="isMobile ? 300 : 0" label="Nomor Penawaran">
                   <NuxtLink
                     class="text-blue-600"
                     :href="`/supply-chain-management/offer/${vendor.unique_id}`"
@@ -523,22 +563,22 @@
       "
     >
       <el-table :data="summeryData ?? []" style="width: 100%">
-        <el-table-column label="" prop="label" fixed="left" width="250">
+        <el-table-column label="" prop="label" fixed="left" width="80">
           <template #default="{ row }">
             <div class="font-bold">{{ row.label }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="Profit" prop="max" align="right">
+        <el-table-column label="Profit" prop="max" align="right" width="150">
           <template #default="scope">
             {{ scope.row.max }}
           </template>
         </el-table-column>
-        <el-table-column label="% Beli" prop="beli" width="150" align="right">
+        <el-table-column label="% Beli" prop="beli" width="80" align="right">
           <template #default="{ row }">
             <div>{{ row.beli }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="% Jual" prop="jual" width="150" align="right">
+        <el-table-column label="% Jual" prop="jual" width="80" align="right">
           <template #default="{ row }">
             <div>{{ row.jual }}</div>
           </template>
@@ -929,7 +969,7 @@
     <el-dialog
       v-model="dialogCustomerOverview"
       title="Customer Review"
-      width="500"
+      :width="isMobile ? '100%' : 500"
     >
       <el-descriptions
         title=""
@@ -1081,6 +1121,8 @@ import { safePercent } from "#imports";
 import OfferDetail from "../../offer/components/OfferDetail.vue";
 import { generateAddressView } from "#imports";
 import CustomerOverview from "~/pages/contact-management/contacts/components/CustomerOverview.vue";
+
+const { isMobile } = useDevice();
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -3017,6 +3059,27 @@ watch(
 //   },
 //   { deep: true }
 // );
+interface SpanMethodProps {
+  row: CanvassingItemForm;
+  column: TableColumnCtx<CanvassingItemForm>;
+  rowIndex: number;
+  columnIndex: number;
+}
+const arraySpanMethod = ({
+  row,
+  column,
+  rowIndex,
+  columnIndex,
+}: SpanMethodProps) => {
+  if (row.type === "parent") {
+    if (columnIndex === 0) {
+      return [1, 3];
+    }
+    if (columnIndex === 1 || columnIndex === 2) {
+      return [0, 0];
+    }
+  }
+};
 
 watch(
   () => item_canvassing.value,
@@ -5018,5 +5081,24 @@ onMounted(() => {});
 .el-fade-in-leave-to {
   opacity: 0;
   transform: translateY(100%);
+}
+
+/* :deep(.el-card__body) {
+  padding: 0px !important;
+} */
+
+:deep(.el-table__expand-icon) {
+  display: none !important;
+}
+
+:deep(.el-table__row--level-1 .el-table__indent) {
+  display: none !important;
+}
+:deep(.el-table__row--level-1 .el-table__placeholder) {
+  display: none !important;
+}
+:deep(.scrollbar-flex-content) {
+  display: flex;
+  width: fit-content;
 }
 </style>

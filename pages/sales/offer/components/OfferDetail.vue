@@ -645,10 +645,14 @@ const getDPPNilaiLain = computed(() => {
 
 const generateQuotationPdf = async () => {
   const doc = new jsPDF();
+
   const today = new Date();
 
   const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
   const marginX = 10;
+  const bottomMargin = 20;
 
   const formatted = today.toLocaleDateString("id-ID", {
     day: "2-digit",
@@ -656,9 +660,21 @@ const generateQuotationPdf = async () => {
     year: "numeric",
   });
 
-  // Logo
-  const imgLogo = await getBase64ImageFromUrl("/images/trumecs-logo.png"); // path logo (public/logo.png)
-  const tmsLogo = await getBase64ImageFromUrl("/images/tms-logo.png"); // path logo (public/logo.png)
+  const checkPageBreak = (currentY: number, neededSpace: number = 10) => {
+    if (currentY + neededSpace > pageHeight - bottomMargin) {
+      doc.addPage();
+      return 20;
+    }
+
+    return currentY;
+  };
+
+  // ================= LOGO =================
+
+  const imgLogo = await getBase64ImageFromUrl("/images/trumecs-logo.png");
+
+  const tmsLogo = await getBase64ImageFromUrl("/images/tms-logo.png");
+
   const headerTop = 10;
   const headerHeight = 25;
   const headerCenterY = headerTop + headerHeight / 2;
@@ -669,7 +685,6 @@ const generateQuotationPdf = async () => {
   const rightLogoWidth = 40;
   const rightLogoHeight = 15;
 
-  // Logo kiri
   doc.addImage(
     tmsLogo,
     "PNG",
@@ -679,7 +694,6 @@ const generateQuotationPdf = async () => {
     leftLogoHeight
   );
 
-  // Logo kanan
   doc.addImage(
     imgLogo,
     "PNG",
@@ -690,8 +704,12 @@ const generateQuotationPdf = async () => {
   );
 
   // ================= TITLE =================
+
   doc.setFontSize(18);
-  doc.text("Quotation", pageWidth / 2, 50, { align: "center" });
+
+  doc.text("Quotation", pageWidth / 2, 50, {
+    align: "center",
+  });
 
   // ================= INFO =================
 
@@ -700,26 +718,36 @@ const generateQuotationPdf = async () => {
   const valueX = marginX + 32;
 
   doc.setFontSize(9);
+
   doc.text("Number", labelX, 60);
   doc.text(":", colonX, 60);
+
   doc.text(`${props.dataInterface?.data?.unique_code}`, valueX, 60);
+
   doc.text(`Jakarta, ${formatted}`, pageWidth - marginX, 60, {
     align: "right",
   });
 
   doc.text("Subject", labelX, 66);
   doc.text(":", colonX, 66);
+
   doc.text(`${props.dataInterface?.data?.subject ?? "-"}`, valueX, 66);
 
   doc.text("To", labelX, 78);
   doc.text(":", colonX, 78);
+
   doc.text(`${props.dataInterface?.data?.to?.name ?? "-"}`, valueX, 78);
+
   doc.text("PIC", labelX, 84);
   doc.text(":", colonX, 84);
+
   doc.text(`${props.dataInterface?.data?.pic_name ?? "-"}`, valueX, 84);
 
-  // ================= BODY TEXT =================
+  // ================= BODY =================
+
   doc.text("Bersama ini kami kirimkan penawaran sebagai berikut:", marginX, 98);
+
+  // ================= TABLE =================
 
   let rowData: RowInput[] = (items.data.value?.data ?? []).map(
     (item: Pricetag_item, i: number) => [
@@ -729,7 +757,6 @@ const generateQuotationPdf = async () => {
           halign: "center",
           lineWidth: 0.1,
           lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
         },
       },
       {
@@ -738,7 +765,6 @@ const generateQuotationPdf = async () => {
           halign: "left",
           lineWidth: 0.1,
           lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
         },
       },
       {
@@ -747,7 +773,6 @@ const generateQuotationPdf = async () => {
           halign: "center",
           lineWidth: 0.1,
           lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
         },
       },
       {
@@ -756,7 +781,6 @@ const generateQuotationPdf = async () => {
           halign: "center",
           lineWidth: 0.1,
           lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
         },
       },
       {
@@ -765,7 +789,6 @@ const generateQuotationPdf = async () => {
           halign: "right",
           lineWidth: 0.1,
           lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
         },
       },
       {
@@ -774,18 +797,10 @@ const generateQuotationPdf = async () => {
           halign: "right",
           lineWidth: 0.1,
           lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
         },
       },
     ]
   );
-
-  // console.log(rowData);
-  // rowData.push(['','','','','Total Price',grandTotal])
-  // rowData.push(['','','','','PPN','11%'])
-
-  let summeryNumber =
-    (props.dataInterface?.data?.pricetag_item ?? []).length + 1;
 
   if (typeSummery.value === "total") {
     rowData.push([
@@ -797,7 +812,6 @@ const generateQuotationPdf = async () => {
           fontStyle: "bold",
           lineWidth: 0.1,
           lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
         },
       },
       {
@@ -806,59 +820,10 @@ const generateQuotationPdf = async () => {
           halign: "right",
           lineWidth: 0.1,
           lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
         },
       },
     ]);
-    // (props.dataInterface.data?.reference_transaction_adjustment ?? []).forEach(
-    //   (element) => {
-    //     console.log("ref", displayAmount(element, totalPrice.value || 0));
-    //     if (
-    //       element.adjustments_transaction?.category == "adjustment" &&
-    //       element.adjustments_transaction?.operator == "minus" && element.adjustments_transaction?.name.toLowerCase() == 'fee'
-    //     ) {
-    //       summeryNumber++;
-    //       rowData.push([
-    //         {
-    //           content: `${summeryNumber}`,
-    //           styles: {
-    //             halign: "center",
-    //             cellWidth: 0.0,
-    //             lineWidth: 0.1,
-    //             lineColor: [0, 0, 0],
-    //             fillColor: [255, 255, 255],
-    //           },
-    //         },
-    //         {
-    //           content: `${element.adjustments_transaction?.name}`,
-    //           colSpan: 4,
-    //           styles: {
-    //             halign: "right",
-    //             fontStyle: "bold",
-    //             cellWidth: 0.0,
-    //             lineWidth: 0.1,
-    //             lineColor: [0, 0, 0],
-    //             fillColor: [255, 255, 255],
-    //           },
-    //         },
-    //         {
-    //           content: `${currencyWithoutSymbol(
-    //             displayAmount(element, totalPrice.value || 0)
-    //           )}`,
-    //           styles: {
-    //             halign: "right",
-    //             cellWidth: 0.0,
-    //             lineWidth: 0.1,
-    //             lineColor: [0, 0, 0],
-    //             fillColor: [255, 255, 255],
-    //           },
-    //         },
-    //       ]);
-    //     }
-    //   }
-    // );
 
-    summeryNumber++;
     rowData.push([
       {
         content: `Subtotal`,
@@ -866,133 +831,19 @@ const generateQuotationPdf = async () => {
         styles: {
           halign: "right",
           fontStyle: "bold",
-          cellWidth: 0.0,
           lineWidth: 0.1,
           lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
         },
       },
       {
         content: `${currencyWithoutSymbol(subtotal.value)}`,
         styles: {
           halign: "right",
-          cellWidth: 0.0,
           lineWidth: 0.1,
           lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
         },
       },
     ]);
-    // (props.dataInterface.data?.reference_transaction_adjustment ?? []).forEach(
-    //   (element) => {
-    //     if (
-    //       element.adjustments_transaction?.category == "adjustment" &&
-    //       element.adjustments_transaction?.operator == "plus"
-    //     ) {
-    //       summeryNumber++;
-    //       rowData.push([
-    //         {
-    //           content: `${summeryNumber}`,
-    //           styles: {
-    //             halign: "center",
-    //             cellWidth: 0.0,
-    //             lineWidth: 0.1,
-    //             lineColor: [0, 0, 0],
-    //             fillColor: [255, 255, 255],
-    //           },
-    //         },
-    //         {
-    //           content: `${element.adjustments_transaction?.name}`,
-    //           colSpan: 4,
-    //           styles: {
-    //             halign: "right",
-    //             fontStyle: "bold",
-    //             cellWidth: 0.0,
-    //             lineWidth: 0.1,
-    //             lineColor: [0, 0, 0],
-    //             fillColor: [255, 255, 255],
-    //           },
-    //         },
-    //         {
-    //           content: `${currencyWithoutSymbol(
-    //             displayAmount(element, subtotal.value || 0)
-    //           )}`,
-    //           styles: {
-    //             halign: "right",
-    //             cellWidth: 0.0,
-    //             lineWidth: 0.1,
-    //             lineColor: [0, 0, 0],
-    //             fillColor: [255, 255, 255],
-    //           },
-    //         },
-    //       ]);
-    //     }
-    //   }
-    // );
-
-    // const dppComp = getDppComponent(
-    //   props.dataInterface.data?.reference_transaction_adjustment ?? []
-    // );
-    // const ppnComp = getPPNComponent(
-    //   props.dataInterface.data?.reference_transaction_adjustment ?? []
-    // );
-
-    // if (dppComp) {
-    //   const dppValue = getDPPFormula(dppComp, subtotal.value || 0);
-    //   const ppnValue = getPPNFormula(dppComp, dppValue);
-    //   summeryNumber++;
-    //   rowData.push([
-    //     {
-    //       content: `${dppComp.adjustments_transaction?.name}`,
-    //       colSpan: 5,
-    //       styles: {
-    //         halign: "right",
-    //         fontStyle: "bold",
-    //         cellWidth: 0.0,
-    //         lineWidth: 0.1,
-    //         lineColor: [0, 0, 0],
-    //         fillColor: [255, 255, 255],
-    //       },
-    //     },
-    //     {
-    //       content: `${currencyWithoutSymbol(dppValue || 0)}`,
-    //       styles: {
-    //         halign: "right",
-    //         cellWidth: 0.0,
-    //         lineWidth: 0.1,
-    //         lineColor: [0, 0, 0],
-    //         fillColor: [255, 255, 255],
-    //       },
-    //     },
-    //   ]);
-    //   if (ppnComp) {
-    //     summeryNumber++;
-    //     rowData.push([
-    //       {
-    //         content: `${ppnComp.adjustments_transaction?.name}`,
-    //         colSpan: 5,
-    //         styles: {
-    //           halign: "right",
-    //           fontStyle: "bold",
-    //           cellWidth: 0.0,
-    //           lineWidth: 0.1,
-    //           lineColor: [0, 0, 0],
-    //           fillColor: [255, 255, 255],
-    //         },
-    //       },
-    //       {
-    //         content: `${currencyWithoutSymbol(ppnValue || 0)}`,
-    //         styles: {
-    //           halign: "right",
-    //           cellWidth: 0.0,
-    //           lineWidth: 0.1,
-    //           lineColor: [0, 0, 0],
-    //           fillColor: [255, 255, 255],
-    //         },
-    //       },
-    //     ]);
-    //   }
-    // }
 
     (props.dataInterface.data?.reference_transaction_adjustment ?? [])
       .filter(
@@ -1009,24 +860,21 @@ const generateQuotationPdf = async () => {
               styles: {
                 halign: "right",
                 fontStyle: "bold",
-                cellWidth: 0.0,
                 lineWidth: 0.1,
                 lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
               },
             },
             {
               content: `${currencyWithoutSymbol(getDPPNilaiLain.value)}`,
               styles: {
                 halign: "right",
-                cellWidth: 0.0,
                 lineWidth: 0.1,
                 lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
               },
             },
           ]);
         }
+
         rowData.push([
           {
             content: `${element.adjustments_transaction?.name}`,
@@ -1034,10 +882,8 @@ const generateQuotationPdf = async () => {
             styles: {
               halign: "right",
               fontStyle: "bold",
-              cellWidth: 0.0,
               lineWidth: 0.1,
               lineColor: [0, 0, 0],
-              fillColor: [255, 255, 255],
             },
           },
           {
@@ -1046,16 +892,13 @@ const generateQuotationPdf = async () => {
             )}`,
             styles: {
               halign: "right",
-              cellWidth: 0.0,
               lineWidth: 0.1,
               lineColor: [0, 0, 0],
-              fillColor: [255, 255, 255],
             },
           },
         ]);
       });
 
-    summeryNumber++;
     rowData.push([
       {
         content: `Grand Total`,
@@ -1063,187 +906,132 @@ const generateQuotationPdf = async () => {
         styles: {
           halign: "right",
           fontStyle: "bold",
-          cellWidth: 0.0,
           lineWidth: 0.1,
           lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
         },
       },
       {
         content: `${currencyWithoutSymbol(grandTotal.value || 0)}`,
         styles: {
           halign: "right",
-          cellWidth: 0.0,
           lineWidth: 0.1,
           lineColor: [0, 0, 0],
-          fillColor: [255, 255, 255],
         },
       },
     ]);
-
-    // (props.dataInterface.data?.reference_transaction_adjustment ?? []).forEach(
-    //   (element) => {
-    //     if (element.adjustments_transaction?.category == "transform") {
-    //       rowData.push([
-    //         {
-    //           content: `${element.adjustments_transaction?.name}`,
-    //           styles: { halign: "right", fontStyle: "bold" },
-    //           colSpan: 5,
-    //         },
-    //         {
-    //           content: `${currencyWithoutSymbol(
-    //             displayAmount(element, subtotal.value || 0)
-    //           )}`,
-    //           styles: { halign: "right" },
-    //         },
-    //       ]);
-    //     }
-    //   }
-    // );
-    // (props.dataInterface.data?.reference_transaction_adjustment ?? []).forEach(
-    //   (element) => {
-    //     getDppComponent(props.dataInterface.data?.reference_transaction_adjustment)
-    //     if (element.adjustments_transaction?.category == "tax" && ) {
-    //       rowData.push([
-    //         {
-    //           content: `${element.adjustments_transaction?.name}`,
-    //           styles: { halign: "right", fontStyle: "bold" },
-    //           colSpan: 5,
-    //         },
-    //         {
-    //           content: `${currencyWithoutSymbol(
-    //             displayAmount(element,  || 0)
-    //           )}`,
-    //           styles: { halign: "right" },
-    //         },
-    //       ]);
-    //     }
-    //   }
-    // );
   }
 
-  // Table
   autoTable(doc, {
     startY: 105,
     head: [["No", "Item", "Qty", "UoM", "Price", "Total Price"]],
     body: rowData,
     styles: {
-      fontSize: 9,
+      fontSize: 7,
     },
-    margin: { left: marginX, right: marginX },
+    margin: {
+      left: marginX,
+      right: marginX,
+    },
     headStyles: {
-      fillColor: [248, 248, 248], // background
-      textColor: [0, 0, 0], // warna text
-      fontStyle: "bold", // bold
-      halign: "center", // center text
-      valign: "middle", // vertical align
-      lineWidth: 0.1, // border
-      lineColor: [0, 0, 0], // warna border
+      fillColor: [248, 248, 248],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+      halign: "center",
+      valign: "middle",
+      lineWidth: 0.1,
+      lineColor: [0, 0, 0],
     },
   });
 
-  // // Summary
-  let finalY = (doc as any).lastAutoTable.finalY + 10;
-  // doc.text(`Total Price: Rp ${currency(grandTotal)}`, 140, finalY)
-  // doc.text(`PPN: Rp ${currency(grandTotal)}`, 140, finalY + 10)
+  // ================= NOTES =================
 
-  // finalY += 10
-  // doc.text(`Grand Total: Rp ${currency(grandTotal.value)}`, 140, finalY)
+  let currentY = (doc as any).lastAutoTable.finalY + 15;
+
+  currentY = checkPageBreak(currentY);
+
+  doc.setFontSize(9);
+
+  doc.text("Notes:", 10, currentY);
+
+  currentY += 10;
+
+  doc.setFontSize(8);
+
+  const writeWrappedText = (text: string) => {
+    const lines = doc.splitTextToSize(text, pageWidth - 30);
+
+    const textHeight = lines.length * 5;
+
+    currentY = checkPageBreak(currentY, textHeight);
+
+    doc.text(lines, 20, currentY);
+
+    currentY += textHeight;
+  };
 
   const canvassing: Canvassing | undefined =
     props.dataInterface?.data?.reference_data;
 
-  // Notes
-  doc.text("Notes:", 10, finalY + 5);
-
-  let finalNotesY = 0;
   if (canvassing) {
-    let currentY = finalY + 15;
-    doc.setFontSize(8);
-    const writeWrappedText = (text: string) => {
-      const lines = doc.splitTextToSize(text, pageWidth - 30);
-      doc.text(lines, 20, currentY);
-      currentY += lines.length * 5;
-    };
+    writeWrappedText(
+      `\u2022 Dikirim ke ${
+        generateResultSearchAddress(canvassing?.address ?? null).name
+      }`
+    );
 
-    if (canvassing) {
+    (props.dataInterface.data?.payment_terms ?? []).forEach((element) => {
       writeWrappedText(
-        `\u2022 Dikirim ke ${
-          generateResultSearchAddress(canvassing?.address ?? null).name
+        `\u2022 ${element.name} ${
+          element.term_of_payment == PaymentTerm.TEMPO
+            ? `${element.duration}D`
+            : ""
         }`
       );
-
-      // writeWrappedText(
-      //   `\u2022 ${
-      //     canvassing.payment_term == PaymentTerm.TEMPO
-      //       ? `${paymentTermView(canvassing.payment_term)} ${
-      //           canvassing.tempo_value
-      //         } Hari`
-      //       : paymentTermView(canvassing.payment_term)
-      //   }`
-      // );
-
-      (props.dataInterface.data?.payment_terms ?? []).forEach((element) => {
-        writeWrappedText(
-          `\u2022 ${element.name} ${
-            element.term_of_payment == PaymentTerm.TEMPO
-              ? `${element.duration}D`
-              : ""
-          }`
-        );
-      });
-    }
-
-    if (props.dataInterface?.data?.note) {
-      const splits = `${props.dataInterface?.data?.note}`.split("\n");
-
-      let yFinal = Number(finalNotesY);
-      splits.forEach((value) => {
-        writeWrappedText(`\u2022 ${value ?? "-"}`);
-        // yFinal = yFinal + Number(5);
-        // console.log("final Y", yFinal);
-        // doc.text(`\u2022 ${value ?? "-"}`, 20, yFinal);
-      });
-    }
-
-    doc.setFontSize(11);
-
-    // finalNotesY = currentY;
-  } else {
-    let currentY = finalY + 15;
-    doc.setFontSize(8);
-    const writeWrappedText = (text: string) => {
-      const lines = doc.splitTextToSize(text, pageWidth - 30);
-      doc.text(lines, 20, currentY);
-      currentY += lines.length * 5;
-    };
-    if (props.dataInterface?.data?.note) {
-      const splits = `${props.dataInterface?.data?.note}`.split("\n");
-
-      let yFinal = Number(finalNotesY);
-      splits.forEach((value) => {
-        writeWrappedText(`\u2022 ${value ?? "-"}`);
-        // yFinal = yFinal + Number(5);
-        // console.log("final Y", yFinal);
-        // doc.text(`\u2022 ${value ?? "-"}`, 20, yFinal);
-      });
-    }
+    });
   }
+
+  if (props.dataInterface?.data?.note) {
+    const splits = `${props.dataInterface?.data?.note}`.split("\n");
+
+    splits.forEach((value) => {
+      writeWrappedText(`\u2022 ${value ?? "-"}`);
+    });
+  }
+
+  // ================= SIGNATURE =================
+
+  currentY += 20;
+
+  currentY = checkPageBreak(currentY, 50);
+
   doc.setFontSize(9);
-  doc.text("Best Regards,", 10, finalY + 80);
+
+  doc.text("Best Regards,", 10, currentY);
+
+  currentY += 30;
 
   if (props.dataInterface?.data?.type === "in") {
-    doc.text(props.dataInterface?.data?.owner?.name ?? "", 10, finalY + 110);
+    doc.text(props.dataInterface?.data?.owner?.name ?? "", 10, currentY);
   } else {
-    doc.text("Stanislaus Adrian Pratama,", 10, finalY + 110);
-    doc.text("Operation Manager", 10, finalY + 120);
+    doc.text("Stanislaus Adrian Pratama,", 10, currentY);
+
+    currentY += 10;
+
+    doc.text("Operation Manager", 10, currentY);
   }
 
+  // ================= OUTPUT =================
+
   const blob = doc.output("blob");
+
   pdfBlob.value = blob;
+
   pdfUrl.value = URL.createObjectURL(blob);
 
-  return { doc, blob };
+  return {
+    doc,
+    blob,
+  };
 };
 
 const ppnComponent = computed(() => {
