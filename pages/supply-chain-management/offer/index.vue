@@ -475,23 +475,23 @@ onMounted(() => {
               }
             "
             type="primary"
-            text="Buat Penawaran"
-          />
+            >Buat Penawaran</TrumsCustomLinkButton
+          >
           <TrumsCustomButton
             :icon="Eleme"
             :loading="loading"
             :disabled="loading"
-            :text="'Refresh'"
             type="default"
             v-on:click="onReferesh"
-          />
+            >Reload</TrumsCustomButton
+          >
           <TrumsCustomButton
             :loading="loading"
             :disabled="loading"
-            :text="'Import'"
             type="success"
             v-on:click="openImportModal"
-          />
+            >Import</TrumsCustomButton
+          >
           <el-popconfirm
             width="220"
             :icon="InfoFilled"
@@ -503,10 +503,10 @@ onMounted(() => {
               <TrumsCustomButton
                 :loading="loading"
                 :disabled="idsSelected.length == 0"
-                :text="'Hapus'"
                 type="danger"
                 v-on:click="openImportModal"
-              />
+                >Hapus</TrumsCustomButton
+              >
             </template>
             <template #actions="{ confirm, cancel }">
               <el-button size="small" @click="cancel">Batal</el-button>

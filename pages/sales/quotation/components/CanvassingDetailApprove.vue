@@ -141,7 +141,12 @@
               v-if="canvassingData?.source"
               label="Diminta Oleh"
             >
-              {{ canvassingData?.source?.request_to?.name ?? "-" }}
+              <p
+                class="text-blue-600 cursor-pointer"
+                @click="() => (dialogCustomerOverview = true)"
+              >
+                {{ canvassingData?.source?.request_to?.name ?? "-" }}
+              </p>
             </el-descriptions-item>
 
             <el-descriptions-item v-if="canvassingData?.source" label="PIC">
@@ -904,6 +909,80 @@
         >
       </template>
     </el-dialog>
+
+    <el-dialog
+      v-model="dialogCustomerOverview"
+      title="Customer Review"
+      width="500"
+    >
+      <el-descriptions
+        title=""
+        :column="1"
+        class="description-customer-overview"
+      >
+        <el-descriptions-item label="Total Tagihan" :label-width="200">{{
+          currencyWithoutSymbol(
+            customerOverview.data.value?.data?.total_invoices_nominal || 0,
+            0
+          )
+        }}</el-descriptions-item>
+        <el-descriptions-item label="Total Telah Dibayar" :label-width="200">{{
+          currencyWithoutSymbol(
+            customerOverview.data.value?.data?.total_paid_nominal || 0,
+            0
+          )
+        }}</el-descriptions-item>
+        <el-descriptions-item label="Total Belum Dibayar" :label-width="200">
+          <div
+            @click="() => (dialogDetailInvoiceUnpaid = true)"
+            class="cursor-pointer text-blue-600"
+          >
+            <span>{{
+              currencyWithoutSymbol(
+                customerOverview.data.value?.data?.total_unpaid_nominal || 0,
+                0
+              )
+            }}</span>
+            <el-icon><ArrowRight /></el-icon>
+          </div>
+        </el-descriptions-item>
+        <el-descriptions-item
+          label="Rata-rata Durasi Bayar (Hari)"
+          :label-width="200"
+          >{{
+            customerOverview.data.value?.data?.average_payment_duration
+          }}</el-descriptions-item
+        >
+      </el-descriptions>
+    </el-dialog>
+    <el-dialog
+      v-model="dialogDetailInvoiceUnpaid"
+      title="UNPAID INVOICE"
+      width="500"
+    >
+      <el-table
+        :data="customerOverview.data.value?.data?.unpaid_invoices || []"
+      >
+        <el-table-column label="INV.NO">
+          <template #default="{ row }">
+            {{ row.unique_code }}
+          </template>
+        </el-table-column>
+        <el-table-column label="Total Invoice">
+          <template #default="{ row }">
+            {{ row.nominal }}
+          </template>
+        </el-table-column>
+        <el-table-column label="Total Tagihan">
+          <template #default="{ row }">
+            {{ currencyWithoutSymbol(row.remaining_nominal, 0) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="Pending">
+          <template #default="{ row }"> {{ row.aging_days }} Hari </template>
+        </el-table-column>
+      </el-table>
+    </el-dialog>
   </div>
 </template>
 
@@ -918,7 +997,7 @@ import {
   Edit,
   CircleCheck,
   CircleClose,
-  ArrowDown,
+  ArrowRight,
   Operation,
   Download,
 } from "@element-plus/icons-vue";
@@ -955,7 +1034,7 @@ import {
 } from "~/types/attribute_adjustment";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
-import type { Contact } from "~/types/contact";
+import type { Contact, CustomerOverView } from "~/types/contact";
 import jsPDF from "jspdf";
 import autoTable, { type RowInput } from "jspdf-autotable";
 import {
@@ -971,7 +1050,12 @@ import type { AddressType } from "~/types/address";
 import ModalAdjustmentTransaction from "~/components/trums/ModalAdjustmentTransaction.vue";
 import AddAdjustment from "~/components/trums/AddAdjustment.vue";
 import type { Permission } from "~/types/menu";
-import { canAccess, currency, formatLocalDate } from "#imports";
+import {
+  canAccess,
+  currency,
+  formatLocalDate,
+  currencyWithoutSymbol,
+} from "#imports";
 import FormAddress from "~/components/trums/FormAddress.vue";
 import {
   TermOfPaymentReference,
@@ -980,6 +1064,7 @@ import {
 import { safePercent } from "#imports";
 import OfferDetail from "../../offer/components/OfferDetail.vue";
 import { generateAddressView } from "#imports";
+import CustomerOverview from "~/pages/contact-management/contacts/components/CustomerOverview.vue";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -1036,7 +1121,11 @@ const selectedItemDrawer = ref<{
 });
 const contactsFeeToEdit = ref<ReferenceTransactionAdjustment[]>([]);
 const selectedChildren = ref<CanvassingItemForm[]>([]);
+
 const showPreview = ref(false);
+const dialogCustomerOverview = ref<boolean>(false);
+const dialogDetailInvoiceUnpaid = ref<boolean>(false);
+
 const pdfUrl = ref<string | null>(null);
 
 const feeState = ref<string>("minus");
@@ -1074,12 +1163,22 @@ const request_search_vendor = ref<RequestSearch>({
   limit: "1",
 });
 const offerDialogState = ref<boolean>(false);
-const offerDetail = await useAsyncData("pricetag-item-detail", async () => {
+const offerDetail = await useAsyncData("pricetag-detail", async () => {
   const res = await useFetchApi<ResponsePagination<Pricetag[]>>(
     `/search/`,
     "pricetag-detail",
     "post",
     request_search_vendor.value
+  );
+  return res.data.value;
+});
+
+const customerOverview = await useAsyncData("customer-overview", async () => {
+  const res = await useFetchApi<BaseResponse<CustomerOverView>>(
+    `/contact-paid-read/${canvassingData.value?.source?.request_to_id}`,
+    "customer-overview",
+    "get",
+    null
   );
   return res.data.value;
 });
@@ -1272,7 +1371,7 @@ const submitDeletePaymentTerm = async (data: TermOfPayment) => {
     if (response.status.value === "success") {
       canvassingData.value!.payment_terms = (
         canvassingData.value?.payment_terms ?? []
-      ).filter((term) => term.unique_id !== data.unique_id);
+      ).filter((term: TermOfPayment) => term.unique_id !== data.unique_id);
     }
   } catch (error: any) {
     ElMessage.error(error?.response?.message ?? error);
@@ -4282,7 +4381,7 @@ const generateSCMMemo = async () => {
         equivalentItems.forEach((vendor, eqIndex) => {
           rows.push([
             {
-              content: `${index + 1}.${eqIndex + 1}`,
+              content: ``,
               styles: {
                 halign: "center",
                 fontStyle: "italic",
@@ -4442,8 +4541,7 @@ const generateSCMMemo = async () => {
   };
   const subtotalMarginNominal = subtotalSellingPrice() - subtotalBuyPrice.value;
   const subtotalMargin = (subtotalMarginNominal / subtotalBuyPrice.value) * 100;
-  console.log("margin nominal", subtotalMarginNominal);
-  console.log("total harga beli", netProfitForBuying.value);
+
   summeryNumber++;
   rowData.push([
     {
@@ -4794,7 +4892,7 @@ const showTransactionAdjustmentValue = (
   } else {
     return ref.type == "amount"
       ? ref.amount
-      : displayAmount(ref, subtotal.value || 0);
+      : displayAmount(ref, grandTotal.value || 0);
   }
 };
 
@@ -4845,6 +4943,14 @@ onMounted(() => {});
 
 :deep(.el-descriptions__label) {
   font-weight: 500;
+}
+
+:deep(.description-customer-overview .el-descriptions__cell) {
+  display: flex;
+}
+:deep(.description-customer-overview .el-descriptions__cell .cursor-pointer) {
+  display: flex;
+  align-items: center;
 }
 
 .vendor-info {

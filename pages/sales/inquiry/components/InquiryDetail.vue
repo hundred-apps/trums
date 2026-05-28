@@ -3,7 +3,73 @@
     <div v-if="!props.dataInterface.pending && props.dataInterface.data">
       <el-card class="my-3" shadow="never">
         <template #header>
-          <div class="flex justify-end">
+          <div class="flex justify-end items-center" v-if="isMobile">
+            <el-dropdown @command="handleMenuCommand">
+              <span class="el-dropdown-link">
+                <el-icon><MoreFilled /></el-icon>
+              </span>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item :command="'edit'">Edit</el-dropdown-item>
+                  <el-dropdown-item :command="'canvassing'"
+                    >Canvassing</el-dropdown-item
+                  >
+                  <el-dropdown-item
+                    :command="'delete'"
+                    class="delete-menu-dropdown"
+                    >Hapus</el-dropdown-item
+                  >
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
+          <!-- <div v-if="isMobile" class="flex justify-end"> -->
+
+          <!-- <TrumsCustomButton
+              :loading="loading"
+              :type="'default'"
+              :disabled="loading"
+              :is-circle="true"
+              @click="fetchInquiry"
+            >
+              <el-icon><Eleme /></el-icon>
+            </TrumsCustomButton>
+            <TrumsCustomButton
+              :loading="loading"
+              :type="'danger'"
+              :disabled="loading"
+              :is-circle="true"
+              @click="confirmDelete"
+            >
+              <el-icon><Delete /></el-icon>
+            </TrumsCustomButton>
+
+            <TrumsCustomLinkButton
+              :is-circle="true"
+              :url="`/sales/inquiry/add?id=${inquiryData?.unique_id}`"
+              :type="'warning'"
+            >
+              <el-icon><Edit /></el-icon>
+            </TrumsCustomLinkButton>
+            <TrumsCustomLinkButton
+              :is-circle="true"
+              :url="`/sales/canvassing/add?inquiry_id=${inquiryData?.unique_id}`"
+              :type="'primary'"
+            >
+              <el-icon><List /></el-icon>
+            </TrumsCustomLinkButton>
+
+            <el-button
+              type="primary"
+              :disabled="loading"
+              :loading="loading"
+              v-if="inquiryData?.status === InquiryStatus.APPROVE"
+              @click="markAsCompleted"
+            >
+              <el-icon class="me-2"><CircleCheck /></el-icon> Mark as Completed
+            </el-button> -->
+          <!-- </div> -->
+          <div v-else class="flex justify-end">
             <el-button
               type="default"
               :icon="Refresh"
@@ -48,19 +114,23 @@
             </el-button>
           </div>
         </template>
-        <div class="flex gap-3 my-3">
+        <div :class="`flex ${isMobile ? 'flex-col' : ''} gap-3 my-3`">
           <div class="flex-1">
             <el-descriptions
               title=""
               :column="1"
               size="small"
+              :label-width="isMobile ? 100 : 0"
               :border="isMobile ? false : true"
             >
-              <el-descriptions-item label="Prioritas Permintaan">{{
-                inquiryData?.priority.toUpperCase()
-              }}</el-descriptions-item>
               <el-descriptions-item
-                label="Tanggal Permintaan"
+                label="Prioritas"
+                :label-width="isMobile ? 100 : 0"
+                >{{ inquiryData?.priority.toUpperCase() }}</el-descriptions-item
+              >
+              <el-descriptions-item
+                label="Tanggal"
+                :label-width="isMobile ? 100 : 0"
                 >{{ formatLocalDate(inquiryData!.date!) }}</el-descriptions-item
               >
             </el-descriptions>
@@ -72,12 +142,18 @@
               size="small"
               :border="isMobile ? false : true"
             >
-              <el-descriptions-item label="Diminta Oleh"
+              <el-descriptions-item
+                label="Diminta Oleh"
+                :label-width="isMobile ? 100 : 0"
                 >{{ inquiryData?.request_to?.name ?? "-" }}
               </el-descriptions-item>
-              <el-descriptions-item label="PIC">{{
-                inquiryData?.request_by?.name ?? "-"
-              }}</el-descriptions-item>
+              <el-descriptions-item
+                label="PIC"
+                :label-width="isMobile ? 100 : 0"
+                >{{
+                  inquiryData?.request_by?.name ?? "-"
+                }}</el-descriptions-item
+              >
             </el-descriptions>
           </div>
         </div>
@@ -109,42 +185,33 @@
         <el-table
           :data="inquiryData?.item_request ?? []"
           style="width: 100%; height: 100%"
+          class="table-item-inquiry"
+          :size="isMobile ? 'small' : 'default'"
           border
         >
-          <el-table-column prop="image" label="Image" width="75" align="center">
+          <el-table-column
+            prop="catalogue_name"
+            label="Nama Item"
+            :width="isMobile ? 200 : 0"
+          >
             <template #default="scope">
-              <div
-                class="demo-image__preview flex items-center"
-                style="width: 25px; height: 25px"
-              >
-                <ItemImageUpload
-                  v-if="getFile(scope.row as ItemRequest) != ''"
-                  v-model="scope.row.files"
-                  :image-url="getFirstFileUrl((scope.row as ItemRequest).files ?? [])"
-                  :show-text="false"
-                  @open-modal="() => {
-                    fileList = getFilesUrl(scope.row as ItemRequest);
-                    initialIndexImage = 0;
-                    previewImage = true;
-                  }"
-                />
-                <el-image v-else>
-                  <template #error>
-                    <div
-                      class="flex items-center justify-center border rounded py-2 px-2"
-                      style="width: 25px; height: 25px; font-size: 10px"
-                    >
-                      <ElIcon>
-                        <PictureFilled />
-                      </ElIcon>
-                    </div>
-                  </template>
-                </el-image>
-              </div>
+              <el-text line-clamp="2" :size="isMobile ? 'small' : 'default'">{{
+                scope.row.catalogue_name
+              }}</el-text>
             </template>
           </el-table-column>
-          <el-table-column prop="catalogue_name" label="Nama Item" />
-          <el-table-column prop="description" label="Deskripsi Item">
+          <el-table-column prop="request_qty" label="QTY" align="center" />
+
+          <el-table-column
+            prop="unit_name"
+            label="UOM"
+            width="100"
+            align="center"
+          />
+
+          <el-table-column prop="sn" label="SN/PN" align="center" />
+
+          <el-table-column prop="description" label="Deskripsi" align="center">
             <template #default="scope">
               <div
                 v-html="`${formattedText(scope.row.description ?? '')}`"
@@ -152,17 +219,46 @@
             </template>
           </el-table-column>
 
-          <el-table-column prop="sn" label="Serial/Part Number" width="180" />
-          <el-table-column prop="request_qty" label="Request QTY" width="150" />
-
-          <el-table-column prop="unit_name" label="UOM" width="100" />
-          <el-table-column label="Status" width="100">
+          <el-table-column label="Status" width="100" align="center">
             <template #default="scope">
               <el-tag
                 :type="scope.row.remaining_qty == 0 ? 'primary' : 'warning'"
               >
                 {{ scope.row.remaining_qty == 0 ? "Selesai" : "Diproses" }}
               </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="image"
+            label="Image"
+            width="75"
+            align="center"
+            class="cell_image"
+          >
+            <template #default="scope">
+              <ItemImageUpload
+                v-if="getFile(scope.row as ItemRequest) != ''"
+                v-model="scope.row.files"
+                :image-url="getFirstFileUrl((scope.row as ItemRequest).files ?? [])"
+                :show-text="false"
+                @open-modal="() => {
+                    fileList = getFilesUrl(scope.row as ItemRequest);
+                    initialIndexImage = 0;
+                    previewImage = true;
+                  }"
+              />
+              <el-image v-else>
+                <template #error>
+                  <div
+                    class="flex items-center justify-center border rounded py-2 px-2"
+                    style="width: 25px; height: 25px; font-size: 10px"
+                  >
+                    <ElIcon>
+                      <PictureFilled />
+                    </ElIcon>
+                  </div>
+                </template>
+              </el-image>
             </template>
           </el-table-column>
         </el-table>
@@ -250,6 +346,10 @@ import {
   Edit,
   Refresh,
   PictureFilled,
+  List,
+  Eleme,
+  ArrowDown,
+  MoreFilled,
 } from "@element-plus/icons-vue";
 import type { PurchaseOrder } from "~/types/scm/purchase_order";
 import type { AddressType } from "~/types/address";
@@ -347,6 +447,19 @@ const generateResultSearchAddress = (address: AddressType | null) => {
       address_id: "",
       address_version: 0,
     };
+  }
+};
+
+const handleMenuCommand = (command: string) => {
+  switch (command) {
+    case "canvassing":
+      window.location.href = `/sales/canvassing/add?inquiry_id=${inquiryData?.value?.unique_id}`;
+    case "edit":
+      window.location.href = `/sales/inquiry/add?id=${inquiryData?.value?.unique_id}`;
+    case "delete":
+      confirmDelete();
+    default:
+      return;
   }
 };
 
@@ -705,5 +818,8 @@ const getSourceRequestNumber = () => {
 <style scoped>
 :deep(.image-viewer-slot) {
   height: 30px !important;
+}
+:deep(.delete-menu-dropdown) {
+  color: #dc2626 !important;
 }
 </style>

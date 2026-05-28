@@ -4,12 +4,13 @@
     :type="type"
     :loading-icon="Eleme"
     :icon="icon"
-    :disabled="loading"
+    :disabled="disabled"
     :loading="loading"
+    :circle="isCircle ?? false"
     @click="onClick"
-    :size="isMobile ? 'small' : 'default'"
-    >{{ text }}</el-button
-  >
+    :size="isMobile ? 'large' : 'default'"
+    ><slot
+  /></el-button>
 </template>
 <script lang="tsx" setup>
 import { Eleme } from "@element-plus/icons-vue";
@@ -20,7 +21,7 @@ const props = defineProps<{
   icon?: Component | undefined;
   disabled: boolean;
   loading: boolean;
-  text: string;
+  isCircle?: boolean;
   type:
     | "text"
     | "default"

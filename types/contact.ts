@@ -30,3 +30,20 @@ export type Contact = {
   people_internal?: People;
   children?: Contact[];
 };
+
+export type CustomerOverView = {
+  average_payment_duration: number;
+  total_invoices_nominal: number;
+  total_paid_invoices: number;
+  total_unpaid_nominal: number;
+  total_paid_nominal: number;
+  unpaid_invoices: UnpaidInvoice[];
+};
+
+type UnpaidInvoice = {
+  unique_id: string;
+  unique_code: string;
+  nominal: number;
+  aging_days: number;
+  remaining_nominal: number;
+};

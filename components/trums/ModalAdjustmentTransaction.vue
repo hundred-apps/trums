@@ -41,7 +41,13 @@
       <el-table-column label="Nilai Default" prop="default_value" />
       <el-table-column label="Type" prop="type">
         <template #default="scope">
-          {{ scope.row.type == "percent" ? "%" : "Rp" }}
+          {{
+            scope.row.type == "percent"
+              ? "%"
+              : scope.row.type == "amount"
+              ? "Rp"
+              : scope.row.type
+          }}
         </template>
       </el-table-column>
     </el-table>

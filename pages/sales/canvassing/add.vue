@@ -111,264 +111,272 @@
         <div class="card-header"><span>Items</span></div>
       </template>
 
-      <el-table
-        ref="tableRef"
-        :data="item_canvassing"
-        row-key="index"
-        :tree-props="{ children: 'children' }"
-        :loading="loading"
-        :expand-row-keys="getExpandRowKeys ?? []"
-        :row-class-name="tableRowClassName"
-        border
-      >
-        <el-table-column
-          label="Actions"
-          width="100"
-          align="center"
-          fixed="left"
+      <TrumsDragScrollTable>
+        <el-table
+          ref="tableRef"
+          :data="item_canvassing"
+          row-key="index"
+          :tree-props="{ children: 'children' }"
+          :loading="loading"
+          :expand-row-keys="getExpandRowKeys ?? []"
+          :row-class-name="tableRowClassName"
+          border
         >
-          <template #default="scope">
-            <div class="flex items-center">
-              <el-button
-                type="danger"
-                :icon="Delete"
-                circle
-                @click="removeItem(scope.row)"
-              />
-              <el-button
-                type="primary"
-                :icon="Plus"
-                v-if="scope.row.type === 'parent'"
-                circle
-                @click="addItemVendor(scope.row)"
-              />
-            </div>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="Image" fixed="left" width="70">
-          <template #default="scope">
-            <ItemImageUpload
-              v-model="scope.row.files"
-              :image-url="scope.row.image"
-              :show-text="false"
-              @open-modal="() => openImageModal(scope.$index, scope.row)"
-            />
-          </template>
-        </el-table-column>
-
-        <el-table-column label="Type" width="265">
-          <template #default="{ row }">
-            <el-select
-              v-model="row.type_item"
-              v-if="row.type != 'parent'"
-              placeholder="Select"
-              style="width: 240px"
-            >
-              <el-option :label="`Subtitution`" :value="'quotation'" />
-              <el-option :label="`Equivalent`" :value="'equivalent'" />
-              <el-option :label="`AS Requested`" :value="'original'" />
-            </el-select>
-            <div v-else>Permintaan</div>
-          </template>
-        </el-table-column>
-
-        <el-table-column prop="item_name" label="Item" width="400" fixed="left">
-          <template #default="{ row }">
-            <div class="flex items-center">
-              <el-icon
-                v-if="row.children && row.children.length"
-                class="cursor-pointer mr-2"
-                @click="toggleExpand(row)"
-              >
-                <component :is="row._expanded ? ArrowDown : ArrowRight" />
-              </el-icon>
-              <div v-if="row.type == 'parent' && row.type_item == 'request'">
-                {{ row.catalogue_name }}
+          <el-table-column
+            label="Actions"
+            width="100"
+            align="center"
+            fixed="left"
+          >
+            <template #default="scope">
+              <div class="flex items-center">
+                <el-button
+                  type="danger"
+                  :icon="Delete"
+                  circle
+                  @click="removeItem(scope.row)"
+                />
+                <el-button
+                  type="primary"
+                  :icon="Plus"
+                  v-if="scope.row.type === 'parent'"
+                  circle
+                  @click="addItemVendor(scope.row)"
+                />
               </div>
-              <div style="width: 100%" v-else>
-                <el-autocomplete
-                  v-if="row.type == 'child'"
-                  :disabled="loading"
-                  :fetch-suggestions="querySearchCatalogue"
-                  v-model="row.catalogue_name"
-                  placeholder="Cari item"
-                  :trigger-on-focus="false"
-                  :autofocus="true"
-                  @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteItem(item, row.index, row)"
+            </template>
+          </el-table-column>
+
+          <el-table-column label="Image" fixed="left" width="70">
+            <template #default="scope">
+              <ItemImageUpload
+                v-model="scope.row.files"
+                :image-url="scope.row.image"
+                :show-text="false"
+                @open-modal="() => openImageModal(scope.$index, scope.row)"
+              />
+            </template>
+          </el-table-column>
+
+          <el-table-column label="Type" width="265">
+            <template #default="{ row }">
+              <el-select
+                v-model="row.type_item"
+                v-if="row.type != 'parent'"
+                placeholder="Select"
+                style="width: 240px"
+              >
+                <el-option :label="`Subtitution`" :value="'quotation'" />
+                <el-option :label="`Equivalent`" :value="'equivalent'" />
+                <el-option :label="`AS Requested`" :value="'original'" />
+              </el-select>
+              <div v-else>Permintaan</div>
+            </template>
+          </el-table-column>
+
+          <el-table-column
+            prop="item_name"
+            label="Item"
+            width="400"
+            fixed="left"
+          >
+            <template #default="{ row }">
+              <div class="flex items-center">
+                <el-icon
+                  v-if="row.children && row.children.length"
+                  class="cursor-pointer mr-2"
+                  @click="toggleExpand(row)"
                 >
-                  <template #default="{ item }">
-                    <div
-                      v-if="item.isNew"
-                      class="flex items-center text-blue-500"
-                    >
-                      <el-icon><Search /></el-icon>
-                      <span class="ml-2">Tambahkan "{{ item.value }}"</span>
-                    </div>
-                    <div v-else class="flex items-center gap-2">
-                      <div class="flex-shrink-0 mt-1">
-                        <div
-                          v-if="item.files && item.files.length > 0"
-                          class="w-10 h-10 rounded overflow-hidden border"
-                        >
-                          <img
-                            :src="getFirstFileUrl(item.files)"
-                            :alt="item.catalogue_name"
-                            class="w-full h-full object-cover"
-                          />
+                  <component :is="row._expanded ? ArrowDown : ArrowRight" />
+                </el-icon>
+                <div v-if="row.type == 'parent' && row.type_item == 'request'">
+                  {{ row.catalogue_name }}
+                </div>
+                <div style="width: 100%" v-else>
+                  <el-autocomplete
+                    v-if="row.type == 'child'"
+                    :disabled="loading"
+                    :fetch-suggestions="querySearchCatalogue"
+                    v-model="row.catalogue_name"
+                    placeholder="Cari item"
+                    :trigger-on-focus="false"
+                    :autofocus="true"
+                    @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteItem(item, row.index, row)"
+                  >
+                    <template #default="{ item }">
+                      <div
+                        v-if="item.isNew"
+                        class="flex items-center text-blue-500"
+                      >
+                        <el-icon><Search /></el-icon>
+                        <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                      </div>
+                      <div v-else class="flex items-center gap-2">
+                        <div class="flex-shrink-0 mt-1">
+                          <div
+                            v-if="item.files && item.files.length > 0"
+                            class="w-10 h-10 rounded overflow-hidden border"
+                          >
+                            <img
+                              :src="getFirstFileUrl(item.files)"
+                              :alt="item.catalogue_name"
+                              class="w-full h-full object-cover"
+                            />
+                          </div>
+                          <div
+                            v-else
+                            class="w-10 h-10 rounded border flex items-center justify-center text-gray-400"
+                          >
+                            <el-icon><Picture /></el-icon>
+                          </div>
                         </div>
-                        <div
-                          v-else
-                          class="w-10 h-10 rounded border flex items-center justify-center text-gray-400"
-                        >
-                          <el-icon><Picture /></el-icon>
+                        <div class="flex flex-col">
+                          <div class="flex justify-between items-center">
+                            <p style="line-height: 15px" class="font-bold">
+                              {{ item.catalogue?.name }}
+                            </p>
+                            <p class="font-bold">Harga: {{ item.price }}</p>
+                          </div>
+                          <p>
+                            PN/SN: {{ item.catalogue?.sn ?? "Tidak Ada" }} |
+                            Vendor:
+                            {{ item.pricetag?.owner?.name ?? "Tidak Ada" }} |
+                            Tgl:
+                            {{ formatLocalDate(item.pricetag.end_date) }}
+                          </p>
                         </div>
                       </div>
-                      <div class="flex flex-col">
-                        <div class="flex justify-between items-center">
-                          <p style="line-height: 15px" class="font-bold">
-                            {{ item.catalogue?.name }}
-                          </p>
-                          <p class="font-bold">Harga: {{ item.price }}</p>
-                        </div>
-                        <p>
-                          PN/SN: {{ item.catalogue?.sn ?? "Tidak Ada" }} |
-                          Vendor:
-                          {{ item.pricetag?.owner?.name ?? "Tidak Ada" }} | Tgl:
-                          {{ formatLocalDate(item.pricetag.end_date) }}
+                    </template>
+                    <template #prepend>
+                      <el-button
+                        @click="() => showPricetag(row)"
+                        :icon="Search"
+                      />
+                    </template>
+                  </el-autocomplete>
+                  <el-autocomplete
+                    v-else-if="
+                      row.type == 'parent' && row.type_item == 'equivalent'
+                    "
+                    :disabled="loading"
+                    :fetch-suggestions="querySearchCatalogueEquivalent"
+                    v-model="row.catalogue_name"
+                    placeholder="Cari item"
+                    :trigger-on-focus="false"
+                    :autofocus="true"
+                    @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteItemEquivalent(item, row.index, row)"
+                  >
+                    <template #default="{ item }">
+                      <div
+                        v-if="item.isNew"
+                        class="flex items-center text-blue-500"
+                      >
+                        <el-icon><Search /></el-icon>
+                        <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                      </div>
+                      <div v-else>
+                        <p style="line-height: 15px" class="font-bold">
+                          {{ item.value }}
+                        </p>
+                        <p v-if="item.type === 'inventory'">
+                          PN/SN: {{ item.sn_number ?? "Tidak Ada" }} | Lokasi:
+                          {{ item.location_name ?? "Tidak Ada" }} | Available
+                          Stok: {{ item.available }}
+                        </p>
+                        <p v-if="item.type === 'catalogue'">
+                          PN/SN: {{ item.sn_number ?? "Tidak Ada" }}
                         </p>
                       </div>
-                    </div>
-                  </template>
-                  <template #prepend>
-                    <el-button
-                      @click="() => showPricetag(row)"
-                      :icon="Search"
-                    />
-                  </template>
-                </el-autocomplete>
-                <el-autocomplete
-                  v-else-if="
-                    row.type == 'parent' && row.type_item == 'equivalent'
-                  "
-                  :disabled="loading"
-                  :fetch-suggestions="querySearchCatalogueEquivalent"
-                  v-model="row.catalogue_name"
-                  placeholder="Cari item"
-                  :trigger-on-focus="false"
-                  :autofocus="true"
-                  @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteItemEquivalent(item, row.index, row)"
-                >
-                  <template #default="{ item }">
-                    <div
-                      v-if="item.isNew"
-                      class="flex items-center text-blue-500"
-                    >
-                      <el-icon><Search /></el-icon>
-                      <span class="ml-2">Tambahkan "{{ item.value }}"</span>
-                    </div>
-                    <div v-else>
-                      <p style="line-height: 15px" class="font-bold">
-                        {{ item.value }}
-                      </p>
-                      <p v-if="item.type === 'inventory'">
-                        PN/SN: {{ item.sn_number ?? "Tidak Ada" }} | Lokasi:
-                        {{ item.location_name ?? "Tidak Ada" }} | Available
-                        Stok: {{ item.available }}
-                      </p>
-                      <p v-if="item.type === 'catalogue'">
-                        PN/SN: {{ item.sn_number ?? "Tidak Ada" }}
-                      </p>
-                    </div>
-                  </template>
-                  <template #prepend>
-                    <el-button
-                      @click="() => showPricetag(row)"
-                      :icon="Search"
-                    />
-                  </template>
-                </el-autocomplete>
+                    </template>
+                    <template #prepend>
+                      <el-button
+                        @click="() => showPricetag(row)"
+                        :icon="Search"
+                      />
+                    </template>
+                  </el-autocomplete>
+                </div>
               </div>
-            </div>
-          </template>
-        </el-table-column>
+            </template>
+          </el-table-column>
 
-        <el-table-column prop="sn" label="SN/PN" width="150">
-          <template #default="{ row }">
-            <div v-if="row.type == 'parent' && row.type_item == 'request'">
-              {{ row.sn }}
-            </div>
-            <el-input
-              :disabled="true"
-              v-else
-              v-model="row.sn"
-              placeholder="Please Input SN/PN"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column prop="qty" label="QTY" width="200">
-          <template #default="{ row }">
-            <div v-if="row.type == 'parent' && row.type_item == 'request'">
-              {{ row.quantity }}
-            </div>
-            <el-input-number
-              v-else
-              v-model="row.quantity"
-              :min="1"
-              @change="calculateSellingPrice(row)"
-              @input="calculateSellingPrice(row)"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column prop="unit_name" label="UOM" width="100">
-          <template #default="{ row }">
-            <div v-if="row.type == 'parent' && row.type_item == 'request'">
-              {{ row.unit_name }}
-            </div>
-            <el-autocomplete
-              v-else
-              :fetch-suggestions="querySearchUnit"
-              v-model="row.unit_name"
-              placeholder="Input Units"
-              @select="(item: Record<string, any>) => handleSelectUnit(item, row.index, row)"
-              :disabled="true"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column prop="vendor" label="Vendor" width="200">
-          <template #default="{ row }">
-            <div v-if="row.type == 'parent'">
-              {{ row.vendor_name }}
-            </div>
-            <div v-else>
+          <el-table-column prop="sn" label="SN/PN" width="150">
+            <template #default="{ row }">
+              <div v-if="row.type == 'parent' && row.type_item == 'request'">
+                {{ row.sn }}
+              </div>
+              <el-input
+                :disabled="true"
+                v-else
+                v-model="row.sn"
+                placeholder="Please Input SN/PN"
+              />
+            </template>
+          </el-table-column>
+          <el-table-column prop="qty" label="QTY" width="200">
+            <template #default="{ row }">
+              <div v-if="row.type == 'parent' && row.type_item == 'request'">
+                {{ row.quantity }}
+              </div>
+              <el-input-number
+                v-else
+                v-model="row.quantity"
+                :min="1"
+                @change="calculateSellingPrice(row)"
+                @input="calculateSellingPrice(row)"
+              />
+            </template>
+          </el-table-column>
+          <el-table-column prop="unit_name" label="UOM" width="100">
+            <template #default="{ row }">
+              <div v-if="row.type == 'parent' && row.type_item == 'request'">
+                {{ row.unit_name }}
+              </div>
               <el-autocomplete
-                v-model="row.vendor_name"
-                :fetch-suggestions="querySearchContact"
-                placeholder="Cari vendor"
-                @select="(item) => onHandleSelectVendor(item, row.index)"
-                style="width: 100%"
+                v-else
+                :fetch-suggestions="querySearchUnit"
+                v-model="row.unit_name"
+                placeholder="Input Units"
+                @select="(item: Record<string, any>) => handleSelectUnit(item, row.index, row)"
                 :disabled="true"
               />
-            </div>
-          </template>
-        </el-table-column>
+            </template>
+          </el-table-column>
+          <el-table-column prop="vendor" label="Vendor" width="200">
+            <template #default="{ row }">
+              <div v-if="row.type == 'parent'">
+                {{ row.vendor_name }}
+              </div>
+              <div v-else>
+                <el-autocomplete
+                  v-model="row.vendor_name"
+                  :fetch-suggestions="querySearchContact"
+                  placeholder="Cari vendor"
+                  @select="(item) => onHandleSelectVendor(item, row.index)"
+                  style="width: 100%"
+                  :disabled="true"
+                />
+              </div>
+            </template>
+          </el-table-column>
 
-        <el-table-column label="Harga" width="200">
-          <template #default="{ row }">
-            <div v-if="row.type === 'child'">
-              {{ currency(row.unit_price) }}
-            </div>
-          </template>
-        </el-table-column>
+          <el-table-column label="Harga" width="200">
+            <template #default="{ row }">
+              <div v-if="row.type === 'child'">
+                {{ currency(row.unit_price) }}
+              </div>
+            </template>
+          </el-table-column>
 
-        <el-table-column label="Subtotal" width="200">
-          <template #default="{ row }">
-            <div v-if="row.type === 'child'">
-              {{ currency(row.quantity * row.unit_price) }}
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
+          <el-table-column label="Subtotal" width="200">
+            <template #default="{ row }">
+              <div v-if="row.type === 'child'">
+                {{ currency(row.quantity * row.unit_price) }}
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+      </TrumsDragScrollTable>
     </el-card>
 
     <ModalRequest

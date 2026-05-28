@@ -715,7 +715,7 @@ const submitFakturPajak = async () => {
       "files[0][reference_id]",
       data.value?.data?.unique_id ?? ""
     );
-    formData.append("files[0][type]", AppFileType.FAKTUR_PAJAK);
+    formData.append("type_file", AppFileType.FAKTUR_PAJAK);
     formData.append("files[0]", internalFileList.value[0].raw as Blob);
 
     const response = await useFetchApi(

@@ -10,7 +10,7 @@ const activeNameTab = ref("RFQ");
 </script>
 <template>
   <TrumsWrapper>
-    <el-tabs v-model="activeNameTab" class="demo-tabs mt-5" type="border-card">
+    <el-tabs v-model="activeNameTab" class="demo-tabs" type="border-card">
       <el-tabs
         v-model="activeNameTab"
         type="card"

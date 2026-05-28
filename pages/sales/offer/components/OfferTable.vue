@@ -105,7 +105,11 @@ const availableColumn: ColumnTable<Pricetag>[] = [
     cellRenderer: ({ rowData }: { rowData: Pricetag }) => (
       <NuxtLink
         class={"text-blue-600"}
-        href={`/sales/offer/${rowData.unique_id}`}
+        href={
+          props.type == "in"
+            ? `/supply-chain-management/offer/${rowData.unique_id}`
+            : `/sales/offer/${rowData.unique_id}`
+        }
       >
         {generateNumber(rowData.unique_code || "")}
       </NuxtLink>

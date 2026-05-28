@@ -102,7 +102,7 @@
       style="width: 100%"
       @click="addNewPaymentTerm"
     >
-      Add New Item
+      Tambah TOP
     </el-button>
   </el-card>
 </template>

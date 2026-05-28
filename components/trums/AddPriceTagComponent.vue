@@ -388,6 +388,18 @@
               }}
             </template>
           </el-table-column>
+
+          <el-table-column
+            prop="garansi"
+            label="Garansi (Hari)"
+            class="mb-0"
+            width="150"
+          >
+            <template #default="scope">
+              {{ scope.row.garansi }}
+            </template>
+          </el-table-column>
+
           <el-table-column prop="note" label="Catatan" class="mb-0" width="150">
             <template #default="scope">
               {{ scope.row.note }}
@@ -411,7 +423,7 @@
                   <el-button
                     type="danger"
                     size="small"
-                    @click="() => onDeleteList(scope)"
+                    @click="() => onDeleteList(scope.row)"
                   >
                     Yes?
                   </el-button>
@@ -515,7 +527,7 @@
           <!-- <el-descriptions-item :width="100" label="Grand Total">{{ currency(grandTotal) }}</el-descriptions-item> -->
         </el-descriptions>
       </el-card>
-      <div class="flex px-4">
+      <div class="flex">
         <el-button
           class="w-full"
           style="height: 39px"
@@ -620,188 +632,18 @@
         @reset="handleResetContact"
       />
     </el-dialog>
-    <el-dialog
-      v-model="dialogAddItem"
-      title="Tambah Item"
-      :width="isMobile ? '100%' : '800'"
-    >
-      <el-form
-        ref="ruleFormRefDialogItem"
-        :model="ruleFormDialogAddItem"
-        :rules="rulesDialogItem"
-        :label-position="labelPositionDialogItem"
-        label-width="auto"
-        class="demo-ruleForm"
-        :size="formSize"
-        status-icon
-        :disabled="loading"
-      >
-        <el-form-item prop="item_name" label="" class="form-dialog">
-          <div class="flex items-center gap-3 w-full">
-            <el-autocomplete
-              :disabled="loading"
-              :fetch-suggestions="querySearchAsyncInventories"
-              v-model="ruleFormDialogAddItem.item_name"
-              placeholder="Cari item"
-              @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteModal(item)"
-            >
-              <template #default="{ item }">
-                <div v-if="item.isNew" class="flex items-center text-blue-500">
-                  <el-icon><Plus /></el-icon>
-                  <span class="ml-2">Tambahkan "{{ item.value }}"</span>
-                </div>
-                <div v-else class="flex items-center gap-2">
-                  <!-- Thumbnail file pertama -->
-                  <div class="flex-shrink-0 mt-1">
-                    <div
-                      v-if="item.files && item.files.length > 0"
-                      class="w-10 h-10 rounded overflow-hidden border"
-                    >
-                      <img
-                        :src="getFirstFileUrl(item.files)"
-                        :alt="item.catalogue_name"
-                        class="w-full h-full object-cover"
-                      />
-                    </div>
-                    <div
-                      v-else
-                      class="w-10 h-10 rounded border flex items-center justify-center text-gray-400"
-                    >
-                      <el-icon><Picture /></el-icon>
-                    </div>
-                  </div>
-
-                  <!-- Informasi produk -->
-                  <div class="flex-1 min-w-0">
-                    <p style="line-height: 15px" class="font-bold truncate">
-                      {{ item.catalogue_name || item.value }}
-                    </p>
-                    <p class="text-sm text-gray-500 truncate">
-                      PN/SN: {{ item.sn_number || "Tidak Ada" }} | Brand:
-                      {{ item.brand_name || "N/A" }}
-                    </p>
-                  </div>
-                </div>
-              </template>
-            </el-autocomplete>
-          </div>
-        </el-form-item>
-        <el-form-item prop="price" :label="`Harga Satuan`" class="form-dialog">
-          <el-form-item
-            label=""
-            :prop="`ruleFormDialogAddItem.price`"
-            class="mb-0 w-full"
-            style="margin-bottom: 0px !important"
-          >
-            <el-input
-              v-model="ruleFormDialogAddItem.price"
-              class="mb-0"
-              inputmode="decimal"
-              placeholder="Harga"
-              :formatter="(value: any) => `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
-              :parser="(value: any) => value.replace(/\Rp\s?|(,*)/g, '')"
-              @input="
-                (value) => {
-                  ruleFormDialogAddItem.total_price =
-                    Number(value) * ruleFormDialogAddItem.quantity;
-                }
-              "
-            />
-          </el-form-item>
-        </el-form-item>
-        <div class="flex gap-2">
-          <el-form-item label="QTY" prop="quantity" class="w-full form-dialog">
-            <el-input
-              v-model="ruleFormDialogAddItem.quantity"
-              placeholder="QTY"
-              class="w-full"
-              type="number"
-              @input="
-                (value) => {
-                  ruleFormDialogAddItem.total_price =
-                    Number(ruleFormDialogAddItem.price) * Number(value);
-                }
-              "
-            />
-          </el-form-item>
-          <el-form-item prop="unit_name" label="UoM" class="form-dialog">
-            <div class="flex items-center gap-3 w-full">
-              <el-autocomplete
-                :fetch-suggestions="querySearchUnit"
-                v-model="ruleFormDialogAddItem.unit_name!"
-                placeholder="Unit"
-                class="w-full"
-                @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteModalUnit(item)"
-              />
-            </div>
-          </el-form-item>
-        </div>
-        <el-form-item prop="total_price" :label="`Total`" class="form-dialog">
-          <el-form-item
-            label=""
-            :prop="`ruleFormDialogAddItem.total_price`"
-            class="mb-0 w-full"
-            style="margin-bottom: 0px !important"
-            :disabled="true"
-          >
-            <el-input
-              v-model="ruleFormDialogAddItem.total_price"
-              class="mb-0"
-              inputmode="decimal"
-              placeholder="Harga"
-              :formatter="(value: any) => `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
-              :parser="(value: any) => value.replace(/\Rp\s?|(,*)/g, '')"
-            />
-          </el-form-item>
-        </el-form-item>
-
-        <el-form-item
-          label=""
-          prop="note"
-          class="form-dialog"
-          style="margin-top: 18px"
-        >
-          <el-input
-            v-model="ruleFormDialogAddItem.note"
-            type="textarea"
-            placeholder="Masukkan deskripsi"
-          />
-        </el-form-item>
-      </el-form>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-popconfirm
-            width="220"
-            :icon="InfoFilled"
-            icon-color="#626AEF"
-            title="Are you sure to delete this?"
-            @cancel="() => {}"
-          >
-            <template #reference>
-              <el-button type="danger">Hapus</el-button>
-            </template>
-            <template #actions="{ confirm, cancel }">
-              <el-button size="small" @click="cancel">No!</el-button>
-              <el-button
-                type="danger"
-                size="small"
-                @click="
-                  () => {
-                    const find = ruleForm.pricetag_item[itemActive];
-                    onDeleteList(find);
-                  }
-                "
-              >
-                Yes?
-              </el-button>
-            </template>
-          </el-popconfirm>
-          <el-button type="primary" @click="submitItemModal">
-            Simpan
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
+    <TrumsDialogPriceTagItem
+      :data="ruleForm.pricetag_item[itemActive] ?? ruleFormDialogAddItem"
+      :visible="dialogAddItem"
+      @on-submit="submitItemModal"
+      :with-delete-action="true"
+      ,
+      @on-delete="
+        () => {
+          onDeleteList(ruleForm.pricetag_item[itemActive]);
+        }
+      "
+    />
   </TrumsWrapper>
 </template>
 <script lang="tsx" setup>
@@ -859,6 +701,7 @@ import CatalogueAdd from "~/components/trums/CatalogueAdd.vue";
 import { getFirstFileUrl } from "#imports";
 import { currency, displayAmount } from "#imports";
 import {
+  FeeType,
   ReferenceAdjustment,
   type AdjustmentTransaction,
   type ReferenceTransactionAdjustment,
@@ -892,7 +735,7 @@ definePageMeta({
   middleware: ["auth", "check-access"],
   requiredPermission: "pricetag-create",
 });
-const loadingGetEditData = ref<boolean>(true);
+const loadingGetEditData = ref<boolean>(false);
 const loading = ref<boolean>(false);
 const drawerCatalogue = ref<boolean>(false);
 const visibleModalAdjustmentTransaction = ref(false);
@@ -984,7 +827,8 @@ interface ItemFormDialogType {
   unit_name: string;
 }
 const ruleFormRefDialogItem = ref<FormInstance>();
-const ruleFormDialogAddItem = reactive<Pricetag_item>({
+
+const getItemDialogInitial = (): Pricetag_item => ({
   note: "",
   catalogue: {
     id: null,
@@ -1027,7 +871,10 @@ const ruleFormDialogAddItem = reactive<Pricetag_item>({
   fileUploads: [],
   total_price: 0,
   display_total_price: formatCurrencyID(0),
+  garansi: 0,
 });
+
+const ruleFormDialogAddItem = reactive<Pricetag_item>(getItemDialogInitial());
 
 const tmpCatalogue = ref<Catalogue | null>(null);
 const tmpEditBulk = ref<{
@@ -1155,6 +1002,19 @@ const querySearchAdjustmentTransaction = ref<RequestSearch>({
   offset: "1",
   flag: "form",
 });
+const querySearchAdjustmentTransactionAttribute = ref<RequestSearch>({
+  keyword: "",
+  table: "adjustments_transaction",
+  column: [
+    {
+      category: ["attribute"],
+    },
+  ],
+  sort: null,
+  limit: "10",
+  offset: "1",
+  flag: "form",
+});
 
 const adjustmentTransactions = await useAsyncData(
   "search-adjustment",
@@ -1169,6 +1029,47 @@ const adjustmentTransactions = await useAsyncData(
     return res.data.value;
   }
 );
+
+const adjustmentTransactionsAttribute = await useAsyncData(
+  "fetch-transaction-adjustment-attribute",
+  async () => {
+    const res = await useFetchApi<ResponsePagination<AdjustmentTransaction[]>>(
+      `/search`,
+      "fetch-transaction-adjustment-attribute",
+      "post",
+      querySearchAdjustmentTransactionAttribute.value
+    );
+    return res.data.value;
+  }
+);
+
+// watch(
+//   () => adjustmentTransactionsAttribute.data,
+//   () => {
+//     if (adjustmentTransactionsAttribute.data.value?.data) {
+//       (adjustmentTransactionsAttribute.data.value?.data || []).forEach(
+//         (element) => {
+//           if (element.name.toLowerCase() == "garansi") {
+//             ruleFormDialogAddItem.reference_transaction = [
+//               {
+//                 unique_id: "",
+//                 reference: ReferenceAdjustment.CONTACT,
+//                 reference_id: "",
+//                 adjustment_id: element.unique_id,
+//                 value: null,
+//                 type: element.type as FeeType,
+//                 amount: 0,
+//                 adjustments_transaction: element,
+//                 adjustment: element,
+//               },
+//             ];
+//           }
+//         }
+//       );
+//     }
+//   },
+//   { immediate: true }
+// );
 
 const units = ref<Unit[]>([]);
 const termOfPayments = ref<TermOfPayment[]>([]);
@@ -1207,7 +1108,7 @@ const rules = reactive<FormRules>({
 });
 
 const labelPositionDialogItem = ref<FormProps["labelPosition"]>("top");
-const rulesDialogItem = reactive<FormRules<Pricelist_item>>({
+const rulesDialogItem = reactive<FormRules>({
   item_name: [
     {
       required: true,
@@ -1385,59 +1286,29 @@ const handleSubmitContact = async (formData: Contact | undefined) => {
   }
 };
 
-const submitItemModal = () => {
-  console.log("item", ruleFormDialogAddItem);
-  if (itemActive.value >= 0) {
-    ruleForm.pricetag_item[itemActive.value] = {
-      ...ruleFormDialogAddItem,
-      price: Number(ruleFormDialogAddItem.price),
-    };
-  } else {
-    ruleForm.pricetag_item.push({
-      ...ruleFormDialogAddItem,
-      price: Number(ruleFormDialogAddItem.price),
-    });
+const submitItemModal = (value: Pricetag_item) => {
+  console.log("item active", itemActive.value);
+  const data_submit: Pricetag_item = value;
+
+  const refGaransiIndex = (data_submit.reference_transaction || []).findIndex(
+    (find) =>
+      find.adjustments_transaction?.name.toLowerCase() == "garansi" &&
+      find.adjustments_transaction?.category == "attribute"
+  );
+
+  if (refGaransiIndex >= 0) {
+    data_submit.reference_transaction![refGaransiIndex].amount =
+      value.garansi || 0;
+    data_submit.reference_transaction![refGaransiIndex].value =
+      value.garansi || 0;
   }
 
-  // ruleFormDialogAddItem.note = "";
-  // ruleFormDialogAddItem.catalogue = {
-  //   id: null,
-  //   unique_id: null,
-  //   unique_code: null,
-  //   name: "",
+  if (itemActive.value >= 0) {
+    ruleForm.pricetag_item[itemActive.value] = data_submit;
+  } else {
+    ruleForm.pricetag_item.push(data_submit);
+  }
 
-  //   brand_id: null,
-  //   brand_name: null,
-  //   year: null,
-  //   sn: null,
-  //   description: null,
-  //   berat: null,
-  //   volume: null,
-  //   length: null,
-  //   width: null,
-  //   height: null,
-  //   is_asset: null,
-  //   tmp_asset: null,
-  //   version: null,
-  //   type: "",
-  //   created_at: null,
-  //   created_by: null,
-  //   updated_at: null,
-  //   file_catalogues: [],
-  // };
-  // ruleFormDialogAddItem.unique_id = null;
-  // ruleFormDialogAddItem.tag_id = null;
-  // ruleFormDialogAddItem.catalogue_id = "";
-  // ruleFormDialogAddItem.inventory_id = "";
-  // ruleFormDialogAddItem.inventory = null;
-  // ruleFormDialogAddItem.price = 0;
-  // ruleFormDialogAddItem.is_new = true;
-  // ruleFormDialogAddItem.unit_id = "";
-  // ruleFormDialogAddItem.unit_name = "";
-  // ruleFormDialogAddItem.unit_version = 0;
-  // ruleFormDialogAddItem.checked = false;
-  // ruleFormDialogAddItem.quantity = 1;
-  // ruleFormDialogAddItem.fileUploads = [];
   dialogAddItem.value = false;
 };
 
@@ -1820,11 +1691,56 @@ const detailItem = (item: Pricetag_item, index: number) => {
   dialogAddItem.value = true;
 };
 
-const addNewItem = () => {
-  ruleFormRefDialogItem.value?.resetFields();
+const resetFormDialog = () => {
+  ruleFormDialogAddItem.note = "";
+  ruleFormDialogAddItem.catalogue = {
+    id: null,
+    unique_id: null,
+    unique_code: null,
+    name: "",
+
+    brand_id: null,
+    brand_name: null,
+    year: null,
+    sn: null,
+    description: null,
+    berat: null,
+    volume: null,
+    length: null,
+    width: null,
+    height: null,
+    is_asset: null,
+    tmp_asset: null,
+    version: null,
+    type: "",
+    created_at: null,
+    created_by: null,
+    updated_at: null,
+    file_catalogues: [],
+  };
+  ruleFormDialogAddItem.unique_id = null;
+  ruleFormDialogAddItem.tag_id = null;
+  ruleFormDialogAddItem.catalogue_id = "";
+  ruleFormDialogAddItem.inventory_id = "";
+  ruleFormDialogAddItem.inventory = null;
   ruleFormDialogAddItem.price = 0;
-  ruleFormDialogAddItem.total_price = 0;
+  ruleFormDialogAddItem.displayPrice = formatCurrencyID(0);
+  ruleFormDialogAddItem.is_new = true;
+  ruleFormDialogAddItem.unit_id = "";
+  ruleFormDialogAddItem.unit_name = "";
+  ruleFormDialogAddItem.unit_version = 0;
+  ruleFormDialogAddItem.checked = false;
   ruleFormDialogAddItem.quantity = 1;
+  ruleFormDialogAddItem.fileUploads = [];
+  ruleFormDialogAddItem.total_price = 0;
+  ruleFormDialogAddItem.display_total_price = formatCurrencyID(0);
+  ruleFormDialogAddItem.garansi = 0;
+  ruleFormDialogAddItem.item_name = "";
+};
+
+const addNewItem = () => {
+  resetFormDialog();
+  itemActive.value = -1;
   dialogAddItem.value = true;
 };
 
@@ -2385,7 +2301,6 @@ const onHandleSelectItemAutocompleteModal = async (
     // ruleFormDialogAddItem.unit_id = selected.unit_id ?? "";
     // ruleFormDialogAddItem.unit_name = selected.unit_name ?? "";
     // ruleFormDialogAddItem.quantity = 1;
-    ruleFormDialogAddItem.catalogue_id = selected.catalogue_id;
     // ruleFormDialogAddItem.catalogue = catalogue;
     // ruleFormDialogAddItem.price = 0;
   }
@@ -2500,13 +2415,13 @@ const deleteItemInServer = (string: string[]) => {
   }
 };
 
-const onDeleteList = (data: any) => {
-  const price_list_item: Pricetag_item = data.row;
+const onDeleteList = (data: Pricetag_item) => {
+  const price_list_item: Pricetag_item = data;
   // console.log(data);
   if (!price_list_item!.is_new) {
     deleteItemInServer([price_list_item.unique_id!]);
   } else {
-    ruleForm.pricetag_item.splice(data.$index, 1);
+    ruleForm.pricetag_item.splice(itemActive.value, 1);
   }
   itemActive.value = -1;
 };
@@ -2592,6 +2507,72 @@ const onSubmit = async (formEl: FormInstance) => {
         `pricetag_item[${index}][reference_id]`,
         `${value.reference_id}`
       );
+
+      if ((value.reference_transaction || []).length > 0) {
+        (value.reference_transaction || []).forEach(
+          (ref: ReferenceTransactionAdjustment, refIndex: number) => {
+            formData.append(
+              `pricetag_item[${index}][reference_transaction][${refIndex}][unique_id]`,
+              `${ref.unique_id}`
+            );
+            formData.append(
+              `pricetag_item[${index}][reference_transaction][${refIndex}][adjustment_id]`,
+              `${ref.adjustment_id}`
+            );
+            formData.append(
+              `pricetag_item[${index}][reference_transaction][${refIndex}][value]`,
+              `${ref.value}`
+            );
+            formData.append(
+              `pricetag_item[${index}][reference_transaction][${refIndex}][amount]`,
+              `${ref.amount}`
+            );
+            formData.append(
+              `pricetag_item[${index}][reference_transaction][${refIndex}][type]`,
+              `${ref.type}`
+            );
+            formData.append(
+              `pricetag_item[${index}][reference_transaction][${refIndex}][party_type]`,
+              `${ref.party_type}`
+            );
+            formData.append(
+              `pricetag_item[${index}][reference_transaction][${refIndex}][party_id]`,
+              `${ref.party_id}`
+            );
+            formData.append(
+              `pricetag_item[${index}][reference_transaction][${refIndex}][reference]`,
+              `${ref.reference}`
+            );
+            formData.append(
+              `pricetag_item[${index}][reference_transaction][${refIndex}][reference_id]`,
+              `${ref.reference_id}`
+            );
+          }
+        );
+      } else {
+        const refGaransi =
+          adjustmentTransactionsAttribute.data.value?.data.find(
+            (value) => value.name.toLowerCase() == "garansi"
+          );
+        if (refGaransi) {
+          const refFields = {
+            unique_id: "",
+            adjustment_id: refGaransi.unique_id,
+            value: value.garansi,
+            amount: value.garansi,
+            type: refGaransi.type,
+          };
+
+          if ((value.garansi || 0) > 0) {
+            Object.entries(refFields).forEach(([key, value]) => {
+              formData.append(
+                `pricetag_item[${index}][reference_transaction][0][${key}]`,
+                `${value}`
+              );
+            });
+          }
+        }
+      }
 
       (value.fileUploads ?? []).forEach((file) => {
         if (file.raw) {
@@ -2979,10 +2960,6 @@ const initialSetting = () => {
   margin-bottom: 0px !important;
 }
 
-:deep(.el-input__wrapper) {
-  /* height: 30px !important; */
-  /* margin-bottom: 6px !important; */
-}
 :deep(.el-form-item--default) {
   margin-bottom: 6px !important;
 }

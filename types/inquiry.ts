@@ -19,6 +19,7 @@ export enum InquiryStatus {
   QUOTATION = "quotation",
   PENAWARAN = "penawaran",
 }
+
 export enum TypeInquiry {
   SALES_INQUIRY = "sales_inquiry",
   INTERNAL = "internal",

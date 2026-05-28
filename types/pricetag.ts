@@ -90,6 +90,8 @@ export type Pricetag_item = {
   data_reference?: CanvassingVendor | CanvassingItem;
   total_price?: number;
   display_total_price?: string;
+  reference_transaction?: ReferenceTransactionAdjustment[];
+  garansi?: number;
 };
 
 export type Pricetag_condition = {

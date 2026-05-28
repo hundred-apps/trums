@@ -17,7 +17,13 @@
           <span>{{ dataInterface.data?.unique_code }}</span>
           <NuxtLink
             v-if="canAccess('pricetag-update', dataInterface?.privilege ?? [])"
-            :href="`/sales/offer/add?id=${dataInterface?.data?.unique_id}&type=${dataInterface?.data?.type}`"
+            :href="`/${
+              dataInterface.data?.type == 'in'
+                ? 'supply-chain-management'
+                : 'sales'
+            }/offer/add?id=${dataInterface?.data?.unique_id}&type=${
+              dataInterface?.data?.type
+            }`"
             class="el-button el-button--default"
           >
             <el-icon><Edit /></el-icon>
@@ -43,11 +49,7 @@
     <!-- <el-button type="primary" @click="onCheckout" :loading="loading">Proses</el-button> -->
     <div class="flex gap-3 my-3">
       <div class="flex-1">
-        <el-descriptions
-          title=""
-          :column="1"
-          :size="isMobile ? 'small' : 'default'"
-        >
+        <el-descriptions title="" :column="1" :size="'default'">
           <el-descriptions-item
             label="No"
             label-class-name="font-bold"
@@ -183,7 +185,10 @@
       </el-table-column>
       <el-table-column prop="note" label="Note" width="150" /> -->
     <!-- </el-table> -->
-    <el-table :data="items.data ?? []" :size="isMobile ? 'small' : 'default'">
+    <el-table
+      :data="items.data.value?.data ?? []"
+      :size="isMobile ? 'small' : 'default'"
+    >
       <!-- <el-table-column prop="fileUploads" label="image" width="75">
             <template #default="scope">
               <ItemImageUpload
@@ -254,6 +259,13 @@
           }}
         </template>
       </el-table-column>
+      <el-table-column prop="Garansi" label="Garansi" class="mb-0" width="150">
+        <template #default="scope">
+          {{
+            ((scope.row as Pricetag_item).reference_transaction || []).find((find) => find.adjustments_transaction?.name.toLowerCase() == 'garansi' && find.adjustments_transaction?.category == 'attribute')?.amount || 'N/A'
+          }}
+        </template>
+      </el-table-column>
       <el-table-column prop="note" label="Catatan" class="mb-0" width="150">
         <template #default="scope">
           {{ scope.row.note }}
@@ -267,7 +279,7 @@
         :page-sizes="[10, 20, 30, 40]"
         background
         layout="total, sizes, prev, pager, next"
-        :total="items.total_data"
+        :total="items.data.value?.total_data"
         @current-change="handlePageChange"
         @size-change="handleSizeChange"
       />
@@ -428,6 +440,7 @@ import type { ReferenceTransactionAdjustment } from "~/types/attribute_adjustmen
 import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
 import type { _0 } from "#tailwind-config/theme/backdropBlur";
 import { currencyWithoutSymbol } from "#imports";
+import { findPath } from "nuxt/kit";
 const { isMobile } = useDevice();
 
 const router = useRouter();
@@ -449,20 +462,30 @@ const previewImage = ref<boolean>(false);
 const offerItemTableRef = ref<InstanceType<typeof ElTable>>();
 const selectedPricetagItems = ref<Pricetag_item[]>([]);
 
-const items = ref<ResponsePagination<Pricetag_item[]>>({
-  currentPage: 0,
-  data: [],
-  success: false,
-  total_data: 0,
-  total_page: 0,
-  message: "failed",
-  privilege: [],
+const items = await useAsyncData("fetch-pricetag-item", async () => {
+  const res = await useFetchApi<ResponsePagination<Pricetag_item[]>>(
+    `/search`,
+    "fetch-pricetag-item",
+    "post",
+    request_search_pricelist_item.value
+  );
+  return res.data.value;
 });
 const itemLoad = ref<boolean>(true);
 
+const limit = ref<number>(10);
+
+const props = defineProps<{
+  dataInterface: DataInterface<Pricetag>;
+}>();
+
 const request_search_pricelist_item = ref<RequestSearch>({
   keyword: "",
-  column: [],
+  column: [
+    {
+      tag_id: [props.dataInterface.data?.unique_id],
+    },
+  ],
   limit: "10",
   offset: "1",
   table: "pricetag_item",
@@ -471,12 +494,6 @@ const request_search_pricelist_item = ref<RequestSearch>({
     order: OrderColumn.ASC,
   },
 });
-
-const limit = ref<number>(10);
-
-const props = defineProps<{
-  dataInterface: DataInterface<Pricetag>;
-}>();
 
 const pricelist_item_new = ref<Pricelist_item[]>([]);
 
@@ -1310,27 +1327,27 @@ const querySearchAsyncInventories = (
     });
 };
 
-const fetchItem = async () => {
-  try {
-    if (request_search_pricelist_item.value.column.length > 0) {
-      const response = await useApiFetch<ResponsePagination<Pricetag_item[]>>(
-        "/search",
-        {
-          method: "POST",
-          body: request_search_pricelist_item.value,
-        }
-      );
+// const fetchItem = async () => {
+//   try {
+//     if (request_search_pricelist_item.value.column.length > 0) {
+//       const response = await useApiFetch<ResponsePagination<Pricetag_item[]>>(
+//         "/search",
+//         {
+//           method: "POST",
+//           body: request_search_pricelist_item.value,
+//         }
+//       );
 
-      if (response.success) {
-        items.value = response;
-      }
-    }
-  } catch (error: any) {
-    ElMessage.error(error?.response?.message ?? error);
-  } finally {
-    itemLoad.value = false;
-  }
-};
+//       if (response.success) {
+//         items.value = response;
+//       }
+//     }
+//   } catch (error: any) {
+//     ElMessage.error(error?.response?.message ?? error);
+//   } finally {
+//     itemLoad.value = false;
+//   }
+// };
 
 onMounted(() => {
   console.log("pricetag", props.dataInterface.data);
@@ -1340,11 +1357,13 @@ onMounted(() => {
         tag_id: [props.dataInterface.data?.unique_id],
       },
     ];
-    fetchItem();
+    // fetchItem();
   }
 });
 
-watch(request_search_pricelist_item.value, fetchItem, { immediate: true });
+watch(request_search_pricelist_item.value, () => items.refresh(), {
+  immediate: true,
+});
 </script>
 
 <style scoped>

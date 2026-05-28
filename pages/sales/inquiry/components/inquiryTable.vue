@@ -4,7 +4,16 @@ definePageMeta({
   requiredPermission: "inquiries-read",
 });
 import { ref, onMounted } from "vue";
-import { Filter, Setting, SetUp, Eleme } from "@element-plus/icons-vue";
+import {
+  Filter,
+  Setting,
+  SetUp,
+  Eleme,
+  Plus,
+  Refresh,
+  Delete,
+  Search,
+} from "@element-plus/icons-vue";
 import { InquiryStatus, TypeInquiry, type Inquiry } from "~/types/inquiry";
 import customTable from "~/components/trums/table/customTable.vue";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
@@ -23,6 +32,8 @@ import {
   TableV2FixedDir,
   type CheckboxValueType,
   type Column,
+  type DrawerProps,
+  type FormProps,
   type MainInstance,
   type SortBy,
 } from "element-plus";
@@ -63,7 +74,7 @@ const request_search = ref<RequestSearch>({
       status: [],
     },
   ],
-  limit: "10",
+  limit: "20",
   offset: "1",
   table: "inquiries",
   sort: {
@@ -71,6 +82,17 @@ const request_search = ref<RequestSearch>({
     order: OrderColumn.DESC,
   },
   flag: "list",
+});
+
+const labelPositionFormDrawer = ref<FormProps["labelPosition"]>("top");
+const filterDrawer = reactive<{
+  status: string[];
+  date: string[];
+  show_data: number;
+}>({
+  status: [],
+  date: [],
+  show_data: 20,
 });
 
 const { data, refresh } = await useAsyncData("fetch-inquiries", async () => {
@@ -87,6 +109,10 @@ const refreshTable = () => refresh();
 
 const tmpInquiries = ref<Inquiry[]>([]);
 const dialogConfirmDelete = ref<boolean>(false);
+
+const bottomSheetState = ref<boolean>(false);
+const direction = ref<DrawerProps["direction"]>("btt");
+
 const loading = ref<boolean>(false);
 const search = ref("");
 
@@ -132,7 +158,7 @@ const availableColumn: ColumnTable<Inquiry>[] = [
   },
 
   {
-    title: "Diminta Oleh",
+    title: "Perusahaan/Perorangan",
     dataKey: "request_to.name",
     key: "request_to.name",
     sortable: true,
@@ -142,16 +168,16 @@ const availableColumn: ColumnTable<Inquiry>[] = [
     ),
   },
   {
-    title: "Unique Code",
+    title: "INQ.NO",
     dataKey: "unique_code",
     key: "unique_code",
-    width: isMobile ? 250 : 0,
+    width: isMobile ? 100 : 0,
     cellRenderer: ({ rowData: row }) => (
       <NuxtLink
         href={`/sales/inquiry/${row.unique_id}`}
         class={"text-blue-600"}
       >
-        {row.unique_code}
+        {isMobile ? wrapUniqueCode(row.unique_code) : row.unique_code}
       </NuxtLink>
     ),
   },
@@ -159,7 +185,7 @@ const availableColumn: ColumnTable<Inquiry>[] = [
     title: "PIC",
     dataKey: "request_by.name",
     key: "request_by.name",
-    width: 300,
+    width: isMobile ? 200 : 0,
     sortable: true,
     cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
       <p>{rowData.request_by?.name ?? ""}</p>
@@ -169,7 +195,7 @@ const availableColumn: ColumnTable<Inquiry>[] = [
     title: "Tanggal",
     dataKey: "date",
     key: "date",
-    width: 200,
+    width: isMobile ? 150 : 0,
     sortable: true,
     cellRenderer: ({ rowData: row }) => (
       <p>{row.date == null ? "-" : formatLocalDate(row.date)}</p>
@@ -221,8 +247,8 @@ const availableColumn: ColumnTable<Inquiry>[] = [
     title: "Status",
     dataKey: "status",
     key: "status",
-    width: 200,
-
+    width: isMobile ? 130 : 0,
+    align: "center",
     cellRenderer: ({ rowData: row }: CellRendererParams<Inquiry>) =>
       getStatus(row),
     headerCellRenderer: () => (
@@ -476,8 +502,48 @@ const handleSizeChange = (size: number) => {
 };
 
 const hasSelected = computed(() => {
-  return data.value?.data?.some((item) => item.checked) || false;
+  const hasSelect = data.value?.data?.some((item) => item.checked) || false;
+  console.log("has select", hasSelect);
+  return hasSelect;
 });
+
+const statuses: { label: string; value: string }[] = [
+  { label: "DRAFT", value: "draft" },
+  { label: "CANVASSING", value: "canvassing" },
+  { label: "RAB", value: "rab" },
+  { label: "QUOTATION", value: "quotation" },
+];
+
+const onFilter = () => {
+  request_search.value.column = [
+    ...request_search.value.column,
+    {
+      status: filterDrawer.status,
+    },
+  ];
+  request_search.value.limit = `${filterDrawer.show_data | 20}`;
+  request_search.value.filter = {
+    date: {
+      min: filterDrawer.date[0],
+      max: filterDrawer.date[1],
+    },
+  };
+  bottomSheetState.value = false;
+};
+const onResetFilter = () => {
+  request_search.value.column = [
+    ...request_search.value.column,
+    {
+      status: ["ALL"],
+    },
+  ];
+  request_search.value.limit = `20`;
+  request_search.value.filter = null;
+};
+
+const showFilter = () => {
+  bottomSheetState.value = true;
+};
 
 watch(
   () => request_search.value,
@@ -492,29 +558,64 @@ watch(
 </script>
 <template>
   <el-row :gutter="20" class="mb-3">
-    <el-col :xs="24" :sm="12" :md="6">
+    <el-col v-if="isMobile" :xs="24" :sm="12" :md="6">
       <div class="flex gap-3 mb-3 md:mb-0">
         <CustomLinkButton
-          :text="'Buat RFQ Baru'"
           :url="'/sales/inquiry/add'"
           :type="'primary'"
-        />
+          :is-circle="true"
+          ><el-icon><Plus /></el-icon
+        ></CustomLinkButton>
+
         <TrumsCustomButton
-          :icon="Eleme"
           type="default"
           :disabled="loading"
           :loading="loading"
+          :is-circle="true"
           @click="refreshTable"
-          text="Reload"
-        />
+          ><el-icon><Eleme /></el-icon
+        ></TrumsCustomButton>
 
         <TrumsCustomButton
           type="danger"
           :disabled="!hasSelected"
           :loading="loading"
           @click="bulkDelete"
-          text="Hapus"
-        />
+          :is-circle="true"
+          ><el-icon><Delete /></el-icon
+        ></TrumsCustomButton>
+        <TrumsCustomButton
+          type="default"
+          :disabled="false"
+          :loading="loading"
+          @click="showFilter"
+          :is-circle="true"
+          ><el-icon><Filter /></el-icon
+        ></TrumsCustomButton>
+      </div>
+    </el-col>
+    <el-col v-else :xs="24" :sm="12" :md="6">
+      <div class="flex gap-3 mb-3 md:mb-0">
+        <CustomLinkButton :url="'/sales/inquiry/add'" :type="'primary'"
+          >Buat RFQ</CustomLinkButton
+        >
+
+        <TrumsCustomButton
+          type="default"
+          :disabled="loading"
+          :loading="loading"
+          :icon="Eleme"
+          @click="refreshTable"
+          >Refresh</TrumsCustomButton
+        >
+
+        <TrumsCustomButton
+          type="danger"
+          :disabled="!hasSelected"
+          :loading="loading"
+          @click="bulkDelete"
+          >Hapus</TrumsCustomButton
+        >
       </div>
     </el-col>
     <el-col :xs="24" :sm="12" :md="6"
@@ -522,7 +623,10 @@ watch(
         v-model="request_search.keyword"
         size="default"
         placeholder="Type to search"
-      />
+      >
+        <template #prefix>
+          <el-icon class="el-input__icon"><Search /></el-icon> </template
+      ></el-input>
     </el-col>
   </el-row>
   <customTable
@@ -533,10 +637,61 @@ watch(
   <div class="flex justify-end mt-3">
     <el-pagination
       background
-      layout="prev, pager, next, sizes, total"
+      :layout="`prev, pager, next, ${isMobile ? '' : 'sizes, total'}`"
       :total="data?.total_data"
       @current-change="handlePageChange"
       @size-change="handleSizeChange"
+      size="small"
     />
   </div>
+  <el-divider v-if="isMobile"
+    ><p class="text-xs">Total Data {{ data?.total_data }}</p></el-divider
+  >
+
+  <el-drawer v-model="bottomSheetState" :direction="direction" size="50%">
+    <template #header class="mb-0">
+      <h4>Filter</h4>
+    </template>
+    <el-form
+      class="flex flex-col justify-start"
+      v-model="filterDrawer"
+      resizable
+      :label-position="labelPositionFormDrawer"
+    >
+      <el-form-item prop="status" label="Status" class="w-full">
+        <el-select
+          v-model="filterDrawer.status"
+          multiple
+          filterable
+          allow-create
+          default-first-option
+          :reserve-keyword="false"
+          placeholder="Status"
+        >
+          <el-option
+            v-for="item in statuses"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+      </el-form-item>
+
+      <el-form-item prop="show_data" label="Tanggal">
+        <el-date-picker
+          v-model="filterDrawer.date"
+          type="daterange"
+          range-separator="To"
+          start-placeholder="Start date"
+          end-placeholder="End date"
+        />
+      </el-form-item>
+    </el-form>
+    <template #footer>
+      <div style="flex: auto">
+        <el-button @click="onResetFilter">Reset</el-button>
+        <el-button type="primary" @click="onFilter">Terapkan</el-button>
+      </div>
+    </template>
+  </el-drawer>
 </template>

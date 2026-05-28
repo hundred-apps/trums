@@ -150,96 +150,111 @@
           <span>Canvassing Items</span>
         </div>
       </template>
-      <el-table
-        ref="tableRef"
-        :data="item_canvassing"
-        row-key="index"
-        :tree-props="{ children: 'children' }"
-        :row-class-name="tableRowClassName"
-        :expand-row-keys="getExpandRowKeys ?? []"
-        border
-      >
-        <el-table-column prop="item_name" label="Item" width="400" fixed="left">
-          <template #default="{ row }">
-            {{ row.catalogue_name }}
-          </template>
-        </el-table-column>
-        <el-table-column label="Image" width="75">
-          <template #default="scope">
-            <ItemImageUpload
-              v-model="scope.row.files"
-              :image-url="scope.row.image"
-              :show-text="false"
-              @open-modal="() => {
+      <TrumsDragScrollTable>
+        <el-table
+          ref="tableRef"
+          :data="item_canvassing"
+          row-key="index"
+          :tree-props="{ children: 'children' }"
+          :row-class-name="tableRowClassName"
+          :expand-row-keys="getExpandRowKeys ?? []"
+          style="width: max-content"
+          border
+        >
+          <el-table-column
+            prop="item_name"
+            label="Item"
+            width="400"
+            fixed="left"
+          >
+            <template #default="{ row }">
+              <span
+                v-if="row.type != 'parent'"
+                class="text-blue-600 cursor-pointer"
+                @click="() => detailCanvassingVendor(row)"
+              >
+                {{ row.catalogue_name }}
+              </span>
+              <span v-else>{{ row.catalogue_name }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column label="Image" width="75">
+            <template #default="scope">
+              <ItemImageUpload
+                v-model="scope.row.files"
+                :image-url="scope.row.image"
+                :show-text="false"
+                @open-modal="() => {
                 fileList = ((scope.row as CanvassingItemForm).files ?? []).map((data) => data.url ?? '');
                 initialIndexImage = 0;
                 showPreviewImage = true;
               }"
-            />
-          </template>
-        </el-table-column>
-        <el-table-column prop="type_item" label="Item Type" width="150">
-          <template #default="{ row }">
-            <div v-if="row.type === 'parent'">
-              {{ row.type_item == "request" ? "Permintaan" : "Equivalent" }}
-            </div>
-            <div v-else>
+              />
+            </template>
+          </el-table-column>
+          <el-table-column prop="type_item" label="Item Type" width="150">
+            <template #default="{ row }">
+              <div v-if="row.type === 'parent'">
+                {{ row.type_item == "request" ? "Permintaan" : "Equivalent" }}
+              </div>
+              <div v-else>
+                {{
+                  row.type_item == "original"
+                    ? "AS Requested"
+                    : row.type_item == "quotation"
+                    ? "Subtitution"
+                    : "Equivalent"
+                }}
+              </div>
+            </template>
+          </el-table-column>
+          <el-table-column label="Equivalent Dari" width="300">
+            <template #default="{ row }">
               {{
-                row.type_item == "original"
-                  ? "AS Requested"
-                  : row.type_item == "quotation"
-                  ? "Subtitution"
-                  : "Equivalent"
+                item_canvassing.find(
+                  (value) => value.unique_id == row.equivalent_id
+                )?.catalogue_name
               }}
-            </div>
-          </template>
-        </el-table-column>
-        <el-table-column label="Equivalent Dari" width="300">
-          <template #default="{ row }">
-            {{
-              item_canvassing.find(
-                (value) => value.unique_id == row.equivalent_id
-              )?.catalogue_name
-            }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="sn" label="SN/PN" width="150">
-          <template #default="{ row }">
-            {{ row.sn ?? "N/A" }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="qty" label="Qty" width="78">
-          <template #default="{ row }">
-            {{ row.quantity }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="unit_name" label="UOM" width="100">
-          <template #default="{ row }">
-            {{ row.unit_name }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="vendor" label="Vendor" width="200">
-          <template #default="{ row }">
-            {{ row.vendor_name }}
-          </template>
-        </el-table-column>
+            </template>
+          </el-table-column>
+          <el-table-column prop="sn" label="SN/PN" width="150">
+            <template #default="{ row }">
+              {{ row.sn ?? "N/A" }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="qty" label="Qty" width="78">
+            <template #default="{ row }">
+              {{ row.quantity }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="unit_name" label="UOM" width="100">
+            <template #default="{ row }">
+              {{ row.unit_name }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="vendor" label="Vendor" width="200">
+            <template #default="{ row }">
+              {{ row.vendor_name }}
+            </template>
+          </el-table-column>
 
-        <el-table-column label="Harga" width="200">
-          <template #default="{ row }">
-            <div v-if="row.type === 'child'">
-              {{ currency(row.unit_price) }}
-            </div>
-          </template>
-        </el-table-column>
+          <el-table-column label="Harga" width="200">
+            <template #default="{ row }">
+              <div v-if="row.type === 'child'">
+                {{ currency(row.unit_price) }}
+              </div>
+            </template>
+          </el-table-column>
 
-        <el-table-column label="Subtotal" width="200">
-          <template #default="{ row }">
-            <div v-if="row.type === 'child'">
-              {{ currency(row.quantity * row.unit_price) }}
-            </div>
-          </template>
-        </el-table-column>
-      </el-table>
+          <el-table-column label="Subtotal" width="200">
+            <template #default="{ row }">
+              <div v-if="row.type === 'child'">
+                {{ currency(row.quantity * row.unit_price) }}
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+      </TrumsDragScrollTable>
     </el-card>
 
     <el-dialog
@@ -283,6 +298,19 @@
       :readonly="true"
       @save="() => {}"
     />
+
+    <TrumsDialogPriceTagItem
+      :data="stateCanvassingVendorDetail?.item"
+      :visible="stateCanvassingVendorDetail.visibleModal"
+      @on-submit="submitItemModal"
+      @on-delete="
+        () => {
+          // onDeleteList(ruleForm.pricetag_item[itemActive]);
+        }
+      "
+      :with-delete-action="false"
+      @on-close="onCloseDetailCanvassingVendor"
+    />
   </TrumsWrapper>
 </template>
 
@@ -293,6 +321,7 @@ import {
   CircleCheck,
   ArrowDown,
   Operation,
+  InfoFilled,
 } from "@element-plus/icons-vue";
 import {
   CanvassingStatus,
@@ -307,7 +336,12 @@ import type {
 } from "~/types/scm/canvasing";
 import type { BaseResponse } from "~/types/response";
 import type { ItemRequest, ItemRequestTrail } from "~/types/item_request";
-import type { ElTable, FormProps, UploadUserFile } from "element-plus";
+import type {
+  ElTable,
+  FormInstance,
+  FormProps,
+  UploadUserFile,
+} from "element-plus";
 import {
   FeeType,
   PartyType,
@@ -324,6 +358,7 @@ import {
   OperationPriceTag,
   ReferencePriceTag,
   VariablePriceTag,
+  type Pricetag_item,
 } from "~/types/pricetag";
 import FeeDrawer from "~/components/trums/FeeDrawer.vue";
 import type { AppFile } from "~/types/file";
@@ -331,10 +366,14 @@ import { currency, formatLocalDate, getFirstFileUrl } from "#imports";
 import type { Permission } from "~/types/menu";
 import ItemImageUpload from "../../inquiry/components/ItemImageUpload.vue";
 import { generateAddressView, generateAddressViewName } from "#imports";
+import type { Unit } from "~/types/unit";
+import type { ItemSearch } from "~/types/item_search";
+import type { Catalogue } from "~/types/catalogue";
+import CatalogueAdd from "~/components/trums/CatalogueAdd.vue";
 
 const config = useRuntimeConfig();
 const imageUrl = config.public.baseImageURL;
-
+const { isMobile } = useDevice();
 const router = useRouter();
 const route = useRoute();
 const canvassingId = ref<string>(route.params.id as string);
@@ -376,6 +415,8 @@ const contactsFeeToEdit = ref<ReferenceTransactionAdjustment[]>([]);
 const selectedChildren = ref<CanvassingItemForm[]>([]);
 const showPreview = ref(false);
 const showPreviewImage = ref(false);
+const tmpCatalogue = ref<Catalogue | null>(null);
+const drawerCatalogue = ref<boolean>(false);
 const fileList = ref<string[]>([]);
 const initialIndexImage = ref<number>(0);
 
@@ -384,6 +425,48 @@ const pdfUrl = ref<string | null>(null);
 const feeState = ref<string>("minus");
 
 const item_canvassing = ref<CanvassingItemForm[]>([]);
+const stateCanvassingVendorDetail = ref<{
+  parent_index: number;
+  child_index: number;
+  item: Pricetag_item;
+  visibleModal: boolean;
+}>({
+  parent_index: 0,
+  child_index: 0,
+  item: {
+    item_name: undefined,
+    unique_id: null,
+    tag_id: null,
+    catalogue_id: null,
+    catalogue: null,
+    inventory_id: "",
+    inventory: null,
+    quantity: 0,
+    price: 0,
+    displayPrice: undefined,
+    readonly: undefined,
+    pricetag: undefined,
+    sn: undefined,
+    checked: undefined,
+    is_new: undefined,
+    unit_id: null,
+    unit_name: null,
+    unit_version: null,
+    version: undefined,
+    fileUploads: [],
+    image: undefined,
+    files: undefined,
+    note: undefined,
+    reference: undefined,
+    reference_id: undefined,
+    data_reference: undefined,
+    total_price: undefined,
+    display_total_price: undefined,
+    reference_transaction: undefined,
+    garansi: undefined,
+  },
+  visibleModal: false,
+});
 
 const references = ref<ReferenceTransactionAdjustment[]>([]);
 
@@ -441,6 +524,301 @@ const changeDiscount = (
     }
   } else {
     return 0;
+  }
+};
+
+const submitCanvassing = async () => {
+  loading.value = true;
+  try {
+    // Membuat FormData
+    const formData = new FormData();
+
+    // Menambahkan data utama
+    formData.append("unique_id", canvassingData.value!.unique_id || "");
+
+    // Append canvassing_items dengan individual fields
+    item_canvassing.value.forEach((item: CanvassingItemForm, i: number) => {
+      formData.append(`canvassing_items[${i}][unique_id]`, `${item.unique_id}`);
+      formData.append(
+        `canvassing_items[${i}][canvassing_id]`,
+        `${canvassingData.value!.unique_id}`
+      );
+      formData.append(`canvassing_items[${i}][quantity]`, `${item.quantity}`);
+      formData.append(
+        `canvassing_items[${i}][catalogue_id]`,
+        `${item.catalogue_id}`
+      );
+      formData.append(
+        `canvassing_items[${i}][catalogue_name]`,
+        `${item.catalogue_name}`
+      );
+      formData.append(`canvassing_items[${i}][unit_id]`, `${item.unit_id}`);
+      formData.append(`canvassing_items[${i}][unit_name]`, `${item.unit_name}`);
+      formData.append(
+        `canvassing_items[${i}][unit_selling_price]`,
+        `${item.selling_price}`
+      );
+      formData.append(`canvassing_items[${i}][type_item]`, `${item.type_item}`);
+      formData.append(
+        `canvassing_items[${i}][equivalent_id]`,
+        `${item.equivalent_id}`
+      );
+
+      item.children.forEach((vendor: CanvassingItemForm, j: any) => {
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][unique_id]`,
+          `${vendor.unique_id}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][pricetag_item_id]`,
+          `${vendor.pricetag_item_id}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][pricetag_item_version]`,
+          `${vendor.pricetag_item_version}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][vendor_id]`,
+          `${vendor.vendor_id}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][canvassing_item_id]`,
+          `${item.unique_id}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][catalogue_id]`,
+          `${vendor.catalogue_id}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][catalogue_name]`,
+          `${vendor.catalogue_name}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][type_item]`,
+          `${vendor.type_item}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][equivalent_id]`,
+          `${vendor.equivalent_id}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][quantity]`,
+          `${vendor.quantity}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][unit_price]`,
+          `${vendor.unit_price}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][selling_price]`,
+          `${vendor.selling_price}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][unit_id]`,
+          `${vendor.unit_id}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][unit_name]`,
+          `${vendor.unit_name}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][total_price]`,
+          `${Number(vendor.quantity) * Number(vendor.unit_price)}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][profit]`,
+          `${0}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][profit_unit]`,
+          `${vendor.profit_unit}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][fee]`,
+          `${0}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][fee_unit]`,
+          `${vendor.fee_unit}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][ongkir]`,
+          `${0}`
+        );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][ongkir_unit]`,
+          `${vendor.ongkir_unit}`
+        );
+
+        if (vendor.imageFile) {
+          if (vendor.imageFile?.raw) {
+            formData.append(
+              `canvassing_items[${i}][canvassing_vendor][${j}][files]`,
+              vendor.imageFile?.raw as Blob
+            );
+          }
+        }
+      });
+    });
+
+    const response = await useFetchApi<BaseResponse<Canvassing>>(
+      "/canvassing-create",
+      "create-canvasing",
+      "post",
+      formData
+    );
+    if (response.status.value === "success") {
+      console.log("edited");
+    }
+  } catch (error: any) {
+    ElMessage.error(error.response?.message ?? error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const submitItemModal = async (value: Pricetag_item) => {
+  loading.value = true;
+  try {
+    const formData = new FormData();
+    formData.append(`unique_id`, `${value.unique_id}`);
+    formData.append(`catalogue_id`, `${value.catalogue_id}`);
+    formData.append(`catalogue_version`, `${value.catalogue?.version}`);
+    formData.append(`inventory_id`, `${value.inventory_id}`);
+    formData.append(`price`, `${value.price}`);
+    formData.append(`unit_id`, `${value.unit_id}`);
+    formData.append(`unit_name`, `${value.unit_name}`);
+    formData.append(`unit_version`, `${value.unit_version}`);
+    formData.append(`quantity`, `${value.quantity}`);
+    formData.append(`note`, `${value.note}`);
+    formData.append(`reference`, `${value.reference}`);
+    formData.append(`reference_id`, `${value.reference_id}`);
+    const response = await useFetchApi<BaseResponse<Pricetag_item>>(
+      "/pricetag-item-create",
+      "update-pricetag-item",
+      "post",
+      formData
+    );
+    if (response.status.value == "success") {
+      const pricetagItem: Pricetag_item | null =
+        response.data.value?.data ?? null;
+      if (pricetagItem) {
+        const child: CanvassingItemForm =
+          item_canvassing.value[stateCanvassingVendorDetail.value.parent_index]
+            .children[stateCanvassingVendorDetail.value.child_index];
+
+        child.unit_price = pricetagItem.price;
+        child.total_price = pricetagItem.price * child.quantity;
+        child.catalogue_id = pricetagItem.catalogue_id || "";
+        child.catalogue_name = pricetagItem.catalogue?.name || "";
+        child.unit_id = pricetagItem.unit_id;
+        child.unit_name = pricetagItem.unit_name;
+
+        item_canvassing.value[
+          stateCanvassingVendorDetail.value.parent_index
+        ].children[stateCanvassingVendorDetail.value.child_index] = child;
+
+        await submitCanvassing();
+
+        onCloseDetailCanvassingVendor();
+      }
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const getPricetagItemDetail = async (
+  unique_id: string
+): Promise<Pricetag_item | null> => {
+  try {
+    const res = await useFetchApi<BaseResponse<Pricetag_item>>(
+      "/pricetag-item-read/" + unique_id,
+      `get-pricetag-item-detail`,
+      "post",
+      null
+    );
+    if (res.status.value == "success") {
+      return res.data.value?.data ?? null;
+    } else {
+      return null;
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+    return null;
+  }
+};
+
+const onCloseDetailCanvassingVendor = () => {
+  stateCanvassingVendorDetail.value = {
+    child_index: -1,
+    parent_index: -1,
+    item: {
+      item_name: undefined,
+      unique_id: null,
+      tag_id: null,
+      catalogue_id: null,
+      catalogue: null,
+      inventory_id: "",
+      inventory: null,
+      quantity: 0,
+      price: 0,
+      displayPrice: undefined,
+      readonly: undefined,
+      pricetag: undefined,
+      sn: undefined,
+      checked: undefined,
+      is_new: undefined,
+      unit_id: null,
+      unit_name: null,
+      unit_version: null,
+      version: undefined,
+      fileUploads: [],
+      image: undefined,
+      files: undefined,
+      note: undefined,
+      reference: undefined,
+      reference_id: undefined,
+      data_reference: undefined,
+      total_price: undefined,
+      display_total_price: undefined,
+      reference_transaction: undefined,
+      garansi: undefined,
+    },
+    visibleModal: false,
+  };
+};
+
+const detailCanvassingVendor = async (item: CanvassingItemForm) => {
+  let pricetag_item: Pricetag_item | null = await getPricetagItemDetail(
+    item.pricetag_item_id
+  );
+
+  const parent_index = item_canvassing.value.findIndex(
+    (value) => value.catalogue_id == item.parent_catalogue_id
+  );
+
+  if (pricetag_item) {
+    pricetag_item!.item_name = pricetag_item?.catalogue?.name || "";
+
+    (pricetag_item.garansi =
+      (pricetag_item.reference_transaction || []).find(
+        (find) =>
+          find.adjustments_transaction?.name.toLowerCase() == "garansi" &&
+          find.adjustments_transaction?.category == "attribute"
+      )?.amount || 0),
+      (stateCanvassingVendorDetail.value = {
+        child_index: item_canvassing.value[parent_index].children.findIndex(
+          (child) => child.unique_id == item.unique_id
+        ),
+        parent_index: parent_index,
+        item: pricetag_item,
+        visibleModal: true,
+      });
+
+    console.log("pricetag item", stateCanvassingVendorDetail.value);
   }
 };
 
@@ -1105,14 +1483,6 @@ const isRowSelected = (
 watch(
   () => item_canvassing.value,
   () => {
-    updateSelectedChildrenFromChecked();
-  },
-  { deep: true }
-);
-
-watch(
-  () => item_canvassing.value,
-  () => {
     item_canvassing.value.forEach((element) => {
       const findCanvassingItem = (
         canvassingData.value?.canvassing_item ?? []
@@ -1140,13 +1510,7 @@ watch(
         }
       });
     });
-  },
-  { deep: true }
-);
-
-watch(
-  () => item_canvassing.value,
-  () => {
+    updateSelectedChildrenFromChecked();
     updateTableSelection();
   },
   { deep: true }
@@ -1783,10 +2147,12 @@ const initialCanvassing = (data: Canvassing) => {
           ongkir_unit: child.ongkir_unit,
           pricetag_item_id: child.pricetag_item_id ?? "",
           pricetag_item_version: child.pricetag_item_version ?? 0,
+          total_selling_price: 0,
           contacts_fee: (child.reference_transaction ?? []).filter(
             (value) => value.party_type == PartyType.CONTACT
           ),
         })),
+
         selling_price: element.unit_selling_price,
         profit: 0,
         profit_unit: "percent",
@@ -1802,6 +2168,7 @@ const initialCanvassing = (data: Canvassing) => {
           mapApiFilesView(element.files ?? []).length > 0
             ? mapApiFilesView(element.files ?? [])[0].url
             : "",
+        total_selling_price: 0,
       });
     }
   });
@@ -1880,6 +2247,7 @@ const initialCanvassing = (data: Canvassing) => {
           contacts_fee: (child.reference_transaction ?? []).filter(
             (value) => value.party_type == PartyType.CONTACT
           ),
+          total_selling_price: 0,
         })),
         selling_price: element.unit_selling_price,
         profit: 0,
@@ -1891,6 +2259,7 @@ const initialCanvassing = (data: Canvassing) => {
         pricetag_item_id: "",
         pricetag_item_version: 0,
         contacts_fee: [],
+        total_selling_price: 0,
       });
     }
   });

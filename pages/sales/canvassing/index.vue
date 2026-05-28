@@ -76,7 +76,7 @@
       :refresh-trigger="refreshTrigger"
       :request_search="request_search"
       :fetchKey="'get-canvassing'"
-      :type="'CANASSING'"
+      :type="'CANVASSING'"
     />
   </TrumsWrapper>
 </template>
@@ -130,6 +130,7 @@ const request_search = ref<RequestSearch>({
       status: [
         CanvassingStatus.DRAFT,
         CanvassingStatus.CANVASSING,
+        CanvassingStatus.RAB,
         CanvassingStatus.PENDING_APPROVAL_RAB,
         CanvassingStatus.DONE,
       ],

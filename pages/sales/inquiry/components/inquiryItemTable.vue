@@ -1,25 +1,14 @@
 <template>
   <el-row :gutter="20" class="mb-3">
-    <el-col :span="6"
-      ><el-input
+    <el-col :sm="24" :md="4">
+      <el-input
         v-model="request_search.keyword"
         size="default"
         placeholder="Type to search"
-    /></el-col>
-    <NuxtLink
-      v-if="canAccess('inquiries-create', data?.privilege ?? [])"
-      class="el-button el-button--default"
-      href="/sales/inquiry/add"
-      >Buat Inquiri</NuxtLink
-    >
-    <el-button
-      :loading="loading"
-      @click="onRefresh"
-      size="default"
-      type="default"
-      :icon="Eleme"
-      >Refresh</el-button
-    >
+        ><template #prefix>
+          <el-icon class="el-input__icon"><Search /></el-icon> </template
+      ></el-input>
+    </el-col>
   </el-row>
   <customTable
     @sort-change="onSort"
@@ -38,159 +27,16 @@
   <div class="flex justify-end mt-3">
     <el-pagination
       background
-      layout="prev, pager, next, sizes, total"
+      :layout="`prev, pager, next, ${isMobile ? '' : 'sizes, total'}`"
       :total="data?.total_data"
       @current-change="handlePageChange"
       @size-change="handleSizeChange"
+      :size="isMobile ? 'small' : 'default'"
     />
   </div>
-  <!-- <el-dialog v-model="modalAddVendor" title="Tambah Vendor" width="1000">
-    <el-form
-      ref="ruleFormRef"
-      :model="ruleFormVendor"
-      style="max-width: 600px"
-      :rules="rules"
-      label-width="auto"
-      class="demo-ruleForm"
-      :size="formSize"
-      status-icon
-      :disabled="loading"
-    >
-      <el-form-item label="Diminta oleh?" prop="to_name">
-        <div class="flex items-center gap-3">
-          <el-autocomplete
-            :fetch-suggestions="(queryString: string, cb: (arg: any) => void) => querySearchContact(queryString, cb, 'to')"
-            v-model="ruleForm.to_name"
-            placeholder="Cari Kontak"
-            @select="(item: Record<string, any>) => onHandleSelectContact(item, 'to')"
-          >
-            <template #default="{ item }">
-              <div v-if="!item.isNew">{{ item.name }}</div>
-              <div v-else class="text-blue-600">{{ item.value }}</div>
-            </template>
-          </el-autocomplete>
-          <el-button
-            type="primary"
-            v-if="toContact"
-            @click="openDialogTo"
-            :icon="User"
-          />
-        </div>
-      </el-form-item>
-      <el-form-item
-        v-if="toContact && toContact.is_company"
-        label="PIC"
-        prop="request_by_name"
-      >
-        <div class="flex items-center gap-3">
-          <el-autocomplete
-            :fetch-suggestions="(queryString: string, cb: (arg: any) => void) => querySearchContact(queryString, cb, 'pic')"
-            v-model="ruleForm.request_by_name"
-            placeholder="Cari Kontak"
-            @select="(item: Record<string, any>) => onHandleSelectContact(item, 'pic')"
-          >
-            <template #default="{ item }">
-              <div v-if="!item.isNew">{{ item.name }}</div>
-              <div v-else class="text-blue-600">{{ item.value }}</div>
-            </template>
-          </el-autocomplete>
-          <el-button
-            type="primary"
-            v-if="picContact"
-            @click="openDialogPIC"
-            :icon="User"
-          />
-        </div>
-      </el-form-item>
-
-      <el-form-item label="File Lampiran" prop="files">
-        <TrumsUploadFile v-model:file-list="fileList" />
-      </el-form-item>
-
-      <el-form-item label="Cari Alamat" prop="address_view">
-        <el-autocomplete
-          v-model="ruleForm.address_view"
-          :fetch-suggestions="querySearchAddress"
-          :trigger-on-focus="false"
-          clearable
-          class="inline-input w-50"
-          placeholder="Cari Alamat/Buat Baru"
-          @select="(record) => handleSelectAddress(record)"
-        >
-          <template #default="{ item }">
-            <div v-if="!item.new">
-              <div class="name">{{ item.name }}</div>
-              <span class="street text-sm">{{ item.street }}</span>
-            </div>
-            <div v-else>
-              <div class="text-blue-600">{{ item.name }}</div>
-            </div>
-          </template>
-        </el-autocomplete>
-      </el-form-item>
-
-      <el-form-item v-if="address" label=" ">
-        <div>
-          <div class="flex items-center gap-2">
-            <p>{{ address.address_name }}</p>
-            <el-icon
-              class="cursor-pointer text-blue-500 hover:text-blue-600"
-              @click="handleEditAddress(address)"
-              ><Edit
-            /></el-icon>
-            <el-icon
-              class="cursor-pointer text-read-500 hover:text-read-600"
-              @click="handleDeleteAddress"
-              ><Delete
-            /></el-icon>
-          </div>
-          <div>
-            {{ address.street }},
-            {{ generateResultSearchAddress(address).name }}
-          </div>
-        </div>
-      </el-form-item>
-
-      <el-form-item label="Tanggal Permintaan" prop="date">
-        <el-date-picker
-          v-model="ruleForm.date!"
-          type="date"
-          placeholder="Tanggal Inquiri"
-        />
-      </el-form-item>
-
-      <el-form-item label="Prioritas" label-position="right">
-        <el-radio-group v-model="ruleForm.priority" aria-label="Prioritas">
-          <el-radio-button value="low">Low</el-radio-button>
-          <el-radio-button value="medium">Medium</el-radio-button>
-          <el-radio-button value="high">Hight</el-radio-button>
-        </el-radio-group>
-      </el-form-item>
-      <el-form-item label="Note">
-        <el-input v-model="ruleForm.description" type="textarea" />
-      </el-form-item>
-    </el-form>
-
-    <el-table
-      :data="data"
-      ref="tableRef"
-      style="width: 100%"
-      @selection-change="handleSelectionChange"
-    >
-      <el-table-column type="selection" width="55" />
-      <el-table-column label="Nama Biaya" prop="name">
-        <template #default="scope">
-          <p>{{ scope.row.name ?? "-" }}</p>
-        </template>
-      </el-table-column>
-      <el-table-column label="Nilai Default" prop="default_value" />
-      <el-table-column label="Type" prop="type">
-        <template #default="scope">
-          {{ scope.row.type == "percent" ? "%" : "Rp" }}
-        </template>
-      </el-table-column>
-    </el-table>
-  </el-dialog> -->
+  <el-divider v-if="isMobile"
+    ><p class="text-xs">Total Data {{ data?.total_data }}</p></el-divider
+  >
 </template>
 <script lang="tsx" setup>
 import {
@@ -199,6 +45,7 @@ import {
   ElCheckboxGroup,
   ElIcon,
   ElPopover,
+  ElText,
   type CheckboxValueType,
   type Column,
   type ComponentSize,
@@ -215,12 +62,14 @@ import type {
   CellRendererParams,
   SortBy,
 } from "element-plus/es/components/table-v2/src/types.mjs";
-import { Eleme, SetUp, Plus } from "@element-plus/icons-vue";
+import { Search, Filter } from "@element-plus/icons-vue";
 import customTable from "~/components/trums/table/customTable.vue";
 import { canAccess } from "#imports";
 import type { ColumnTable } from "~/types/ColumnTable";
 import type { CanvassingItem, CanvassingVendor } from "~/types/scm/canvasing";
 import type { BaseResponse } from "~/types/response";
+
+const { isMobile } = useDevice();
 
 const popoverRef = ref();
 const tableKey = ref(0);
@@ -379,31 +228,34 @@ const hasSelected = computed(() => {
 
 const availableColumn: ColumnTable<DataRequestItem>[] = [
   {
-    title: "Nomor RFQ",
-    dataKey: "unique_code",
-    key: "unique_code",
-    fixed: true,
-    cellRenderer: ({ rowData }: { rowData: DataRequestItem }) => (
-      <NuxtLink href={`inquiry/${rowData.inquiry_id}`} class={"text-blue-600"}>
-        {rowData.inquiry_code}
-      </NuxtLink>
-    ),
-  },
-  {
     title: "Nama Item",
     dataKey: "catalogue_name",
     key: "catalogue_name",
     fixed: true,
     sortable: true,
+    width: isMobile ? 200 : 0,
     cellRenderer: ({ rowData }: { rowData: DataRequestItem }) => (
-      <p>{rowData.item_name ?? "Tidak Ada"}</p>
+      <ElText truncated>{rowData.item_name ?? "Tidak Ada"}</ElText>
     ),
   },
+  {
+    title: "RFQ.No",
+    dataKey: "unique_code",
+    key: "unique_code",
+    width: isMobile ? 120 : 0,
+    cellRenderer: ({ rowData }: { rowData: DataRequestItem }) => (
+      <NuxtLink href={`inquiry/${rowData.inquiry_id}`} class={"text-blue-600"}>
+        {isMobile ? wrapUniqueCode(rowData.inquiry_code) : rowData.inquiry_code}
+      </NuxtLink>
+    ),
+  },
+
   {
     title: "Kontak",
     dataKey: "request_to",
     key: "request_to",
     sortable: true,
+    width: isMobile ? 150 : 0,
     cellRenderer: ({ rowData }: { rowData: DataRequestItem }) => (
       <p>{rowData.contact}</p>
     ),

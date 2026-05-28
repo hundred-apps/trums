@@ -87,8 +87,11 @@ import {
   generateAddressViewName,
 } from "#imports";
 import AutocompleteContact from "~/components/trums/AutocompleteContact.vue";
+import FormMobile from "./components/FormMobile.vue";
 
 const { formSize, labelPosition } = useFormConfig();
+const { isMobile } = useDevice();
+
 const fileList = ref<UploadUserFile[]>([]);
 
 const config = useRuntimeConfig();
@@ -1702,7 +1705,25 @@ const handleDeleteAddress = () => {
       </template>
     </el-page-header>
     <el-card class="my-3">
+      <FormMobile
+        v-if="isMobile"
+        v-model="ruleForm"
+        v-model:file-list="fileList"
+        :rules="rules"
+        :loading="loading"
+        :to-contact="toContact"
+        :pic-contact="picContact"
+        :address="address"
+        :query-search-contact="querySearchContact"
+        :query-search-address="querySearchAddress"
+        :generate-result-search-address="generateResultSearchAddress"
+        @select-contact="handleSelectContact"
+        @select-address="handleSelectAddress"
+        @edit-address="handleEditAddress"
+        @delete-address="handleDeleteAddress"
+      />
       <el-form
+        v-else
         :label-position="labelPosition"
         ref="ruleFormRef"
         :model="ruleForm"

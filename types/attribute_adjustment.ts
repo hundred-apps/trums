@@ -5,6 +5,7 @@ import type { PurchaseOrder } from "./scm/purchase_order";
 export enum FeeType {
   PERCENT = "percent",
   AMOUNT = "amount",
+  DAY = "day",
 }
 export enum ReferenceAdjustment {
   CONTACT = "contact",
@@ -43,7 +44,7 @@ export type AdjustmentTransaction = {
   updated_at: number;
   checked?: boolean;
   version?: number;
-  category?: "adjustment" | "tax" | "transform";
+  category?: "adjustment" | "tax" | "transform" | "attribute";
 };
 
 // Reference transaction adjustment (usage of adjustment in a transaction)

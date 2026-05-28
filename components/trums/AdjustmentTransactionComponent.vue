@@ -1,6 +1,63 @@
 <template>
   <el-card class="mb-3" shadow="never">
     <template #header>
+      <div class="card-header"><span>Attribute Lainya</span></div>
+    </template>
+    <div>
+      <div
+        class="flex justify-between items-center mb-2"
+        v-for="(ref, index) in references.filter(
+          (value) => value.adjustment?.category == 'attribute'
+        )"
+      >
+        <span class="font-bold text-sm">{{ ref.adjustment?.name ?? "" }}</span>
+        <span class="text-sm flex flex-1 justify-end items-center gap-2">
+          <el-input
+            :disabled="ref.include"
+            v-model="ref.amount"
+            style="max-width: 300px"
+            placeholder="Masukan Nilai"
+          >
+            <template #append>
+              <el-select
+                v-model="ref.type"
+                :disabled="true"
+                style="width: 100px"
+              >
+                <el-option label="%" value="percent" />
+                <el-option label="Rp" value="amount" />
+              </el-select>
+            </template>
+          </el-input>
+          <el-button
+            type="danger"
+            :icon="Delete"
+            circle
+            @click="removeAnotherCost(ref.adjustment_id)"
+          />
+        </span>
+      </div>
+    </div>
+
+    <el-button
+      class="mt-4"
+      style="width: 100%"
+      @click="
+        () => {
+          querySearchAdjustmentTransaction.column = [
+            {
+              category: ['attribute'],
+            },
+          ];
+          visibleModalAdjustmentTransaction = true;
+        }
+      "
+    >
+      Tambah Attribute Lain
+    </el-button>
+  </el-card>
+  <el-card class="mb-3" shadow="never">
+    <template #header>
       <div class="card-header"><span>Biaya Lainya</span></div>
     </template>
     <div>

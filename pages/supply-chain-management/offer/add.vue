@@ -980,6 +980,40 @@ const resetForm = (formEl: FormInstance | undefined) => {
 };
 
 // watch(requestSearchInventory, fetchData, {immediate: true});
+const request_search_pricelist_item = ref<RequestSearch>({
+  keyword: "",
+  column: [
+    {
+      tag_id: [id.value],
+    },
+  ],
+  limit: "10",
+  offset: "1",
+  table: "pricetag_item",
+  sort: {
+    column: "created_at",
+    order: OrderColumn.ASC,
+  },
+});
+
+const getItemPricetag = async (): Promise<Pricetag_item[]> => {
+  try {
+    const res = await useFetchApi<ResponsePagination<Pricetag_item[]>>(
+      `/search`,
+      "fetch-pricetag-item",
+      "post",
+      request_search_pricelist_item.value
+    );
+    if (res.status.value == "success") {
+      return res.data.value?.data || [];
+    } else {
+      return [];
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+    return [];
+  }
+};
 
 const fetchInitialData = async () => {
   loading.value = true;
@@ -1023,12 +1057,24 @@ const fetchInitialData = async () => {
       ruleForm.created_by = pricetagEdit.created_by;
       ruleForm.updated_at = pricetagEdit.updated_at;
       ruleForm.version = pricetagEdit.version;
-      ruleForm.pricetag_item = pricetagEdit.pricetag_item.map((value) => ({
+
+      const itemPricetag: Pricetag_item[] = await getItemPricetag();
+
+      ruleForm.pricetag_item = itemPricetag.map((value) => ({
         ...value,
         item_name: value.catalogue?.name ?? "",
         sn: value.catalogue?.sn ?? "N/A",
         is_new: false,
+        garansi:
+          (value.reference_transaction || []).find(
+            (find) =>
+              find.adjustments_transaction?.name.toLowerCase() == "garansi" &&
+              find.adjustments_transaction?.category == "attribute"
+          )?.amount || 0,
       }));
+
+      console.log("items", ruleForm.pricetag_item);
+
       ruleForm.pricetag_condition = pricetagEdit.pricetag_condition;
       ruleForm.location = pricetagEdit.location;
 
