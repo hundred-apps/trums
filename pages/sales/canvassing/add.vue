@@ -2662,7 +2662,7 @@ const querySearchCatalogue = (queryString: string, cb: (arg: any) => void) => {
     request_search_pricetag_item.value.keyword = queryString;
     // request_search_pricetag_item.value.c
     useFetchApi<ResponsePagination<Pricetag_item[]>>(
-      `/search`,
+      `/pricetag-item-read`,
       "pricetag-search-items",
       "post",
       request_search_pricetag_item.value
