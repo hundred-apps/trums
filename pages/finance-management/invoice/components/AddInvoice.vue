@@ -1,33 +1,6 @@
 <template>
   <div>
     <el-card class="my-3">
-      <template #header>
-        <div class="card-header">
-          <el-form-item>
-            <el-button
-              type="primary"
-              :loading="loading"
-              @click="submitForm(ruleFormRef)"
-              >Simpan</el-button
-            >
-            <el-button
-              type="info"
-              :loading="loading"
-              @click="
-                () => {
-                  ruleForm.is_performa = true;
-                  submitForm(ruleFormRef);
-                }
-              "
-              >Simpan Sebagai Performa Invoice</el-button
-            >
-            <el-button :loading="loading" @click="resetForm(ruleFormRef)"
-              >Reset</el-button
-            >
-          </el-form-item>
-        </div>
-      </template>
-
       <el-form
         ref="ruleFormRef"
         style="max-width: 600px"
@@ -774,6 +747,30 @@
             </el-descriptions> -->
           </div>
         </div>
+      </div>
+    </el-card>
+
+    <el-card>
+      <div class="flex justify-end">
+        <el-button :loading="loading" @click="resetForm(ruleFormRef)"
+          >Reset</el-button
+        >
+        <el-button
+          type="info"
+          :loading="loading"
+          @click="
+            () => {
+              ruleForm.is_performa = true;
+              submitForm(ruleFormRef);
+            }
+          "
+          >Simpan Sebagai Performa Invoice</el-button
+        ><el-button
+          type="primary"
+          :loading="loading"
+          @click="submitForm(ruleFormRef)"
+          >Simpan</el-button
+        >
       </div>
     </el-card>
 

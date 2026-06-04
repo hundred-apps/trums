@@ -10,25 +10,23 @@
       element-loading-background="rgba(122, 122, 122, 0.8)"
     >
       <template #header>
-        <el-scrollbar>
-          <div class="scrollbar-flex-content">
+        <div class="card-header flex justify-between" v-if="!isMobile">
+          <div class="flex">
             <el-button type="danger" :icon="Delete" @click="confirmDelete"
               >Hapus</el-button
             >
             <NuxtLink
+              v-if="
+                canvassingData?.status === CanvassingStatus.RAB ||
+                canvassingData?.status === CanvassingStatus.PENDING_APPROVAL_RAB
+              "
               :to="`/sales/quotation/add?id=${canvassingData?.unique_id}`"
               class="el-button el-button--default"
             >
               <el-icon class="me-2"><Edit /></el-icon> Edit
             </NuxtLink>
-            <el-button
-              type="success"
-              v-if="canvassingData?.status === CanvassingStatus.RAB"
-              @click="() => (dialogSelectedItem = true)"
-            >
-              <el-icon class="me-2"><CircleCheck /></el-icon> Submit for
-              Approval
-            </el-button>
+          </div>
+          <div class="flex">
             <el-button
               type="success"
               v-if="
@@ -68,63 +66,72 @@
             >
               Cetak SCM Memo
             </el-button>
-            <el-button
-              v-if="
-                canvassingData?.status ===
-                  CanvassingStatus.PENDING_APPROVAL_RAB && editState == false
-              "
-              type="success"
-              @click="approveWithCreateRAB"
-            >
-              <el-icon class="me-2"><CircleCheck /></el-icon> Approve dan Buat
-              RAB
-            </el-button>
-
-            <!-- <NuxtLink
-            :href="`sales/quotation/add?id=${canvassingData.unique_id}`"
-            v-if="canvassingData?.status === CanvassingStatus.PENDING_APPROVAL_RAB"
-            class="el-button el-button--success"
+          </div>
+        </div>
+        <div class="flex gap-4" v-else>
+          <TrumsCustomButton
+            :type="'success'"
+            :disabled="false"
+            :loading="loading"
+            @click="approve"
           >
-            <el-icon class="me-2"><CircleCheck /></el-icon> Approve dan Buat RAP
-          </NuxtLink> -->
+            <el-icon class="me-2"><CircleCheck /></el-icon> Approve
+          </TrumsCustomButton>
+          <TrumsCustomButton
+            :disabled="false"
+            :loading="loading"
+            type="danger"
+            v-if="
+              canvassingData?.status === CanvassingStatus.PENDING_APPROVAL &&
+              canAccess('canvassing-approve', privilages, 2)
+            "
+            @click="decline"
+          >
+            <el-icon class="me-2"><CircleClose /></el-icon> Tolak
+          </TrumsCustomButton>
+          <!-- <el-dropdown>
+            <span class="el-dropdown-link">
+              Dropdown List
+              <el-icon class="el-icon--right">
+                <arrow-down />
+              </el-icon>
+            </span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item>Action 1</el-dropdown-item>
+                <el-dropdown-item>Action 2</el-dropdown-item>
+                <el-dropdown-item>Action 3</el-dropdown-item>
+                <el-dropdown-item disabled>Action 4</el-dropdown-item>
+                <el-dropdown-item divided>Action 5</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown> -->
+          <!-- <el-button type="danger" :icon="Delete" @click="confirmDelete"
+              >Hapus</el-button
+            >
             <NuxtLink
-              v-if="canvassingData?.status === CanvassingStatus.DONE"
-              :href="`/sales/offer/add?canvassing_id=${canvassingData?.unique_id}&type=out`"
+              v-if="
+                canvassingData?.status === CanvassingStatus.RAB ||
+                canvassingData?.status === CanvassingStatus.PENDING_APPROVAL_RAB
+              "
+              :to="`/sales/quotation/add?id=${canvassingData?.unique_id}`"
               class="el-button el-button--default"
             >
-              Buat Penawaran
+              <el-icon class="me-2"><Edit /></el-icon> Edit
             </NuxtLink>
+            
+            
             <el-button
-              v-if="editState"
               type="default"
-              size="default"
-              @click="() => (editState = false)"
-              class="mr-3"
+              @click="printSCMMemo"
+              v-if="
+                canvassingData?.status === CanvassingStatus.PENDING_APPROVAL ||
+                canvassingData?.status === CanvassingStatus.DONE
+              "
             >
-              Batal
-            </el-button>
-            <el-button
-              v-if="editState"
-              type="success"
-              size="default"
-              @click="() => submitRAB(ruleFormRef)"
-              :loading="loading"
-            >
-              <el-icon class="me-2"><CircleCheck /></el-icon>
-              Simpan dan Lanjutkan
-            </el-button>
-            <el-button
-              v-if="editState"
-              type="primary"
-              size="default"
-              @click="() => submitApproveRab(CanvassingStatus.RAB)"
-              :loading="loading"
-            >
-              <el-icon class="me-2"><CircleCheck /></el-icon>
-              Simpan
-            </el-button>
-          </div>
-        </el-scrollbar>
+              Cetak SCM Memo
+            </el-button> -->
+        </div>
       </template>
 
       <div :class="`flex ${isMobile ? 'flex-col' : ''} gap-3 my-3`">
@@ -1056,6 +1063,7 @@ import {
   ArrowRight,
   Operation,
   Download,
+  Check,
 } from "@element-plus/icons-vue";
 import {
   CanvassingStatus,

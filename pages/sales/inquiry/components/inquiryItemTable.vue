@@ -124,7 +124,7 @@ interface DataRequestItem {
   hasChildren?: boolean;
 }
 
-const rules = reactive<FormRules<CanvassingItem>>({
+const rules = reactive<FormRules>({
   canvassing_vendor: [
     {
       type: "array",

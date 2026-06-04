@@ -5,17 +5,16 @@
     :loading="loading"
     @sort-change="onSort"
     @selection-change="handleSelectionChange"
+    :row-click="handleRowClick"
   />
 
   <!-- Pagination -->
   <div class="flex justify-end mt-3">
-    <el-pagination
-      background
-      layout="prev, pager, next, sizes, total"
+    <TrumsCustomPagination
       :total="data?.total_data ?? 0"
       :current-page="Number(request_search.offset)"
       :page-size="Number(request_search.limit)"
-      @current-change="handlePageChange"
+      @page-change="handlePageChange"
       @size-change="handleSizeChange"
     />
   </div>
@@ -45,6 +44,8 @@ import { CanvassingStatus } from "~/types/scm/canvasing";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import type { ColumnTable } from "~/types/ColumnTable";
+
+const router = useRouter();
 
 const props = defineProps<{
   // onSubmit: (catalogue: Catalogue) => void,
@@ -86,8 +87,36 @@ const { data, pending, refresh, status } = await useAsyncData(
   }
 );
 
+const handleRowClick = (data: Canvassing) => {
+  if (props.type == "RAB") {
+    router.push(`/sales/quotation/${data.unique_id}`);
+  } else {
+    router.push(`/sales/canvassing/${data.unique_id}`);
+  }
+};
+
 // Columns
 const columns: ColumnTable<Canvassing>[] = [
+  {
+    key: "source.request_to.name",
+    title: "Diminta Oleh",
+    dataKey: "source.request_to.name",
+    width: 300,
+    sortable: true,
+    cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
+      <span>{rowData.source?.request_to?.name || "N/A"}</span>
+    ),
+  },
+  {
+    key: "source.request_by.name",
+    title: "PIC",
+    dataKey: "source.request_by.name",
+    width: 200,
+    sortable: true,
+    cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
+      <span>{rowData.source?.request_by?.name || "N/A"}</span>
+    ),
+  },
   {
     key: "unique_code",
     title: "Nomor Canvassing",
@@ -95,15 +124,7 @@ const columns: ColumnTable<Canvassing>[] = [
     width: 300,
     sortable: true,
     cellRenderer: ({ rowData: row }) =>
-      props.type == "CANVASSING" &&
-      row.status === CanvassingStatus.PENDING_APPROVAL_RAB ? (
-        <NuxtLink
-          href={`/sales/quotation/${row.unique_id}`}
-          class="text-blue-500"
-        >
-          {row.unique_code}
-        </NuxtLink>
-      ) : props.type == "RAB" ? (
+      props.type == "RAB" ? (
         <NuxtLink
           href={`/sales/quotation/${row.unique_id}`}
           class="text-blue-500"
@@ -126,26 +147,6 @@ const columns: ColumnTable<Canvassing>[] = [
     width: 200,
     cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
       <span>{rowData.source_document || "-"}</span>
-    ),
-  },
-  {
-    key: "source.request_to.name",
-    title: "Diminta Oleh",
-    dataKey: "source.request_to.name",
-    width: 300,
-    sortable: true,
-    cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
-      <span>{rowData.source?.request_to?.name || "N/A"}</span>
-    ),
-  },
-  {
-    key: "source.request_by.name",
-    title: "PIC",
-    dataKey: "source.request_by.name",
-    width: 200,
-    sortable: true,
-    cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
-      <span>{rowData.source?.request_by?.name || "N/A"}</span>
     ),
   },
   {

@@ -32,14 +32,19 @@
         class="demo-ruleForm"
         size="default"
         :disabled="loading"
+        :label-position="labelPosition"
+        :formSize="formSize"
         status-icon
       >
-        <el-form-item label="Nomor Referensi" prop="source_document">
-          <div class="flex gap-2">
+        <el-form-item
+          :label="isMobile ? '' : 'Nomor Referensi/RFQ'"
+          prop="source_document"
+        >
+          <div class="flex gap-2 w-full">
             <el-input
               v-model="ruleForm.source_document"
               :readonly="true"
-              placeholder="Masukkan nomor referensi"
+              placeholder="Klik Tombol Untuk Pilih RFQ"
             />
             <el-button
               :disabled="loading"
@@ -51,7 +56,7 @@
           </div>
         </el-form-item>
 
-        <el-form-item label="Deskripsi" prop="description">
+        <el-form-item :label="isMobile ? '' : 'Deskripsi'" prop="description">
           <el-input
             v-model="ruleForm.description"
             type="textarea"
@@ -59,38 +64,26 @@
           />
         </el-form-item>
 
-        <el-form-item label="File Lampiran" prop="files">
+        <el-form-item :label="isMobile ? '' : 'File Lampiran'" prop="files">
           <TrumsUploadFile v-model:file-list="fileList" />
         </el-form-item>
       </el-form>
     </el-card>
 
-    <!-- Detail Permintaan -->
     <div v-if="ruleForm.inquiry">
       <el-card class="my-3">
         <template #header>Detail Permintaan</template>
-        <div class="flex gap-3 my-3">
-          <div class="flex-1">
-            <el-descriptions :column="1" size="large" border>
-              <el-descriptions-item label="Prioritas Permintaan">
-                {{ ruleForm.inquiry?.priority?.toUpperCase() }}
-              </el-descriptions-item>
-              <el-descriptions-item label="Tanggal Permintaan">
-                {{ formatLocalDate(ruleForm.inquiry?.date!) }}
-              </el-descriptions-item>
-            </el-descriptions>
-          </div>
-          <div class="flex-1">
-            <el-descriptions :column="1" size="large" border>
-              <el-descriptions-item label="Ditujukan Untuk">
-                {{ ruleForm.inquiry.request_to?.name ?? "Tidak Ada" }}
-              </el-descriptions-item>
-              <el-descriptions-item label="Diminta Oleh">
-                {{ ruleForm.inquiry?.request_by?.name ?? "-" }}
-              </el-descriptions-item>
-            </el-descriptions>
-          </div>
-        </div>
+        <el-descriptions :column="1" size="large" :label-width="120">
+          <el-descriptions-item label="Tanggal">
+            {{ formatLocalDate(ruleForm.inquiry?.date!) }}
+          </el-descriptions-item>
+          <el-descriptions-item label="Diminta Oleh">
+            {{ ruleForm.inquiry.request_to?.name ?? "Tidak Ada" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="PIC">
+            {{ ruleForm.inquiry?.request_by?.name ?? "-" }}
+          </el-descriptions-item>
+        </el-descriptions>
         <el-descriptions title="Alamat">
           <el-descriptions-item label="">{{
             generateResultSearchAddress(ruleForm?.inquiry?.address ?? null)
@@ -105,17 +98,32 @@
       </el-card>
     </div>
 
-    <!-- Items Section -->
-    <el-card class="mb-3">
+    <CanvassingAddTableMobile
+      v-if="isMobile"
+      :expand-row-key="getExpandRowKeys"
+      :item_canvassing="item_canvassing"
+      :loading="loading"
+      :query-search-catalogue="querySearchCatalogue"
+      :query-search-unit="querySearchUnit"
+      @calculate-selling-price="calculateSellingPrice"
+      @on-add-item-r-f-q="() => (dialogItemRequest = true)"
+      @on-add-item-vendor="addItemVendor"
+      @on-image-modal="(row, index) => openImageModal(index, row)"
+      @on-remove-item="removeItem"
+      @show-pricetag="showPricetag"
+      @on-select-item-complete="onHandleSelectItemAutocompleteItem"
+    />
+
+    <el-card class="mb-3" v-else>
       <template #header>
         <div class="card-header">
           <span>Items</span>
-          <!-- <el-button
+          <el-button
             type="primary"
             :icon="Search"
             @click="() => (dialogItemRequest = true)"
             >Cari Item Permintaan</el-button
-          > -->
+          >
         </div>
       </template>
 
@@ -208,8 +216,10 @@
                     v-model="row.catalogue_name"
                     placeholder="Cari item"
                     :trigger-on-focus="false"
-                    :autofocus="true"
-                    @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteItem(item, row.index, row)"
+                    @select="
+                      (item) =>
+                        onHandleSelectItemAutocompleteItem(item, row.index, row)
+                    "
                   >
                     <template #default="{ item }">
                       <div
@@ -246,7 +256,8 @@
                             <p class="font-bold">Harga: {{ item.price }}</p>
                           </div>
                           <p>
-                            PN/SN: {{ item.catalogue?.sn ?? "Tidak Ada" }} |
+                            Brand:
+                            {{ item.catalogue?.brand?.name ?? "Tidak Ada" }} |
                             Vendor:
                             {{ item.pricetag?.owner?.name ?? "Tidak Ada" }} |
                             Tgl:
@@ -271,8 +282,14 @@
                     v-model="row.catalogue_name"
                     placeholder="Cari item"
                     :trigger-on-focus="false"
-                    :autofocus="true"
-                    @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteItemEquivalent(item, row.index, row)"
+                    @select="
+                      (item) =>
+                        onHandleSelectItemAutocompleteItemEquivalent(
+                          item,
+                          row.index,
+                          row
+                        )
+                    "
                   >
                     <template #default="{ item }">
                       <div
@@ -321,6 +338,7 @@
               />
             </template>
           </el-table-column>
+
           <el-table-column prop="qty" label="QTY" width="200">
             <template #default="{ row }">
               <div v-if="row.type == 'parent' && row.type_item == 'request'">
@@ -331,10 +349,10 @@
                 v-model="row.quantity"
                 :min="1"
                 @change="calculateSellingPrice(row)"
-                @input="calculateSellingPrice(row)"
               />
             </template>
           </el-table-column>
+
           <el-table-column prop="unit_name" label="UOM" width="100">
             <template #default="{ row }">
               <div v-if="row.type == 'parent' && row.type_item == 'request'">
@@ -345,11 +363,11 @@
                 :fetch-suggestions="querySearchUnit"
                 v-model="row.unit_name"
                 placeholder="Input Units"
-                @select="(item: Record<string, any>) => handleSelectUnit(item, row.index, row)"
                 :disabled="true"
               />
             </template>
           </el-table-column>
+
           <el-table-column prop="vendor" label="Vendor" width="200">
             <template #default="{ row }">
               <div v-if="row.type == 'parent'">
@@ -360,8 +378,6 @@
                   v-model="row.vendor_name"
                   :fetch-suggestions="querySearchContact"
                   placeholder="Cari vendor"
-                  @select="(item) => onHandleSelectVendor(item, row.index)"
-                  style="width: 100%"
                   :disabled="true"
                 />
               </div>
@@ -444,14 +460,6 @@
       <AddAdjustment @submit="handleAdjustmentSubmit" />
     </el-dialog>
 
-    <FeeDrawer
-      v-model="drawerFeeVisible"
-      :item="selectedItem"
-      :contacts="contactsFeeToEdit"
-      :adjustment="adjustmentContact!"
-      @save="handleSaveFee"
-    />
-
     <el-dialog
       v-model="showImageModal"
       :title="`Upload Gambar untuk Item ${activeItemIndex + 1}`"
@@ -460,7 +468,6 @@
       @close="handleImageModalClose"
     >
       <div class="image-upload-modal">
-        <!-- Photo Wall Upload -->
         <PhotoWallUploads
           ref="photoWallRef"
           v-model="modalImageFiles"
@@ -473,11 +480,7 @@
           @remove="handleRemoveImageList"
         />
 
-        <!-- Preview Section -->
-        <div v-if="modalImageFiles.length > 0" class="preview-section"></div>
-
-        <!-- Empty State -->
-        <div v-else class="empty-state-modal">
+        <div v-if="modalImageFiles.length === 0" class="empty-state-modal">
           <el-empty description="Belum ada gambar" :image-size="100">
             <template #description>
               <p>Upload gambar untuk item ini</p>
@@ -500,6 +503,11 @@
         </span>
       </template>
     </el-dialog>
+
+    <TrumsModalItemRequest
+      v-model:visible="dialogItemRequest"
+      @selected-submit="addItemRequestToCanvassing"
+    />
   </TrumsWrapper>
 </template>
 
@@ -509,7 +517,6 @@ import {
   Plus,
   ArrowDown,
   ArrowRight,
-  Operation,
   Search,
   Picture,
 } from "@element-plus/icons-vue";
@@ -522,8 +529,6 @@ import {
   type FormInstance,
   type FormRules,
   type UploadUserFile,
-  type UploadProps,
-  type UploadFile,
   type UploadStatus,
 } from "element-plus";
 import {
@@ -532,9 +537,6 @@ import {
 } from "~/types/scm/canvasing";
 import type {
   CanvassingForm,
-  QuotationItemInterface,
-  QuatotationVendorEquivalent,
-  QuotationVendor,
   CanvassingItemForm,
   Canvassing,
 } from "~/types/scm/canvasing";
@@ -551,27 +553,25 @@ import type { Pricetag_item } from "~/types/pricetag";
 import type { ResponsePagination } from "~/types/response_pagination";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
 
-// Components
 import AddPriceTagComponent from "~/components/trums/AddPriceTagComponent.vue";
 import AddAdjustment from "~/components/trums/AddAdjustment.vue";
 import TrumsUploadFile from "~/components/trums/form/TrumsUploadFile.vue";
-import ModalAdjustmentTransaction from "~/components/trums/ModalAdjustmentTransaction.vue";
 import ModalRequest from "~/components/trums/ModalRequest.vue";
 import ModalSearchItemExample from "~/components/trums/ModalSearchItemExample.vue";
 import ModalContact from "~/components/trums/ModalContact.vue";
 import type { BaseResponse } from "~/types/response";
-import FeeDrawer from "~/components/trums/FeeDrawer.vue";
 import type { ItemSearch } from "~/types/item_search";
-import type { Pagination } from "~/types/pagination";
 import type { Catalogue } from "~/types/catalogue";
 import type { Unit } from "~/types/unit";
 import type { AddressType } from "~/types/address";
 import { currency, formatLocalDate, getFirstFileUrl } from "#imports";
 import type { ItemRequest } from "~/types/item_request";
-import { urlToFile } from "#imports";
-import type { AppFile } from "~/types/file";
 import ItemImageUpload from "../inquiry/components/ItemImageUpload.vue";
 import PhotoWallUploads from "~/components/trums/PhotoWallUploads.vue";
+import CanvassingAddTableMobile from "./components/CanvassingAddTableMobile.vue";
+
+const { labelPosition, formSize } = useFormConfig();
+const { isMobile } = useDevice();
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -583,22 +583,17 @@ const id = computed(() => route.query.id as string);
 const route = useRoute();
 const inquiry_id = computed(() => route.query.inquiry_id as string);
 
-// Refs
 const ruleFormRef = ref<FormInstance>();
 const tableRef = ref();
 const loading = ref(false);
-const loadingPriceTag = ref(false);
 
-// Modal States
 const visibleModalSearchItemExample = ref(false);
 const visibleModalRequest = ref(false);
-const visibleModalAdjustmentTransaction = ref(false);
 const visibleModalPricetagNewItem = ref(false);
 const visibleModalNewAdjustment = ref(false);
 const visibleModalContact = ref(false);
-const drawerFeeVisible = ref(false);
+const dialogItemRequest = ref(false);
 
-// image
 const showImageModal = ref(false);
 const activeItemIndex = ref(-1);
 const activeItemParentIndex = ref(-1);
@@ -609,22 +604,12 @@ const uploadAction = computed(
   () => `${config.public.apiBaseURL}/upload-item-image`
 );
 
-// Index References
-const itemStartIndex = ref<string>("");
 const itemChecked = ref<any[]>([]);
 const itemIndex = ref<string>("");
-const selectedItem = ref<{ index: string; name: string; vendor_name: string }>({
-  index: "",
-  name: "",
-  vendor_name: "",
-});
 const config = useRuntimeConfig();
-const imageUrl = config.public.baseImageURL;
 
-// Data
 const fileList = ref<UploadUserFile[]>([]);
 const references = ref<ReferenceTransactionAdjustment[]>([]);
-const quotationItems = ref<QuotationItemInterface[]>([]);
 const contacts = ref<ResponsePagination<Contact[]>>({
   currentPage: 0,
   data: [],
@@ -633,19 +618,7 @@ const contacts = ref<ResponsePagination<Contact[]>>({
   total_page: 1,
 });
 
-// Bulk input data
-const bulkProfit = ref("");
-const bulkProfitUnit = ref("percent");
-const bulkFee = ref("");
-const bulkFeeUnit = ref("percent");
-const bulkOngkir = ref("");
-
-// Computed untuk check apakah ada input bulk
-const hasBulkInput = computed(() => {
-  return (
-    bulkProfit.value !== "" || bulkFee.value !== "" || bulkOngkir.value !== ""
-  );
-});
+const contactsFee = ref<ReferenceTransactionAdjustment[]>([]);
 
 const feeState = ref<string>("minus");
 const ongkirState = ref<string>("minus");
@@ -653,9 +626,6 @@ const unitFee = ref<FeeType>(FeeType.PERCENT);
 
 const item_canvassing = ref<CanvassingItemForm[]>([]);
 
-const hasInquirySelected = computed(() => !!ruleForm.inquiry);
-
-// Search Parameters
 const request_search_inquiry = ref<RequestSearch>({
   column: [
     {
@@ -697,10 +667,9 @@ const request_search_pricetag_item = ref({
   flag: "form",
 });
 
-// API Calls
 const priceTagItem = await useAsyncData("pricetag-search-items", async () => {
   const res = await useFetchApi<ResponsePagination<Pricetag_item[]>>(
-    `/search`,
+    `/pricetag-item-read`,
     "pricetag-search-items",
     "post",
     request_search_pricetag_item.value
@@ -709,266 +678,7 @@ const priceTagItem = await useAsyncData("pricetag-search-items", async () => {
 });
 
 const inquiry = ref<ResponsePagination<Inquiry[]>>();
-const querySearchAdjustmentTransaction = ref<RequestSearch>({
-  keyword: "",
-  table: "adjustments_transaction",
-  column: [],
-  sort: null,
-  limit: "10",
-  offset: "1",
-  flag: "form",
-});
 
-const adjustmentTransactions = await useFetchApi<
-  ResponsePagination<AdjustmentTransaction[]>
->(
-  "/search",
-  "search-adjustment",
-  "post",
-  querySearchAdjustmentTransaction.value
-);
-
-const adjustmentContact = computed(() => {
-  const data = adjustmentTransactions.data.value?.data || [];
-  return data.find(
-    (value: AdjustmentTransaction) =>
-      value.name?.toLowerCase().includes("fee") &&
-      value.operator === feeState.value
-  );
-});
-const adjustmentOngkir = computed(() => {
-  const data = adjustmentTransactions.data.value?.data || [];
-
-  return data.find(
-    (value: AdjustmentTransaction) =>
-      value.name?.toLowerCase().includes("ongkos kirim") &&
-      value.operator === ongkirState.value
-  );
-});
-
-const getExpandRowKeys = computed(() => {
-  const rowKeys = item_canvassing.value
-    .filter((value) => value.children && value.children.length > 0)
-    .map((value) => value.index);
-
-  console.log("row keys", rowKeys);
-  return rowKeys;
-});
-
-const adjustmentTransactionFeeTotal = computed(() => {
-  return {
-    unique_id: "",
-    reference: ReferenceAdjustment.CANVASSING,
-    reference_id: "",
-    adjustment_id: `${adjustmentContact.value?.unique_id}`,
-    adjustment: adjustmentContact.value,
-    value: null,
-    type: unitFee.value,
-    amount: contactsFee.value.reduce(
-      (sum, c) => Number(sum) + Number(c.amount || 0),
-      0
-    ),
-    created_at: 0,
-  };
-});
-
-const openImageModal = (index: number, itemData: CanvassingItemForm) => {
-  console.log("item data", itemData);
-  activeItemData.value = itemData;
-
-  if (itemData.type == "child") {
-    activeItemParentIndex.value = itemData.parent_index ?? -1;
-    console.log();
-    const childIndex = item_canvassing.value[
-      activeItemParentIndex.value
-    ].children.findIndex((child) => child.index === itemData.index);
-    activeItemIndex.value = childIndex;
-  } else {
-    activeItemIndex.value = index;
-  }
-
-  // Reset photoWallRef jika perlu (clear selection)
-  if (photoWallRef.value) {
-    photoWallRef.value.clearFiles?.();
-  }
-
-  // Load files dengan memastikan URL valid
-  modalImageFiles.value = (itemData.files || []).map((file) => {
-    // Clone file object
-    const fileCopy = { ...file };
-
-    // Jika file punya raw tapi URL invalid/expired, buat URL baru
-    if (fileCopy.raw && (!fileCopy.url || !isValidUrl(fileCopy.url))) {
-      fileCopy.url = URL.createObjectURL(fileCopy.raw);
-    }
-
-    return fileCopy;
-  });
-
-  console.log("modal file ", modalImageFiles.value);
-
-  showImageModal.value = true;
-};
-
-const cancelImageUpload = () => {
-  showImageModal.value = false;
-};
-
-const handleImageModalClose = () => {
-  // Optional: Clear temporary blob URLs
-  modalImageFiles.value.forEach((file) => {
-    if (file.url?.startsWith("blob:")) {
-      URL.revokeObjectURL(file.url);
-    }
-  });
-  modalImageFiles.value = [];
-  activeItemIndex.value = -1;
-  activeItemData.value = null;
-};
-
-const handleModalImagesChange = (files: UploadUserFile[]) => {
-  console.log("images", files);
-  modalImageFiles.value = files;
-};
-
-// Fungsi untuk menyimpan gambar
-const saveItemImages = () => {
-  if (activeItemIndex.value >= 0) {
-    if (activeItemParentIndex.value >= 0) {
-      console.log("activeItemParentIndex", activeItemParentIndex.value);
-      console.log("activeItemIndex", activeItemIndex.value);
-      item_canvassing.value[activeItemParentIndex.value].children[
-        activeItemIndex.value
-      ].files = [...modalImageFiles.value];
-
-      // Set image URL untuk preview di tabel (mengambil gambar pertama)
-      if (modalImageFiles.value.length > 0) {
-        const firstFile = modalImageFiles.value[0];
-        if (firstFile.url) {
-          item_canvassing.value[activeItemParentIndex.value].children[
-            activeItemIndex.value
-          ].image = firstFile.url;
-        } else if (firstFile.raw) {
-          item_canvassing.value[activeItemParentIndex.value].children[
-            activeItemIndex.value
-          ].image = URL.createObjectURL(firstFile.raw);
-        }
-      } else {
-        item_canvassing.value[activeItemParentIndex.value].children[
-          activeItemIndex.value
-        ].image = "";
-      }
-    } else {
-      // Update dataTable dengan files baru
-      item_canvassing.value[activeItemIndex.value].files = [
-        ...modalImageFiles.value,
-      ];
-
-      // Set image URL untuk preview di tabel (mengambil gambar pertama)
-      if (modalImageFiles.value.length > 0) {
-        const firstFile = modalImageFiles.value[0];
-        if (firstFile.url) {
-          item_canvassing.value[activeItemIndex.value].image = firstFile.url;
-        } else if (firstFile.raw) {
-          item_canvassing.value[activeItemIndex.value].image =
-            URL.createObjectURL(firstFile.raw);
-        }
-      } else {
-        item_canvassing.value[activeItemIndex.value].image = "";
-      }
-    }
-
-    ElMessage.success(
-      `Gambar untuk item ${activeItemIndex.value + 1} disimpan`
-    );
-  }
-
-  showImageModal.value = false;
-};
-
-const handleRemoveImageList = async (
-  file: UploadUserFile,
-  files: UploadUserFile[]
-) => {
-  if (file.raw) {
-    console.log("file baru upload");
-  } else {
-    console.log("file lama", file.uid);
-    try {
-      const response = await useApiFetch<BaseResponse<any>>("/file-delete", {
-        method: "POST",
-        body: [file.uid],
-      });
-
-      if (response.success) {
-        ElMessage.success(`Image Berhasil Di Hapus!`);
-      }
-    } catch (error: any) {
-      ElMessage.error(`${error?.response?.message ?? error}`);
-    }
-  }
-};
-
-const isValidUrl = (urlString: string): boolean => {
-  console.log("url string", urlString);
-  if (!urlString.startsWith("blob:")) return true; // Non-blob URLs valid
-
-  try {
-    // Coba fetch URL untuk test validity
-    fetch(urlString, { method: "HEAD", mode: "no-cors" });
-    return true;
-  } catch {
-    return false;
-  } finally {
-    return false;
-  }
-};
-
-const adjustmentTransactionOngkirTotal = ref<ReferenceTransactionAdjustment>({
-  unique_id: "",
-  reference: ReferenceAdjustment.CANVASSING,
-  reference_id: "",
-  adjustment_id: `${adjustmentOngkir.value?.unique_id}`,
-  adjustment: adjustmentOngkir.value,
-  value: null,
-  type: FeeType.AMOUNT,
-  amount: 0,
-  created_at: 0,
-  changeType: false,
-});
-
-const updateAllFeeType = () => {
-  contactsFee.value.map((value) => (value.type = unitFee.value));
-
-  item_canvassing.value.forEach((element) => {
-    element.fee_unit = unitFee.value as "percent" | "amount";
-    element.children.map(
-      (value) => (value.fee_unit = unitFee.value as "percent" | "amount")
-    );
-  });
-};
-
-// const updateFeeTypeItem = (items: CanvassingItemForm[], feeType: FeeType) => {
-//   for (const it of items) {
-//     if (it.index === index) {
-//       if(contactsFee){
-//         it.fee = contactsFee.reduce((sum, c) => sum + (c.fee || 0), 0);
-//       }else{
-//         it.fee = fee ?? 0;
-//       }
-//       // it.contactsFee = contactsFee
-//       return true
-//     }
-//     if (it.children && updateItemFee(it.children, index, contactsFee)) {
-//       return true
-//     }
-//   }
-//   return false
-// }
-
-const contactsFee = ref<ReferenceTransactionAdjustment[]>([]);
-const contactsFeeToEdit = ref<ReferenceTransactionAdjustment[]>([]);
-// Form Data
 const ruleForm = reactive<CanvassingForm>({
   unique_id: "",
   source_document: "",
@@ -978,157 +688,10 @@ const ruleForm = reactive<CanvassingForm>({
   inquiry: null,
 });
 
-// Constants
-const canvassingStatusOptions = [
-  { value: CanvassingStatus.DRAFT, label: "Draft" },
-  { value: CanvassingStatus.PENDING_APPROVAL, label: "Pending Approval" },
-  { value: CanvassingStatus.CANCEL, label: "Cancel" },
-];
-
-const netProfitForBuying = computed(() => {
-  let fee = 0;
-
-  if (adjustmentTransactionFeeTotal.value.type == FeeType.AMOUNT) {
-    fee = adjustmentTransactionFeeTotal.value.amount;
-  } else if (adjustmentTransactionFeeTotal.value.type == FeeType.PERCENT) {
-    fee = (grandTotal.value * adjustmentTransactionFeeTotal.value.amount) / 100;
-  }
-
-  return Number(totalForGrossProfitForBuying.value || 0) - Number(fee || 0);
-});
-const netProfitForBuyingMin = computed(() => {
-  let fee = 0;
-
-  if (adjustmentTransactionFeeTotal.value.type == FeeType.AMOUNT) {
-    fee = adjustmentTransactionFeeTotal.value.amount;
-  } else if (adjustmentTransactionFeeTotal.value.type == FeeType.PERCENT) {
-    fee = (grandTotal.value * adjustmentTransactionFeeTotal.value.amount) / 100;
-  }
-  return Number(totalForGrossProfitForBuyingMin.value || 0) - Number(fee || 0);
-});
-const grossProfitMin = computed(() => {
-  return Number(grandTotal.value) - Number(totalBuyingPriceMin.value);
-});
-const grossProfit = computed(() => {
-  return Number(grandTotal.value) - Number(totalBuyingPrice.value);
-});
-
-const totalForGrossProfitForBuying = computed(() => {
-  let gross = Number(grossProfit.value);
-
-  gross -= Number(adjustmentTransactionOngkirTotal.value.amount);
-
-  references.value.forEach((element) => {
-    if (element.type === FeeType.PERCENT) {
-      gross -= (element.amount / totalBuyingPrice.value) * 100;
-    } else {
-      gross -= element.amount;
-    }
-  });
-
-  return gross;
-});
-const totalForGrossProfitForBuyingMin = computed(() => {
-  let gross = Number(grossProfitMin.value);
-
-  gross -= Number(adjustmentTransactionOngkirTotal.value.amount);
-
-  references.value.forEach((element) => {
-    if (element.type === FeeType.PERCENT) {
-      gross -= (element.amount / totalBuyingPriceMin.value) * 100;
-    } else {
-      gross -= element.amount;
-    }
-  });
-
-  return gross;
-});
-
-const totalBuyingPrice = computed(() => {
-  let total = 0;
-  item_canvassing.value.forEach((element) => {
-    console.log("total", total);
-    if (element.children.length > 0) {
-      let dataMin = element.children.reduce((max, data) =>
-        data.unit_price < max.unit_price ? data : max
-      );
-      console.log(
-        "min price",
-        Number(dataMin.unit_price) * Number(element.quantity)
-      );
-      total += Number(dataMin.unit_price) * Number(element.quantity);
-    }
-  });
-
-  return total;
-});
-const totalBuyingPriceMin = computed(() => {
-  let total = 0;
-
-  item_canvassing.value.forEach((element) => {
-    console.log("total Min", total);
-    if (element.children.length > 0) {
-      let dataMin = element.children.reduce((max, data) =>
-        data.unit_price > max.unit_price ? data : max
-      );
-      console.log(
-        "data Min",
-        Number(dataMin.unit_price) * Number(element.quantity)
-      );
-      total += Number(dataMin.unit_price) * Number(element.quantity);
-    }
-  });
-
-  return total;
-});
-
-const grandTotal = computed(() => {
-  return item_canvassing.value.reduce((acc, row: CanvassingItemForm) => {
-    if (row.type === "parent") {
-      acc += Number(row.total_price || 0);
-    }
-
-    return acc;
-  }, 0);
-});
-
-const finalTotal = computed(() => {
-  let total = Number(grandTotal.value || 0);
-
-  references.value.forEach((ref) => {
-    let adjustmentValue = 0;
-
-    if (ref.type === "percent") {
-      adjustmentValue = total * (ref.amount / 100);
-    } else {
-      adjustmentValue = ref.amount;
-    }
-
-    if (ref.adjustment?.operator === "minus") {
-      total -= Number(adjustmentValue);
-    } else if (ref.adjustment?.operator === "plus") {
-      total += Number(adjustmentValue);
-    }
-  });
-
-  let fee = 0;
-
-  if (adjustmentTransactionFeeTotal.value.type === FeeType.PERCENT) {
-    fee = total * (adjustmentTransactionFeeTotal.value.amount / 100);
-  } else {
-    fee = adjustmentTransactionFeeTotal.value.amount;
-  }
-  if (adjustmentTransactionFeeTotal.value.adjustment?.operator === "minus") {
-    total -= Number(fee);
-  } else if (
-    adjustmentTransactionFeeTotal.value.adjustment?.operator === "plus"
-  ) {
-    total += Number(fee);
-  }
-
-  // total -= transaction
-
-  return total;
+const getExpandRowKeys = computed(() => {
+  return item_canvassing.value
+    .filter((value) => value.children && value.children.length > 0)
+    .map((value) => value.index);
 });
 
 const generateResultSearchAddress = (address: AddressType | null) => {
@@ -1155,41 +718,6 @@ const generateResultSearchAddress = (address: AddressType | null) => {
   }
 };
 
-const onInputAdjustment = (row: ReferenceTransactionAdjustment) => {
-  if (row.adjustment?.name.toLowerCase() == "ongkos kirim") {
-    ongChangeGlobalDeliveryFee();
-  }
-};
-
-const ongChangeGlobalDeliveryFee = () => {
-  item_canvassing.value.forEach((element) => {
-    element.children.forEach((child) => {
-      child.ongkir = 0;
-    });
-
-    setProfit(element);
-  });
-};
-
-const onChangeFeeState = (val: string) => {
-  contactsFee.value.forEach((value) => {
-    value.amount = 0;
-    value.type = val == "plus" ? FeeType.AMOUNT : FeeType.PERCENT;
-  });
-
-  item_canvassing.value.forEach((value) => {
-    value.children.forEach((child) => {
-      child.contacts_fee.forEach((fee) => (fee.amount = 0));
-      calculateSellingPrice(child);
-      child.fee = 0;
-    });
-
-    value.fee = 0;
-  });
-
-  unitFee.value = val == "plus" ? FeeType.AMOUNT : FeeType.PERCENT;
-};
-
 function findItemByIndex(
   items: CanvassingItemForm[],
   targetIndex: string
@@ -1207,272 +735,172 @@ function findItemByIndex(
   return null;
 }
 
-// Methods
 const goBack = () => router.back();
 
-const openFeeDrawer = (item: CanvassingItemForm) => {
-  itemIndex.value = item.index;
-  contactsFeeToEdit.value = item.contacts_fee;
+const addItemRequestToCanvassing = (item: ItemRequest) => {
+  item_canvassing.value.push({
+    type_item: "request",
+    index: `${item_canvassing.value.length + 1}`,
+    canvassing_id: null,
+    canvaasing_version: null,
+    item_request_trail_version: null,
+    item_request_trail_id: null,
+    unique_id: null,
+    vendor_id: null,
+    vendor_name: "",
+    unit_id: item.unit_id,
+    unit_name: item.unit_name,
+    unit_version: 1,
+    offer_item_id: null,
+    offer_item_version: 0,
+    catalogue_id: item.catalogue_id ?? "",
+    parent_catalogue_id: "",
+    catalogue_name: item.catalogue_name ?? "",
+    sn: item.sn ?? "N/A",
+    quantity: item.request_qty ?? 1,
+    unit_price: 0,
+    total_price: 0,
+    total_selling_price: 0,
+    status: CanvassingVendorStatus.SUBMITTED,
+    taxes: [],
+    editing: null,
+    type: "parent",
+    children: [],
+    selling_price: 0,
+    profit: 0,
+    profit_unit: "percent",
+    fee: 0,
+    fee_unit: "percent",
+    ongkir: 0,
+    ongkir_unit: "percent",
+    pricetag_item_id: "",
+    pricetag_item_version: 0,
+    contacts_fee: contactsFee.value,
+    equivalent_id: null,
+  });
 
-  selectedItem.value = {
-    index: item.index,
-    vendor_name: item.vendor_name ?? "",
-    name: item.catalogue_name,
-  };
-
-  drawerFeeVisible.value = true;
+  dialogItemRequest.value = false;
 };
 
-const handleSaveFee = ({
-  item,
-  contacts,
-  fee,
-}: {
-  item: { index: string; name: string; vendor_name: string };
-  contacts: ReferenceTransactionAdjustment[];
-  fee?: number;
-}) => {
-  console.log("contacts", contacts);
+const openImageModal = (index: number, itemData: CanvassingItemForm) => {
+  activeItemData.value = itemData;
 
-  if (contacts) {
-    // contactsFee.value = contacts;
-
-    updateItemFee(item_canvassing.value, itemIndex.value, contacts, fee ?? 0);
-    // item_canvassing.value.forEach(element => {
-    //   updateItemFee(element.children, itemIndex.value, contacts);
-    // });
-
-    // contactsFee.value = fees;
+  if (itemData.type == "child") {
+    activeItemParentIndex.value = itemData.parent_index ?? -1;
+    const childIndex = item_canvassing.value[
+      activeItemParentIndex.value
+    ].children.findIndex((child) => child.index === itemData.index);
+    activeItemIndex.value = childIndex;
   } else {
-    updateItemFee(item_canvassing.value, itemIndex.value, contacts, fee ?? 0);
+    activeItemIndex.value = index;
   }
 
-  syncFeeAcumulation();
+  if (photoWallRef.value) {
+    photoWallRef.value.clearFiles?.();
+  }
 
-  item_canvassing.value.forEach((element) => {
-    setProfit(element);
+  modalImageFiles.value = (itemData.files || []).map((file) => {
+    const fileCopy = { ...file };
+    if (fileCopy.raw && (!fileCopy.url || !fileCopy.url.startsWith("http"))) {
+      fileCopy.url = URL.createObjectURL(fileCopy.raw);
+    }
+    return fileCopy;
   });
 
-  // drawerFeeVisible.value = false;
+  showImageModal.value = true;
 };
 
-const syncFeeAcumulation = () => {
-  contactsFee.value.forEach((value) => (value.amount = 0));
-  item_canvassing.value.forEach((element) => {
-    element.children.forEach((child) => {
-      child.contacts_fee.forEach((contact) => {
-        const index = contactsFee.value.findIndex(
-          (value) => value.party_id == contact.party_id
-        );
-        if (index >= 0) {
-          contactsFee.value[index].amount += Number(contact.amount);
-        } else {
-          contactsFee.value.push({ ...contact });
-        }
-      });
-    });
-  });
+const cancelImageUpload = () => {
+  showImageModal.value = false;
 };
 
-function calculateFee() {
-  contactsFee.value.forEach((value) => (value.amount = 0));
-  item_canvassing.value.forEach((item) => {
-    const selling_price = Number(item.selling_price || 0);
-
-    item.children.forEach((child) => {
-      const hargaBeli = Number(child.unit_price || 0);
-
-      let ongkirNominal = child.ongkir;
-
-      child.contacts_fee.forEach((contact) => {
-        const selisih = selling_price - hargaBeli - ongkirNominal;
-
-        let profit = 100;
-        let fee = 0;
-
-        if (contact.type == "percent") {
-          fee = Number(contact.amount);
-        } else {
-          fee = (Number(contact.amount) / hargaBeli) * 100;
-        }
-
-        if (child.profit_unit == "amount") {
-          profit = (Number(child.profit) / hargaBeli) * 100;
-        }
-
-        let profitAndFee = profit + fee;
-
-        contact.amount = fee;
-        contact.amount_nominal = (selisih * fee) / profitAndFee;
-
-        console.log("calculate selisih", selisih);
-        console.log("calculate amount", contact.amount);
-        console.log("calculate amount_nominal", contact.amount_nominal);
-
-        const findContactFee = contactsFee.value.findIndex(
-          (fee) => fee.party_id == contact.party_id
-        );
-
-        if (findContactFee >= 0) {
-          if (unitFee.value == FeeType.AMOUNT) {
-            contactsFee.value[findContactFee].amount += Number(
-              contact.amount_nominal
-            );
-          } else {
-            contactsFee.value[findContactFee].amount += Number(contact.amount);
-          }
-          contactsFee.value[findContactFee].amount = Math.round(
-            contactsFee.value[findContactFee].amount
-          );
-
-          console.log("calculate ", findContactFee);
-        }
-      });
-    });
+const handleImageModalClose = () => {
+  modalImageFiles.value.forEach((file) => {
+    if (file.url?.startsWith("blob:")) {
+      URL.revokeObjectURL(file.url);
+    }
   });
-}
+  modalImageFiles.value = [];
+  activeItemIndex.value = -1;
+  activeItemData.value = null;
+};
 
-function updateItemFee(
-  items: CanvassingItemForm[],
-  index: string,
-  contacts?: ReferenceTransactionAdjustment[],
-  fee?: number
-) {
-  for (const it of items) {
-    if (it.index === index && it.type == "child") {
-      if (contacts) {
-        it.fee = contacts.reduce((sum, c) => sum + (c.amount || 0), 0);
-        // contacts.forEach(element => {
-        //   const exist = contactsFee.value.findIndex((value) => value.party?.unique_id == element.party?.unique_id);
-        //   if(exist < 0){
-        //     const newContactFee = element;
-        //     newContactFee.reference = ReferenceAdjustment.CANVASSING;
-        //     contactsFee.value.push(element);
-        //   }
-        // });
+const handleModalImagesChange = (files: UploadUserFile[]) => {
+  modalImageFiles.value = files;
+};
 
-        it.contacts_fee = contacts;
+const saveItemImages = () => {
+  if (activeItemIndex.value >= 0) {
+    if (activeItemParentIndex.value >= 0) {
+      item_canvassing.value[activeItemParentIndex.value].children[
+        activeItemIndex.value
+      ].files = [...modalImageFiles.value];
+
+      if (modalImageFiles.value.length > 0) {
+        const firstFile = modalImageFiles.value[0];
+        if (firstFile.url) {
+          item_canvassing.value[activeItemParentIndex.value].children[
+            activeItemIndex.value
+          ].image = firstFile.url;
+        } else if (firstFile.raw) {
+          item_canvassing.value[activeItemParentIndex.value].children[
+            activeItemIndex.value
+          ].image = URL.createObjectURL(firstFile.raw);
+        }
       } else {
-        it.fee = fee ?? 0;
+        item_canvassing.value[activeItemParentIndex.value].children[
+          activeItemIndex.value
+        ].image = "";
       }
-
-      // calculateSellingPrice(it);
-
-      // it.contactsFee = contactsFee
     } else {
-      // it.contacts_fee = contac
+      item_canvassing.value[activeItemIndex.value].files = [
+        ...modalImageFiles.value,
+      ];
 
-      if (contacts) {
-        if (it.contacts_fee.length > 0) {
-          const contactNotExist: ReferenceTransactionAdjustment[] = [];
-
-          contacts.forEach((element) => {
-            const findIndex = (it.contacts_fee ?? []).findIndex(
-              (c) => c.party_id == element.party_id
-            );
-
-            if (findIndex < 0) {
-              contactNotExist.push({ ...element, amount: 0 });
-            }
-          });
-
-          it.contacts_fee = [...it.contacts_fee, ...contactNotExist];
-        } else {
-          it.contacts_fee = contacts.map((value) => ({ ...value, amount: 0 }));
+      if (modalImageFiles.value.length > 0) {
+        const firstFile = modalImageFiles.value[0];
+        if (firstFile.url) {
+          item_canvassing.value[activeItemIndex.value].image = firstFile.url;
+        } else if (firstFile.raw) {
+          item_canvassing.value[activeItemIndex.value].image =
+            URL.createObjectURL(firstFile.raw);
         }
+      } else {
+        item_canvassing.value[activeItemIndex.value].image = "";
       }
     }
 
-    if (it.type == "parent") {
-      // setProfit(it);
-    }
-
-    if (it.children.length > 0) {
-      updateItemFee(it.children, index, contacts, fee);
-    }
+    ElMessage.success(
+      `Gambar untuk item ${activeItemIndex.value + 1} disimpan`
+    );
   }
-}
 
-const accumulateFee = () => {
-  contactsFee.value.forEach((contactFee) => (contactFee.amount = 0));
-  item_canvassing.value.forEach((element) => {
-    element.children.forEach((childs) => {
-      childs.contacts_fee.forEach((fee) => {
-        const exist = contactsFee.value.findIndex(
-          (value) => value.party?.unique_id == fee.party?.unique_id
-        );
-        if (exist >= 0) {
-          if (contactsFee.value[exist].type == FeeType.AMOUNT) {
-            if (fee.type == FeeType.AMOUNT) {
-              // Both AMOUNT: langsung tambah
-              contactsFee.value[exist].amount +=
-                Number(fee.amount) * Number(childs.quantity);
-            } else {
-              // contactsFee: AMOUNT, element: PERCENT → konversi percent ke amount
-
-              let profitAmount = 0;
-
-              if (childs.profit) {
-                if (childs.profit_unit === "percent") {
-                  profitAmount = childs.unit_price * (childs.profit / 100);
-                } else {
-                  profitAmount = childs.profit || 0;
-                }
-              }
-
-              let feeAmount = profitAmount * (fee.amount / 100);
-
-              feeAmount = Number(feeAmount) * childs.quantity;
-
-              contactsFee.value[exist].amount += feeAmount;
-            }
-          } else {
-            // contactsFee: PERCENT, element: AMOUNT → konversi amount ke percent
-            let profitAmount = 0;
-
-            if (childs.profit) {
-              if (childs.profit_unit === "percent") {
-                profitAmount = childs.unit_price * (childs.profit / 100);
-                profitAmount = Number(profitAmount) * Number(childs.quantity);
-              } else {
-                profitAmount = childs.profit || 0;
-                profitAmount = Number(profitAmount) * Number(childs.quantity);
-              }
-            }
-
-            // Hindari division by zero
-            if (profitAmount > 0) {
-              const amountAsPercent = (fee.amount / profitAmount) * 100;
-              contactsFee.value[exist].amount += amountAsPercent;
-            } else {
-              // Jika profitAmount 0, set percent ke 0 atau handle sesuai business logic
-              contactsFee.value[exist].amount += 0;
-            }
-          }
-        }
-      });
-    });
-  });
+  showImageModal.value = false;
 };
 
-const accumulateOngkir = () => {
-  let ongkirAmount = 0;
+const handleRemoveImageList = async (
+  file: UploadUserFile,
+  files: UploadUserFile[]
+) => {
+  if (!file.raw) {
+    try {
+      const response = await useApiFetch<BaseResponse<any>>("/file-delete", {
+        method: "POST",
+        body: [file.uid],
+      });
 
-  item_canvassing.value.forEach((element) => {
-    element.children.forEach((childs) => {
-      ongkirAmount += Number(childs.ongkir) * Number(childs.quantity);
-    });
-  });
-
-  if (ongkirAmount > 0) {
-    adjustmentTransactionOngkirTotal.value.amount = ongkirAmount;
+      if (response.success) {
+        ElMessage.success(`Image Berhasil Di Hapus!`);
+      }
+    } catch (error: any) {
+      ElMessage.error(`${error?.response?.message ?? error}`);
+    }
   }
 };
 
 const addItemVendor = (row: CanvassingItemForm) => {
   itemIndex.value = row.index;
 
-  // visibleModalSearchItemExample.value = true
   item_canvassing.value.forEach((item, index) => {
     if (item.index == itemIndex.value) {
       const startIndex = item.children.length;
@@ -1520,83 +948,26 @@ const addItemVendor = (row: CanvassingItemForm) => {
     }
   });
 };
-const addEquivalent = (row: CanvassingItemForm) => {
-  const indexParent = item_canvassing.value.findIndex(
-    (value) => value.index == row.index
-  );
-
-  const equivalentItem: CanvassingItemForm = {
-    type_item: "equivalent",
-    equivalent_id: `${item_canvassing.value[indexParent].catalogue_id}`,
-    index: `${item_canvassing.value[indexParent]}-${
-      item_canvassing.value.length + 1
-    }`,
-    canvassing_id: null,
-    canvaasing_version: null,
-    item_request_trail_version: null,
-    item_request_trail_id: null,
-    unique_id: null,
-    vendor_id: null,
-    vendor_name: "",
-    unit_id: "",
-    unit_name: "",
-    unit_version: 1,
-    offer_item_id: null,
-    offer_item_version: 0,
-    catalogue_id: "0",
-    parent_catalogue_id: "",
-    catalogue_name: "",
-    sn: "N/A",
-    quantity: item_canvassing.value[indexParent].quantity,
-    unit_price: 0,
-    total_price: 0,
-    total_selling_price: 0,
-    status: CanvassingVendorStatus.SUBMITTED,
-    taxes: [],
-    editing: null,
-    type: "parent",
-    children: [],
-    selling_price: 0,
-    profit: 0,
-    profit_unit: "percent",
-    fee: 0,
-    fee_unit: "percent",
-    ongkir: 0,
-    ongkir_unit: "amount",
-    pricetag_item_id: "",
-    pricetag_item_version: 0,
-    contacts_fee: contactsFee.value,
-  };
-
-  item_canvassing.value.splice(indexParent + 1, 0, equivalentItem);
-};
 
 function findParent(
   tree: CanvassingItemForm[],
   index: string
 ): CanvassingItemForm | null {
   for (const node of tree) {
-    // if (node.index === index) return node;
-    // if (node.children) {
-    //   const found = findParent(node.children, index);
-    //   if (found) return found;
-    // }
-
     let find = findChildIndex(node.children, index);
-
     if (find >= 0) {
       return node;
     }
   }
   return null;
 }
+
 function findChildIndex(tree: CanvassingItemForm[], key: string): number {
   let index = 0;
   for (const node of tree) {
     if (node.index === key) {
       return index;
     }
-
     index++;
   }
   return -1;
@@ -1606,9 +977,7 @@ const showPricetag = (row: CanvassingItemForm) => {
   const parent = findParent(item_canvassing.value, row.index);
   if (parent != null) {
     request_search_pricetag_item.value.keyword = parent.catalogue_name;
-
     itemIndex.value = parent.index;
-    itemStartIndex.value = row.index;
     visibleModalSearchItemExample.value = true;
   }
 };
@@ -1619,186 +988,13 @@ const toggleExpand = (row: any) => {
   table.toggleRowExpansion(row, row._expanded);
 };
 
-const calculateMargin = (row: CanvassingItemForm) => {
-  return ((row.selling_price - row.unit_price) / row.unit_price) * 100;
-};
-
-const changeFeeUnitContacts = (row: CanvassingItemForm) => {
-  row.contacts_fee.forEach((element) => {
-    element.type = row.fee_unit as FeeType;
-  });
-};
-const changeFeeUnit = (val: any) => {
-  contactsFee.value.forEach((element) => {
-    element.type = val as FeeType;
-  });
-};
-
-const getProfit = (row: CanvassingItemForm) => {
-  if (row.profit_unit == "percent") {
-    const profit = Number(row.unit_price) * (Number(row.profit) / 100);
-    return currency(profit || 0);
-  } else if (row.profit_unit == "amount") {
-    const profit = (Number(row.profit) / Number(row.unit_price)) * 100;
-    return `${profit.toFixed(2)}%`;
-  }
-};
-
-const onChangeChild = (row: CanvassingItemForm) => {
-  if (row.type == "child") {
-    const parent = findParent(item_canvassing.value, row.index);
-    if (parent != null) {
-      setProfit(parent);
-    }
-  }
-};
-
-// watch(
-//   item_canvassing.value,
-//   () => {
-//     item_canvassing.value.forEach(element => {
-//       setProfit(element);
-//     });
-//   },
-//   { immediate: true }
-// )
-
-const setProfit = (row: CanvassingItemForm) => {
-  const selling_price = Number(row.selling_price || 0);
-
-  if (row.type == "parent") {
-    row.children.forEach((child) => {
-      const hargaBeli = Number(child.unit_price || 0);
-
-      let ongkirNominal =
-        child.ongkir_unit === "percent"
-          ? (hargaBeli * child.ongkir) / 100
-          : Number(child.ongkir) || 0;
-
-      const selisih = selling_price - hargaBeli - ongkirNominal;
-
-      // ganti 100
-      let profit = 100;
-      let fee = 0;
-
-      if (child.fee_unit == "percent") {
-        fee = Number(child.fee);
-      } else {
-        fee = (Number(child.fee) / hargaBeli) * 100;
-      }
-
-      if (child.profit_unit == "amount") {
-        profit = (Number(child.profit) / hargaBeli) * 100;
-      }
-
-      let profitAndFee = profit + fee;
-
-      child.fee = fee;
-      child.fee_nominal =
-        (selisih * fee) / profitAndFee < 0 ? 0 : (selisih * fee) / profitAndFee;
-
-      child.profit_nominal =
-        ((selisih < 0 ? 0 : selisih) * profit) / profitAndFee;
-
-      console.log("harga beli", hargaBeli);
-      console.log("ongkir", ongkirNominal);
-      console.log("selling_price", selling_price);
-      console.log("selisih", selisih);
-      console.log("profit", profit);
-      console.log("fee", fee);
-      console.log("profit nominal", child.profit_nominal);
-
-      child.profit = Number(
-        ((child.profit_nominal / hargaBeli) * 100).toFixed(2)
-      );
-
-      // let newProfitAndFee = child.profit + fee;
-      // child.fee_nominal = selisih * fee / newProfitAndFee;
-
-      calculateSellingPrice(child);
-    });
-  }
-
-  calculateFee();
-};
-
-const handleProfitUnitChange = (row: CanvassingItemForm) => {
-  const cost = Number(row.unit_price) || 0;
-  let profit = Number(row.profit) || 0;
-
-  if (row.profit_unit === "percent") {
-    // sebelumnya dalam nominal → ubah ke persen
-    row.profit = cost > 0 ? (profit / cost) * 100 : 0;
-  } else if (row.profit_unit === "amount") {
-    // sebelumnya dalam persen → ubah ke nominal
-    row.profit = cost * (profit / 100);
-  }
-
-  calculateSellingPrice(row);
-};
-
-// const handleProfitChange = (row: CanvassingItemForm) => {
-//   const cost = Number(row.unit_price) || 0
-//   let profit = Number(row.profit) || 0
-
-//   if (row.profit_unit === 'percent') {
-//     // sebelumnya dalam nominal → ubah ke persen
-//     row.profit = cost > 0 ? (profit / cost) * 100 : 0
-//   } else if (row.profit_unit === 'amount') {
-//     // sebelumnya dalam persen → ubah ke nominal
-//     row.profit = cost * (profit / 100)
-//   }
-
-//   calculateSellingPrice(row)
-// }
-
-const handleProfitUnitChangeParent = (row: CanvassingItemForm) => {
-  const cost = Number(row.unit_price) || 0;
-  let profit = Number(row.profit) || 0;
-
-  if (row.profit_unit === "percent") {
-    // sebelumnya dalam nominal → ubah ke persen
-    row.profit = cost > 0 ? (profit / cost) * 100 : 0;
-  } else if (row.profit_unit === "amount") {
-    // sebelumnya dalam persen → ubah ke nominal
-    row.profit = cost * (profit / 100);
-  }
-
-  calculateSellingPrice(row);
-};
-const handleParentChange = (row: CanvassingItemForm) => {
-  row.children.forEach((child) => {
-    child.profit = row.profit;
-    child.profit_unit = row.profit_unit;
-    child.fee = row.fee;
-    child.fee_unit = row.fee_unit;
-    child.ongkir = row.ongkir;
-    child.ongkir_unit = row.ongkir_unit;
-  });
-
-  calculateSellingPrice(row);
-};
-
 const calculateSellingPrice = (row: CanvassingItemForm) => {
   let basePrice = Number(row.unit_price || 0);
-
-  // let sellingPrice = Number(basePrice);
   let profitAmount = Number(row.profit_nominal);
   let feeAmount = Number(row.fee_nominal);
   let ongkir = Number(row.ongkir || 0);
 
-  // Update harga jual
   row.selling_price = basePrice + profitAmount + feeAmount + ongkir;
-
-  console.log("basePrice", basePrice);
-  console.log("profit amount", profitAmount);
-  console.log("feeAmount", feeAmount);
-  console.log("ongir", ongkir);
-
-  if (feeState.value === "plus") {
-    // accumulateFee();
-  }
-  accumulateOngkir();
 
   if (row.type == "child") {
     const parent = findParent(item_canvassing.value, row.index);
@@ -1809,7 +1005,6 @@ const calculateSellingPrice = (row: CanvassingItemForm) => {
           selling_price = element.selling_price;
         }
       });
-
       parent.selling_price = selling_price;
       parent.total_price = Number(selling_price) * Number(parent.quantity);
     }
@@ -1817,8 +1012,6 @@ const calculateSellingPrice = (row: CanvassingItemForm) => {
 };
 
 const removeItem = async (item: CanvassingItemForm) => {
-  console.log("type", item.type);
-
   if (item.type === "parent") {
     if (item.unique_id) {
       const deleted: boolean = await canvasingItemRemove([item.unique_id]);
@@ -1853,8 +1046,6 @@ const removeItem = async (item: CanvassingItemForm) => {
           ))
       );
     }
-
-    // removeVendor(item.vendor_id)
   }
 };
 
@@ -1867,13 +1058,13 @@ const canvasingItemRemove = async (ids: string[]): Promise<boolean> => {
         body: ids,
       }
     );
-
     return response.success;
   } catch (error: any) {
     ElMessage.error(`${error?.response?.data?.message ?? error}`);
     return false;
   }
 };
+
 const canvasingItemVendorRemove = async (ids: string[]): Promise<boolean> => {
   try {
     const response = await useApiFetch<BaseResponse<any>>(
@@ -1883,7 +1074,6 @@ const canvasingItemVendorRemove = async (ids: string[]): Promise<boolean> => {
         body: ids,
       }
     );
-
     return response.success;
   } catch (error: any) {
     ElMessage.error(`${error?.response?.data?.message ?? error}`);
@@ -1891,132 +1081,6 @@ const canvasingItemVendorRemove = async (ids: string[]): Promise<boolean> => {
   }
 };
 
-const removeVendor = (vendorId: string) => {
-  quotationItems.value = quotationItems.value.map((item) => {
-    return {
-      ...item,
-      equivalents: item.equivalents.map((eq) => {
-        return {
-          ...eq,
-          vendors: eq.vendors.filter((v) => v.vendor_id !== vendorId), // hanya filter vendors
-        };
-      }),
-    };
-  });
-};
-
-const removeReference = (index: number) => {
-  references.value.splice(index, 1);
-};
-
-const displayAmount = (ref: any, multiplier: number) => {
-  console.log("type", ref.type);
-  if (ref.type === "percent") {
-    console.log("amount", ref.amount);
-    console.log("multiplier", (multiplier || 0) * (ref.amount / 100));
-    return (multiplier || 0) * (ref.amount / 100);
-  } else {
-    return ref.amount;
-  }
-};
-const displayPercentage = (ref: any, multiplier: number) => {
-  if (ref.type === "amount") {
-    return ref.amount / multiplier || 0 * 100;
-  } else {
-    return displayAmount(ref, multiplier);
-  }
-};
-
-const applyAllBulk = () => {
-  item_canvassing.value.forEach((item) => {
-    if (item.children && item.children.length) {
-      item.children.forEach((child) => {
-        if (child.type === "child") {
-          // Apply profit jika diisi
-          if (bulkProfit.value !== "") {
-            child.profit = parseInt(bulkProfit.value);
-            child.profit_unit = bulkProfitUnit.value as "amount" | "percent";
-            child.profit_nominal = child.unit_price * (child.profit / 100);
-          }
-
-          // Apply fee jika diisi
-          if (bulkFee.value !== "" && feeState.value !== "minus") {
-            child.fee = parseInt(bulkFee.value);
-            child.fee_unit = bulkFeeUnit.value as "amount" | "percent";
-            child.fee_nominal = (child.fee / 100) * child.profit;
-            changeFeeUnitContacts(child);
-          } else {
-            // if(child.fee == ''){
-            //   child.fee = 0;
-            //   child.fee_unit = bulkFeeUnit.value as "amount"|"percent";
-            //   child.fee_nominal = 0;
-            // }
-          }
-
-          // Apply ongkir jika diisi
-          if (bulkOngkir.value !== "") {
-            child.ongkir = parseInt(bulkOngkir.value);
-          }
-
-          // Recalculate selling price
-          calculateSellingPrice(child);
-        }
-      });
-    }
-  });
-
-  item_canvassing.value.forEach((item) => {
-    setProfit(item);
-  });
-
-  // Show success message
-  ElMessage.success("Berhasil menerapkan semua setting ke semua item");
-};
-
-const resetAllBulk = () => {
-  // Reset bulk input fields
-  bulkProfit.value = "";
-  bulkFee.value = "";
-  bulkOngkir.value = "";
-  bulkProfitUnit.value = "percent";
-  bulkFeeUnit.value = "percent";
-
-  // Reset all items
-  item_canvassing.value.forEach((item) => {
-    if (item.children && item.children.length) {
-      item.children.forEach((child) => {
-        if (child.type === "child") {
-          child.profit = 0;
-          child.fee = 0;
-          child.ongkir = 0;
-          child.profit_unit = "percent";
-          child.fee_unit = "percent";
-          child.selling_price = child.unit_price || 0;
-        }
-      });
-    }
-  });
-
-  ElMessage.info("Semua setting telah direset");
-};
-
-const getFile = (files: AppFile[]) => {
-  if (files!.length > 0) {
-    return `${imageUrl}/${files[0].image_path}/${files[0].filename}`;
-  } else {
-    return "";
-  }
-};
-
-const getFileName = (itemRequest: ItemRequest) => {
-  if (itemRequest.files != null && itemRequest.files!.length >= 0) {
-    return `${itemRequest.files![0].filename_original}`;
-  } else {
-    return "";
-  }
-};
-
-// Form Operations
 const addToForm = async (val: Inquiry) => {
   ruleForm.source_document = val.unique_code;
   ruleForm.inquiry = val;
@@ -2070,85 +1134,20 @@ const addToForm = async (val: Inquiry) => {
       }
     }
 
-    if (getFile(item.files ?? []) != "") {
-      // const file = await urlToFile(
-      //   getFile(item.files ?? []),
-      //   getFileName(item)
-      // );
-
-      // tmp.imageFile = {
-      //   name: file.name,
-      //   url: getFile(item.files ?? []),
-      //   raw: file,
-      //   uid: Date.now(),
-      // };
-      tmp.files = [
-        ...(tmp.files ?? []),
-        ...mapApiFilesToUpload(item.files ?? []),
-      ];
-    }
-
     item_canvassing.value.push(tmp);
   });
-
-  console.log("items", item_canvassing.value);
 
   visibleModalRequest.value = false;
 };
 
 const mapApiFilesToUpload = (files: any[]) => {
   const baseUrl = useRuntimeConfig().public.baseImageURL;
-  // sesuaikan dengan config kamu
-
   return files.map((file) => ({
     uid: file.unique_id,
     name: file.filename_original || file.filename,
     url: `${baseUrl}${file.image_path}/${file.filename}`,
     status: "success" as UploadStatus,
   }));
-};
-
-const addNewItem = () => {
-  item_canvassing.value.push({
-    type_item: "equivalent",
-    equivalent_id: null,
-    index: `${item_canvassing.value.length + 1}`,
-    canvassing_id: null,
-    canvaasing_version: null,
-    item_request_trail_version: null,
-    item_request_trail_id: null,
-    unique_id: null,
-    vendor_id: null,
-    vendor_name: "",
-    unit_id: null,
-    unit_name: null,
-    unit_version: 1,
-    offer_item_id: null,
-    offer_item_version: 0,
-    catalogue_id: "",
-    parent_catalogue_id: "",
-    catalogue_name: "",
-    sn: "N/A",
-    quantity: 1,
-    unit_price: 0,
-    total_price: 0,
-    status: CanvassingVendorStatus.SUBMITTED,
-    taxes: [],
-    editing: null,
-    type: "parent",
-    children: [],
-    selling_price: 0,
-    total_selling_price: 0,
-    profit: 0,
-    profit_unit: "percent",
-    fee: 0,
-    fee_unit: "percent",
-    ongkir: 0,
-    ongkir_unit: "percent",
-    pricetag_item_id: "",
-    pricetag_item_version: 0,
-    contacts_fee: contactsFee.value,
-  });
 };
 
 const onSearchPricetag = (keyword: string) => {
@@ -2162,22 +1161,13 @@ const addToOfferVendor = (val: Pricetag_item[]) => {
 
   let startIndex = 0;
 
-  if (itemStartIndex.value !== "") {
-    startIndex = findChildIndex(
-      item_canvassing.value[getIndex].children,
-      itemStartIndex.value
-    );
-  }
-
   const parentUnit = item_canvassing.value[getIndex]?.unit_name;
 
   const itemsWithDifferentUnit = val.filter(
     (item) => item.unit_name !== parentUnit
   );
-  const hasDifferentUnit = itemsWithDifferentUnit.length > 0;
 
-  if (hasDifferentUnit) {
-    // Tampilkan konfirmasi dialog dengan informasi detail
+  if (itemsWithDifferentUnit.length > 0) {
     const differentUnitNames = [
       ...new Set(itemsWithDifferentUnit.map((item) => item.unit_name)),
     ];
@@ -2196,18 +1186,15 @@ const addToOfferVendor = (val: Pricetag_item[]) => {
         cancelButtonText: "Pilih Lagi",
         type: "warning",
         center: true,
-        customClass: "unit-difference-dialog",
       }
     )
       .then(() => {
-        // User memilih "Ya, Tambahkan Semua"
-        val.forEach((item: Pricetag_item, index: number) => {
+        val.forEach((item: Pricetag_item) => {
           const isUnitDifferent = item.unit_name !== parentUnit;
           addChildItem(item, getIndex, startIndex, isUnitDifferent);
           startIndex++;
         });
 
-        // Tampilkan notifikasi berhasil
         if (itemsWithDifferentUnit.length > 0) {
           ElMessage({
             message: `${val.length} item ditambahkan (${itemsWithDifferentUnit.length} dengan unit berbeda)`,
@@ -2217,94 +1204,18 @@ const addToOfferVendor = (val: Pricetag_item[]) => {
         }
       })
       .catch(() => {
-        // User memilih "Pilih Lagi" atau menutup dialog
-        ElMessage.info(
-          "Proses ditambahkan dibatalkan, silakan pilih item lagi."
-        );
-        return; // Tidak menambahkan apa-apa
+        ElMessage.info("dibatalkan, silakan pilih item lagi.");
+        return;
       });
   } else {
-    // Semua unit sama, langsung tambahkan semua
-    val.forEach((item: Pricetag_item, index: number) => {
+    val.forEach((item: Pricetag_item) => {
       addChildItem(item, getIndex, startIndex, false);
       startIndex++;
     });
-
-    // Tampilkan notifikasi sukses
     ElMessage.success(`${val.length} item berhasil ditambahkan`);
   }
 
   visibleModalSearchItemExample.value = false;
-
-  // val.forEach((item: Pricetag_item, index: number) => {
-
-  //   const child: CanvassingItemForm = {
-  //     parent_index: `${getIndex}`,
-  //     index: `${itemIndex.value}-${startIndex}`,
-  //     type_item: "quotation",
-  //     equivalent_id: null,
-  //     canvassing_id: null,
-  //     canvaasing_version: null,
-  //     item_request_trail_version: null,
-  //     item_request_trail_id: null,
-  //     unique_id: null,
-  //     vendor_id: item.pricetag?.owner?.unique_id ?? "",
-  //     vendor_name: item.pricetag?.owner?.name ?? "",
-  //     unit_id: item.unit_id,
-  //     unit_name: item.unit_name,
-  //     unit_version: null,
-  //     offer_item_id: null,
-  //     offer_item_version: 0,
-  //     catalogue_id: item.catalogue_id ?? "",
-  //     parent_catalogue_id: item_canvassing.value[getIndex].catalogue_id,
-  //     catalogue_name: item.catalogue?.name ?? "",
-  //     sn: item.catalogue?.sn ?? "",
-  //     quantity: item_canvassing.value[getIndex].quantity,
-  //     unit_price: item.price,
-  //     total_price: 0,
-  //     status: CanvassingVendorStatus.SUBMITTED,
-  //     taxes: [],
-  //     editing: null,
-  //     type: "child",
-  //     children: [],
-  //     selling_price: 0,
-  //     profit: 0,
-  //     profit_unit: "percent",
-  //     fee: 0,
-  //     fee_unit: "percent",
-  //     ongkir: 0,
-  //     ongkir_unit: "amount",
-  //     pricetag_item_id: item.unique_id ?? "",
-  //     pricetag_item_version: item.version ?? 0,
-  //     contacts_fee: contactsFee.value,
-  //   };
-
-  //   if((item.files ?? []).length > 0){
-  //     child.image = getFirstFileUrl(item.files ?? []);
-  //     child.files = mapApiFilesToUpload(item.files ?? []);
-  //   }
-
-  //   const clones = contactsFee.value;
-
-  //   child.contacts_fee = clones.map((value) => {
-  //     return {
-  //       ...value,
-  //       reference: ReferenceAdjustment.CANVASSINGVENDOR,
-  //       amount: 0,
-  //       type: FeeType.PERCENT,
-  //     };
-  //   });
-
-  //   if (item_canvassing.value[getIndex].children[startIndex]) {
-  //     item_canvassing.value[getIndex].children[startIndex] = child;
-  //   } else {
-  //     item_canvassing.value[getIndex].children.splice(startIndex, 0, child);
-  //   }
-
-  //   startIndex++;
-  // });
-
-  // visibleModalSearchItemExample.value = false;
 };
 
 const tableRowClassName = ({ row }: { row: CanvassingItemForm }) => {
@@ -2360,7 +1271,6 @@ const addChildItem = (
     pricetag_item_id: item.unique_id ?? "",
     pricetag_item_version: item.version ?? 0,
     contacts_fee: contactsFee.value,
-    // Tambahkan flag untuk unit berbeda
     has_different_unit: hasDifferentUnit,
   };
 
@@ -2387,7 +1297,6 @@ const addChildItem = (
 };
 
 const addVendor = (val: Contact[]) => {
-  // Implementation for adding vendors
   visibleModalContact.value = false;
 };
 
@@ -2406,99 +1315,6 @@ const handleSelectAdjustment = (items: AdjustmentTransaction[]) => {
       changeType: true,
     });
   });
-  visibleModalAdjustmentTransaction.value = false;
-};
-
-const addContact = () => {
-  contactsFee.value.push({
-    unique_id: "",
-    reference: ReferenceAdjustment.CANVASSING,
-    reference_id: "",
-    adjustment_id: `${adjustmentContact.value?.unique_id}`,
-    adjustment: adjustmentContact.value,
-    value: null,
-    type: FeeType.PERCENT,
-    amount: 0,
-    created_at: 0,
-    changeType: true,
-    party: {
-      id: 0,
-      unique_id: "",
-      unique_code: "",
-      is_personal: false,
-      is_company: false,
-      internal_id: "",
-      name: "",
-      email: "",
-      phone: "",
-      tax_id: "",
-      website: "",
-      title: "",
-      tags: "",
-      created_at: 0,
-      created_by: "",
-      updated_at: 0,
-      version: 0,
-      address: [],
-    },
-  });
-};
-
-const removeContact = (index: number) => {
-  contactsFee.value.splice(index, 1);
-};
-
-const onHandleSelectContact = async (
-  item: Record<string, any>,
-  index: number
-) => {
-  if (item.isNew) {
-    const contact: Contact | null = await createNewContact({
-      name: item.query,
-    });
-    if (contact !== null) {
-      contactsFee.value[index].reference = ReferenceAdjustment.CANVASSING;
-      contactsFee.value[index].party_id = contact.unique_id;
-      contactsFee.value[index].party = contact;
-      contactsFee.value[index].party_type = PartyType.CONTACT;
-    }
-  } else {
-    const contact: Contact = item as Contact;
-    contactsFee.value[index].reference = ReferenceAdjustment.CANVASSING;
-    contactsFee.value[index].party_id = contact.unique_id;
-    contactsFee.value[index].party = contact;
-    contactsFee.value[index].party_type = PartyType.CONTACT;
-  }
-
-  item_canvassing.value.forEach((value) => {
-    value.children.forEach((child) => (child.contacts_fee = contactsFee.value));
-  });
-};
-const onHandleSelectVendor = async (
-  record: Record<string, any>,
-  index: string
-) => {
-  const parentIndex = findParent(item_canvassing.value, index);
-  if (parentIndex) {
-    const childIndex = parentIndex.children.findIndex(
-      (value) => value.index == index
-    );
-    if (childIndex >= 0) {
-      if (record.isNew) {
-        const contact: Contact | null = await createNewContact({
-          name: record.query,
-        });
-        if (contact != null) {
-          parentIndex.children[childIndex].vendor_id = contact.unique_id!;
-          parentIndex.children[childIndex].vendor_name = contact.name!;
-        }
-      } else {
-        const contact: Contact = record as Contact;
-        parentIndex.children[childIndex].vendor_id = contact.unique_id!;
-        parentIndex.children[childIndex].vendor_name = contact.name!;
-      }
-    }
-  }
 };
 
 const createNewContact = async (data: any): Promise<Contact | null> => {
@@ -2562,7 +1378,6 @@ const create_catalogue = async (
     return null;
   } finally {
     loading.value = false;
-    return null;
   }
 };
 
@@ -2621,46 +1436,9 @@ const querySearchUnit = (queryString: string, cb: (arg: any) => void) => {
   });
 };
 
-const handleSelectUnit = async (
-  record: Record<string, any>,
-  index: string,
-  row: CanvassingItemForm
-) => {
-  if (row.type == "parent") {
-    item_canvassing.value.forEach((item) => {
-      if (item.index === index) {
-        const unit: Unit = record as Unit;
-        item.unit_id = unit.unique_id!;
-        item.unit_name = unit.name!;
-      }
-    });
-  } else {
-    const parentIndex = findParent(item_canvassing.value, index);
-    if (parentIndex) {
-      const childIndex = parentIndex.children.findIndex(
-        (value) => value.index == index
-      );
-      if (childIndex >= 0) {
-        if (record.isNew) {
-          const unit: Unit | null = await handleNewUnit({ name: record.id });
-          if (unit != null) {
-            parentIndex.children[childIndex].unit_id = unit.unique_id!;
-            parentIndex.children[childIndex].unit_name = unit.name!;
-          }
-        } else {
-          const unit: Unit = record as Unit;
-          parentIndex.children[childIndex].unit_id = unit.unique_id!;
-          parentIndex.children[childIndex].unit_name = unit.name!;
-        }
-      }
-    }
-  }
-};
-
 const querySearchCatalogue = (queryString: string, cb: (arg: any) => void) => {
   if (queryString != "") {
     request_search_pricetag_item.value.keyword = queryString;
-    // request_search_pricetag_item.value.c
     useFetchApi<ResponsePagination<Pricetag_item[]>>(
       `/pricetag-item-read`,
       "pricetag-search-items",
@@ -2717,7 +1495,6 @@ const querySearchCatalogueEquivalent = (
   ).then((response) => {
     if (response.status.value == "success") {
       const resultApi: ItemSearch[] = response.data.value?.data ?? [];
-      console.log("result api", resultApi);
       if (resultApi.length > 0) {
         const results = resultApi.map((data: ItemSearch) => {
           return {
@@ -2766,6 +1543,7 @@ const onHandleSelectItemAutocompleteItem = async (
     visibleModalPricetagNewItem.value = true;
   } else {
     const selected: Pricetag_item = item as Pricetag_item;
+
     if (row.type === "parent") {
       item_canvassing.value.forEach((item) => {
         if (item.index == itemIndex) {
@@ -2786,12 +1564,10 @@ const onHandleSelectItemAutocompleteItem = async (
                 `UoM Berbeda Dari Permintaan?`,
                 "Konfirmasi Unit Berbeda",
                 {
-                  dangerouslyUseHTMLString: true,
                   confirmButtonText: "Ya, Tambahkan",
                   cancelButtonText: "Pilih Lagi",
                   type: "warning",
                   center: true,
-                  customClass: "unit-difference-dialog",
                 }
               )
                 .then(() => {
@@ -2808,11 +1584,8 @@ const onHandleSelectItemAutocompleteItem = async (
                   child.pricetag_item_version = selected.version ?? 0;
                 })
                 .catch(() => {
-                  // User memilih "Pilih Lagi" atau menutup dialog
-                  ElMessage.info(
-                    "Proses ditambahkan dibatalkan, silakan pilih item lagi."
-                  );
-                  return; // Tidak menambahkan apa-apa
+                  ElMessage.info("Proses dibatalkan, silakan pilih item lagi.");
+                  return;
                 });
             } else {
               child.catalogue_id = selected.catalogue_id ?? "";
@@ -2832,7 +1605,10 @@ const onHandleSelectItemAutocompleteItem = async (
       });
     }
   }
+
+  nextItemVendorfield(itemIndex);
 };
+
 const onHandleSelectItemAutocompleteItemEquivalent = async (
   item: Record<string, any>,
   itemIndex: string,
@@ -2923,7 +1699,6 @@ const querySearchContact = (queryString: string, cb: (arg: any) => void) => {
       });
 };
 
-// API Methods
 const fetchContact = async () => {
   loading.value = true;
   try {
@@ -2981,11 +1756,9 @@ const fetchDataEdit = async () => {
 
     if (response.status.value === "success") {
       const canvasing = response.data.value?.data ?? null;
-
       const type = route.query.type as string;
 
       if (canvasing) {
-        // Populate form data
         Object.assign(ruleForm, {
           unique_id: type && type === "copy" ? null : canvasing.unique_id,
           description: canvasing.description,
@@ -3001,7 +1774,7 @@ const fetchDataEdit = async () => {
             if (item.type_item !== "equivalent") {
               item_canvassing.value.push({
                 type_item: item.type_item,
-                image: getFile(item.files ?? []),
+                image: "",
                 equivalent_id: item.equivalent_id,
                 index: `${index}`,
                 canvassing_id: null,
@@ -3028,7 +1801,7 @@ const fetchDataEdit = async () => {
                 editing: null,
                 type: "parent",
                 children: item.canvassing_vendor.map((vendor, vIndex) => ({
-                  image: getFile(vendor.files ?? []),
+                  image: "",
                   index: `${index}-${vIndex}`,
                   type_item: vendor.type_item,
                   equivalent_id: null,
@@ -3115,46 +1888,7 @@ const fetchDataEdit = async () => {
                 taxes: [],
                 editing: null,
                 type: "parent",
-                children: item.canvassing_vendor.map((vendor, vIndex) => ({
-                  index: `${index}-${vIndex}`,
-                  type_item: vendor.type_item,
-                  equivalent_id: null,
-                  canvassing_id: null,
-                  canvaasing_version: null,
-                  item_request_trail_version: null,
-                  item_request_trail_id: null,
-                  unique_id: vendor.unique_id,
-                  vendor_id: vendor.vendor_id ?? "",
-                  vendor_name: vendor.vendor?.name ?? "",
-                  unit_id: vendor.unit_id,
-                  unit_name: vendor.unit_name,
-                  unit_version: null,
-                  offer_item_id: null,
-                  offer_item_version: 0,
-                  catalogue_id: vendor.catalogue_id ?? "",
-                  parent_catalogue_id: vendor.catalogue_id,
-                  catalogue_name: item.catalogue?.name ?? "",
-                  sn: vendor.catalogue?.sn ?? "N/A",
-                  quantity: vendor.quantity,
-                  unit_price: vendor.unit_price,
-                  total_price: 0,
-                  status: vendor.status,
-                  taxes: [],
-                  editing: null,
-                  type: "child",
-                  children: [],
-                  selling_price: 0,
-                  total_selling_price: 0,
-                  profit: vendor.profit,
-                  profit_unit: vendor.profit_unit,
-                  fee: vendor.fee,
-                  fee_unit: vendor.fee_unit,
-                  ongkir: vendor.ongkir,
-                  ongkir_unit: vendor.ongkir_unit,
-                  pricetag_item_id: vendor.pricetag_item_id ?? "",
-                  pricetag_item_version: vendor.pricetag_item_version ?? 0,
-                  contacts_fee: [],
-                })),
+                children: [],
                 selling_price: 0,
                 total_selling_price: 0,
                 profit: 0,
@@ -3170,23 +1904,63 @@ const fetchDataEdit = async () => {
             }
           });
 
-          console.log("data item canvasing", item_canvassing.value);
-
           equivalent.forEach((element) => {
-            console.log("equivalent_id", element.equivalent_id);
             const indexParent = item_canvassing.value.findIndex(
               (data) => data.unique_id === element.equivalent_id
             );
-
-            // console.log("equivalent exist", indexParent);
             if (indexParent >= 0) {
               item_canvassing.value.splice(indexParent + 1, 0, element);
             }
           });
 
-          // item_canvassing.value = item_canvassing.value.filter(
-          //   (value) => value.type_item !== "equivalent"
-          // );
+          item_canvassing.value = item_canvassing.value.map((item, index) => ({
+            ...item,
+            children: [
+              ...item.children,
+              {
+                image: "",
+                index: `${index}-${item.children.length + 1}`,
+                type_item: "original",
+                equivalent_id: null,
+                canvassing_id: null,
+                canvaasing_version: null,
+                item_request_trail_version: null,
+                item_request_trail_id: null,
+                unique_id: "",
+                vendor_id: "",
+                vendor_name: "",
+                unit_id: "",
+                unit_name: "",
+                unit_version: null,
+                offer_item_id: null,
+                offer_item_version: 0,
+                catalogue_id: "",
+                parent_catalogue_id: "",
+                catalogue_name: "",
+                sn: "N/A",
+                quantity: item.quantity,
+                unit_price: 0,
+                total_price: 0,
+                status: CanvassingVendorStatus.SUBMITTED,
+                parent_index: index,
+                taxes: [],
+                editing: null,
+                type: "child",
+                children: [],
+                selling_price: 0,
+                total_selling_price: 0,
+                profit: 0,
+                profit_unit: "amount",
+                fee: 0,
+                fee_unit: "amount",
+                ongkir: 0,
+                ongkir_unit: "amount",
+                pricetag_item_id: "",
+                pricetag_item_version: 0,
+                contacts_fee: [],
+              },
+            ],
+          }));
         }
       }
     }
@@ -3197,7 +1971,59 @@ const fetchDataEdit = async () => {
   }
 };
 
-// Form Submission
+const nextItemVendorfield = (itemIndex: string) => {
+  item_canvassing.value.forEach((item, parentIndex) => {
+    item.children.forEach((child, index) => {
+      if (child.index == itemIndex) {
+        item_canvassing.value[parentIndex].children.push({
+          image: "",
+          index: `${index}-${item.children.length + 1}`,
+          type_item: "original",
+          equivalent_id: null,
+          canvassing_id: null,
+          canvaasing_version: null,
+          item_request_trail_version: null,
+          item_request_trail_id: null,
+          unique_id: "",
+          vendor_id: "",
+          vendor_name: "",
+          unit_id: "",
+          unit_name: "",
+          unit_version: null,
+          offer_item_id: null,
+          offer_item_version: 0,
+          catalogue_id: "",
+          parent_catalogue_id: "",
+          catalogue_name: "",
+          sn: "N/A",
+          quantity: item.quantity,
+          unit_price: 0,
+          total_price: 0,
+          status: CanvassingVendorStatus.SUBMITTED,
+          parent_index: index,
+          taxes: [],
+          editing: null,
+          type: "child",
+          children: [],
+          selling_price: 0,
+          total_selling_price: 0,
+          profit: 0,
+          profit_unit: "amount",
+          fee: 0,
+          fee_unit: "amount",
+          ongkir: 0,
+          ongkir_unit: "amount",
+          pricetag_item_id: "",
+          pricetag_item_version: 0,
+          contacts_fee: [],
+        });
+
+        return;
+      }
+    });
+  });
+};
+
 const submitForm = async (formEl: FormInstance | undefined) => {
   if (!formEl) return;
 
@@ -3219,85 +2045,13 @@ const submitForm = async (formEl: FormInstance | undefined) => {
 const submit = async (formEl: FormInstance | undefined) => {
   loading.value = true;
   try {
-    const referenceAdjustment: ReferenceTransactionAdjustment[] = [
-      ...references.value,
-      ...contactsFee.value,
-      adjustmentTransactionOngkirTotal.value as ReferenceTransactionAdjustment,
-    ];
-    const referenceAdjustmentVendor: ReferenceTransactionAdjustment[] = [];
-
-    item_canvassing.value.forEach((element) => {
-      element.children.forEach((child) => {
-        child.contacts_fee.forEach((fee) => {
-          fee.reference_id = child.unique_id ?? "";
-          referenceAdjustmentVendor.push(fee);
-        });
-        referenceAdjustmentVendor.push({
-          unique_id: "",
-          reference: ReferenceAdjustment.CANVASSINGVENDOR,
-          reference_id: child.unique_id ?? "",
-          adjustment_id: `${adjustmentOngkir.value?.unique_id}`,
-          adjustment: adjustmentOngkir.value,
-          value: child.ongkir,
-          type: child.ongkir_unit as FeeType,
-          amount: child.ongkir,
-        });
-      });
-    });
-
-    const payload = {
-      unique_id: ruleForm.unique_id,
-      source_document: ruleForm.source_document,
-      description: ruleForm.description,
-      status: ruleForm.status,
-      canvassing_items: item_canvassing.value.map((value) => ({
-        unique_id: value.unique_id,
-        canvassing_id: value.canvassing_id,
-        quantity: value.quantity,
-        catalogue_id: value.catalogue_id,
-        catalogue_name: value.catalogue_name,
-        unit_id: value.unit_id,
-        unit_name: value.unit_name,
-        unit_selling_price: value.selling_price,
-        canvassing_vendor: value.children.map((child) => ({
-          unique_id: child.unique_id,
-          vendor_id: child.vendor_id,
-          canvassing_item_id: value.unique_id,
-          catalogue_id: child.catalogue_id,
-          catalogue_name: child.catalogue_name,
-          quantity: child.quantity,
-          unit_price: child.unit_price,
-          selling_price: child.selling_price,
-          unit_id: child.unit_id,
-          unit_name: child.unit_name,
-          total_price: Number(child.quantity) * Number(child.unit_price),
-        })),
-      })),
-      reference_transaction: referenceAdjustment.map((ref) => ({
-        unique_id: ref.unique_id,
-        adjustment_id: ref.adjustment_id,
-        value: ref.value,
-        amount: ref.amount,
-        type: ref.type,
-        party_type: ref.party_type,
-        party_id: ref.party_id,
-        reference: ReferenceAdjustment.CANVASSING,
-        reference_id: ref.reference_id,
-      })),
-    };
-
-    console.log("payload", payload);
-
-    // Membuat FormData
     const formData = new FormData();
 
-    // Menambahkan data utama
     formData.append("unique_id", ruleForm.unique_id || "");
     formData.append("source_document", ruleForm.source_document || "");
     formData.append("description", ruleForm.description || "");
     formData.append("status", ruleForm.status || "");
 
-    // Append canvassing_items dengan individual fields
     item_canvassing.value.forEach((item: CanvassingItemForm, i: number) => {
       formData.append(`canvassing_items[${i}][unique_id]`, `${item.unique_id}`);
       formData.append(
@@ -3325,18 +2079,11 @@ const submit = async (formEl: FormInstance | undefined) => {
         `${item.equivalent_id}`
       );
 
-      if (item.imageFile) {
-        if (item.imageFile.raw) {
-          formData.append(
-            `canvassing_items[${i}][files]`,
-            item.imageFile?.raw as Blob
-          );
-        }
-      }
-
-      // Append canvassing_vendor
-      // Append canvassing_vendor fields satu per satu
       item.children.forEach((vendor: CanvassingItemForm, j: any) => {
+        if (vendor.catalogue_id == "") {
+          return;
+        }
+
         formData.append(
           `canvassing_items[${i}][canvassing_vendor][${j}][unique_id]`,
           `${vendor.unique_id}`
@@ -3421,25 +2168,9 @@ const submit = async (formEl: FormInstance | undefined) => {
           `canvassing_items[${i}][canvassing_vendor][${j}][ongkir_unit]`,
           `${vendor.ongkir_unit}`
         );
-
-        if (vendor.imageFile) {
-          if (vendor.imageFile?.raw) {
-            formData.append(
-              `canvassing_items[${i}][canvassing_vendor][${j}][files]`,
-              vendor.imageFile?.raw as Blob
-            );
-          }
-        }
       });
     });
 
-    // Untuk debugging: lihat semua entries FormData
-    console.log("=== FORM DATA ENTRIES ===");
-    for (let [key, value] of formData.entries()) {
-      console.log(`${key}:`, value);
-    }
-
-    // Append files
     fileList.value.forEach((element, index) => {
       formData.append(`files[${index}]`, element.raw as Blob);
     });
@@ -3470,12 +2201,10 @@ const resetForm = (formEl: FormInstance | undefined) => {
 };
 
 const resetFormState = () => {
-  quotationItems.value = [];
   references.value = [];
   fileList.value = [];
 };
 
-// Event Handlers
 const handlePriceTagSubmit = () => {
   visibleModalPricetagNewItem.value = false;
   visibleModalSearchItemExample.value = true;
@@ -3487,15 +2216,14 @@ const handleAdjustmentSubmit = () => {
   refreshNuxtData("search-adjustment");
 };
 
-// Pagination Handlers
 const paginationClick = (val: number) => {
   request_search_inquiry.value.offset = val.toString();
 };
 
 const paginationClickPriceTag = (val: number) => {
-  console.log("pagination change");
   request_search_pricetag_item.value.offset = val;
 };
+
 const paginationSizeChange = (val: number) => {
   request_search_pricetag_item.value.limit = val;
 };
@@ -3504,7 +2232,6 @@ const paginationClickContact = (val: number) => {
   request_search_contact.value.offset = val.toString();
 };
 
-// Form Validation Rules
 const validateChildren = (
   _rule: any,
   value: any[],
@@ -3531,32 +2258,13 @@ watchDebounced(request_search_inquiry.value, () => fetchInquiry(), {
   debounce: 500,
 });
 
-watchDebounced(
-  querySearchAdjustmentTransaction.value,
-  () => refreshNuxtData("search-adjustment"),
-  { debounce: 500 }
-);
-
 watchDebounced(request_search_contact.value, () => fetchContact(), {
   debounce: 500,
 });
-// watchDebounced(
-//   contactsFee.value,
-//   () => {
-//     const data = contactsFee.value || [];
-//     item_canvassing.value.forEach((value) => {
-//       value.children.forEach((child) => {
-//         child.contacts_fee = data;
-//       })
-//     })
-//   },
-//   { debounce: 500 }
-// )
 
 watch(
   () => request_search_pricetag_item.value,
   () => {
-    console.log("masuk watch");
     refreshPricetagItem();
   },
   {
@@ -3566,168 +2274,9 @@ watch(
 
 const refreshPricetagItem = () => priceTagItem.refresh();
 
-const summeryData = computed(() => {
-  const tableData: any[] = [
-    {
-      label: "Total Harga Jual",
-      max: currency(grandTotal.value),
-      beli: "",
-      jual: "",
-      min: currency(grandTotal.value),
-      beliMin: "",
-      jualMin: "",
-    },
-    {
-      label: "Total Harga Beli",
-      max: currency(totalBuyingPrice.value),
-      beli: "",
-      jual: "",
-      min: currency(totalBuyingPriceMin.value),
-      beliMin: "",
-      jualMin: "",
-    },
-    {
-      label: "Total",
-      max: currency(grossProfit.value),
-      beli: `${safePercent(grossProfit.value, totalBuyingPrice.value)} %`,
-      jual: `${
-        grandTotal.value == 0
-          ? 0
-          : safePercent(grossProfit.value, grandTotal.value)
-      } %`,
-      min: currency(grossProfitMin.value),
-      beliMin: `${safePercent(grossProfit.value, totalBuyingPriceMin.value)} %`,
-      jualMin: `${
-        grandTotal.value == 0
-          ? 0
-          : safePercent(grossProfitMin.value, grandTotal.value)
-      } %`,
-    },
-    {
-      label: "Ongkos Kirim",
-      max: currency(adjustmentTransactionOngkirTotal.value.amount),
-      beli: `${safePercent(
-        adjustmentTransactionOngkirTotal.value.amount,
-        totalBuyingPrice.value
-      )} %`,
-      jual: `${safePercent(
-        adjustmentTransactionOngkirTotal.value.amount,
-        grandTotal.value
-      )} %`,
-      min: currency(adjustmentTransactionOngkirTotal.value.amount),
-      beliMin: `${safePercent(
-        adjustmentTransactionOngkirTotal.value.amount,
-        totalBuyingPriceMin.value
-      )} %`,
-      jualMax: `${safePercent(
-        adjustmentTransactionOngkirTotal.value.amount,
-        grandTotal.value
-      )} %`,
-    },
-  ];
-
-  console.log("refereces", references.value);
-  references.value.forEach((element) => {
-    console.log("to number", `${toNumber(`${element.amount}`)}`);
-    tableData.push({
-      label: element.adjustment?.name ?? "-",
-      max: currency(
-        displayAmount(toNumber(`${element.amount}`), totalBuyingPrice.value)
-      ),
-      beli: `${safePercent(
-        displayPercentage(
-          toNumber(`${element.amount}`),
-          totalBuyingPrice.value
-        ),
-        1
-      )}`,
-      jual: `${safePercent(
-        displayPercentage(toNumber(`${element.amount}`), grandTotal.value),
-        1
-      )}`,
-      min: currency(
-        displayAmount(toNumber(`${element.amount}`), totalBuyingPriceMin.value)
-      ),
-      beliMin: `${safePercent(
-        displayPercentage(
-          toNumber(`${element.amount}`),
-          totalBuyingPriceMin.value
-        ),
-        1
-      )}`,
-      jualMin: `${safePercent(
-        displayPercentage(element, grandTotal.value),
-        1
-      )}`,
-    });
-  });
-
-  tableData.push(
-    {
-      label: adjustmentTransactionFeeTotal.value.adjustment?.name,
-      max: currency(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value)
-      ),
-      beli: `${
-        adjustmentTransactionFeeTotal.value.type == FeeType.PERCENT
-          ? adjustmentTransactionFeeTotal.value.amount
-          : safePercent(
-              adjustmentTransactionFeeTotal.value.amount,
-              totalBuyingPrice.value
-            )
-      } %`,
-      jual: `${
-        adjustmentTransactionFeeTotal.value.type == FeeType.PERCENT
-          ? adjustmentTransactionFeeTotal.value.amount
-          : safePercent(
-              adjustmentTransactionFeeTotal.value.amount,
-              grandTotal.value
-            )
-      } %`,
-      min: currency(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value)
-      ),
-      beliMin: `${
-        adjustmentTransactionFeeTotal.value.type == FeeType.PERCENT
-          ? adjustmentTransactionFeeTotal.value.amount
-          : safePercent(
-              adjustmentTransactionFeeTotal.value.amount,
-              totalBuyingPriceMin.value
-            )
-      } %`,
-      jualMin: `${
-        adjustmentTransactionFeeTotal.value.type == FeeType.PERCENT
-          ? adjustmentTransactionFeeTotal.value.amount
-          : safePercent(
-              adjustmentTransactionFeeTotal.value.amount,
-              grandTotal.value
-            )
-      } %`,
-    },
-    {
-      label: "Net Profit",
-      max: currency(netProfitForBuying.value),
-      beli: `${safePercent(
-        netProfitForBuying.value,
-        totalBuyingPrice.value
-      )} %`,
-      jual: `${safePercent(netProfitForBuying.value, grandTotal.value)} %`,
-      min: currency(netProfitForBuyingMin.value),
-      beliMin: `${safePercent(
-        netProfitForBuying.value,
-        totalBuyingPriceMin.value
-      )} %`,
-      jualMin: `${safePercent(netProfitForBuying.value, grandTotal.value)} %`,
-    }
-  );
-
-  return tableData;
-});
-
 const fetchInquiryDetail = async () => {
   loading.value = true;
   try {
-    // Fetch related purchase orders
     const inquiry = await useFetchApi<BaseResponse<Inquiry>>(
       `/inquiries-read/${inquiry_id.value}`,
       "inquiry",
@@ -3747,7 +2296,6 @@ const fetchInquiryDetail = async () => {
   }
 };
 
-// Lifecycle
 onMounted(() => {
   if (id.value) {
     fetchDataEdit();
@@ -3759,9 +2307,6 @@ onMounted(() => {
 
   fetchInquiry();
   fetchContact();
-
-  // remove
-  // initItemCanvassing();
 });
 </script>
 
@@ -3790,6 +2335,7 @@ onMounted(() => {
   width: 50px;
   height: 50px;
 }
+
 .card-header {
   display: flex;
   justify-content: space-between;
@@ -3802,20 +2348,10 @@ onMounted(() => {
 }
 
 :deep(.different-unit-row:last-child td) {
-  /* border-top: 2px solid #f56c6c !important; */
   border-bottom: 3px solid #f56c6c !important;
 }
 
-/* Optional: tambahkan tooltip atau indikator visual di kolom unit */
-.different-unit-indicator {
-  color: #f56c6c;
-  font-weight: bold;
-  position: relative;
-}
-
-.different-unit-indicator::after {
-  content: "⚠";
-  margin-left: 5px;
-  color: #f56c6c;
+:deep(.el-upload--text) {
+  width: 100% !important;
 }
 </style>

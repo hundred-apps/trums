@@ -10,7 +10,64 @@
       element-loading-background="rgba(122, 122, 122, 0.8)"
     >
       <template #header>
-        <div class="card-header flex justify-end">
+        <div class="card-header flex items-center gap-3" v-if="isMobile">
+          <TrumsCustomButton
+            v-if="
+              canvassingData?.status == CanvassingStatus.DRAFT ||
+              canvassingData?.status == CanvassingStatus.CANVASSING
+            "
+            type="danger"
+            :loading="loading"
+            :disabled="loading"
+            :is-circle="true"
+            @click="confirmDelete"
+          >
+            <el-icon><Delete /></el-icon>
+          </TrumsCustomButton>
+          <TrumsCustomLinkButton
+            v-if="
+              canvassingData?.status == CanvassingStatus.DRAFT ||
+              canvassingData?.status == CanvassingStatus.CANVASSING
+            "
+            :url="`/sales/canvassing/add?id=${canvassingData?.unique_id}`"
+            :is-circle="true"
+            type="default"
+            style="margin-left: 0px"
+          >
+            <el-icon><Edit /></el-icon>
+          </TrumsCustomLinkButton>
+
+          <TrumsCustomButton
+            v-if="
+              canvassingData?.status == CanvassingStatus.DRAFT ||
+              canvassingData?.status == CanvassingStatus.CANVASSING
+            "
+            type="success"
+            :loading="loading"
+            :disabled="loading"
+            @click="() => updateStatus(CanvassingStatus.PENDING_APPROVAL_RAB)"
+          >
+            Ajukan Approval
+          </TrumsCustomButton>
+          <TrumsCustomButton
+            v-if="
+              canvassingData?.status == CanvassingStatus.PENDING_APPROVAL_RAB
+            "
+            type="default"
+            :loading="loading"
+            :disabled="loading"
+            @click="() => updateStatus(CanvassingStatus.DRAFT)"
+          >
+            Batalkan Pengajuan
+          </TrumsCustomButton>
+          <!-- <NuxtLink
+            class="el-button el-button--primary"
+            :href="`/sales/canvassing/add?id=${canvassingData?.unique_id}&type=copy`"
+          >
+            Salin Canvassing
+          </NuxtLink> -->
+        </div>
+        <div class="card-header flex justify-end" v-else>
           <el-button
             v-if="
               canvassingData?.status == CanvassingStatus.DRAFT ||
@@ -62,7 +119,7 @@
 
       <div class="flex gap-3 my-3">
         <div class="flex-1">
-          <el-descriptions title="" :column="1" size="large" border>
+          <el-descriptions title="" :label-width="120" :column="1" size="large">
             <el-descriptions-item label="Canvassing Code">
               {{ canvassingData?.unique_code || "-" }}
             </el-descriptions-item>
@@ -101,9 +158,9 @@
     <div v-if="canvassingData?.source">
       <el-card class="my-3" shadow="never">
         <template #header>Data Permintaan</template>
-        <div class="flex gap-3 my-3">
+        <div :class="`flex ${isMobile ? 'flex-col' : ''} gap-3 my-3`">
           <div class="flex-1">
-            <el-descriptions :column="1" size="large" border>
+            <el-descriptions :column="1" :label-width="120" size="large">
               <el-descriptions-item label="Nomor RFQ">
                 <NuxtLink
                   class="text-blue-600"
@@ -111,13 +168,13 @@
                   >{{ canvassingData?.source?.unique_code }}</NuxtLink
                 >
               </el-descriptions-item>
-              <el-descriptions-item label="Tanggal Permintaan">
+              <el-descriptions-item label="Tanggal RFQ">
                 {{ formatLocalDate(canvassingData?.source?.date!) }}
               </el-descriptions-item>
             </el-descriptions>
           </div>
           <div class="flex-1">
-            <el-descriptions :column="1" size="large" border>
+            <el-descriptions :column="1" :label-width="120" size="large">
               <el-descriptions-item label="Diminta Oleh">
                 {{ canvassingData?.source?.request_to?.name ?? "-" }}
               </el-descriptions-item>
@@ -165,7 +222,7 @@
             prop="item_name"
             label="Item"
             width="400"
-            fixed="left"
+            :fixed="isMobile ? false : `left`"
           >
             <template #default="{ row }">
               <span
@@ -370,12 +427,14 @@ import type { Unit } from "~/types/unit";
 import type { ItemSearch } from "~/types/item_search";
 import type { Catalogue } from "~/types/catalogue";
 import CatalogueAdd from "~/components/trums/CatalogueAdd.vue";
+import { TrumsCustomLinkButton } from "#components";
 
 const config = useRuntimeConfig();
 const imageUrl = config.public.baseImageURL;
 const { isMobile } = useDevice();
 const router = useRouter();
 const route = useRoute();
+
 const canvassingId = ref<string>(route.params.id as string);
 
 const selectedVendors = ref<Record<string, string>>({});

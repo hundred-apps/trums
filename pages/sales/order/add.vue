@@ -980,7 +980,9 @@ const showTransactionAdjustmentValue = (
 
 const totalPrice = computed(() => {
   const total = ruleForm.items.reduce((accumulator, currentValue) => {
-    return accumulator + currentValue.total_price;
+    return (
+      accumulator + (currentValue.po_unit_price ?? 0) * currentValue.quantity
+    );
   }, 0);
 
   console.log("total_price", total);
@@ -1444,6 +1446,7 @@ const addSelectedCanvassingItems = () => {
       quantity: value.quantity,
       unit_price: value.unit_price,
       total_price: value.total_price,
+      po_unit_price: value.total_price,
       is_warranty: false,
       warranty: 0,
       warranty_unit: "hari",

@@ -860,7 +860,9 @@ const grandTotal = computed(() => {
 const totalPrice = computed(() => {
   return (purchaseOrderData.value?.purchase_order_item ?? []).reduce(
     (accumulator, currentValue) => {
-      return accumulator + currentValue.total_price;
+      return (
+        accumulator + (currentValue.total_price ?? 0) * currentValue.quantity
+      );
     },
     0
   );

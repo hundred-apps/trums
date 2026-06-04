@@ -958,10 +958,11 @@
     <ModalSearchItemExample
       v-model:visible="visibleModalSearchItemExample"
       :search-params="request_search_pricetag_item"
-      :data="priceTagItem.data?.value?.data ?? []"
+      :data="priceTagItem.data.value?.data ?? []"
       :total-data="priceTagItem.data.value?.total_data ?? 0"
       :selected-items="itemChecked"
       @select-items="addToOfferVendor"
+      @on-search="onSearch"
       @create-new="visibleModalPricetagNewItem = true"
       @pagination-change="paginationClickPriceTag"
       :current-item-name="
@@ -1013,65 +1014,10 @@
         :use-tmp="false"
       />
     </el-dialog>
-    <el-dialog v-model="dialogItemRequest" title="RFQ Items" width="1200">
-      <el-row :gutter="20" class="mb-3">
-        <el-col :span="6">
-          <el-input
-            v-model="request_search_item_request.keyword"
-            size="default"
-            placeholder="Type to search"
-          />
-        </el-col>
-        <el-button
-          size="default"
-          :disabled="selectedItemsRequest.length == 0"
-          type="primary"
-          @click="() => addItemRequestToCanvassing(selectedItemsRequest)"
-        >
-          Tambahkan
-          {{
-            selectedItemsRequest.length > 0 ? selectedItemsRequest.length : ""
-          }}</el-button
-        >
-      </el-row>
-      <el-table
-        ref="tableItemRequestRef"
-        :data="item_request.data.value?.data || []"
-        @selection-change="handleSelectionChange"
-        border
-      >
-        <el-table-column type="selection" width="55" />
-        <el-table-column label="Nama Item">
-          <template #default="{ row }">
-            {{ (row as ItemRequest).catalogue?.name }}
-          </template>
-        </el-table-column>
-        <el-table-column label="QTY" align="right" width="100">
-          <template #default="{ row }">
-            {{ (row as ItemRequest).quantity }}
-          </template>
-        </el-table-column>
-        <el-table-column label="UoM" width="100">
-          <template #default="{ row }">
-            {{ (row as ItemRequest).unit_name }}
-          </template>
-        </el-table-column>
-        <el-table-column label="No.RFQ" width="200">
-          <template #default="{ row }">
-            {{ (row as ItemRequest).inquiry?.unique_code }}
-          </template>
-        </el-table-column>
-      </el-table>
-      <div class="flex justify-end mt-3">
-        <el-pagination
-          background
-          layout="prev, pager, next, sizes, total"
-          :total="item_request.data.value?.total_data"
-          @current-change="handlePageChangeItemRequest"
-          @size-change="handleSizeChangeItemRequest"
-        />
-      </div>
-    </el-dialog>
+    <TrumsModalItemRequest
+      v-model:visible="dialogItemRequest"
+      @selected-submit="addItemRequestToCanvassing"
+    />
   </TrumsWrapper>
 </template>
 
@@ -1287,50 +1233,6 @@ const autoSelectSingleChild = (parentRow: any) => {
   }
 };
 
-const request_search_item_request = ref<RequestSearch>({
-  keyword: "",
-  table: "item_request",
-  column: [
-    {
-      inquiry: {
-        type: ["sales_inquiry"],
-      },
-    },
-  ],
-  sort: null,
-  offset: "1",
-  limit: "10",
-});
-
-const tableItemRequestRef = ref<InstanceType<typeof ElTable>>();
-const selectedItemsRequest = ref<ItemRequest[]>([]);
-const item_request = await useAsyncData("fetch-item-request", async () => {
-  const res = await useFetchApi<ResponsePagination<ItemRequest[]>>(
-    `/search`,
-    "fetch-item-request",
-    "post",
-    request_search_item_request.value
-  );
-  return res.data.value;
-});
-
-const handleSelectionChange = (val: ItemRequest[]) => {
-  selectedItemsRequest.value = val;
-};
-const handlePageChangeItemRequest = (page: number) => {
-  request_search_item_request.value.offset = `${page}`;
-};
-
-const handleSizeChangeItemRequest = (size: number) => {
-  request_search_item_request.value.limit = `${size}`;
-};
-
-watch(
-  () => request_search_item_request.value,
-  () => item_request.refresh(),
-  { deep: true }
-);
-
 watch(
   () => selectedRowsVendors.value,
   () => {
@@ -1431,13 +1333,15 @@ const query_search_pricetag_item = ref<RequestSearch>({
   flag: "form",
 });
 
-// API Calls
-const priceTagItem = await useFetchApi<ResponsePagination<Pricetag_item[]>>(
-  `/pricetag-item-read`,
-  "pricetag-search-items",
-  "post",
-  request_search_pricetag_item.value
-);
+const priceTagItem = await useAsyncData("pricetag-search-items", async () => {
+  const res = await useFetchApi<ResponsePagination<Pricetag_item[]>>(
+    `/pricetag-item-read`,
+    "pricetag-search-items",
+    "post",
+    request_search_pricetag_item.value
+  );
+  return res.data.value;
+});
 
 const inquiry = await useFetchApi<ResponsePagination<Inquiry[]>>(
   "/search",
@@ -2695,51 +2599,48 @@ const addToForm = (val: Inquiry) => {
   visibleModalRequest.value = false;
 };
 
-const addItemRequestToCanvassing = (items: ItemRequest[]) => {
-  items.forEach((item, index) => {
-    item_canvassing.value.push({
-      type_item: "request",
-      index: `${index}`,
-      canvassing_id: null,
-      canvaasing_version: null,
-      item_request_trail_version: null,
-      item_request_trail_id: null,
-      unique_id: null,
-      vendor_id: null,
-      vendor_name: "",
-      unit_id: item.unit_id,
-      unit_name: item.unit_name,
-      unit_version: 1,
-      offer_item_id: null,
-      offer_item_version: 0,
-      catalogue_id: item.catalogue_id ?? "",
-      parent_catalogue_id: "",
-      catalogue_name: item.catalogue_name ?? "",
-      sn: item.sn ?? "N/A",
-      quantity: item.request_qty ?? 1,
-      unit_price: 0,
-      total_price: 0,
-      total_selling_price: 0,
-      status: CanvassingVendorStatus.SUBMITTED,
-      taxes: [],
-      editing: null,
-      type: "parent",
-      children: [],
-      selling_price: 0,
-      profit: 0,
-      profit_unit: "percent",
-      fee: 0,
-      fee_unit: "percent",
-      ongkir: 0,
-      ongkir_unit: "percent",
-      pricetag_item_id: "",
-      pricetag_item_version: 0,
-      contacts_fee: contactsFee.value,
-      equivalent_id: null,
-    });
+const addItemRequestToCanvassing = (item: ItemRequest) => {
+  item_canvassing.value.push({
+    type_item: "request",
+    index: `${item_canvassing.value.length + 1}`,
+    canvassing_id: null,
+    canvaasing_version: null,
+    item_request_trail_version: null,
+    item_request_trail_id: null,
+    unique_id: null,
+    vendor_id: null,
+    vendor_name: "",
+    unit_id: item.unit_id,
+    unit_name: item.unit_name,
+    unit_version: 1,
+    offer_item_id: null,
+    offer_item_version: 0,
+    catalogue_id: item.catalogue_id ?? "",
+    parent_catalogue_id: "",
+    catalogue_name: item.catalogue_name ?? "",
+    sn: item.sn ?? "N/A",
+    quantity: item.request_qty ?? 1,
+    unit_price: 0,
+    total_price: 0,
+    total_selling_price: 0,
+    status: CanvassingVendorStatus.SUBMITTED,
+    taxes: [],
+    editing: null,
+    type: "parent",
+    children: [],
+    selling_price: 0,
+    profit: 0,
+    profit_unit: "percent",
+    fee: 0,
+    fee_unit: "percent",
+    ongkir: 0,
+    ongkir_unit: "percent",
+    pricetag_item_id: "",
+    pricetag_item_version: 0,
+    contacts_fee: contactsFee.value,
+    equivalent_id: null,
   });
 
-  tableItemRequestRef.value?.clearSelection();
   dialogItemRequest.value = false;
 };
 
@@ -4455,10 +4356,14 @@ watch(
 //   { debounce: 500 }
 // )
 
+const onSearch = (value: string) => {
+  request_search_pricetag_item.value.keyword = value;
+};
+
 watchDebounced(
-  request_search_pricetag_item.value,
-  () => refreshNuxtData("pricetag-search-items"),
-  { debounce: 500 }
+  () => request_search_pricetag_item.value,
+  () => priceTagItem.refresh(),
+  { deep: true }
 );
 
 watch(item_canvassing.value, (newValue) => calculateSummaryaData());

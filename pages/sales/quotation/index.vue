@@ -51,7 +51,32 @@
     </el-row>
 
     <!-- Action Bar -->
-    <el-row :gutter="20" class="mb-3">
+    <div class="mb-3" v-if="isMobile">
+      <el-input
+        v-model="request_search.keyword"
+        size="default"
+        placeholder="Cari canvassing..."
+        clearable
+      />
+      <NuxtLink
+        class="el-button el-button--primary el-button--default"
+        href="quotation/add"
+      >
+        Buat RAB Baru
+      </NuxtLink>
+      <el-button
+        size="default"
+        :loading-icon="Eleme"
+        :loading="pending"
+        @click="onRefresh"
+      >
+        Muat Ulang
+      </el-button>
+      <el-button type="danger" :disabled="!hasSelected" @click="bulkDelete">
+        Hapus yang Dipilih
+      </el-button>
+    </div>
+    <el-row :gutter="20" class="mb-3" v-else>
       <el-col :span="6">
         <el-input
           v-model="request_search.keyword"
@@ -138,6 +163,9 @@ import type { BaseResponse } from "~/types/response";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import { TypeInquiry } from "~/types/inquiry";
 import type { ColumnTable } from "~/types/ColumnTable";
+import { isNuxtMajorVersion } from "nuxt/kit";
+
+const { isMobile } = useDevice();
 
 definePageMeta({
   middleware: ["auth", "check-access"],

@@ -168,6 +168,56 @@
         />
       </div> -->
     </el-card>
+    <el-card class="mt-3">
+      <template #header>
+        <div class="card-header flex justify-between items-center">
+          <h1>Penawaran Harga</h1>
+        </div>
+      </template>
+
+      <el-table
+        :data="pricetag_item.data.value?.data ?? []"
+        border
+        @sort-change="onSortOffer"
+      >
+        <el-table-column
+          prop="vendor_name"
+          label="Vendor"
+          class="mb-0"
+          :sortable="true"
+        >
+          <template #default="scope">
+            {{ scope.row.pricetag.owner?.name }}
+          </template>
+        </el-table-column>
+        <el-table-column
+          prop="price"
+          label="Harga"
+          class="mb-0"
+          :sortable="true"
+        >
+          <template #default="scope">
+            {{ currencyWithoutSymbol(scope.row.price) }}
+          </template>
+        </el-table-column>
+        <el-table-column prop="description" label="Deskripsi" class="mb-0">
+          <template #default="scope">
+            {{ scope.row.description }}
+          </template>
+        </el-table-column>
+      </el-table>
+
+      <div class="flex justify-end mt-3">
+        <el-pagination
+          background
+          :layout="`prev, pager, next, ${isMobile ? '' : 'sizes, total'}`"
+          :total="pricetag_item?.data.value?.total_data"
+          @current-change="handlePageChangeOffer"
+          @size-change="handleSizeChangeOffer"
+          size="small"
+        />
+      </div>
+    </el-card>
 
     <el-dialog
       v-model="showSubstitutionModal"
@@ -303,6 +353,11 @@ import type {
   RenderContentFunction,
 } from "element-plus/es/components/tree/src/tree.type.mjs";
 import type { ColumnTable } from "~/types/ColumnTable";
+import type { Pricetag_item } from "~/types/pricetag";
+import { currencyWithoutSymbol } from "#imports";
+
+const { isMobile } = useDevice();
+
 definePageMeta({
   middleware: ["auth", "check-access"],
   requiredPermission: "catalogues-read",
@@ -370,6 +425,36 @@ const substitutionSource = await useFetchApi<
 );
 const existingSubstitutionSource = ref<CurrentSubtitutionTree[]>([]);
 
+const pricetag_item_request_search = ref<RequestSearch>({
+  keyword: "",
+  table: "pricetag_item",
+  column: [
+    {
+      catalogue_id: [route.params.id],
+      pricetag: {
+        category: ["penawaran"],
+        type: ["in"],
+      },
+    },
+  ],
+  sort: {
+    column: "created_at",
+    order: "desc",
+  },
+  offset: "1",
+  limit: "10",
+});
+
+const pricetag_item = await useAsyncData("pricetag-item", async () => {
+  const res = await useFetchApi<ResponsePagination<Pricetag_item[]>>(
+    `/search`,
+    "pricetag-item",
+    "post",
+    pricetag_item_request_search.value
+  );
+  return res.data.value;
+});
+
 const handleNodeClick = (data: Tree) => {
   console.log(data);
 };
@@ -379,10 +464,29 @@ const handleSizeChange = (size: number) => {
   // page_subtitution_search.value =
   refreshNuxtData("find-subtitutions");
 };
+const handleSizeChangeOffer = (size: number) => {
+  pricetag_item_request_search.value.limit = size.toString();
+};
 const handlePageChange = (size: number) => {
   page_subtitution_search.value = size;
   refreshNuxtData("find-subtitutions");
 };
+const handlePageChangeOffer = (size: number) => {
+  pricetag_item_request_search.value.offset = size.toString();
+};
+
+const onSortOffer = (value: any) => {
+  pricetag_item_request_search.value.sort = {
+    column: value.prop,
+    order: value.order == "ascending" ? OrderColumn.ASC : OrderColumn.DESC,
+  };
+};
+
+watch(
+  () => pricetag_item_request_search.value,
+  () => pricetag_item.refresh(),
+  { deep: true }
+);
 
 const substitutionTreeData = ref<CatalogueSubstitutionResponse[]>([]);
 

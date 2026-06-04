@@ -7,6 +7,7 @@
     @sort-change="onSortChange"
     v-bind="tableProps"
     ref="tableRef"
+    @row-click="rowClick"
   >
     <el-table-column
       v-for="col in columns"
@@ -40,6 +41,7 @@ defineProps<{
   data: any[];
   loading?: boolean;
   tableProps?: Record<string, any>;
+  rowClick?: (args: any) => void;
 }>();
 
 const tableRef = ref();

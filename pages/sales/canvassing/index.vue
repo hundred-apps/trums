@@ -42,7 +42,31 @@
     </el-row>
 
     <!-- Action Bar -->
-    <el-row :gutter="20" class="mb-3">
+    <div class="mb-3 flex gap-2 p-2" v-if="isMobile">
+      <el-input
+        v-model="request_search.keyword"
+        size="default"
+        placeholder="Cari canvassing..."
+        clearable
+      />
+      <TrumsCustomLinkButton
+        type="primary"
+        :is-circle="true"
+        url="/sales/canvassing/add"
+      >
+        <el-icon><Plus /></el-icon>
+      </TrumsCustomLinkButton>
+      <TrumsCustomButton
+        type="danger"
+        :loading="loading"
+        :disabled="!hasSelected"
+        :is-circle="true"
+        @click="bulkDelete"
+      >
+        <el-icon><Delete /></el-icon>
+      </TrumsCustomButton>
+    </div>
+    <el-row :gutter="20" class="mb-3" v-else>
       <el-col :span="6">
         <el-input
           v-model="request_search.keyword"
@@ -82,7 +106,7 @@
 </template>
 
 <script lang="tsx" setup>
-import { Eleme, SetUp, Filter } from "@element-plus/icons-vue";
+import { Eleme, SetUp, Filter, Plus, Delete } from "@element-plus/icons-vue";
 import {
   type Column,
   type CheckboxValueType,
@@ -113,6 +137,9 @@ import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import { TypeInquiry } from "~/types/inquiry";
 import CanvassingTable from "./components/CanvassingTable.vue";
 import { refreshNuxtData } from "#app";
+import { load } from "@fingerprintjs/fingerprintjs";
+
+const { isMobile } = useDevice();
 
 definePageMeta({
   middleware: ["auth", "app", "check-access"],
@@ -130,7 +157,6 @@ const request_search = ref<RequestSearch>({
       status: [
         CanvassingStatus.DRAFT,
         CanvassingStatus.CANVASSING,
-        CanvassingStatus.RAB,
         CanvassingStatus.PENDING_APPROVAL_RAB,
         CanvassingStatus.DONE,
       ],

@@ -4,6 +4,7 @@
       ref="ruleFormRef"
       :model="ruleForm"
       :rules="rules"
+      :label-position="labelPosition"
       label-width="auto"
       class="demo-ruleForm max-w-full"
       :size="formSize"
@@ -338,7 +339,7 @@ const addLineContact = () =>
     address: [],
   });
 
-const rules = reactive<FormRules<RuleForm>>({
+const rules = reactive<FormRules>({
   name: [
     {
       required: true,
@@ -371,7 +372,8 @@ const rules = reactive<FormRules<RuleForm>>({
   ],
 });
 
-const formSize = ref<ComponentSize>("default");
+const { formSize, labelPosition } = useFormConfig();
+
 const ruleFormRef = ref<FormInstance>();
 const api = useApi();
 const loading = ref<boolean>(false);

@@ -1,78 +1,72 @@
 <template>
-  <div>
-    <el-card class="my-3" shadow="never">
+  <el-card :class="`my-3 ${isMobile ? '' : 'w-1/2'}`" shadow="never">
+    <template #header>
+      <div class="card-header">
+        <span class="text-lg font-bold">Pengaturan Default</span>
+      </div>
+    </template>
+
+    <el-card class="my-3" shadow="never" v-if="currentSettings.company">
       <template #header>
         <div class="card-header">
-          <span class="text-lg font-bold">Pengaturan Default</span>
+          <span class="text-lg font-bold">Pengaturan Saat Ini</span>
         </div>
       </template>
 
-      <el-card class="my-3" shadow="never" v-if="currentSettings.company">
-        <template #header>
-          <div class="card-header">
-            <span class="text-lg font-bold">Pengaturan Saat Ini</span>
+      <div class="flex flex-col">
+        <div>
+          <h4 class="el-text font-bold">Default Company</h4>
+          <div class="flex items-center">
+            <el-icon class="mr-2 text-blue-500"><OfficeBuilding /></el-icon>
+            <span class="text-md">{{
+              currentSettings.company?.name || "-"
+            }}</span>
           </div>
-        </template>
+        </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h4 class="el-text font-bold">Default Company</h4>
-            <div class="flex items-center">
-              <el-icon class="mr-2 text-blue-500"><OfficeBuilding /></el-icon>
-              <span class="text-md">{{
-                currentSettings.company?.name || "-"
-              }}</span>
-            </div>
-          </div>
-
-          <div>
-            <h4 class="el-text font-bold">Default Alamat</h4>
-            <div class="flex items-start">
-              <el-icon class="mr-2 text-green-500 mt-1"><Location /></el-icon>
-              <div>
-                <div class="el-text el-text--large font-bold">
-                  {{ currentSettings.address?.address_name || "-" }}
-                </div>
-                <div
-                  class="el-text el-text--default"
-                  v-if="currentSettings.address"
-                >
-                  {{ generateAddressText(currentSettings.address!) }}
-                </div>
+        <div>
+          <h4 class="el-text font-bold">Default Alamat</h4>
+          <div class="flex items-start">
+            <el-icon class="mr-2 text-green-500 mt-1"><Location /></el-icon>
+            <div>
+              <div class="el-text el-text--large font-bold">
+                {{ currentSettings.address?.address_name || "-" }}
+              </div>
+              <div
+                class="el-text el-text--default"
+                v-if="currentSettings.address"
+              >
+                {{ generateAddressText(currentSettings.address!) }}
               </div>
             </div>
           </div>
         </div>
-      </el-card>
+      </div>
+    </el-card>
 
-      <div class="max-w-2xl space-y-6">
-        <!-- Default Company Selection -->
-        <div class="setting-item el-card el-card__body">
-          <div class="flex items-center justify-between mb-4">
-            <div class="">
-              <div class="el-text el-text--large font-bold">
-                Default Company
-              </div>
-              <div class="el-text">
-                Pilih perusahaan default yang akan digunakan dalam transaksi
-              </div>
+    <div class="space-y-6">
+      <!-- Default Company Selection -->
+      <div class="setting-item el-card el-card__body">
+        <div class="flex items-center justify-between mb-4">
+          <div class="">
+            <div class="el-text el-text--large font-bold">Default Company</div>
+            <div class="el-text">
+              Pilih perusahaan default yang akan digunakan dalam transaksi
             </div>
-            <el-button
-              type="primary"
-              size="default"
-              @click="drawerContact = true"
-              >Tambah Perusahaan</el-button
-            >
           </div>
+          <el-button type="primary" size="default" @click="drawerContact = true"
+            >Tambah Perusahaan</el-button
+          >
+        </div>
 
-          <el-autocomplete
-            :fetch-suggestions="querySearchContact"
-            v-model="selectedCompany"
-            placeholder="Cari Kontak"
-            @select="(item: Record<string, any>) => handleSelectCompany(item)"
-          />
+        <el-autocomplete
+          :fetch-suggestions="querySearchContact"
+          v-model="selectedCompany"
+          placeholder="Cari Kontak"
+          @select="(item: Record<string, any>) => handleSelectCompany(item)"
+        />
 
-          <!-- <el-select
+        <!-- <el-select
             v-model="selectedCompany"
             placeholder="Pilih perusahaan"
             size="default"
@@ -94,135 +88,133 @@
               </div>
             </el-option>
           </el-select> -->
-        </div>
+      </div>
 
-        <!-- Default Address Selection -->
-        <div class="setting-item el-card el-card__body">
-          <div class="flex items-center justify-between mb-4">
-            <div>
-              <div class="el-text el-text--large font-bold">Default Alamat</div>
-              <p class="el-text el-text--default">
-                Pilih alamat default untuk pengiriman dan penagihan
-              </p>
-            </div>
-            <el-button
-              type="primary"
-              size="default"
-              :disabled="currentSettings.company === null"
-              @click="dialogAddAddress = true"
-              >Tambah Alamat</el-button
-            >
+      <!-- Default Address Selection -->
+      <div class="setting-item el-card el-card__body">
+        <div class="flex items-center justify-between mb-4">
+          <div>
+            <div class="el-text el-text--large font-bold">Default Alamat</div>
+            <p class="el-text el-text--default">
+              Pilih alamat default untuk pengiriman dan penagihan
+            </p>
           </div>
-
-          <el-autocomplete
-            v-model="selectedAddress"
-            :fetch-suggestions="querySearchAddress"
-            clearable
-            class="w-50"
-            placeholder="Please Input"
-            @select="handleSelectAddress"
-            :disabled="currentSettings.company === null"
-          >
-            <template #default="{ item }">
-              <div class="value">{{ item.name }}</div>
-              <span class="link">{{ item.value }}</span>
-            </template>
-          </el-autocomplete>
-
-          <div v-if="!selectedCompany" class="mt-2">
-            <el-alert
-              title="Pilih perusahaan terlebih dahulu"
-              type="info"
-              :closable="false"
-              show-icon
-            />
-          </div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div class="flex gap-3 pt-4">
           <el-button
             type="primary"
-            @click="saveSetting"
-            :loading="loading"
-            :disabled="!selectedCompany"
+            size="default"
+            :disabled="currentSettings.company === null"
+            @click="dialogAddAddress = true"
+            >Tambah Alamat</el-button
           >
-            Simpan Pengaturan
-          </el-button>
-          <el-button @click="resetForm"> Reset </el-button>
+        </div>
+
+        <el-autocomplete
+          v-model="selectedAddress"
+          :fetch-suggestions="querySearchAddress"
+          clearable
+          class="w-50"
+          placeholder="Please Input"
+          @select="handleSelectAddress"
+          :disabled="currentSettings.company === null"
+        >
+          <template #default="{ item }">
+            <div class="value">{{ item.name }}</div>
+            <span class="link">{{ item.value }}</span>
+          </template>
+        </el-autocomplete>
+
+        <div v-if="!selectedCompany" class="mt-2">
+          <el-alert
+            title="Pilih perusahaan terlebih dahulu"
+            type="info"
+            :closable="false"
+            show-icon
+          />
         </div>
       </div>
-    </el-card>
 
-    <!-- Current Settings Summary -->
-
-    <!-- Success Dialog -->
-    <el-dialog
-      v-model="showSuccessDialog"
-      title="Berhasil"
-      width="400px"
-      :close-on-click-modal="false"
-      :close-on-press-escape="false"
-      :show-close="false"
-    >
-      <div class="text-center">
-        <el-icon size="48" color="#67C23A" class="mb-3">
-          <CircleCheck />
-        </el-icon>
-        <p class="text-lg font-medium mb-2">Pengaturan berhasil disimpan</p>
-        <p class="text-gray-500">
-          Pengaturan default company dan alamat telah diperbarui.
-        </p>
+      <!-- Action Buttons -->
+      <div class="flex gap-3 pt-4">
+        <el-button
+          type="primary"
+          @click="saveSetting"
+          :loading="loading"
+          :disabled="!selectedCompany"
+        >
+          Simpan Pengaturan
+        </el-button>
+        <el-button @click="resetForm"> Reset </el-button>
       </div>
+    </div>
+  </el-card>
 
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button type="primary" @click="handleSuccessClose">
-            Oke
-          </el-button>
-        </div>
-      </template>
-    </el-dialog>
-    <el-dialog
-      v-model="dialogAddAddress"
-      title="Tambah Alamat"
-      width="800"
-      :close-on-click-modal="false"
-      :close-on-press-escape="false"
-      :show-close="false"
-    >
-      <FormAddress
-        v-on:success="onAddressAdded"
-        :onSetInitital="{
-          contact_id: currentSettings.company?.unique_id ?? '',
-          contaact_name: currentSettings.company?.name ?? '',
-        }"
-        v-on:back="() => (dialogAddAddress = false)"
-      />
-    </el-dialog>
+  <!-- Current Settings Summary -->
 
-    <el-drawer
-      v-model="drawerContact"
-      title="Tambah Perusahaan"
-      :with-header="false"
-    >
-      <AddContact
-        :contact-data="tempCompany"
-        :loading="loading"
-        v-on:submit="onAddCompany"
-      />
-    </el-drawer>
+  <!-- Success Dialog -->
+  <el-dialog
+    v-model="showSuccessDialog"
+    title="Berhasil"
+    width="400px"
+    :close-on-click-modal="false"
+    :close-on-press-escape="false"
+    :show-close="false"
+  >
+    <div class="text-center">
+      <el-icon size="48" color="#67C23A" class="mb-3">
+        <CircleCheck />
+      </el-icon>
+      <p class="text-lg font-medium mb-2">Pengaturan berhasil disimpan</p>
+      <p class="text-gray-500">
+        Pengaturan default company dan alamat telah diperbarui.
+      </p>
+    </div>
 
-    <el-dialog v-model="dialogReset" title="Warning" width="500" center>
-      <span> Apakah Anda Yakin Ingin Reset Pengaturan Awal? </span>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="dialogReset = false">Cancel</el-button>
-          <el-button type="primary" @click="resetSetting"> Reset </el-button>
-        </div>
-      </template>
-    </el-dialog>
-  </div>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button type="primary" @click="handleSuccessClose"> Oke </el-button>
+      </div>
+    </template>
+  </el-dialog>
+  <el-dialog
+    v-model="dialogAddAddress"
+    title="Tambah Alamat"
+    width="800"
+    :close-on-click-modal="false"
+    :close-on-press-escape="false"
+    :show-close="false"
+  >
+    <FormAddress
+      v-on:success="onAddressAdded"
+      :onSetInitital="{
+        contact_id: currentSettings.company?.unique_id ?? '',
+        contaact_name: currentSettings.company?.name ?? '',
+      }"
+      v-on:back="() => (dialogAddAddress = false)"
+    />
+  </el-dialog>
+
+  <el-drawer
+    v-model="drawerContact"
+    title="Tambah Perusahaan"
+    :with-header="false"
+    :direction="drawerDirection"
+  >
+    <AddContact
+      :data="tempCompany"
+      :loading="loading"
+      v-on:submit="(data) => onAddCompany(data!)"
+    />
+  </el-drawer>
+
+  <el-dialog v-model="dialogReset" title="Warning" width="500" center>
+    <span> Apakah Anda Yakin Ingin Reset Pengaturan Awal? </span>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="dialogReset = false">Cancel</el-button>
+        <el-button type="primary" @click="resetSetting"> Reset </el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <script lang="tsx" setup>
@@ -235,13 +227,18 @@ import AddContact from "~/components/trums/AddContact.vue";
 import type { BaseResponse } from "~/types/response";
 import FormAddress from "~/components/trums/FormAddress.vue";
 import { unique } from "element-plus/es/utils/arrays.mjs";
+import type { DrawerProps } from "element-plus";
 
 const router = useRouter();
+const { isMobile } = useDevice();
+
 const loading = ref<boolean>(false);
 const showSuccessDialog = ref<boolean>(false);
 const drawerContact = ref<boolean>(false);
 const dialogAddAddress = ref<boolean>(false);
 const dialogReset = ref<boolean>(false);
+
+const drawerDirection = ref<DrawerProps["direction"]>(isMobile ? "btt" : "rtl");
 
 // Data states
 const selectedCompany = ref<string>("");

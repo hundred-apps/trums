@@ -1182,17 +1182,17 @@ const querySearchAsyncInventories = (
 //   }
 // };
 
-onMounted(() => {
-  console.log("pricetag", props.dataInterface.data);
-  if (props.dataInterface.data?.unique_id) {
+watch(
+  () => props.dataInterface.data?.unique_id,
+  () => {
     request_search_pricelist_item.value.column = [
       {
         tag_id: [props.dataInterface.data?.unique_id],
       },
     ];
-    // fetchItem();
-  }
-});
+  },
+  { deep: true }
+);
 
 watch(request_search_pricelist_item.value, () => items.refresh(), {
   immediate: true,
