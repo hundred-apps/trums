@@ -24,9 +24,10 @@
       ref="tableItemRequestRef"
       :data="item_request.data.value?.data || []"
       @row-click="addItemRequestToCanvassing"
+      @sort-change="onSort"
       border
     >
-      <el-table-column label="Nama Item">
+      <el-table-column label="Nama Item" prop="catalogue.name" :sortable="true">
         <template #default="{ row }">
           <span
             class="text-blue-600 cursor-pointer"
@@ -34,9 +35,15 @@
           >
         </template>
       </el-table-column>
-      <el-table-column label="QTY" align="right" width="100">
+      <el-table-column
+        label="QTY"
+        align="right"
+        width="100"
+        prop="request_qty"
+        :sortable="true"
+      >
         <template #default="{ row }">
-          {{ (row as ItemRequest).quantity }}
+          {{ (row as ItemRequest).request_qty }}
         </template>
       </el-table-column>
       <el-table-column label="UoM" width="100">
@@ -65,7 +72,7 @@
 <script lang="tsx" setup>
 import type { ElTable } from "element-plus";
 import type { ItemRequest } from "~/types/item_request";
-import type { RequestSearch } from "~/types/request_search";
+import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
 
 interface Props {
@@ -128,6 +135,15 @@ const handleSizeChangeItemRequest = (size: number) => {
 
 const addItemRequestToCanvassing = (items: ItemRequest) => {
   emit("selectedSubmit", items);
+};
+
+const onSort = (data: any) => {
+  console.log("data sort", data);
+  request_search_item_request.value.sort = {
+    column: data.prop,
+    order:
+      data.order === OrderColumn.ASCENDING ? OrderColumn.DESC : OrderColumn.ASC,
+  };
 };
 
 watch(

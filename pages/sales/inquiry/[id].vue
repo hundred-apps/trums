@@ -43,7 +43,7 @@
             </el-col>
             <NuxtLink
               class="el-button el-button--primary el-button--default"
-              href="/sales/canvassing/add"
+              :href="`/sales/canvassing/add?inquiry_id=${inquiryData.data?.unique_id}`"
             >
               Buat Canvassing Baru
             </NuxtLink>

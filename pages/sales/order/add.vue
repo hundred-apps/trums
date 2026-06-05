@@ -318,14 +318,14 @@
           </el-table-column>
         </el-table>
         <!-- <el-button
-        type="default"
-        size="default"
-        :icon="Plus"
-        @click="tambahItemBaru"
-        style="width: 100%; margin-top: 10px"
-      >
-        Tambah Dari Katalog
-      </el-button> -->
+          type="default"
+          size="default"
+          :icon="Plus"
+          @click="tambahItemBaru"
+          style="width: 100%; margin-top: 10px"
+        >
+          Tambah Dari Katalog
+        </el-button> -->
       </el-card>
     </el-form>
     <AdjustmentTransactionComponent

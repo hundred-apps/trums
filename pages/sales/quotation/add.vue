@@ -2272,17 +2272,16 @@ function calculatePricing(
 
   const parent = item_canvassing.value[row.parent_index || 0];
 
-  console.log("calculate pricing");
-
   if (parent.children.length === 1) {
     parent.selling_price = row.selling_price;
     parent.total_selling_price = row.total_selling_price;
   } else {
+    console.log("calculate pricing", parent);
     if (row.type_item == "original") {
-      if (parent.tmp_child_selected == row.index) {
-        parent.selling_price = row.selling_price;
-        parent.total_selling_price = row.total_selling_price;
-      }
+      // if (parent.tmp_child_selected == row.index) {
+      parent.selling_price = row.selling_price;
+      parent.total_selling_price = row.total_selling_price;
+      // }
     }
   }
 }
@@ -3680,10 +3679,7 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
           parent_index: index,
           tmp_child_selected: "",
         })),
-        selling_price:
-          value.unit_selling_price == 0
-            ? (value.total_selling_price ?? 0) / value.quantity
-            : value.unit_selling_price,
+        selling_price: value.unit_selling_price,
         tmp_child_selected: "",
         profit: 0,
         profit_unit: "percent" as "amount" | "percent",

@@ -2481,72 +2481,27 @@ const summeryData = computed(() => {
     displayAmount(adjustmentTransactionFeeTotal.value, grossProfit.value)
   );
 
-  tableData.push(
-    {
-      label: adjustmentTransactionFeeTotal.value?.adjustments_transaction?.name,
-      max: currency(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value)
-      ),
-      beli: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
-        totalBuyingPrice.value
-      )} %`,
-      jual: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
-        grandTotal.value
-      )} %`,
-      min: currency(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value)
-      ),
-      beliMin: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
-        totalBuyingPriceMin.value
-      )} %`,
-      jualMin: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
-        grandTotal.value
-      )} %`,
-      selected: currency(
-        displayAmount(
-          adjustmentTransactionFeeTotal.value,
-          grossProfitSelected.value
-        )
-      ),
-      selectedBeli: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
-        totalBuyingPriceSelected.value
-      )} %`,
-      selectedJual: `${safePercent(
-        displayAmount(adjustmentTransactionFeeTotal.value, grandTotal.value),
-        grandTotal.value
-      )} %`,
-    },
-
-    {
-      label: "Net Profit",
-      max: currency(netProfitForBuying.value),
-      beli: `${safePercent(
-        netProfitForBuying.value,
-        totalBuyingPrice.value
-      )} %`,
-      jual: `${safePercent(netProfitForBuying.value, grandTotal.value)} %`,
-      min: currency(netProfitForBuyingMin.value),
-      beliMin: `${safePercent(
-        netProfitForBuying.value,
-        totalBuyingPriceMin.value
-      )} %`,
-      jualMin: `${safePercent(netProfitForBuying.value, grandTotal.value)} %`,
-      selected: currency(netProfitForBuyingSelected.value),
-      selectedBeli: `${safePercent(
-        netProfitForBuyingSelected.value,
-        totalBuyingPriceSelected.value
-      )} %`,
-      selectedJual: `${safePercent(
-        netProfitForBuyingSelected.value,
-        grandTotal.value
-      )} %`,
-    }
-  );
+  tableData.push({
+    label: "Net Profit",
+    max: currency(netProfitForBuying.value),
+    beli: `${safePercent(netProfitForBuying.value, totalBuyingPrice.value)} %`,
+    jual: `${safePercent(netProfitForBuying.value, grandTotal.value)} %`,
+    min: currency(netProfitForBuyingMin.value),
+    beliMin: `${safePercent(
+      netProfitForBuying.value,
+      totalBuyingPriceMin.value
+    )} %`,
+    jualMin: `${safePercent(netProfitForBuying.value, grandTotal.value)} %`,
+    selected: currency(netProfitForBuyingSelected.value),
+    selectedBeli: `${safePercent(
+      netProfitForBuyingSelected.value,
+      totalBuyingPriceSelected.value
+    )} %`,
+    selectedJual: `${safePercent(
+      netProfitForBuyingSelected.value,
+      grandTotal.value
+    )} %`,
+  });
 
   return tableData;
 });

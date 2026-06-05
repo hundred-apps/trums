@@ -2976,9 +2976,14 @@ watch(
   () => props.data,
   () => {
     console.log("masuk", props.data);
-    references.value = (props.data?.reference_transaction_adjustment || []).map(
-      (value) => ({ ...value, adjustment: value.adjustments_transaction })
-    );
+    if (references.value.length == 0) {
+      references.value = (
+        props.data?.reference_transaction_adjustment || []
+      ).map((value) => ({
+        ...value,
+        adjustment: value.adjustments_transaction,
+      }));
+    }
     termOfPayments.value = props.data?.payment_terms || [];
   },
   { deep: true, immediate: true }
