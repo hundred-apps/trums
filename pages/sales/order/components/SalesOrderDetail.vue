@@ -861,7 +861,7 @@ const totalPrice = computed(() => {
   return (purchaseOrderData.value?.purchase_order_item ?? []).reduce(
     (accumulator, currentValue) => {
       return (
-        accumulator + (currentValue.total_price ?? 0) * currentValue.quantity
+        accumulator + (currentValue.po_unit_price ?? 0) * currentValue.quantity
       );
     },
     0
@@ -945,27 +945,28 @@ watch(
     purchaseOrderItemsView.value = [];
     (purchaseOrderItem.data.value?.data || []).forEach((element) => {
       let childs: PurchasOrderViewTree[] = [];
-      if (canAccess("purchase-order-approve", props.privillage || [], 1)) {
-        console.log("pricetag item", element.pricetag_item);
-        childs = (
-          element.pricetag_item?.data_reference as CanvassingItem
-        ).canvassing_vendor
-          .filter((vendor) => vendor.status === CanvassingVendorStatus.SELECTED)
-          .map((vendor) => ({
-            unique_id: vendor.unique_id || "",
-            item_name: vendor.vendor?.name || "N/A",
-            item_id: vendor.catalogue_id || "",
-            quantity: vendor.quantity || 0,
-            unit_name: vendor.unit_name || "N/A",
-            harga_quo: vendor.unit_price || 0,
-            harga_po: 0,
-            total: vendor.unit_price * vendor.quantity,
-            quo_number: "",
-            children: [],
-          }));
+      // if (canAccess("purchase-order-approve", props.privillage || [], 1)) {
+      //   console.log("pricetag item", element.pricetag_item);
+      //   childs = (
+      //     (element.pricetag_item?.data_reference as CanvassingItem)
+      //       .canvassing_vendor || []
+      //   )
+      //     .filter((vendor) => vendor.status === CanvassingVendorStatus.SELECTED)
+      //     .map((vendor) => ({
+      //       unique_id: vendor.unique_id || "",
+      //       item_name: vendor.vendor?.name || "N/A",
+      //       item_id: vendor.catalogue_id || "",
+      //       quantity: vendor.quantity || 0,
+      //       unit_name: vendor.unit_name || "N/A",
+      //       harga_quo: vendor.unit_price || 0,
+      //       harga_po: 0,
+      //       total: vendor.unit_price * vendor.quantity,
+      //       quo_number: "",
+      //       children: [],
+      //     }));
 
-        console.log("children", childs);
-      }
+      //   console.log("children", childs);
+      // }
 
       purchaseOrderItemsView.value.push({
         unique_id: element.unique_id,
