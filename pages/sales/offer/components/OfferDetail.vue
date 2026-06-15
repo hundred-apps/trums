@@ -204,6 +204,18 @@
             </template>
           </el-table-column> -->
       <el-table-column
+        prop=""
+        label="No"
+        class="my-0"
+        :width="isMobile ? 50 : 50"
+        fixed="left"
+        :align="isMobile ? 'center' : 'left'"
+      >
+        <template #default="scope">
+          <p>{{ scope.row.no }}</p>
+        </template>
+      </el-table-column>
+      <el-table-column
         prop="item_name"
         label="Nama Barang"
         class="my-0"
@@ -212,7 +224,11 @@
         :align="isMobile ? 'center' : 'left'"
       >
         <template #default="scope">
-          <p class="text-start text-blue-600">
+          <p
+            :class="`text-start text-blue-600 ${
+              scope.row.is_equivalent ? 'italic' : ''
+            }`"
+          >
             <!-- {{
               scope.row.catalogue?.brand == undefined
                 ? ""
@@ -230,7 +246,9 @@
         align="center"
       >
         <template #default="scope">
-          {{ currencyWithoutSymbol(scope.row.price, 0) }}
+          {{
+            scope.row.hasChild ? "" : currencyWithoutSymbol(scope.row.price, 0)
+          }}
         </template>
       </el-table-column>
       <!-- <el-table-column prop="sn" label="Serial Number" /> -->
@@ -243,7 +261,7 @@
       >
         <template #default="scope">
           <!-- <el-input-number v-model="scope.row.quantity" /> -->
-          {{ scope.row.qty }}
+          {{ scope.row.hasChild ? "" : scope.row.qty }}
         </template>
       </el-table-column>
       <el-table-column prop="unit" label="Unit" width="100">
@@ -254,17 +272,19 @@
                 placeholder="Input Units"
                 @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteUnit(item, scope)"
               /> -->
-          {{ scope.row.unit_name }}
+          {{ scope.row.hasChild ? "" : scope.row.unit_name }}
         </template>
       </el-table-column>
 
       <el-table-column prop="total" label="Total" class="mb-0" width="150">
         <template #default="scope">
           {{
-            currencyWithoutSymbol(
-              Number(scope.row.price) * Number(scope.row.qty),
-              0
-            )
+            scope.row.hasChild
+              ? ""
+              : currencyWithoutSymbol(
+                  Number(scope.row.price) * Number(scope.row.qty),
+                  0
+                )
           }}
         </template>
       </el-table-column>
@@ -272,7 +292,7 @@
         <template #default="scope">
           {{
             // ((scope.row as Pricetag_item).reference_transaction || []).find((find) => find.adjustments_transaction?.name.toLowerCase() == 'garansi' && find.adjustments_transaction?.category == 'attribute')?.amount || 'N/A'
-            scope.row.garansi
+            scope.row.hasChild ? "" : scope.row.garansi
           }}
         </template>
       </el-table-column>
@@ -495,6 +515,8 @@ type PricetagItemView = {
   note: string;
   is_equivalent: boolean;
   equivalent_from_id: string;
+  hasChild: boolean;
+  no: string;
 };
 
 const pricetag_item_views = ref<PricetagItemView[]>([]);
@@ -574,8 +596,10 @@ watch(
   () => items.data.value?.data,
   (data) => {
     pricetag_item_views.value = [];
+    let no = 1;
     (data ?? []).forEach((item) => {
       pricetag_item_views.value.push({
+        no: `${no}`,
         unique_id: item.unique_id || "",
         item_name: item.catalogue?.name || "",
         price: item.price,
@@ -586,16 +610,35 @@ watch(
         note: item.note || "",
         is_equivalent: false,
         equivalent_from_id: "",
+        hasChild: item.data_reference
+          ? (item.data_reference as CanvassingItem).canvassing_vendor.length > 0
+            ? (
+                item.data_reference as CanvassingItem
+              ).canvassing_vendor.findLast(
+                (v) => v.type_item == "quotation" || v.type_item == "equivalent"
+              )
+              ? true
+              : false
+            : false
+          : true,
       });
 
       if (item.data_reference) {
         (item.data_reference as CanvassingItem).canvassing_vendor.forEach(
           async (vendor) => {
-            if (vendor.type_item == "equivalent") {
+            if (
+              vendor.type_item == "equivalent" ||
+              vendor.type_item == "quotation"
+            ) {
               pricetag_item_views.value.push({
+                no: "",
                 unique_id: vendor.unique_id || "",
                 item_name:
-                  "(Equivalent) " + getCatalogueName(vendor.catalogue!),
+                  `(${
+                    vendor.type_item == "equivalent"
+                      ? "Equivalent"
+                      : "Subtitution"
+                  }) ` + getCatalogueName(vendor.catalogue!),
                 price: vendor.selling_price || 0,
                 qty: vendor.quantity,
                 unit_id: vendor.unit_id || "",
@@ -603,12 +646,15 @@ watch(
                 garansi: "N/A",
                 note: "",
                 is_equivalent: true,
+                hasChild: false,
                 equivalent_from_id: item.unique_id || "",
               });
             }
           }
         );
       }
+
+      no += 1;
 
       // pricetag_item_views.value = toView;
       // console.log("pricetag item", pricetag_item_views.value);
@@ -868,10 +914,16 @@ const generateQuotationPdf = async () => {
 
   // ================= TABLE =================
 
-  let rowData: RowInput[] = (pricetag_item_views.value ?? []).map(
-    (item: PricetagItemView, i: number) => [
+  let rowData: RowInput[] = [];
+
+  let no = 1;
+  pricetag_item_views.value.forEach((item, i) => {
+    const isChild: boolean =
+      item.item_name.includes("(Equivalent)") ||
+      item.item_name.includes("(Subtitution)");
+    rowData.push([
       {
-        content: `${i + 1}`,
+        content: `${isChild ? "" : no}`,
         styles: {
           halign: "center",
           lineWidth: 0.1,
@@ -887,7 +939,7 @@ const generateQuotationPdf = async () => {
         },
       },
       {
-        content: `${item.qty}`,
+        content: `${item.hasChild ? "" : item.qty}`,
         styles: {
           halign: "center",
           lineWidth: 0.1,
@@ -895,7 +947,7 @@ const generateQuotationPdf = async () => {
         },
       },
       {
-        content: `${item.unit_name}`,
+        content: `${item.hasChild ? "" : item.unit_name}`,
         styles: {
           halign: "center",
           lineWidth: 0.1,
@@ -903,7 +955,7 @@ const generateQuotationPdf = async () => {
         },
       },
       {
-        content: `${currencyWithoutSymbol(item.price)}`,
+        content: `${item.hasChild ? "" : currencyWithoutSymbol(item.price)}`,
         styles: {
           halign: "right",
           lineWidth: 0.1,
@@ -911,15 +963,22 @@ const generateQuotationPdf = async () => {
         },
       },
       {
-        content: `${currencyWithoutSymbol(item.qty * (item.price || 0))}`,
+        content: `${
+          item.hasChild
+            ? ""
+            : currencyWithoutSymbol(item.qty * (item.price || 0))
+        }`,
         styles: {
           halign: "right",
           lineWidth: 0.1,
           lineColor: [0, 0, 0],
         },
       },
-    ]
-  );
+    ]);
+    if (!isChild) {
+      no++;
+    }
+  });
 
   if (typeSummery.value === "total") {
     rowData.push([
@@ -984,7 +1043,7 @@ const generateQuotationPdf = async () => {
               },
             },
             {
-              content: `${currencyWithoutSymbol(getDPPNilaiLain.value)}`,
+              content: `${currencyWithoutSymbol(getDPPNilaiLainView.value)}`,
               styles: {
                 halign: "right",
                 lineWidth: 0.1,

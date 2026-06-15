@@ -255,10 +255,12 @@ export type CanvassingItemForm = {
   selling_price: number;
   total_selling_price: number;
   profit: number;
+  profit_percent?: number;
   profit_unit: "percent" | "amount";
   profit_nominal?: number;
   fee: number;
   fee_unit: "percent" | "amount";
+  fee_percent?: number;
   fee_nominal?: number;
   ongkir: number;
   ongkir_unit: "percent" | "amount";

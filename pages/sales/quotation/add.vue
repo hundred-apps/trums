@@ -555,7 +555,7 @@
                     <el-select
                       v-model="row.profit_unit"
                       style="width: 70px"
-                      @change="handleProfitUnitChange(row)"
+                      @change="(val) => handleProfitUnitChange(row, val)"
                     >
                       <el-option label="%" value="percent" />
                       <el-option label="Rp" value="amount" />
@@ -566,7 +566,7 @@
                   {{
                     row.profit_unit == "percent"
                       ? currency(Math.round(row.profit_nominal || 0))
-                      : row.profit
+                      : (row.profit_percent || 0) + " %"
                   }}
                 </div>
               </div>
@@ -602,8 +602,8 @@
                       style="width: 70px"
                       @change="
                         (val) => {
-                          changeFeeUnitContacts(row);
-                          calculateSellingPrice(row);
+                          changeFeeUnitContacts(row, val);
+                          // calculatePricing(row, 'selling_price');
                         }
                       "
                     >
@@ -615,8 +615,8 @@
                 <div class="text-green-500 italic">
                   {{
                     row.fee_unit == "percent"
-                      ? currency(Math.round(row.fee_nominal || 0))
-                      : row.fee
+                      ? currency(row.fee_nominal || 0)
+                      : (row.fee_percent || 0) + " %"
                   }}
                 </div>
               </div>
@@ -649,21 +649,20 @@
                     v-model="row.selling_price"
                     :min="0"
                     @change="
-  (value) => {
-                    
-                      (row as CanvassingItemForm).children?.forEach((child: CanvassingItemForm) => {
-                        if (child.type_item == 'original') {
-                          child.selling_price = value || 0;
+                      (value) => {
+                        // (row as CanvassingItemForm).children?.forEach((child: CanvassingItemForm) => {
+                        //   if (child.type_item == 'original') {
+                        //     child.selling_price = value || 0;
 
-                          child.total_selling_price =
-                            (child.quantity || 0) * (child.selling_price || 0);
+                        //     child.total_selling_price =
+                        //       (child.quantity || 0) * (child.selling_price || 0);
 
-                          calculatePricing(child, 'selling_price');  
-                        }
-                      });
-                      calculatePricing(row, 'selling_price');
-                    }
-                  "
+                        //     calculatePricing(child, 'selling_price');
+                        //   }
+                        // });
+                        calculatePricing(row, 'selling_price');
+                      }
+                    "
                   />
                 </div>
                 <div v-else class="flex">
@@ -1740,10 +1739,11 @@ const handleSaveFee = ({
   );
 
   syncFeeAcumulation();
-
   item_canvassing.value.forEach((element) => {
     // setProfit(element);
-    calculatePricing(element, "selling_price");
+    (element.children || []).forEach((child) => {
+      calculatePricing(child, "selling_price");
+    });
   });
 
   // drawerFeeVisible.value = false;
@@ -1768,8 +1768,6 @@ const syncFeeAcumulation = () => {
             const selisih = selling_price - hargaBeli - ongkirNominal;
 
             let profit = child.profit;
-
-            console.log("profit amount", child.profit_nominal);
 
             let fee = 0;
 
@@ -1849,16 +1847,14 @@ function updateItemFee(
   contacts?: ReferenceTransactionAdjustment[],
   fee?: number
 ) {
-  console.log("index : ", index);
+  console.log("contact fee", contacts);
   for (const it of items) {
-    console.log("unique_id : ", it.unique_id);
     if (it.unique_id === index && it.type === "child") {
       if (contacts) {
         it.fee = contacts.reduce((sum, c) => sum + (c.amount || 0), 0);
 
-        console.log("contact", contacts);
-
         it.contacts_fee = contacts;
+        console.log("contact", it.fee);
       } else {
         it.fee = fee ?? 0;
       }
@@ -2124,10 +2120,22 @@ const calculateMarginNominal = (row: CanvassingItemForm) => {
   return (row.total_selling_price || 0) - Number(row.total_price);
 };
 
-const changeFeeUnitContacts = (row: CanvassingItemForm) => {
+const changeFeeUnitContacts = (row: CanvassingItemForm, unit: string) => {
   row.contacts_fee.forEach((element) => {
+    // console.log("element", element);
     element.type = row.fee_unit as FeeType;
+    if (unit == "percent") {
+      element.value = element.amount;
+    } else {
+      element.value = element.amount_nominal || 0;
+    }
   });
+  if (unit == "percent") {
+    row.fee = row.fee_percent ?? 0;
+  } else {
+    row.fee = row.fee_nominal ?? 0;
+  }
+  // row.
 };
 const changeFeeUnit = (val: any) => {
   contactsFee.value.forEach((element) => {
@@ -2152,7 +2160,8 @@ const onChangeChild = (row: CanvassingItemForm) => {
   //     setProfit(parent);
   //   }
   // }
-  setProfit(row);
+  // setProfit(row);
+  calculatePricing(row, "selling_price");
 };
 
 const calculateSellingPriceSelected = (
@@ -2268,52 +2277,154 @@ function calculatePricing(
   const hargaBeli = Number(row.unit_price || 0);
   if (hargaBeli <= 0) return;
 
-  let profitPercent = 0;
-  let profitNominal = 0;
+  if (row.type == "parent" && activeField == "selling_price") {
+    row.children.forEach((child) => {
+      if (child.type_item == "original") {
+        let profitPercent = 0;
+        let profitNominal = 0;
 
-  if (row.profit_unit == "percent") {
-    profitPercent = row.profit;
-    profitNominal = (hargaBeli * Number(row.profit || 0)) / 100;
+        if (child.profit_unit == "percent") {
+          profitPercent = parseFloat((child.profit ?? 0).toFixed(2));
+          profitNominal = (hargaBeli * Number(child.profit || 0)) / 100;
+        } else {
+          profitPercent = parseFloat(
+            ((child.profit / hargaBeli) * 100).toFixed(2)
+          );
+          profitNominal = child.profit;
+        }
+
+        let ongkirPercent = 0;
+        let ongkirNominal = 0;
+
+        if (child.ongkir_unit == "percent") {
+          ongkirPercent = parseFloat((child.ongkir ?? 0).toFixed(2));
+          ongkirNominal = (hargaBeli * Number(child.ongkir || 0)) / 100;
+        } else {
+          ongkirNominal = child.ongkir;
+          ongkirPercent = parseFloat(
+            ((child.ongkir / hargaBeli) * 100).toFixed(2)
+          );
+        }
+
+        let feePercent = 0;
+        let feeNominal = 0;
+
+        if (child.fee_unit == "percent") {
+          console.log("hitung fee", child.fee);
+          feePercent = Number(child.fee);
+          feeNominal = (profitNominal * Number(child.fee || 0)) / 100;
+        } else {
+          feePercent = (child.fee / profitNominal) * 100;
+          feeNominal = child.fee;
+        }
+
+        if (activeField == "selling_price") {
+          let selisih = row.selling_price - (hargaBeli + ongkirNominal);
+          const tmpProfit = 100;
+          const tmpFee = feePercent;
+
+          const profitAndFee = tmpProfit + Number(tmpFee);
+
+          profitNominal = selisih / (profitAndFee / 100);
+
+          profitPercent = parseFloat(
+            ((profitNominal / hargaBeli) * 100).toFixed(2)
+          );
+
+          feeNominal = selisih - profitNominal;
+
+          // console.log("tmp profit nominal", tmp_profit_nominal);
+
+          // profitPercent = parseFloat(((selisih / hargaBeli) * 100).toFixed(2));
+          // profitNominal = tmp_profit_nominal;
+        }
+
+        child.fee = feePercent;
+        child.fee_nominal = feeNominal;
+        child.ongkir =
+          child.ongkir_unit == "percent" ? ongkirPercent : ongkirNominal;
+        child.ongkir_nominal = ongkirNominal;
+        child.profit = profitPercent;
+        child.profit_nominal = profitNominal;
+
+        child.selling_price =
+          hargaBeli + profitNominal + feeNominal + ongkirNominal;
+
+        console.log("harga jual", child.selling_price);
+      }
+    });
   } else {
-    profitPercent = (row.profit / hargaBeli) * 100;
-    profitNominal = row.profit;
+    let profitPercent = 0;
+    let profitNominal = 0;
+
+    if (row.profit_unit == "percent") {
+      profitPercent = parseFloat((row.profit ?? 0).toFixed(2));
+      profitNominal = (hargaBeli * Number(row.profit || 0)) / 100;
+    } else {
+      profitPercent = parseFloat(((row.profit / hargaBeli) * 100).toFixed(2));
+      profitNominal = row.profit;
+    }
+
+    let ongkirPercent = 0;
+    let ongkirNominal = 0;
+    console.log("ongkir unit", row.ongkir_unit);
+    if (row.ongkir_unit == "percent") {
+      ongkirPercent = parseFloat((row.ongkir ?? 0).toFixed(2));
+      ongkirNominal = (hargaBeli * Number(row.ongkir || 0)) / 100;
+    } else {
+      ongkirNominal = Number(row.ongkir);
+      ongkirPercent = parseFloat(((row.ongkir / hargaBeli) * 100).toFixed(2));
+    }
+
+    // if (activeField == "selling_price") {
+    //   let tmp_profit_nominal = row.selling_price - (hargaBeli + ongkirNominal);
+
+    //   profitPercent = parseFloat(
+    //     ((tmp_profit_nominal / hargaBeli) * 100).toFixed(2)
+    //   );
+    //   profitNominal = tmp_profit_nominal;
+    // }
+
+    let feePercent = 0;
+    let feeNominal = 0;
+
+    if (row.fee_unit == "percent") {
+      feePercent = Number(row.fee);
+      feeNominal = (profitNominal * Number(row.fee || 0)) / 100;
+    } else {
+      console.log("row fee", row.fee);
+      feePercent = parseFloat(((row.fee / profitNominal) * 100).toFixed(2));
+      feeNominal = row.fee;
+    }
+    console.log("fee unit", row.fee_unit);
+    console.log("fee percent", feePercent);
+    console.log("fee nominal", feeNominal);
+
+    row.fee = row.fee_unit == "percent" ? feePercent : feeNominal;
+    row.fee_percent = feePercent;
+    row.fee_nominal = feeNominal;
+    row.ongkir = row.ongkir_unit == "percent" ? ongkirPercent : ongkirNominal;
+    row.ongkir_nominal = ongkirNominal;
+    row.profit_percent = profitPercent;
+    row.profit = row.profit_unit == "percent" ? profitPercent : profitNominal;
+    row.profit_nominal = profitNominal;
+
+    row.selling_price = hargaBeli + profitNominal + feeNominal + ongkirNominal;
+    const parent = item_canvassing.value[row.parent_index || 0];
+
+    if (parent.children.length === 1) {
+      parent.selling_price = row.selling_price;
+      parent.total_selling_price = row.total_selling_price;
+    } else {
+      console.log("calculate pricing", parent);
+      if (row.type_item == "original") {
+        // if (parent.tmp_child_selected == row.index) {
+        parent.selling_price = row.selling_price;
+        parent.total_selling_price = row.total_selling_price;
+        // }
+      }
+    }
   }
-
-  let ongkirPercent = 0;
-  let ongkirNominal = 0;
-
-  if (row.ongkir_unit == "percent") {
-    ongkirPercent = row.ongkir;
-    ongkirNominal = (hargaBeli * Number(row.ongkir || 0)) / 100;
-  } else {
-    ongkirNominal = row.ongkir;
-    ongkirPercent = (row.ongkir / hargaBeli) * 100;
-  }
-
-  if (activeField == "selling_price") {
-    let tmp_profit_nominal = row.selling_price - (hargaBeli + ongkirNominal);
-
-    profitPercent = (tmp_profit_nominal / hargaBeli) * 100;
-    profitNominal = tmp_profit_nominal;
-  }
-
-  let feePercent = 0;
-  let feeNominal = 0;
-
-  if (row.fee_unit == "percent") {
-    feePercent = Number(row.fee);
-    feeNominal = (profitNominal * Number(row.fee || 0)) / 100;
-  } else {
-    feePercent = (row.fee / profitNominal) * 100;
-    feeNominal = row.fee;
-  }
-
-  row.fee = feePercent;
-  row.fee_nominal = feeNominal;
-  row.ongkir = ongkirPercent;
-  row.ongkir_nominal = ongkirNominal;
-  row.profit = profitPercent;
-  row.profit_nominal = profitNominal;
 
   // // ==============================
   // // PROFIT INPUT → PERSEN
@@ -2371,36 +2482,14 @@ function calculatePricing(
   //   profitAndFee > 0 ? (selisih * profitWeight) / profitAndFee : 0;
 
   // row.profit = Number(((row.profit_nominal / hargaBeli) * 100).toFixed(2));
-
-  // const parent = item_canvassing.value[row.parent_index || 0];
-
-  // if (parent.children.length === 1) {
-  //   parent.selling_price = row.selling_price;
-  //   parent.total_selling_price = row.total_selling_price;
-  // } else {
-  //   console.log("calculate pricing", parent);
-  //   if (row.type_item == "original") {
-  //     // if (parent.tmp_child_selected == row.index) {
-  //     parent.selling_price = row.selling_price;
-  //     parent.total_selling_price = row.total_selling_price;
-  //     // }
-  //   }
-  // }
 }
 
-const handleProfitUnitChange = (row: CanvassingItemForm) => {
-  const cost = Number(row.unit_price) || 0;
-  let profit = Number(row.profit) || 0;
-
-  if (row.profit_unit === "percent") {
-    // sebelumnya dalam nominal → ubah ke persen
-    row.profit = cost > 0 ? (profit / cost) * 100 : 0;
-  } else if (row.profit_unit === "amount") {
-    // sebelumnya dalam persen → ubah ke nominal
-    row.profit = cost * (profit / 100);
+const handleProfitUnitChange = (row: CanvassingItemForm, val: string) => {
+  if (val == "percent") {
+    row.profit = row.profit_percent || 0;
+  } else {
+    row.profit = row.profit_nominal || 0;
   }
-
-  calculateSellingPrice(row);
 };
 
 // const handleProfitChange = (row: CanvassingItemForm) => {
@@ -2589,7 +2678,7 @@ const applyAllBulk = () => {
             child.fee = parseInt(bulkFee.value);
             child.fee_unit = bulkFeeUnit.value as "amount" | "percent";
             child.fee_nominal = (child.fee / 100) * child.profit;
-            changeFeeUnitContacts(child);
+            changeFeeUnitContacts(child, feeState.value);
           } else {
             // if(child.fee == ''){
             //   child.fee = 0;

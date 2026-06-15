@@ -53,6 +53,7 @@ const contactsFee = ref<ReferenceTransactionAdjustment[]>([]);
 watch(
   () => props.contacts,
   (newVal) => {
+    console.log("fee clone", newVal);
     // clone data biar tidak ubah props langsung
     contactsFee.value = (newVal ?? []).map((contact) => ({
       ...contact,
@@ -61,7 +62,7 @@ watch(
 
     console.log(props.contacts);
   },
-  { immediate: true }
+  { deep: true }
 );
 
 // tambah kontak baru
@@ -241,9 +242,13 @@ const handleSave = () => {
           <template #default="{ row }">
             <el-input-number
               :disabled="readonly == true"
-              v-model="row.amount"
+              v-model="row.value"
               :min="0"
-              :max="100"
+              @change="
+                (val) => {
+                  row.amount = val;
+                }
+              "
             />
           </template>
         </el-table-column>
