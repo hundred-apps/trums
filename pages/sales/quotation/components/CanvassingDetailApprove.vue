@@ -2065,7 +2065,9 @@ const grandTotal = computed(() => {
     if (element.children.length > 1) {
       total += element.total_selling_price || 0;
       total += element.children
-        .filter((cv) => cv.type_item === "equivalent")
+        .filter(
+          (cv) => cv.type_item === "equivalent" || cv.type_item == "quotation"
+        )
         .reduce((acc, sum) => acc + (sum.total_selling_price || 0), 0);
     } else if (element.children.length === 1) {
       total += element.children[0].total_selling_price || 0;
@@ -4320,7 +4322,8 @@ const generateSCMMemo = async () => {
   const getSellingPrice = (row: CanvassingItem) => {
     if (
       row.canvassing_vendor.length == 1 &&
-      row.canvassing_vendor[0].type_item === "equivalent"
+      (row.canvassing_vendor[0].type_item === "equivalent" ||
+        row.canvassing_vendor[0].type_item === "quotation")
     ) {
       return 0;
     } else {
@@ -4330,7 +4333,8 @@ const generateSCMMemo = async () => {
   const getTotalSellingPrice = (row: CanvassingItem) => {
     if (
       row.canvassing_vendor.length == 1 &&
-      row.canvassing_vendor[0].type_item === "equivalent"
+      (row.canvassing_vendor[0].type_item === "equivalent" ||
+        row.canvassing_vendor[0].type_item === "quotation")
     ) {
       return 0;
     } else {

@@ -643,7 +643,7 @@
             <el-table-column label="Harga Jual" width="200">
               <template #default="{ row }">
                 <div
-                  v-if="(row as CanvassingItemForm).type_item === 'quotation' || (row as CanvassingItemForm).type_item === 'equivalent'"
+                  v-if="(row as CanvassingItemForm).type_item === 'request' || (row as CanvassingItemForm).type_item === 'equivalent' || (row as CanvassingItemForm).type_item === 'quotation'"
                 >
                   <el-input-number
                     v-model="row.selling_price"
@@ -1206,7 +1206,7 @@ const unitFee = ref<FeeType>(FeeType.PERCENT);
 
 const item_canvassing = ref<CanvassingItemForm[]>([]);
 const selectedRowsVendors = ref<CanvassingItemForm[]>([]);
-const handleCheck = (checked: any, row: any) => {
+const handleCheck = (checked: any, row: CanvassingItemForm) => {
   if (checked) {
     const exists = selectedRowsVendors.value.some(
       (item) => item.index === row.index
@@ -1219,6 +1219,20 @@ const handleCheck = (checked: any, row: any) => {
     selectedRowsVendors.value = selectedRowsVendors.value.filter(
       (item) => item.index !== row.index
     );
+  }
+
+  // console.log('row', row);
+  if (row.type_item === "original") {
+    item_canvassing.value[row.parent_index!].selling_price = row.selling_price;
+    item_canvassing.value[row.parent_index!].total_selling_price =
+      row.total_selling_price;
+    // calculatePricing(item_canvassing.value[row.parent_index!], 's')
+
+    // console.log("row", row);
+    // const parent = item_canvassing.value.findIndex(
+    //   (parent) => parent.catalogue_id == row.parent_catalogue_id
+    // );
+    // console.log("parent", parent);
   }
 
   calculateSummaryaData();
@@ -1568,7 +1582,9 @@ const grandTotal = computed(() => {
     if (element.children.length > 1) {
       total += element.total_selling_price || 0;
       total += element.children
-        .filter((cv) => cv.type_item === "equivalent")
+        .filter(
+          (cv) => cv.type_item === "equivalent" || cv.type_item == "quotation"
+        )
         .reduce((acc, sum) => acc + (sum.total_selling_price || 0), 0);
     } else if (element.children.length === 1) {
       total += element.children[0].total_selling_price || 0;
