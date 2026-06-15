@@ -2062,29 +2062,26 @@ const grandTotal = computed(() => {
   let total = 0;
 
   (item_canvassing.value || []).forEach((element) => {
-    if (element.children.length > 1) {
-      total += element.total_selling_price || 0;
-      total += element.children
-        .filter(
-          (cv) => cv.type_item === "equivalent" || cv.type_item == "quotation"
-        )
-        .reduce((acc, sum) => acc + (sum.total_selling_price || 0), 0);
-    } else if (element.children.length === 1) {
-      total += element.children[0].total_selling_price || 0;
-    }
+    total += element.children
+      .filter((cv) => cv.status == CanvassingVendorStatus.SELECTED)
+      .reduce((acc, sum) => acc + (sum.total_selling_price || 0), 0);
   });
 
   return total;
 });
 
 const totalBuyingPrice = computed(() => {
-  return item_canvassing.value.reduce((acc, row: CanvassingItemForm) => {
-    if (row.type === "parent") {
-      acc += Number(row.total_price || 0);
-    }
-
-    return acc;
-  }, 0);
+  let totalBuy = 0;
+  item_canvassing.value.forEach((item) => {
+    // totalBuy += item.total_price;
+    totalBuy += item.children
+      .filter((child) => child.status == CanvassingVendorStatus.SELECTED)
+      .reduce(
+        (acc, row: CanvassingItemForm) => (acc += Number(row.total_price)),
+        0
+      );
+  });
+  return totalBuy;
 });
 const totalBuyingPriceSelected = computed(() => {
   let total = 0;

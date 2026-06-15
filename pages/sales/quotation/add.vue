@@ -1743,7 +1743,7 @@ const handleSaveFee = ({
 
   item_canvassing.value.forEach((element) => {
     // setProfit(element);
-    // calculatePricing(element, "selling_price");
+    calculatePricing(element, "selling_price");
   });
 
   // drawerFeeVisible.value = false;
@@ -2268,93 +2268,124 @@ function calculatePricing(
   const hargaBeli = Number(row.unit_price || 0);
   if (hargaBeli <= 0) return;
 
-  // ==============================
-  // ONGKIR
-  // ==============================
-  const ongkirNominal =
-    row.ongkir_unit === "percent"
-      ? (hargaBeli * Number(row.ongkir || 0)) / 100
-      : Number(row.ongkir || 0);
+  let profitPercent = 0;
+  let profitNominal = 0;
 
-  // ==============================
-  // FEE → SELALU JADI PERSEN (BOBOT)
-  // ==============================
-  const fee =
-    row.fee_unit === "percent"
-      ? Number(row.fee || 0)
-      : (Number(row.fee || 0) / hargaBeli) * 100;
-
-  // ==============================
-  // PROFIT INPUT → PERSEN
-  // ==============================
-  const profitInputPercent =
-    row.profit_unit === "percent"
-      ? Number(row.profit || 0)
-      : (Number(row.profit || 0) / hargaBeli) * 100;
-
-  let sellingPrice = Number(row.selling_price || 0);
-  let selisih = 0;
-
-  // ==============================
-  // MODE 1: PROFIT DIINPUT → HITUNG SELLING PRICE
-  // ==============================
-  if (activeField === "profit") {
-    if (profitInputPercent <= 0) return;
-
-    // profit nominal
-    const profitNominal = (hargaBeli * profitInputPercent) / 100;
-
-    const totalWeight = profitInputPercent + fee;
-    if (totalWeight <= 0) return;
-
-    // profit hanya bagian dari selisih
-    selisih = profitNominal * (totalWeight / profitInputPercent);
-
-    sellingPrice = hargaBeli + ongkirNominal + selisih;
-    row.selling_price = Math.round(sellingPrice);
-  }
-
-  row.total_selling_price = Number(row.quantity) * Number(row.selling_price);
-
-  // ==============================
-  // MODE 2: SELLING PRICE DIINPUT → HITUNG PROFIT
-  // ==============================
-  if (activeField === "selling_price") {
-    console.log("selling price", sellingPrice);
-    selisih = sellingPrice - hargaBeli - ongkirNominal;
-  }
-
-  if (selisih <= 0) {
-    row.fee_nominal = 0;
-    row.profit_nominal = 0;
-    row.profit = 0;
-    return;
-  }
-
-  const profitWeight = profitInputPercent > 0 ? profitInputPercent : 100;
-  const profitAndFee = profitWeight + fee;
-
-  row.fee_nominal = profitAndFee > 0 ? (selisih * fee) / profitAndFee : 0;
-
-  row.profit_nominal =
-    profitAndFee > 0 ? (selisih * profitWeight) / profitAndFee : 0;
-
-  row.profit = Number(((row.profit_nominal / hargaBeli) * 100).toFixed(2));
-
-  const parent = item_canvassing.value[row.parent_index || 0];
-
-  if (parent.children.length === 1) {
-    parent.selling_price = row.selling_price;
-    parent.total_selling_price = row.total_selling_price;
+  if (row.profit_unit == "percent") {
+    profitPercent = row.profit;
+    profitNominal = (hargaBeli * Number(row.profit || 0)) / 100;
   } else {
-    console.log("calculate pricing", parent);
-    if (row.type_item == "original") {
-      // if (parent.tmp_child_selected == row.index) {
-      parent.selling_price = row.selling_price;
-      parent.total_selling_price = row.total_selling_price;
-      // }
-    }
+    profitPercent = (row.profit / hargaBeli) * 100;
+    profitNominal = row.profit;
   }
+
+  let ongkirPercent = 0;
+  let ongkirNominal = 0;
+
+  if (row.ongkir_unit == "percent") {
+    ongkirPercent = row.ongkir;
+    ongkirNominal = (hargaBeli * Number(row.ongkir || 0)) / 100;
+  } else {
+    ongkirNominal = row.ongkir;
+    ongkirPercent = (row.ongkir / hargaBeli) * 100;
+  }
+
+  if (activeField == "selling_price") {
+    let tmp_profit_nominal = row.selling_price - (hargaBeli + ongkirNominal);
+
+    profitPercent = (tmp_profit_nominal / hargaBeli) * 100;
+    profitNominal = tmp_profit_nominal;
+  }
+
+  let feePercent = 0;
+  let feeNominal = 0;
+
+  if (row.fee_unit == "percent") {
+    feePercent = Number(row.fee);
+    feeNominal = (profitNominal * Number(row.fee || 0)) / 100;
+  } else {
+    feePercent = (row.fee / profitNominal) * 100;
+    feeNominal = row.fee;
+  }
+
+  row.fee = feePercent;
+  row.fee_nominal = feeNominal;
+  row.ongkir = ongkirPercent;
+  row.ongkir_nominal = ongkirNominal;
+  row.profit = profitPercent;
+  row.profit_nominal = profitNominal;
+
+  // // ==============================
+  // // PROFIT INPUT → PERSEN
+  // // ==============================
+  // const profitInputPercent =
+  //   row.profit_unit === "percent"
+  //     ? Number(row.profit || 0)
+  //     : (Number(row.profit || 0) / hargaBeli) * 100;
+
+  // let sellingPrice = Number(row.selling_price || 0);
+  // let selisih = 0;
+
+  // // ==============================
+  // // MODE 1: PROFIT DIINPUT → HITUNG SELLING PRICE
+  // // ==============================
+  // if (activeField === "profit") {
+  //   if (profitInputPercent <= 0) return;
+
+  //   // profit nominal
+  //   const profitNominal = (hargaBeli * profitInputPercent) / 100;
+
+  //   const totalWeight = profitInputPercent + fee;
+  //   if (totalWeight <= 0) return;
+
+  //   // profit hanya bagian dari selisih
+  //   selisih = profitNominal * (totalWeight / profitInputPercent);
+
+  //   sellingPrice = hargaBeli + ongkirNominal + selisih;
+  //   row.selling_price = Math.round(sellingPrice);
+  // }
+
+  // row.total_selling_price = Number(row.quantity) * Number(row.selling_price);
+
+  // // ==============================
+  // // MODE 2: SELLING PRICE DIINPUT → HITUNG PROFIT
+  // // ==============================
+  // if (activeField === "selling_price") {
+  //   console.log("selling price", sellingPrice);
+  //   selisih = sellingPrice - hargaBeli - ongkirNominal;
+  // }
+
+  // if (selisih <= 0) {
+  //   row.fee_nominal = 0;
+  //   row.profit_nominal = 0;
+  //   row.profit = 0;
+  //   return;
+  // }
+
+  // const profitWeight = profitInputPercent > 0 ? profitInputPercent : 100;
+  // const profitAndFee = profitWeight + fee;
+
+  // row.fee_nominal = profitAndFee > 0 ? (selisih * fee) / profitAndFee : 0;
+
+  // row.profit_nominal =
+  //   profitAndFee > 0 ? (selisih * profitWeight) / profitAndFee : 0;
+
+  // row.profit = Number(((row.profit_nominal / hargaBeli) * 100).toFixed(2));
+
+  // const parent = item_canvassing.value[row.parent_index || 0];
+
+  // if (parent.children.length === 1) {
+  //   parent.selling_price = row.selling_price;
+  //   parent.total_selling_price = row.total_selling_price;
+  // } else {
+  //   console.log("calculate pricing", parent);
+  //   if (row.type_item == "original") {
+  //     // if (parent.tmp_child_selected == row.index) {
+  //     parent.selling_price = row.selling_price;
+  //     parent.total_selling_price = row.total_selling_price;
+  //     // }
+  //   }
+  // }
 }
 
 const handleProfitUnitChange = (row: CanvassingItemForm) => {
