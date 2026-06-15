@@ -1576,20 +1576,22 @@ const totalBuyingPriceMin = computed(() => {
 });
 
 const grandTotal = computed(() => {
-  let total = 0;
-
-  (item_canvassing.value || []).forEach((element) => {
-    if (element.children.length > 1) {
-      total += element.total_selling_price || 0;
-      total += element.children
-        .filter(
-          (cv) => cv.type_item === "equivalent" || cv.type_item == "quotation"
-        )
-        .reduce((acc, sum) => acc + (sum.total_selling_price || 0), 0);
-    } else if (element.children.length === 1) {
-      total += element.children[0].total_selling_price || 0;
-    }
-  });
+  let total = selectedRowsVendors.value.reduce(
+    (acc, sum) => acc + (sum.total_selling_price || 0),
+    0
+  );
+  // (item_canvassing.value || []).forEach((element) => {
+  //   if (element.children.length > 1) {
+  //     total += element.total_selling_price || 0;
+  //     total += element.children
+  //       .filter(
+  //         (cv) => cv.type_item === "equivalent" || cv.type_item == "quotation"
+  //       )
+  //       .reduce((acc, sum) => acc + (sum.total_selling_price || 0), 0);
+  //   } else if (element.children.length === 1) {
+  //     total += element.children[0].total_selling_price || 0;
+  //   }
+  // });
 
   return total;
 });
@@ -1741,7 +1743,7 @@ const handleSaveFee = ({
 
   item_canvassing.value.forEach((element) => {
     // setProfit(element);
-    calculatePricing(element, "selling_price");
+    // calculatePricing(element, "selling_price");
   });
 
   // drawerFeeVisible.value = false;
