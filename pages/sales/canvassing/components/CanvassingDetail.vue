@@ -546,6 +546,7 @@ interface VendorGroup {
 const props = defineProps<{
   canvassingData: Canvassing;
   privilages: Permission[];
+  itemHighlights: string[];
 }>();
 
 const querySearchAdjustmentTransaction = ref<RequestSearch>({
@@ -1440,6 +1441,19 @@ const tableRowClassName = ({
   if (row.checked == true) {
     return "success-row";
   }
+
+  // row.children.forEach(child => {
+  //   child..forEach(element => {
+  //     if(row.children)
+  //   });
+  // });
+
+  // console.log(props.itemHighlights.includes(row.catalogue_id!));
+
+  if (props.itemHighlights.includes(row.catalogue_id!)) {
+    return "primary-row";
+  }
+
   return "";
 };
 
@@ -2029,15 +2043,15 @@ const deleteCanvassing = async () => {
   loading.value = true;
   try {
     const response = await useFetchApi<BaseResponse<any>>(
-      `/canvassing/${canvassingId.value}`,
+      `/canvassing-delete`,
       "delete-canvassing",
-      "delete",
-      null
+      "post",
+      [canvassingId.value]
     );
 
     if (response.status.value == "success") {
       ElMessage.success("Canvassing deleted");
-      router.push("/purchasing/canvassing");
+      router.push("/sales/canvassing");
     }
   } catch (error) {
     ElMessage.error("Failed to delete canvassing");
@@ -2410,5 +2424,8 @@ onMounted(() => {});
 }
 :deep(.image-viewer-slot) {
   height: 30px !important;
+}
+:deep(.el-table .primary-row) {
+  --el-table-tr-bg-color: var(--el-color-primary-light-9);
 }
 </style>

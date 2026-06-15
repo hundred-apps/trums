@@ -893,6 +893,26 @@ const getDPPNilaiLain = computed(() => {
 
   return dpp;
 });
+const getDPPNilaiLainView = computed(() => {
+  let dpp = ((purchaseOrderData.value?.total_price ?? 0) * 11) / 12;
+  // (purchaseOrderData.value?.reference_transaction ?? []).forEach((element) => {
+  //   if (
+  //     element.adjustments_transaction?.category == "tax" &&
+  //     element.adjustments_transaction.name.toLowerCase() === "ppn"
+  //   ) {
+  //     console.log("type", element.type);
+  //     if (element.type != "amount" && element.amount == 12) {
+  //       dpp = (subtotal.value * 11) / 12;
+  //       console.log("dpp 12", dpp);
+  //     } else {
+  //       dpp = subtotal.value;
+  //       console.log("dpp 11", dpp);
+  //     }
+  //   }
+  // });
+
+  return dpp;
+});
 
 const summeryData = computed(() => {
   const tableData: any[] = [
@@ -905,7 +925,7 @@ const summeryData = computed(() => {
   if (getDPPNilaiLain.value > 0) {
     tableData.push({
       label: "DPP Nilai Lain",
-      value: currency(getDPPNilaiLain.value),
+      value: currency(getDPPNilaiLainView.value),
     });
   }
   (purchaseOrderData.value?.reference_transaction ?? []).forEach((element) => {
@@ -945,28 +965,33 @@ watch(
     purchaseOrderItemsView.value = [];
     (purchaseOrderItem.data.value?.data || []).forEach((element) => {
       let childs: PurchasOrderViewTree[] = [];
-      // if (canAccess("purchase-order-approve", props.privillage || [], 1)) {
-      //   console.log("pricetag item", element.pricetag_item);
-      //   childs = (
-      //     (element.pricetag_item?.data_reference as CanvassingItem)
-      //       .canvassing_vendor || []
-      //   )
-      //     .filter((vendor) => vendor.status === CanvassingVendorStatus.SELECTED)
-      //     .map((vendor) => ({
-      //       unique_id: vendor.unique_id || "",
-      //       item_name: vendor.vendor?.name || "N/A",
-      //       item_id: vendor.catalogue_id || "",
-      //       quantity: vendor.quantity || 0,
-      //       unit_name: vendor.unit_name || "N/A",
-      //       harga_quo: vendor.unit_price || 0,
-      //       harga_po: 0,
-      //       total: vendor.unit_price * vendor.quantity,
-      //       quo_number: "",
-      //       children: [],
-      //     }));
+      if (canAccess("purchase-order-approve", props.privillage || [], 1)) {
+        console.log("pricetag item", element.pricetag_item?.data_reference);
+        childs =
+          element.pricetag_item?.data_reference == undefined
+            ? []
+            : (
+                (element.pricetag_item?.data_reference as CanvassingItem)
+                  .canvassing_vendor ?? []
+              )
+                .filter(
+                  (vendor) => vendor.status === CanvassingVendorStatus.SELECTED
+                )
+                .map((vendor) => ({
+                  unique_id: vendor.unique_id || "",
+                  item_name: vendor.vendor?.name || "N/A",
+                  item_id: vendor.catalogue_id || "",
+                  quantity: vendor.quantity || 0,
+                  unit_name: vendor.unit_name || "N/A",
+                  harga_quo: vendor.unit_price || 0,
+                  harga_po: 0,
+                  total: vendor.unit_price * vendor.quantity,
+                  quo_number: "",
+                  children: [],
+                }));
 
-      //   console.log("children", childs);
-      // }
+        console.log("children", childs);
+      }
 
       purchaseOrderItemsView.value.push({
         unique_id: element.unique_id,

@@ -1087,7 +1087,7 @@ const generatePDF = async () => {
   doc.text(
     `${
       ((data?.value?.data?.data_reference as PurchaseOrder) || null)
-        ?.unique_code ||
+        ?.sourcing_document ||
       data?.value?.data?.reference_number ||
       ""
     }`,

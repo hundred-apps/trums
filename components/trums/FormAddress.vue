@@ -277,9 +277,7 @@ const submitFormAddress = async (formEl: FormInstance | undefined) => {
           province: ruleFormAddress.province || "",
           codepos: parseInt(ruleFormAddress.codepos ?? "0") || 0,
           country: "indonesia",
-          unique_id:
-            ruleFormAddress.unique_id ||
-            Math.random().toString(36).substring(2, 7),
+          unique_id: ruleFormAddress.unique_id || "",
           created_at: 0,
           created_by: 0,
           updated_at: 0,

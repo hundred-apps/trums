@@ -44,7 +44,7 @@
   <ElCard shadow="never" class="my-4">
     <el-row justify="space-between" style="margin-bottom: 20px">
       <el-col :span="12">
-        <h3>Hutang Piutang</h3>
+        <h3>Laporan Cash Flow</h3>
       </el-col>
 
       <el-col :span="12" style="text-align: right">

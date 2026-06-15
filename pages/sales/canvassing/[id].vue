@@ -7,14 +7,18 @@
         </span>
       </template>
     </el-page-header>
-    <CanvassingDetail v-if="canvassingData" :canvassingData="canvassingData" :privilages="currentPrivilage" />
+    <CanvassingDetail
+      v-if="canvassingData"
+      :canvassingData="canvassingData"
+      :privilages="currentPrivilage"
+      ,
+      :itemHighlights="itemHighlights"
+    />
   </TrumsWrapper>
 </template>
 
 <script lang="ts" setup>
-import type {
-  Canvassing,
-} from "~/types/scm/canvasing";
+import type { Canvassing } from "~/types/scm/canvasing";
 import type { BaseResponse } from "~/types/response";
 
 import CanvassingDetail from "./components/CanvassingDetail.vue";
@@ -33,11 +37,10 @@ const route = useRoute();
 
 const loading = ref(false);
 const canvassingData = ref<Canvassing | null>(null);
-const currentPrivilage = ref<Permission[]>([])
-
+const currentPrivilage = ref<Permission[]>([]);
+const itemHighlights = ref<string[]>((route.query.items ?? []) as string[]);
 
 const goBack = () => router.back();
-
 
 // Fetch canvassing data
 const fetchCanvassing = async () => {
@@ -54,17 +57,19 @@ const fetchCanvassing = async () => {
       if (response.data.value?.data) {
         canvassingData.value = response.data.value!.data;
 
-        const item_request: ItemRequest[] = canvassingData.value.source?.item_request ?? [];
+        const item_request: ItemRequest[] =
+          canvassingData.value.source?.item_request ?? [];
 
-        (canvassingData.value.canvassing_item ?? []).forEach(element => {
-          const appFile: AppFile[] = item_request.findLast((ireq) => ireq.catalogue_id === element.catalogue_id)?.files ?? [];
+        (canvassingData.value.canvassing_item ?? []).forEach((element) => {
+          const appFile: AppFile[] =
+            item_request.findLast(
+              (ireq) => ireq.catalogue_id === element.catalogue_id
+            )?.files ?? [];
           element.files = appFile;
           element.image = getFirstFileUrl(appFile);
         });
 
-
-        console.log('canvassing data', canvassingData.value);
-
+        console.log("canvassing data", canvassingData.value);
 
         currentPrivilage.value = response.data.value!.privilege;
       }
@@ -78,9 +83,8 @@ const fetchCanvassing = async () => {
   }
 };
 
-
-
 onMounted(() => {
+  console.log("items", route.query.items);
   fetchCanvassing();
 });
 </script>

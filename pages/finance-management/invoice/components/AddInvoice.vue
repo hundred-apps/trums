@@ -284,9 +284,10 @@
           </el-autocomplete>
           <div class="flex gap-2 mt-5">
             <el-tag
-              v-for="tag in transactionBanks"
+              v-for="(tag, index) in transactionBanks"
               :key="tag.unique_id"
               closable
+              @close="() => removeBanks(index)"
               type="primary"
             >
               {{ tag.bank_account_name }}
@@ -1298,7 +1299,7 @@ const request_search_purchase_order = ref<RequestSearch>({
   table: "purchase_order",
   sort: {
     column: "created_at",
-    order: OrderColumn.ASC,
+    order: OrderColumn.DESC,
   },
   flag: "form",
 });
@@ -1361,6 +1362,12 @@ const handleSelectAdjustment = (items: AdjustmentTransaction[]) => {
     });
   });
   visibleModalAdjustmentTransaction.value = false;
+};
+
+const removeBanks = (index: number) => {
+  transactionBanks.value = transactionBanks.value.filter(
+    (value, i) => i != index
+  );
 };
 
 const handleEditAddress = (

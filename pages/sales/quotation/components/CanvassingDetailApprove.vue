@@ -570,7 +570,12 @@
       "
     >
       <el-table :data="summeryData ?? []" style="width: 100%">
-        <el-table-column label="" prop="label" fixed="left" width="80">
+        <el-table-column
+          label=""
+          prop="label"
+          fixed="left"
+          :width="isMobile ? 80 : 0"
+        >
           <template #default="{ row }">
             <div class="font-bold">{{ row.label }}</div>
           </template>
@@ -714,13 +719,6 @@
         <el-button type="success" @click="() => {}">Download PDF</el-button>
       </template>
     </el-dialog>
-    <FeeDrawer
-      v-model="drawerFeeVisible"
-      :item="selectedItemDrawer"
-      :contacts="contactsFeeToEdit"
-      :adjustment="adjustmentContact!"
-      @save="handleSaveFee"
-    />
 
     <el-dialog
       v-model="dialogSelectedItem"

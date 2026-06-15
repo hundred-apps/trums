@@ -850,13 +850,6 @@
         <el-button type="success" @click="() => {}">Download PDF</el-button>
       </template>
     </el-dialog>
-    <FeeDrawer
-      v-model="drawerFeeVisible"
-      :item="selectedItemDrawer"
-      :contacts="contactsFeeToEdit"
-      :adjustment="adjustmentContact!"
-      @save="handleSaveFee"
-    />
 
     <el-dialog
       v-model="dialogSelectedItem"
@@ -995,6 +988,7 @@
           <el-button @click="dialogSelectedItem = false">Cancel</el-button>
           <el-button
             type="primary"
+            :loading="loading"
             @click="() => submitApproveRab(CanvassingStatus.PENDING_APPROVAL)"
           >
             Simpan dan Ajukan
@@ -2101,20 +2095,38 @@ const handleProfitUnitChange = (row: CanvassingItemForm) => {
 };
 
 const grandTotal = computed(() => {
-  return item_canvassing.value.reduce((acc, row: CanvassingItemForm) => {
-    if (row.type === "parent") {
-      acc += Number(row.total_selling_price || 0);
-    }
+  let total = 0;
 
-    return acc;
-  }, 0);
+  (item_canvassing.value || []).forEach((element) => {
+    if (element.children.length > 1) {
+      total += element.total_selling_price || 0;
+      total += element.children
+        .filter((cv) => cv.type_item === "equivalent")
+        .reduce((acc, sum) => acc + (sum.total_selling_price || 0), 0);
+    } else if (element.children.length === 1) {
+      total += element.children[0].total_selling_price || 0;
+    }
+  });
+
+  return total;
 });
 
 const totalBuyingPrice = computed(() => {
-  return item_canvassing.value.reduce(
-    (acc, row: CanvassingItemForm) => (acc += Number(row.total_price)),
-    0
-  );
+  let totalBuy = 0;
+  item_canvassing.value.forEach((item) => {
+    totalBuy += item.total_price;
+    totalBuy += item.children
+      .filter((child) => child.type_item == "equivalent")
+      .reduce(
+        (acc, row: CanvassingItemForm) => (acc += Number(row.total_price)),
+        0
+      );
+  });
+  // return item_canvassing.value.reduce(
+  //   (acc, row: CanvassingItemForm) => (acc += Number(row.total_price)),
+  //   0
+  // );
+  return totalBuy;
 });
 const totalBuyingPriceSelected = computed(() => {
   let total = 0;
@@ -2351,7 +2363,6 @@ const setProfit = (row: CanvassingItemForm) => {
 };
 
 const summeryData = computed(() => {
-  console.log("total harga beli", totalBuyingPrice.value);
   const tableData: any[] = [
     {
       label: "Total Harga Jual",
@@ -2434,7 +2445,32 @@ const summeryData = computed(() => {
       )} %`,
     });
   }
+  let fee = 0;
+  if (adjustmentTransactionFeeTotal.value.type == FeeType.AMOUNT) {
+    fee = adjustmentTransactionFeeTotal.value.amount;
+  } else if (adjustmentTransactionFeeTotal.value.type == FeeType.PERCENT) {
+    fee = (grandTotal.value * adjustmentTransactionFeeTotal.value.amount) / 100;
+  }
 
+  if (adjustmentTransactionFeeTotal.value.adjustment_id != "") {
+    tableData.push({
+      label: adjustmentTransactionFeeTotal.value.adjustments_transaction?.name,
+      max: currency(fee),
+      beli: `${safePercent(fee ?? 0, totalBuyingPrice.value)} %`,
+      jual: `${safePercent(fee ?? 0, grandTotal.value)} %`,
+      min: currency(fee ?? 0),
+      beliMin: `${safePercent(fee ?? 0, totalBuyingPriceMin.value)} %`,
+      jualMin: `${safePercent(fee ?? 0, grandTotal.value)} %`,
+      selected: currency(fee ?? 0),
+      selectedBeli: `${safePercent(
+        fee ?? 0,
+        totalBuyingPriceSelected.value
+      )} %`,
+      selectedJual: `${safePercent(fee ?? 0, grandTotal.value)} %`,
+    });
+  }
+
+  console.log("detail reference", adjustmentTransactionFeeTotal.value);
   references.value.forEach((element) => {
     console.log("reference", element.adjustments_transaction?.name);
     console.log("reference value", displayAmount(element, grandTotal.value));
@@ -2513,7 +2549,7 @@ const tableRowClassName = ({
   row: CanvassingItemForm;
   rowIndex: number;
 }) => {
-  if (row.type_item != "request" && row.type_item != "equivalent") {
+  if (row.type_item != "request") {
     if (row.status === CanvassingVendorStatus.SELECTED) {
       return "success-row";
     } else if (row.status === CanvassingVendorStatus.SUBMITTED) {
@@ -3328,33 +3364,16 @@ const submitApproveRab = async (status: CanvassingStatus) => {
           `${vendor.ongkir_unit}`
         );
 
-        // formData.append(
-        //   `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
-        //   `${
-        //     vendor.checked && vendor.status == CanvassingVendorStatus.SELECTED
-        //       ? CanvassingVendorStatus.SELECTED
-        //       : vendor.checked
-        //       ? CanvassingVendorStatus.SUBMITTED
-        //       : CanvassingVendorStatus.REJECTED
-        //   }`
-        // );
-
-        // if (vendor.status == CanvassingVendorStatus.SELECTED) {
-        //   formData.append(
-        //     `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
-        //     `${CanvassingVendorStatus.SELECTED}`
-        //   );
-        // } else if (vendor.checked) {
-        //   formData.append(
-        //     `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
-        //     `${CanvassingVendorStatus.SUBMITTED}`
-        //   );
-        // } else {
-        //   formData.append(
-        //     `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
-        //     `${CanvassingVendorStatus.REJECTED}`
-        //   );
-        // }
+        console.log("in selected", selectedChildren.value);
+        console.log("vendor ID", vendor.unique_id);
+        console.log(
+          "hasSelected",
+          selectedChildren.value.find(
+            (child) => child.unique_id == vendor.unique_id
+          )
+            ? true
+            : false
+        );
 
         if (
           selectedChildren.value.find(

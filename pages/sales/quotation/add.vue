@@ -1041,6 +1041,7 @@ import {
   type UploadUserFile,
   valueEquals,
   ElTable,
+  DEFAULT_VALUE_ON_CLEAR,
 } from "element-plus";
 import {
   CanvassingStatus,
@@ -1133,10 +1134,16 @@ const dialogItemRequest = ref(false);
 const itemStartIndex = ref<string>("");
 const itemChecked = ref<any[]>([]);
 const itemIndex = ref<string>("");
-const selectedItem = ref<{ index: string; name: string; vendor_name: string }>({
+const selectedItem = ref<{
+  index: string;
+  name: string;
+  vendor_name: string;
+  unit_fee: FeeType;
+}>({
   index: "",
   name: "",
   vendor_name: "",
+  unit_fee: FeeType.AMOUNT,
 });
 
 // Data
@@ -1630,16 +1637,34 @@ const onChangeFeeState = (val: string) => {
   contactsFee.value.forEach((value) => {
     value.amount = 0;
     value.type = val == "plus" ? FeeType.AMOUNT : FeeType.PERCENT;
+    value.tmp_amount_input = "0";
   });
 
   item_canvassing.value.forEach((value) => {
     value.children.forEach((child) => {
-      child.contacts_fee.forEach((fee) => (fee.amount = 0));
+      if (child.contacts_fee.length == 0) {
+        child.contacts_fee = contactsFee.value.map((contact) => ({
+          ...contact,
+          amount: 0,
+          value: 0,
+          unique_id: "",
+        }));
+      } else {
+        child.contacts_fee.forEach((fee) => (fee.amount = 0));
+      }
       calculateSellingPrice(child);
       child.fee = 0;
     });
 
     value.fee = 0;
+  });
+
+  references.value.forEach((ref) => {
+    if (ref.adjustments_transaction?.name.toLowerCase() == "fee") {
+      ref.value = 0;
+      ref.amount = 0;
+      ref.type = val == "plus" ? FeeType.AMOUNT : FeeType.PERCENT;
+    }
   });
 
   unitFee.value = val == "plus" ? FeeType.AMOUNT : FeeType.PERCENT;
@@ -1673,6 +1698,7 @@ const openFeeDrawer = (item: CanvassingItemForm) => {
     index: item.index,
     vendor_name: item.vendor_name ?? "",
     name: item.catalogue_name,
+    unit_fee: item.fee_unit as FeeType,
   };
 
   drawerFeeVisible.value = true;
@@ -1698,7 +1724,8 @@ const handleSaveFee = ({
   syncFeeAcumulation();
 
   item_canvassing.value.forEach((element) => {
-    setProfit(element);
+    // setProfit(element);
+    calculatePricing(element, "selling_price");
   });
 
   // drawerFeeVisible.value = false;
@@ -1710,6 +1737,7 @@ const syncFeeAcumulation = () => {
     const newContactFee: ReferenceTransactionAdjustment[] = JSON.parse(
       JSON.stringify(contactsFee.value)
     );
+
     item_canvassing.value.forEach((item) => {
       const selling_price = Number(item.selling_price || 0);
 
@@ -1717,12 +1745,14 @@ const syncFeeAcumulation = () => {
         const hargaBeli = Number(child.unit_price || 0);
 
         let ongkirNominal = child.ongkir;
-
         child.contacts_fee.forEach(
           (contact: ReferenceTransactionAdjustment) => {
             const selisih = selling_price - hargaBeli - ongkirNominal;
-            console.log("contact ", contact);
-            let profit = 100;
+
+            let profit = child.profit;
+
+            console.log("profit amount", child.profit_nominal);
+
             let fee = 0;
 
             if (contact.type == "percent") {
@@ -1738,27 +1768,54 @@ const syncFeeAcumulation = () => {
             let profitAndFee = profit + fee;
 
             // contact.amount = fee;
-            contact.amount_nominal = (selisih * fee) / profitAndFee;
+            contact.amount_nominal = (selisih * fee) / 100;
 
+            console.log("amount nominal", contact.amount_nominal);
             const findContactFee = newContactFee.findIndex(
               (fee) => fee.party_id == contact.party_id
             );
-            console.log("selisih ", selisih);
-            console.log("fee ", fee);
-            console.log("amount_nominal ", contact.amount_nominal);
-            console.log("contact type ", contact.type);
 
+            console.log("amount nominal", contact.amount_nominal);
             if (findContactFee >= 0) {
               if (unitFee.value == FeeType.AMOUNT) {
-                newContactFee[findContactFee].amount += Number(
-                  contact.amount_nominal
-                );
+                if (contact.type == FeeType.AMOUNT) {
+                  newContactFee[findContactFee].amount += Number(
+                    contact.amount_nominal
+                  );
+                  newContactFee[findContactFee].tmp_amount_input = handleInput(
+                    `${newContactFee[findContactFee].amount ?? 0}`
+                  );
+                } else {
+                  newContactFee[findContactFee].amount += Number(
+                    contact.amount
+                  );
+                  newContactFee[findContactFee].tmp_amount_input = `${
+                    newContactFee[findContactFee].amount ?? 0
+                  }`;
+                }
               } else {
-                newContactFee[findContactFee].amount += Number(contact.amount);
+                if (contact.type == FeeType.AMOUNT) {
+                  newContactFee[findContactFee].amount += Number(
+                    contact.amount
+                  );
+                  newContactFee[
+                    findContactFee
+                  ].tmp_amount_input = `${newContactFee[findContactFee].amount}`;
+                } else {
+                  newContactFee[findContactFee].amount += Number(
+                    contact.amount
+                  );
+                  newContactFee[findContactFee].tmp_amount_input = `${
+                    newContactFee[findContactFee].amount ?? 0
+                  }`;
+                }
               }
-              newContactFee[findContactFee].amount = Math.round(
-                newContactFee[findContactFee].amount
-              );
+              // newContactFee[findContactFee].amount = Math.round(
+              //   newContactFee[findContactFee].amount
+              // );
+              // newContactFee[findContactFee].tmp_amount_input = handleInput(
+              //   `${newContactFee[findContactFee].amount ?? 0}`
+              // );
             }
           }
         );
@@ -1774,8 +1831,10 @@ function updateItemFee(
   contacts?: ReferenceTransactionAdjustment[],
   fee?: number
 ) {
+  console.log("index : ", index);
   for (const it of items) {
-    if (it.index === index && it.type === "child") {
+    console.log("unique_id : ", it.unique_id);
+    if (it.unique_id === index && it.type === "child") {
       if (contacts) {
         it.fee = contacts.reduce((sum, c) => sum + (c.amount || 0), 0);
 
@@ -2254,9 +2313,6 @@ function calculatePricing(
     return;
   }
 
-  // ==============================
-  // PEMBAGIAN PROPORSIONAL (RUMUS ASLI KAMU)
-  // ==============================
   const profitWeight = profitInputPercent > 0 ? profitInputPercent : 100;
   const profitAndFee = profitWeight + fee;
 
@@ -2265,9 +2321,6 @@ function calculatePricing(
   row.profit_nominal =
     profitAndFee > 0 ? (selisih * profitWeight) / profitAndFee : 0;
 
-  // ==============================
-  // PROFIT OUTPUT (%)
-  // ==============================
   row.profit = Number(((row.profit_nominal / hargaBeli) * 100).toFixed(2));
 
   const parent = item_canvassing.value[row.parent_index || 0];

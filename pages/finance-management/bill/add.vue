@@ -248,10 +248,11 @@
           </el-autocomplete>
           <div class="flex gap-2 mt-5">
             <el-tag
-              v-for="tag in transactionBanks"
+              v-for="(tag, index) in transactionBanks"
               :key="tag.unique_id"
               closable
               type="primary"
+              @close="() => removeBanks(index)"
             >
               {{ tag.bank_account_name }}
             </el-tag>
@@ -1131,6 +1132,12 @@ const displayAmount = (ref: any, multiplier: number) => {
   } else {
     return ref.amount;
   }
+};
+
+const removeBanks = (index: number) => {
+  transactionBanks.value = transactionBanks.value.filter(
+    (value, i) => i != index
+  );
 };
 
 const getDPPNilaiLain = computed(() => {

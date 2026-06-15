@@ -190,7 +190,7 @@
       <el-table-column prop="note" label="Note" width="150" /> -->
     <!-- </el-table> -->
     <el-table
-      :data="items.data.value?.data ?? []"
+      :data="pricetag_item_views ?? []"
       :size="isMobile ? 'small' : 'default'"
     >
       <!-- <el-table-column prop="fileUploads" label="image" width="75">
@@ -213,7 +213,12 @@
       >
         <template #default="scope">
           <p class="text-start text-blue-600">
-            {{ scope.row.catalogue?.name }}
+            <!-- {{
+              scope.row.catalogue?.brand == undefined
+                ? ""
+                : "-" + scope.row.catalogue?.brand?.name
+            }} -->
+            {{ scope.row.item_name }}
           </p>
         </template>
       </el-table-column>
@@ -238,7 +243,7 @@
       >
         <template #default="scope">
           <!-- <el-input-number v-model="scope.row.quantity" /> -->
-          {{ scope.row.quantity }}
+          {{ scope.row.qty }}
         </template>
       </el-table-column>
       <el-table-column prop="unit" label="Unit" width="100">
@@ -257,7 +262,7 @@
         <template #default="scope">
           {{
             currencyWithoutSymbol(
-              Number(scope.row.price) * Number(scope.row.quantity),
+              Number(scope.row.price) * Number(scope.row.qty),
               0
             )
           }}
@@ -266,13 +271,17 @@
       <el-table-column prop="Garansi" label="Garansi" class="mb-0" width="150">
         <template #default="scope">
           {{
-            ((scope.row as Pricetag_item).reference_transaction || []).find((find) => find.adjustments_transaction?.name.toLowerCase() == 'garansi' && find.adjustments_transaction?.category == 'attribute')?.amount || 'N/A'
+            // ((scope.row as Pricetag_item).reference_transaction || []).find((find) => find.adjustments_transaction?.name.toLowerCase() == 'garansi' && find.adjustments_transaction?.category == 'attribute')?.amount || 'N/A'
+            scope.row.garansi
           }}
         </template>
       </el-table-column>
       <el-table-column prop="note" label="Catatan" class="mb-0" width="150">
         <template #default="scope">
-          {{ scope.row.note }}
+          <div
+            class="text-sm"
+            v-html="extractDescription(scope.row.note ?? '')"
+          ></div>
         </template>
       </el-table-column>
     </el-table>
@@ -345,7 +354,7 @@
         label="DPP Nilai Lain"
         align="right"
         v-if="getDPPNilaiLain > 0"
-        >{{ currency(getDPPNilaiLain) }}</el-descriptions-item
+        >{{ currency(getDPPNilaiLainView) }}</el-descriptions-item
       >
       <el-descriptions-item
         :width="100"
@@ -452,6 +461,8 @@ import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
 import type { _0 } from "#tailwind-config/theme/backdropBlur";
 import { currencyWithoutSymbol } from "#imports";
 import { findPath } from "nuxt/kit";
+import type { CanvassingItem } from "~/types/scm/canvasing";
+import type { Catalogue } from "~/types/catalogue";
 const { isMobile } = useDevice();
 
 const router = useRouter();
@@ -472,6 +483,21 @@ const previewImage = ref<boolean>(false);
 
 const offerItemTableRef = ref<InstanceType<typeof ElTable>>();
 const selectedPricetagItems = ref<Pricetag_item[]>([]);
+
+type PricetagItemView = {
+  unique_id: string;
+  item_name: string;
+  price: number;
+  qty: number;
+  unit_id: string;
+  unit_name: string;
+  garansi: string;
+  note: string;
+  is_equivalent: boolean;
+  equivalent_from_id: string;
+};
+
+const pricetag_item_views = ref<PricetagItemView[]>([]);
 
 const items = await useAsyncData("fetch-pricetag-item", async () => {
   const res = await useFetchApi<ResponsePagination<Pricetag_item[]>>(
@@ -515,6 +541,82 @@ const pdfBlob = ref<Blob | null>(null);
 const config = useRuntimeConfig();
 const baseImageURL = config.public.baseImageURL;
 
+const fetchCatalogueDetail = async (
+  catalogue_id: string
+): Promise<Catalogue | undefined> => {
+  try {
+    const response = await useFetchApi<BaseResponse<Catalogue | undefined>>(
+      `/catalogues-read/${catalogue_id}`,
+      `fetch-catalogue-${catalogue_id}`,
+      "get",
+      null
+    );
+
+    if (response.status.value === "success") {
+      return response.data.value?.data;
+    } else {
+      return undefined;
+    }
+  } catch (error: any) {
+    return undefined;
+  }
+};
+
+const getCatalogueName = (catalogue: Catalogue) => {
+  if (catalogue.brand) {
+    return `${catalogue?.name} - ${catalogue?.brand?.name}`;
+  } else {
+    return `${catalogue?.name}`;
+  }
+};
+
+watch(
+  () => items.data.value?.data,
+  (data) => {
+    pricetag_item_views.value = [];
+    (data ?? []).forEach((item) => {
+      pricetag_item_views.value.push({
+        unique_id: item.unique_id || "",
+        item_name: item.catalogue?.name || "",
+        price: item.price,
+        qty: item.quantity,
+        unit_id: item.unit_id || "",
+        unit_name: item.unit_name || "",
+        garansi: item.garansi ? item.garansi + " Hari" : "N/A",
+        note: item.note || "",
+        is_equivalent: false,
+        equivalent_from_id: "",
+      });
+
+      if (item.data_reference) {
+        (item.data_reference as CanvassingItem).canvassing_vendor.forEach(
+          async (vendor) => {
+            if (vendor.type_item == "equivalent") {
+              pricetag_item_views.value.push({
+                unique_id: vendor.unique_id || "",
+                item_name:
+                  "(Equivalent) " + getCatalogueName(vendor.catalogue!),
+                price: vendor.selling_price || 0,
+                qty: vendor.quantity,
+                unit_id: vendor.unit_id || "",
+                unit_name: vendor.unit_name || "",
+                garansi: "N/A",
+                note: "",
+                is_equivalent: true,
+                equivalent_from_id: item.unique_id || "",
+              });
+            }
+          }
+        );
+      }
+
+      // pricetag_item_views.value = toView;
+      // console.log("pricetag item", pricetag_item_views.value);
+    });
+  },
+  { deep: true }
+);
+
 const handlePricetagSelectionChange = (selection: Pricetag_item[]) => {
   selectedPricetagItems.value = selection;
 };
@@ -534,12 +636,24 @@ function handleSelectContact(row: Pricetag_condition) {
   quotationToName.value = row.value_data?.name ?? "";
 }
 
-const getNote = computed(() => {
-  let message = props.dataInterface?.data?.note ?? "";
-  message = message.replace(/\r?\n/g, "<br>");
-  return message;
-});
+const extractDescription = (note: string) => {
+  let message = note;
 
+  // Ganti newline menjadi <br>
+  message = message.replace(/\r?\n/g, "<br>");
+
+  // Ubah URL menjadi link
+  message = message.replace(
+    /(https?:\/\/[^\s<]+)/g,
+    '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">$1</a>'
+  );
+
+  return message;
+};
+
+const getNote = computed(() => {
+  return extractDescription(props.dataInterface?.data?.note ?? "");
+});
 async function getBase64ImageFromUrl(imageUrl: string): Promise<string> {
   const res = await fetch(imageUrl);
   const blob = await res.blob();
@@ -620,6 +734,11 @@ const getPlus = computed(() => {
   return plus;
 });
 
+const getDPPNilaiLainView = computed(() => {
+  let dpp = (subtotal.value * 11) / 12;
+
+  return dpp;
+});
 const getDPPNilaiLain = computed(() => {
   let dpp = 0;
   (props.dataInterface.data?.reference_transaction_adjustment || []).forEach(
@@ -749,8 +868,8 @@ const generateQuotationPdf = async () => {
 
   // ================= TABLE =================
 
-  let rowData: RowInput[] = (items.data.value?.data ?? []).map(
-    (item: Pricetag_item, i: number) => [
+  let rowData: RowInput[] = (pricetag_item_views.value ?? []).map(
+    (item: PricetagItemView, i: number) => [
       {
         content: `${i + 1}`,
         styles: {
@@ -760,7 +879,7 @@ const generateQuotationPdf = async () => {
         },
       },
       {
-        content: `${item.catalogue?.name}`,
+        content: `${item.item_name}`,
         styles: {
           halign: "left",
           lineWidth: 0.1,
@@ -768,7 +887,7 @@ const generateQuotationPdf = async () => {
         },
       },
       {
-        content: `${item.quantity}`,
+        content: `${item.qty}`,
         styles: {
           halign: "center",
           lineWidth: 0.1,
@@ -792,7 +911,7 @@ const generateQuotationPdf = async () => {
         },
       },
       {
-        content: `${currencyWithoutSymbol(item.quantity * (item.price || 0))}`,
+        content: `${currencyWithoutSymbol(item.qty * (item.price || 0))}`,
         styles: {
           halign: "right",
           lineWidth: 0.1,

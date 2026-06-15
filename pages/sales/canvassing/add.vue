@@ -1559,6 +1559,7 @@ const onHandleSelectItemAutocompleteItem = async (
       item_canvassing.value.forEach((item) => {
         item.children.forEach((child) => {
           if (child.index == itemIndex) {
+            console.log("child index", child.index);
             if (item.unit_id != selected.unit_id) {
               ElMessageBox.confirm(
                 `UoM Berbeda Dari Permintaan?`,
@@ -1977,7 +1978,7 @@ const nextItemVendorfield = (itemIndex: string) => {
       if (child.index == itemIndex) {
         item_canvassing.value[parentIndex].children.push({
           image: "",
-          index: `${index}-${item.children.length + 1}`,
+          index: `${parentIndex}-${item.children.length + 1}`,
           type_item: "original",
           equivalent_id: null,
           canvassing_id: null,
@@ -2008,11 +2009,11 @@ const nextItemVendorfield = (itemIndex: string) => {
           selling_price: 0,
           total_selling_price: 0,
           profit: 0,
-          profit_unit: "amount",
+          profit_unit: "percent",
           fee: 0,
-          fee_unit: "amount",
+          fee_unit: "percent",
           ongkir: 0,
-          ongkir_unit: "amount",
+          ongkir_unit: "percent",
           pricetag_item_id: "",
           pricetag_item_version: 0,
           contacts_fee: [],
