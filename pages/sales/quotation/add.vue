@@ -643,7 +643,7 @@
             <el-table-column label="Harga Jual" width="200">
               <template #default="{ row }">
                 <div
-                  v-if="(row as CanvassingItemForm).type_item === 'request' || (row as CanvassingItemForm).type_item === 'equivalent'"
+                  v-if="(row as CanvassingItemForm).type_item === 'quotation' || (row as CanvassingItemForm).type_item === 'equivalent'"
                 >
                   <el-input-number
                     v-model="row.selling_price"
