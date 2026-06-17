@@ -74,7 +74,7 @@
               Upload Faktur Pajak
             </el-button>
             <el-button
-              type="success"
+              type="info"
               style="margin-left: 0px"
               v-if="data?.data?.status === PaymentStatus.DRAFT"
               @click="sendApproval"
@@ -92,7 +92,10 @@
             <el-button
               style="margin-left: 0px"
               type="success"
-              v-if="data?.data?.status === PaymentStatus.WAITING"
+              v-if="
+                data?.data?.status === PaymentStatus.WAITING &&
+                canApproveInvoice
+              "
               @click="() => decision(PaymentStatus.APPROVED)"
             >
               Approve
@@ -100,7 +103,10 @@
             <el-button
               style="margin-left: 0px"
               type="danger"
-              v-if="data?.data?.status === PaymentStatus.WAITING"
+              v-if="
+                data?.data?.status === PaymentStatus.WAITING &&
+                canApproveInvoice
+              "
               @click="() => decision(PaymentStatus.REJECTED)"
             >
               Reject
@@ -513,7 +519,7 @@ import {
 } from "~/types/finance/invoice";
 import type { BaseResponse } from "~/types/response";
 import { PaymentTerm } from "~/types/scm/canvasing";
-import { displayAmount, formatLocalDate } from "#imports";
+import { displayAmount, formatLocalDate, checkPermission } from "#imports";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { RequestSearch } from "~/types/request_search";
 import jsPDF from "jspdf";
@@ -528,6 +534,7 @@ import {
   getDisplayFileType,
 } from "~/types/file";
 import { formattedText } from "#imports";
+import checkAccess from "~/middleware/checkAccess";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -538,6 +545,8 @@ definePageMeta({
 const router = useRouter();
 const route = useRoute();
 const invoiceId = ref<string>(route.params.id as string);
+
+const canApproveInvoice = ref(false);
 
 const config = useRuntimeConfig();
 const imageUrl = config.public.baseImageURL;
@@ -973,6 +982,14 @@ const confirmDelete = () => {
       // Cancel
     });
 };
+
+const checkPermissionServer = async () => {
+  canApproveInvoice.value = await checkPermission("invoice-approve");
+};
+
+onMounted(() => {
+  checkPermissionServer();
+});
 
 const deleteInvoice = async () => {
   loading.value = true;
@@ -1513,7 +1530,7 @@ const generatePDF = async () => {
   // signY = checkPageBreak(doc, signY);
 
   doc.setFont("helvetica", "bold");
-  doc.text(`Approved By`.toUpperCase(), rightX, signY, {
+  doc.text(`Dibuat Oleh`.toUpperCase(), rightX, signY, {
     align: "center",
   });
   doc.setFont("helvetica", "normal");
@@ -1522,16 +1539,11 @@ const generatePDF = async () => {
       align: "center",
     });
   } else {
+    doc.text(`${data.value?.data?.people?.name || "-"},`, rightX, signY + 34, {
+      align: "center",
+    });
     doc.text(
-      `${data.value?.data?.approved?.name || "-"},`,
-      rightX,
-      signY + 34,
-      {
-        align: "center",
-      }
-    );
-    doc.text(
-      `${data.value?.data?.approved?.departement_name || ""}`,
+      `${data.value?.data?.people?.departement_name || ""}`,
       rightX,
       signY + 40,
       {

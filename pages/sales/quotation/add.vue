@@ -1738,14 +1738,13 @@ const handleSaveFee = ({
     fee ?? 0
   );
 
-  syncFeeAcumulation();
   item_canvassing.value.forEach((element) => {
     // setProfit(element);
     (element.children || []).forEach((child) => {
       calculatePricing(child, "selling_price");
     });
   });
-
+  syncFeeAcumulation();
   // drawerFeeVisible.value = false;
 };
 
@@ -1762,30 +1761,11 @@ const syncFeeAcumulation = () => {
       item.children.forEach((child: CanvassingItemForm) => {
         const hargaBeli = Number(child.unit_price || 0);
 
-        let ongkirNominal = child.ongkir;
+        let ongkirNominal = child.ongkir_nominal || 0;
+        let feeNominal = child.fee_nominal;
+
         child.contacts_fee.forEach(
           (contact: ReferenceTransactionAdjustment) => {
-            const selisih = selling_price - hargaBeli - ongkirNominal;
-
-            let profit = child.profit;
-
-            let fee = 0;
-
-            if (contact.type == "percent") {
-              fee = Number(contact.amount);
-            } else {
-              fee = (Number(contact.amount) / hargaBeli) * 100;
-            }
-
-            if (child.profit_unit == "amount") {
-              profit = (Number(child.profit) / hargaBeli) * 100;
-            }
-
-            let profitAndFee = profit + fee;
-
-            // contact.amount = fee;
-            contact.amount_nominal = (selisih * fee) / 100;
-
             console.log("amount nominal", contact.amount_nominal);
             const findContactFee = newContactFee.findIndex(
               (fee) => fee.party_id == contact.party_id
@@ -1793,6 +1773,22 @@ const syncFeeAcumulation = () => {
 
             console.log("amount nominal", contact.amount_nominal);
             if (findContactFee >= 0) {
+              if (item.fee_unit == "percent") {
+                if (unitFee.value == FeeType.AMOUNT) {
+                }
+
+                const nominal = displayAmount(
+                  contact.amount,
+                  item.fee_nominal || 0
+                );
+
+                newContactFee[findContactFee].type = unitFee.value;
+                newContactFee[findContactFee].amount = contact.amount;
+                newContactFee[findContactFee].amount_nominal = nominal;
+                newContactFee[findContactFee].tmp_amount_input = handleInput(
+                  `${nominal}`
+                );
+              }
               if (unitFee.value == FeeType.AMOUNT) {
                 if (contact.type == FeeType.AMOUNT) {
                   newContactFee[findContactFee].amount += Number(
@@ -2344,30 +2340,33 @@ function calculatePricing(
         child.ongkir =
           child.ongkir_unit == "percent" ? ongkirPercent : ongkirNominal;
         child.ongkir_nominal = ongkirNominal;
-        child.profit = profitPercent;
+        child.profit =
+          child.profit_unit == "percent" ? profitPercent : profitNominal;
+        child.profit_percent = profitPercent;
         child.profit_nominal = profitNominal;
 
         child.selling_price =
           hargaBeli + profitNominal + feeNominal + ongkirNominal;
 
-        console.log("harga jual", child.selling_price);
+        console.log("profit percent", profitPercent);
       }
     });
   } else {
     let profitPercent = 0;
     let profitNominal = 0;
-
+    console.log("row profit", row.profit);
     if (row.profit_unit == "percent") {
-      profitPercent = parseFloat((row.profit ?? 0).toFixed(2));
+      profitPercent = parseFloat((Number(row.profit) ?? 0).toFixed(2));
       profitNominal = (hargaBeli * Number(row.profit || 0)) / 100;
     } else {
-      profitPercent = parseFloat(((row.profit / hargaBeli) * 100).toFixed(2));
-      profitNominal = row.profit;
+      profitPercent = parseFloat(
+        ((Number(row.profit) / hargaBeli) * 100).toFixed(2)
+      );
+      profitNominal = Number(row.profit);
     }
 
     let ongkirPercent = 0;
     let ongkirNominal = 0;
-    console.log("ongkir unit", row.ongkir_unit);
     if (row.ongkir_unit == "percent") {
       ongkirPercent = parseFloat((row.ongkir ?? 0).toFixed(2));
       ongkirNominal = (hargaBeli * Number(row.ongkir || 0)) / 100;
@@ -2396,9 +2395,6 @@ function calculatePricing(
       feePercent = parseFloat(((row.fee / profitNominal) * 100).toFixed(2));
       feeNominal = row.fee;
     }
-    console.log("fee unit", row.fee_unit);
-    console.log("fee percent", feePercent);
-    console.log("fee nominal", feeNominal);
 
     row.fee = row.fee_unit == "percent" ? feePercent : feeNominal;
     row.fee_percent = feePercent;
@@ -4000,6 +3996,12 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
 
   item_canvassing.value.forEach((element) => {
     autoSelectSingleChild(element);
+  });
+
+  item_canvassing.value.forEach((item) => {
+    item.children.forEach((child) => {
+      calculatePricing(child, "selling_price");
+    });
   });
 };
 

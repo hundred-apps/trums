@@ -53,7 +53,10 @@ const showIcon = (icon: any) => {
 };
 
 onMounted(() => {
-  userdata.value = JSON.parse(localStorage.getItem("user_data") ?? "");
+  const userData = localStorage.getItem("user_data");
+  if (userData) {
+    userdata.value = JSON.parse(localStorage.getItem("user_data") ?? "");
+  }
 
   nameFront.value = userdata.value?.name?.split(" ")[0] || "";
 });

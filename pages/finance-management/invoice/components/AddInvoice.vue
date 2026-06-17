@@ -1117,7 +1117,7 @@ const ruleForm = reactive<Invoice>({
   pic_name: "",
   pic_version: 0,
   type: "out",
-  status: PaymentStatus.RELEASE,
+  status: PaymentStatus.DRAFT,
 
   invoice_item: [
     {

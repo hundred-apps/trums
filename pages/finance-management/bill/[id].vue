@@ -1375,25 +1375,20 @@ const generatePDF = async () => {
   // signY = checkPageBreak(doc, signY);
 
   doc.setFont("helvetica", "bold");
-  doc.text(`Approved By`.toUpperCase(), rightX, signY, {
+  doc.text(`Dibuat Oleh`.toUpperCase(), rightX, signY, {
     align: "center",
   });
   doc.setFont("helvetica", "normal");
   if (data?.value?.data?.type === "in") {
-    doc.text(data?.value?.data?.vendor_name ?? "", rightX, signY + 40, {
+    doc.text(data?.value?.data?.people?.name ?? "", rightX, signY + 40, {
       align: "center",
     });
   } else {
+    doc.text(`${data.value?.data?.people?.name || "-"},`, rightX, signY + 34, {
+      align: "center",
+    });
     doc.text(
-      `${data.value?.data?.approved?.name || "-"},`,
-      rightX,
-      signY + 34,
-      {
-        align: "center",
-      }
-    );
-    doc.text(
-      `${data.value?.data?.approved?.departement_name || ""}`,
+      `${data.value?.data?.people?.departement_name || ""}`,
       rightX,
       signY + 40,
       {

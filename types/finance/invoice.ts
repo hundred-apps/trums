@@ -111,6 +111,7 @@ export type Invoice = {
   decision_note?: string;
   is_performa?: boolean;
   is_termin?: boolean;
+  people?: People;
 
   files?: AppFile[];
 };
