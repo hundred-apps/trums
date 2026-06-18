@@ -136,7 +136,11 @@ const availableColumn: ColumnTable<Pricetag>[] = [
     cellRenderer: ({ rowData }: { rowData: Pricetag }) => {
       const onCommand = (command: string) => {
         if (command === "edit") {
-          window.location.href = `/sales/offer/add?id=${rowData.unique_id}&type=${rowData.type}`;
+          if(props.type == 'in'){
+            window.location.href = `/supply-chain-management/offer/add?id=${rowData.unique_id}&type=${rowData.type}`;
+          }else{
+            window.location.href = `/sales/offer/add?id=${rowData.unique_id}&type=${rowData.type}`;
+          }
         }
         if (command === "delete") {
           handleDelete([rowData.unique_id]);

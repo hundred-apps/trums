@@ -1392,6 +1392,7 @@ const querySearchAsyncInventories = (
 watch(
   () => props.dataInterface.data?.unique_id,
   () => {
+    console.log('data interface', props.dataInterface.data);
     request_search_pricelist_item.value.column = [
       {
         tag_id: [props.dataInterface.data?.unique_id],

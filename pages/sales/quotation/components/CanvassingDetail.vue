@@ -155,7 +155,7 @@
       </div>
 
       <h5 class="font-bold text-black text-1xl mt-6">Alamat Pengiriman</h5>
-      <div class="text-sm mt-2">
+      <div class="text-sm mt-2" v-if="canvassingData?.address">
         ({{ canvassingData?.address?.address_name }})
         <div class="flex flex-col">
           <span>{{ canvassingData?.address?.street }}</span>
@@ -374,11 +374,16 @@
           <el-table-column
             prop="vendor_name"
             label="Vendor"
-            width="200"
-            fixed="left"
+            :width="isMobile ? 100 : 200"
+            :fixed="isMobile ? false : 'left'"
+            align="center"
           >
             <template #default="{ row }">
-              {{ row.vendor_name || "" }}
+              <span
+                class="text-blue-600 cursor-pointer"
+                @click="() => openDetailVendor(row.pricetag_item_id)"
+                >{{ row.vendor_name || "" }}</span
+              >
             </template>
           </el-table-column>
 
@@ -577,6 +582,9 @@
                     :href="`/supply-chain-management/offer/${vendor.unique_id}`"
                     >{{ vendor.unique_code ?? "N/A" }}</NuxtLink
                   >
+                </el-descriptions-item>
+                <el-descriptions-item label="Berlaku Hingga">
+                  {{ dayjs.unix(vendor.end_date).format('YYYY-MM-DD') }}
                 </el-descriptions-item>
                 <el-descriptions-item label="Keterangan">
                   {{ vendor?.note ?? "Tidak Ada Keterangan" }}
@@ -1109,6 +1117,21 @@
         </el-table-column>
       </el-table>
     </el-dialog>
+
+    <el-dialog v-model="offerDialogState" title="Detail Penawaran Vendor">
+      <OfferDetail
+        :data-interface="{
+          code: 200,
+          data:
+            (offerDetail.data.value?.data || []).length > 0
+              ? offerDetail.data.value!.data[0]
+              : null,
+          message: offerDetail?.data.value?.message ?? '',
+          pending: offerDetail.status.value === 'pending',
+          privilege: offerDetail?.data.value?.privilege ?? [],
+        }"
+      />
+    </el-dialog>
   </div>
 </template>
 
@@ -1177,16 +1200,20 @@ import AddAdjustment from "~/components/trums/AddAdjustment.vue";
 import type { Permission } from "~/types/menu";
 import { canAccess, currency, currencyWithoutSymbol } from "#imports";
 import FormAddress from "~/components/trums/FormAddress.vue";
+import OfferDetail from "../../offer/components/OfferDetail.vue";
 import { generateAddressViewName } from "#imports";
 import {
   TermOfPaymentReference,
   type TermOfPayment,
 } from "~/types/payment_term";
+import { dayjs } from "element-plus";
 
 definePageMeta({
   middleware: ["auth", "app"],
   name: "Quotation Component Approve",
 });
+
+const {isMobile} = useDevice();
 
 const router = useRouter();
 const route = useRoute();
@@ -1311,6 +1338,24 @@ const request_search_pricetag_item = ref<RequestSearch>({
   table: "pricetag_item",
   flag: "form",
 });
+const request_search_vendor = ref<RequestSearch>({
+  keyword: "",
+  table: "pricetag",
+  column: [],
+  sort: null,
+  offset: "1",
+  limit: "1",
+});
+const offerDialogState = ref<boolean>(false);
+const offerDetail = await useAsyncData("pricetag-detail", async () => {
+  const res = await useFetchApi<ResponsePagination<Pricetag[]>>(
+    `/search/`,
+    "pricetag-detail",
+    "post",
+    request_search_vendor.value
+  );
+  return res.data.value;
+});
 
 const permissionCreateOffer = false;
 
@@ -1349,6 +1394,26 @@ const pricetagList = computed(() => {
   console.log("pricetag list", list);
   return list;
 });
+
+const openDetailVendor = (item_id: string) => {
+  request_search_vendor.value.column = [
+    {
+      pricetag_item: {
+        unique_id: [item_id],
+      },
+    },
+  ];
+
+  if (offerDetail.status.value !== "pending") {
+    offerDialogState.value = true;
+  }
+};
+
+watch(
+  () => request_search_vendor.value,
+  () => offerDetail.refresh(),
+  { deep: true }
+);
 
 const adjustmentContact = computed(() => {
   const data = adjustmentTransactions.data.value?.data || [];

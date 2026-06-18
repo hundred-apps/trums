@@ -1056,9 +1056,9 @@ const fetchInitialData = async () => {
       ruleForm.to_name = pricetagEdit.to?.name;
       ruleForm.location_id = pricetagEdit.location_id;
       ruleForm.start_date = dateViewStart.getTime();
-      if (dateViewEnd != null) {
-        ruleForm.end_date = dateViewEnd.getTime();
-        ruleForm.end_date_view = "";
+      if (pricetagEdit.end_date > 0) {
+        ruleForm.end_date = pricetagEdit.end_date;
+        ruleForm.end_date_view = dayjs.unix(pricetagEdit.end_date).format("YYYY-MM-DD");
       } else {
         ruleForm.end_date = 0;
         ruleForm.end_date_view = "";

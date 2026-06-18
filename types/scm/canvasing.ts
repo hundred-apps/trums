@@ -106,6 +106,7 @@ export type Canvassing = {
   payment_terms?: TermOfPayment[];
   people?: People;
   files: AppFile[];
+  expired_price?: number;
 };
 
 export type CanvassingItem = {

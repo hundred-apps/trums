@@ -273,31 +273,6 @@
             </div>
           </div>
 
-          <!-- Bulk Fee -->
-          <div class="bulk-input-group">
-            <label class="block el-text font-bold">Fee</label>
-            <div class="flex gap-2">
-              <el-input
-                v-model="bulkFee"
-                placeholder="Fee"
-                size="default"
-                style="width: 200px"
-                :disabled="feeState === 'minus'"
-              >
-                <template #append>
-                  <el-select
-                    v-model="bulkFeeUnit"
-                    size="default"
-                    style="width: 70px"
-                  >
-                    <el-option label="%" value="percent" />
-                    <el-option label="Rp" value="amount" />
-                  </el-select>
-                </template>
-              </el-input>
-            </div>
-          </div>
-
           <!-- Bulk Ongkir -->
           <div class="bulk-input-group">
             <label class="block el-text font-bold">Ongkir</label>
@@ -1696,6 +1671,8 @@ const onChangeFeeState = (val: string) => {
     value.amount = 0;
     value.type = val == "plus" ? FeeType.AMOUNT : FeeType.PERCENT;
     value.tmp_amount_input = "0";
+    value.value = 0;
+    value.amount_nominal = 0;
   });
 
   item_canvassing.value.forEach((value) => {
@@ -3810,6 +3787,8 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
       tempo_value: dataCanvassing.tempo_value,
       tempo_unit: dataCanvassing.tempo_unit,
       address_id: dataCanvassing.address_id,
+      expired_price: dataCanvassing.expired_price,
+      expired_price_view: (dataCanvassing.expired_price ?? 0) > 0 ? dayjs.unix(dataCanvassing.expired_price!).format("YYYY-MM-DD") : '',
       address_view: generateResultSearchAddress(dataCanvassing.address ?? null)
         .name,
     });
@@ -3818,20 +3797,35 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
       ruleForm.status = CanvassingStatus.RAB;
     }
 
+    
     contactsFee.value = [];
     (dataCanvassing.reference_transaction ?? []).forEach((element) => {
       if (element.party_type == PartyType.CONTACT) {
-        const amount_nominal = (grandTotal.value / (element.value ?? 0)) * 100;
-        contactsFee.value.push({
-          ...element,
-          amount: amount_nominal,
-          tmp_amount_input: handleInput(`${amount_nominal}`),
-        });
-
+        console.log('reference transaction', element);
+        if(element.type == FeeType.AMOUNT){
+          const amount_nominal = (grandTotal.value / (element.value ?? 0)) * 100;
+          contactsFee.value.push({
+            ...element,
+            amount: element.amount,
+            amount_nominal: element.amount,
+            tmp_amount_input: handleInput(`${element.amount}`),
+          });
+        }else{
+          contactsFee.value.push({
+            ...element,
+            amount: element.amount,
+            amount_nominal: element.amount,
+            tmp_amount_input: `${element.value}`,
+          });
+        }
+        
+// unitFee.value = val == "plus" ? FeeType.AMOUNT : FeeType.PERCENT;
         if ((element.type as FeeType) === FeeType.AMOUNT) {
           unitFee.value = FeeType.AMOUNT;
+          feeState.value = "plus";
         } else {
           unitFee.value = FeeType.PERCENT;
+          feeState.value = "minus";
         }
       }
 
@@ -3875,6 +3869,8 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
           element.adjustments_transaction;
       }
     });
+
+    console.log('contact fee', contactsFee.value);
 
     payment_terms.value = dataCanvassing.payment_terms ?? [];
 
@@ -3934,11 +3930,15 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
           editing: null,
           type: "child" as "parent" | "child",
           children: [],
-          selling_price: Number(vendor.selling_price || 0),
-          total_selling_price: Number(vendor.total_selling_price),
+          selling_price: Number(vendor.selling_price == 0 ? vendor.unit_price : vendor.selling_price),
+          total_selling_price: vendor.total_selling_price ? Number(vendor.total_selling_price) : Number(vendor.unit_price) * Number(vendor.quantity),
           profit: vendor.profit,
+          profit_nominal: vendor.profit_nominal,
+          profit_percent: vendor.profit_percent,
           profit_unit: vendor.profit_unit,
           fee: vendor.fee,
+          fee_nominal: vendor.fee_nominal ?? 0,
+          fee_percent: vendor.fee_percent ?? 0,
           fee_unit: vendor.fee_unit,
           ongkir: vendor.ongkir,
           ongkir_unit: vendor.ongkir_unit,
@@ -3948,6 +3948,7 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
           equivalent_id: vendor.equivalent_id ?? "",
           parent_index: index,
           tmp_child_selected: "",
+          expected_delivery: vendor.expected_delivery,
         })),
         selling_price: value.unit_selling_price,
         tmp_child_selected: "",
