@@ -77,6 +77,7 @@ import {
   type TermOfPayment,
 } from "~/types/payment_term";
 import AddPriceTagComponent from "~/components/trums/AddPriceTagComponent.vue";
+import { dayjs } from "element-plus";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -100,15 +101,17 @@ const type = computed(() => (route.query.type as "in" | "out") || "in");
 const fileList = ref<UploadUserFile[]>([]);
 const formSize = ref<ComponentSize>("default");
 const ruleFormRef = ref<FormInstance>();
+const oneMonthLater = new Date();
+oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
 const ruleForm = reactive<Pricetag>({
   code: "",
   unique_id: "",
   name: "",
   location_id: "",
   start_date: Date.now(),
-  end_date: Date.now(),
-  start_date_view: "",
-  end_date_view: "",
+  end_date: dayjs(oneMonthLater).unix(),
+  start_date_view: dayjs().format("YYYY-MM-DD"),
+  end_date_view: dayjs().add(1, "month").format("YYYY-MM-DD"),
   owner_id: "",
   created_at: 0,
   created_by: "",
@@ -117,48 +120,7 @@ const ruleForm = reactive<Pricetag>({
   type: type.value,
   note: "",
   subject: "",
-  pricetag_item: [
-    {
-      catalogue: {
-        id: null,
-        unique_id: null,
-        unique_code: null,
-        name: "",
-
-        brand_id: null,
-        brand_name: null,
-        year: null,
-        sn: null,
-        description: null,
-        berat: null,
-        volume: null,
-        length: null,
-        width: null,
-        height: null,
-        is_asset: null,
-        tmp_asset: null,
-        version: null,
-        type: "",
-        created_at: null,
-        created_by: null,
-        updated_at: null,
-        file_catalogues: [],
-      },
-      unique_id: null,
-      tag_id: null,
-      catalogue_id: "",
-      inventory_id: "",
-      inventory: null,
-      price: 0,
-      is_new: true,
-      unit_id: "",
-      unit_name: "",
-      unit_version: 0,
-      checked: false,
-      quantity: 1,
-      fileUploads: [],
-    },
-  ],
+  pricetag_item: [],
 
   location: {
     id: null,

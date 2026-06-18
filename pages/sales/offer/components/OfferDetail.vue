@@ -103,7 +103,7 @@
     <h1 class="font-bold text-sm" v-if="props.dataInterface?.data?.note">
       Note
     </h1>
-    <div class="text-sm" v-html="getNote"></div>
+    <div class="text-sm mt-1" v-html="getNote"></div>
 
     <h5
       class="font-bold text-black text-1xl mt-6 text-sm"
@@ -296,6 +296,26 @@
           }}
         </template>
       </el-table-column>
+      <el-table-column
+        prop="status_item"
+        label="Status Item"
+        class="mb-0"
+        width="150"
+      >
+        <template #default="scope">
+          {{ getStatusItemLabel(scope.row.status_item) }}
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="pengiriman"
+        label="Pengiriman"
+        class="mb-0"
+        width="150"
+      >
+        <template #default="scope">
+          {{ getDeliveryMethodLabel(scope.row.delivery) }}
+        </template>
+      </el-table-column>
       <el-table-column prop="note" label="Catatan" class="mb-0" width="150">
         <template #default="scope">
           <div
@@ -455,6 +475,10 @@ import type { AddressType } from "~/types/address";
 import type { Inventory } from "~/types/inventory";
 import type { Pricelist, Pricelist_item } from "~/types/pricelist";
 import {
+  DeliveryMethod,
+  getDeliveryMethodLabel,
+  getStatusItemLabel,
+  PricetagItemStatus,
   VariablePriceTag,
   type Pricetag,
   type Pricetag_condition,
@@ -517,6 +541,8 @@ type PricetagItemView = {
   equivalent_from_id: string;
   hasChild: boolean;
   no: string;
+  status_item?: PricetagItemStatus;
+  delivery?: DeliveryMethod;
 };
 
 const pricetag_item_views = ref<PricetagItemView[]>([]);
@@ -610,6 +636,8 @@ watch(
         note: item.note || "",
         is_equivalent: false,
         equivalent_from_id: "",
+        delivery: item.delivery,
+        status_item: item.status_item,
         hasChild: item.data_reference
           ? (item.data_reference as CanvassingItem).canvassing_vendor.length > 0
             ? (
@@ -620,7 +648,7 @@ watch(
               ? true
               : false
             : false
-          : true,
+          : false,
       });
 
       if (item.data_reference) {
@@ -647,6 +675,7 @@ watch(
                 note: "",
                 is_equivalent: true,
                 hasChild: false,
+
                 equivalent_from_id: item.unique_id || "",
               });
             }

@@ -33,3 +33,7 @@ export function displayPercentage(ref: any, multiplier: number): Number {
     return ref.amount;
   }
 }
+
+export function customMathCeil(num: number): number {
+  return Math.ceil(num * 100) / 100;
+}

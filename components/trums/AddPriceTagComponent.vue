@@ -66,7 +66,7 @@
             />
           </el-form-item>
           <el-form-item prop="to_name" label="" v-if="ruleForm.type == 'out'">
-            <div class="flex items-center gap-3">
+            <div class="flex items-center gap-3 w-full">
               <el-autocomplete
                 v-model="ruleForm.to_name"
                 :fetch-suggestions="querySearchVendors"
@@ -101,7 +101,7 @@
               <el-autocomplete
                 v-model="ruleForm.pic_name"
                 :fetch-suggestions="querySearchPIC"
-                placeholder="Cari Kontak"
+                placeholder="Cari PIC"
                 @select="(item) => onHandleSelectVendor(item, 'pic')"
                 style="width: 100%"
                 @input="
@@ -136,18 +136,9 @@
             </div>
           </el-form-item>
 
-          <el-form-item prop="start_date" label="">
-            <el-date-picker
-              v-model="ruleForm.start_date"
-              type="date"
-              aria-label="Tanggal Berlaku"
-              placeholder="Tanggal Berlaku"
-              style="width: 100%"
-            />
-          </el-form-item>
           <el-form-item prop="end_date" label="">
             <el-date-picker
-              v-model="ruleForm.end_date"
+              v-model="ruleForm.end_date_view"
               type="date"
               aria-label="Tanggal Berakhir"
               placeholder="Tanggal Berakhir"
@@ -390,6 +381,26 @@
           </el-table-column>
 
           <el-table-column
+            prop="status"
+            label="Ketersediaan Barang"
+            class="mb-0"
+            width="150"
+          >
+            <template #default="scope">
+              {{ scope.row.status_item }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="delivery_method"
+            label="Metode Pengiriman"
+            class="mb-0"
+            width="150"
+          >
+            <template #default="scope">
+              {{ getDeliveryMethodLabel(scope.row.delivery) }}
+            </template>
+          </el-table-column>
+          <el-table-column
             prop="garansi"
             label="Garansi (Hari)"
             class="mb-0"
@@ -509,7 +520,7 @@
             label="DPP Nilai Lain"
             align="right"
             v-if="getDPPNilaiLain > 0"
-            >{{ currency(getDPPNilaiLain) }}</el-descriptions-item
+            >{{ currency(getDPPNilaiLainView) }}</el-descriptions-item
           >
           <el-descriptions-item
             :width="100"
@@ -662,6 +673,7 @@ import {
   User as ElUserIcon,
 } from "@element-plus/icons-vue";
 import {
+  dayjs,
   ElCheckbox,
   ElIcon,
   ElPopover,
@@ -686,6 +698,7 @@ import type { Contact } from "~/types/contact";
 import type { FunctionalComponent } from "vue";
 import type { Quotation } from "~/types/quotation";
 import {
+  getDeliveryMethodLabel,
   OperationPriceTag,
   ReferencePriceTag,
   VariablePriceTag,
@@ -1095,12 +1108,11 @@ const rules = reactive<FormRules>({
   to_name: [
     { required: true, message: "Vendor Tidak Boleh Kosong!", trigger: "blur" },
   ],
-
-  start_date: [
+  end_date: [
     {
       type: "date",
       required: true,
-      message: "Tanggal Mulai Tidak Boleh Kosong!",
+      message: "Tanggal Berakhir Tidak Boleh Kosong!",
       trigger: "change",
     },
   ],
@@ -1182,7 +1194,11 @@ watch(
   },
   { immediate: true }
 );
+const getDPPNilaiLainView = computed(() => {
+  let dpp = (subtotal.value * 11) / 12;
 
+  return dpp;
+});
 const getDPPNilaiLain = computed(() => {
   let dpp = 0;
   references.value.forEach((element) => {
@@ -1319,8 +1335,8 @@ const onCloseItemModal = () => {
 };
 
 const submitItemModal = (value: Pricetag_item) => {
-  console.log("item active", itemActive.value);
   const data_submit: Pricetag_item = value;
+  console.log("data submit", data_submit);
 
   const refGaransiIndex = (data_submit.reference_transaction || []).findIndex(
     (find) =>
@@ -2470,7 +2486,7 @@ const onSubmit = async (formEl: FormInstance) => {
     formData.append("name", `${ruleForm.code}`);
     formData.append("location_id", `${ruleForm.location_id}`);
     formData.append("start_date", `${ruleForm.start_date / 1000}`);
-    formData.append("end_date", `${ruleForm.end_date / 1000}`);
+    formData.append("end_date", `${dayjs(ruleForm.end_date_view).unix()}`);
     formData.append("owner_id", `${ruleForm.owner_id}`);
     formData.append("reference", `${ruleForm.reference}`);
     formData.append("reference_id", `${ruleForm.reference_id}`);
@@ -2517,6 +2533,11 @@ const onSubmit = async (formEl: FormInstance) => {
       );
       formData.append(`pricetag_item[${index}][quantity]`, `${value.quantity}`);
       formData.append(`pricetag_item[${index}][note]`, `${value.note}`);
+      formData.append(
+        `pricetag_item[${index}][status_item]`,
+        `${value.status_item}`
+      );
+      formData.append(`pricetag_item[${index}][delivery]`, `${value.delivery}`);
       formData.append(
         `pricetag_item[${index}][reference]`,
         `${value.reference}`
@@ -2985,6 +3006,7 @@ watch(
       }));
     }
     termOfPayments.value = props.data?.payment_terms || [];
+    console.log("payment term", termOfPayments.value);
   },
   { deep: true, immediate: true }
 );

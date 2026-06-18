@@ -173,6 +173,19 @@
               <el-button type="primary" @click="openPricetagModal">
                 Pilih Dari Penawaran
               </el-button>
+              <el-button
+                type="default"
+                size="default"
+                :icon="Plus"
+                @click="
+                  () => {
+                    resetFormAddCatalogue();
+                    visibleModalAddCatalogue = true;
+                  }
+                "
+              >
+                Tambah Dari Katalog
+              </el-button>
             </div>
           </div>
         </template>
@@ -263,19 +276,12 @@
                     v-model="scope.row.display_po_unit_price"
                     class="mb-0"
                     inputmode="decimal"
+                    placeholder="Harga"
+                    :formatter="(value: any) => `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
+                    :parser="(value: any) => value.replace(/\Rp\s?|(,*)/g, '')"
                     @input="
-                      (val) => {
-                        const parsed = parseCurrencyID(val);
-                        scope.row.po_unit_price = parsed;
-                        const formatted = formatCurrencyID(parsed);
-                        scope.row.display_po_unit_price = formatted;
-                      }
-                    "
-                    @blur="
-                      () => {
-                        scope.row.display_po_unit_price = formatCurrencyID(
-                          scope.row.po_unit_price
-                        );
+                      (value) => {
+                        scope.row.po_unit_price = Number(value);
                       }
                     "
                   />
@@ -317,15 +323,6 @@
             </template>
           </el-table-column>
         </el-table>
-        <!-- <el-button
-          type="default"
-          size="default"
-          :icon="Plus"
-          @click="tambahItemBaru"
-          style="width: 100%; margin-top: 10px"
-        >
-          Tambah Dari Katalog
-        </el-button> -->
       </el-card>
     </el-form>
     <AdjustmentTransactionComponent
@@ -382,7 +379,7 @@
           label="DPP Nilai Lain"
           align="right"
           v-if="getDPPNilaiLain > 0"
-          >{{ currency(getDPPNilaiLain) }}</el-descriptions-item
+          >{{ currency(getDPPNilaiLainView) }}</el-descriptions-item
         >
         <el-descriptions-item
           :width="100"
@@ -575,13 +572,135 @@
       "
     />
   </el-dialog>
+
+  <el-dialog
+    v-model="visibleModalAddCatalogue"
+    title="Tambah Dari Katalog"
+    width="800"
+  >
+    <el-form
+      ref="formAddCatalogueRef"
+      :model="formAddCatalogue"
+      :rules="rulesAddCatalogue"
+      label-position="top"
+    >
+      <el-form-item label="Catalogue" prop="catalogue_name">
+        <el-autocomplete
+          v-model="formAddCatalogue.catalogue_name"
+          :fetch-suggestions="querySearchCatalogue"
+          placeholder="Cari catalogue"
+          class="w-full"
+          :trigger-on-focus="false"
+          @select="handleSelectCatalogue"
+        >
+          <template #default="{ item }">
+            <div v-if="item.isNew" class="flex items-center text-blue-500">
+              <el-icon><Plus /></el-icon>
+              <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+            </div>
+            <div v-else class="flex items-center gap-2">
+              <!-- Thumbnail file pertama -->
+              <div class="flex-shrink-0 mt-1">
+                <div
+                  v-if="item.files && item.files.length > 0"
+                  class="w-10 h-10 rounded overflow-hidden border"
+                >
+                  <img
+                    :src="getFirstFileUrl(item.files)"
+                    :alt="item.catalogue_name"
+                    class="w-full h-full object-cover"
+                  />
+                </div>
+                <div
+                  v-else
+                  class="w-10 h-10 rounded border flex items-center justify-center text-gray-400"
+                >
+                  <el-icon><Picture /></el-icon>
+                </div>
+              </div>
+
+              <!-- Informasi produk -->
+              <div class="flex-1 min-w-0">
+                <p style="line-height: 15px" class="font-bold truncate">
+                  {{
+                    `${item.name} ${item.brand ? "-" : ""} ${
+                      item.brand?.name ?? ""
+                    }`
+                  }}
+                </p>
+                <p class="text-sm text-gray-500 truncate">
+                  PN/SN: {{ item.sn || "Tidak Ada" }}
+                </p>
+              </div>
+            </div>
+          </template>
+        </el-autocomplete>
+      </el-form-item>
+
+      <el-row :gutter="20">
+        <el-col :span="12">
+          <el-form-item label="QTY" prop="quantity">
+            <el-input-number
+              v-model="formAddCatalogue.quantity"
+              :min="0"
+              :precision="2"
+              :step="0.01"
+              style="width: 100%"
+            />
+          </el-form-item>
+        </el-col>
+
+        <el-col :span="12">
+          <el-form-item label="UoM" prop="unit_name">
+            <el-autocomplete
+              v-model="formAddCatalogue.unit_name"
+              :fetch-suggestions="querySearchUnit"
+              placeholder="Cari UOM"
+              class="w-full"
+              :trigger-on-focus="false"
+              @select="handleSelectUnit"
+            />
+          </el-form-item>
+        </el-col>
+      </el-row>
+
+      <el-row :gutter="20">
+        <el-col :span="12">
+          <el-form-item label="Harga" prop="price">
+            <el-input
+              v-model="formAddCatalogue.price"
+              class="mb-0"
+              inputmode="decimal"
+              placeholder="Harga"
+              :formatter="(value: any) => `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
+              :parser="(value: any) => value.replace(/\Rp\s?|(,*)/g, '')"
+            />
+          </el-form-item>
+        </el-col>
+
+        <el-col :span="12">
+          <el-form-item label="Total">
+            <el-input :model-value="currency(totalCataloguePrice)" readonly />
+          </el-form-item>
+        </el-col>
+      </el-row>
+    </el-form>
+
+    <template #footer>
+      <el-button @click="visibleModalAddCatalogue = false"> Batal </el-button>
+
+      <el-button type="primary" @click="handleSaveCatalogueItem">
+        Simpan
+      </el-button>
+    </template>
+  </el-dialog>
 </template>
 
 <script lang="tsx" setup>
 import {
   Delete,
   Plus,
-  RemoveFilled,
+  Picture,
   Edit,
   WarningFilled,
 } from "@element-plus/icons-vue";
@@ -611,7 +730,7 @@ import {
   type Pricetag,
   type Pricetag_item,
 } from "~/types/pricetag";
-import type { RequestSearch } from "~/types/request_search";
+import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { BaseResponse } from "~/types/response";
 import type { AddressType } from "~/types/address";
@@ -628,7 +747,7 @@ import {
 import ModalAdjustmentTransaction from "~/components/trums/ModalAdjustmentTransaction.vue";
 import AddAdjustment from "~/components/trums/AddAdjustment.vue";
 import { refreshNuxtData } from "#app";
-import { formatLocalDate } from "#imports";
+import { formatLocalDate, getFirstFileUrl } from "#imports";
 import { generateAddressView } from "#imports";
 import type { TermOfPayment } from "~/types/payment_term";
 import AdjustmentTransactionComponent from "~/components/trums/AdjustmentTransactionComponent.vue";
@@ -638,6 +757,8 @@ import FormAddress from "~/components/trums/FormAddress.vue";
 import AutocompleteContact from "~/components/trums/AutocompleteContact.vue";
 import { boolean, string } from "yup";
 import { parseCurrencyID, formatCurrencyID } from "#imports";
+import type { Catalogue } from "~/types/catalogue";
+import type { Unit } from "~/types/unit";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -750,6 +871,7 @@ const deliveryAddresses = ref<any[]>([]);
 // Modals
 const visibleCanvassingModal = ref(false);
 const visiblePricetagModal = ref(false);
+const visibleModalAddCatalogue = ref(false);
 
 // Search data
 const canvassingSearch = ref({ keyword: "" });
@@ -776,6 +898,79 @@ const query_search = ref<RequestSearch>({
   sort: null,
   offset: "1",
   limit: "50",
+});
+
+const formAddCatalogue = reactive({
+  catalogue_id: "",
+  catalogue_name: "",
+  catalogue_version: 0,
+
+  quantity: 1,
+
+  unit_id: "",
+  unit_name: "",
+  unit_version: 0,
+
+  price: 0,
+});
+
+const formAddCatalogueRef = ref<FormInstance>();
+
+const rulesAddCatalogue: FormRules = {
+  catalogue_name: [
+    {
+      required: true,
+      message: "Catalogue wajib dipilih",
+      trigger: "blur",
+    },
+  ],
+  quantity: [
+    {
+      required: true,
+      message: "Qty wajib diisi",
+      trigger: "blur",
+    },
+    {
+      validator: (_rule, value, callback) => {
+        if (Number(value) <= 0) {
+          callback(new Error("Qty harus lebih dari 0"));
+        } else {
+          callback();
+        }
+      },
+      trigger: "blur",
+    },
+  ],
+  unit_name: [
+    {
+      required: true,
+      message: "UoM wajib dipilih",
+      trigger: "blur",
+    },
+  ],
+  price: [
+    {
+      required: true,
+      message: "Harga wajib diisi",
+      trigger: "blur",
+    },
+    {
+      validator: (_rule, value, callback) => {
+        if (Number(value) <= 0) {
+          callback(new Error("Harga harus lebih dari 0"));
+        } else {
+          callback();
+        }
+      },
+      trigger: "blur",
+    },
+  ],
+};
+
+const totalCataloguePrice = computed(() => {
+  return (
+    Number(formAddCatalogue.quantity || 0) * Number(formAddCatalogue.price || 0)
+  );
 });
 
 const query_search_canvasing_item = ref<RequestSearch>({
@@ -813,6 +1008,193 @@ const paymentMethods = [
   { value: PaymentMethod.BankTransfer, label: "Bank Transfer" },
   { value: PaymentMethod.Giro, label: "Giro" },
 ];
+
+const querySearchCatalogue = (
+  queryString: string,
+  cb: (results: any[]) => void
+) => {
+  if (!queryString) {
+    cb([]);
+    return;
+  }
+
+  try {
+    const item_request_catalogue: RequestSearch = {
+      column: [],
+      keyword: queryString,
+      limit: "50",
+      offset: "1",
+      sort: {
+        column: "created_at",
+        order: OrderColumn.ASC,
+      },
+      table: "catalogues",
+    };
+
+    useFetchApi<ResponsePagination<Catalogue[]>>(
+      "/search",
+      "search-catalogues",
+      "post",
+      item_request_catalogue
+    ).then((response) => {
+      if (response.status.value === "success") {
+        const catalogues: Catalogue[] = response.data.value?.data ?? [];
+
+        if (catalogues.length > 0) {
+          const results = catalogues.map((data: Catalogue) => {
+            return { isNew: false, value: `${data.name}`, ...data };
+          });
+          cb([
+            ...results,
+            {
+              isNew: true,
+              value: `${queryString}`,
+              name: `Tambahkan ${queryString}`,
+            },
+          ]);
+        } else {
+          cb([
+            {
+              value: queryString,
+              isNew: true,
+              keyword: queryString,
+            },
+          ]);
+        }
+      } else {
+        cb([]);
+      }
+    });
+  } catch (err) {
+    cb([]);
+  }
+};
+
+const querySearchUnit = (queryString: string, cb: (arg: any) => void) => {
+  try {
+    const params: RequestSearch = {
+      keyword: queryString,
+      table: "units",
+      column: [],
+      sort: {
+        column: "created_at",
+        order: OrderColumn.ASC,
+      },
+      limit: "50",
+      offset: "1",
+      flag: "form",
+    };
+
+    useFetchApi<ResponsePagination<Unit[]>>(
+      "/search",
+      "search-unit",
+      "post",
+      params
+    ).then((response) => {
+      if (response.status.value === "success") {
+        const resultApi: Unit[] = response.data.value?.data ?? [];
+
+        if (resultApi.length > 0) {
+          cb(
+            resultApi.map((value) => ({
+              ...value,
+              value: value.name,
+            }))
+          );
+        } else {
+          cb([
+            {
+              value: `Tambahkan ${queryString}`,
+              label: `${queryString}`,
+            },
+          ]);
+        }
+      } else {
+        cb([]);
+      }
+    });
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.message);
+    cb([]);
+  }
+};
+
+const handleSelectCatalogue = (item: Record<string, any>) => {
+  console.log("handle select", item);
+  const catalogue = item as Catalogue;
+
+  formAddCatalogue.catalogue_id = catalogue.unique_id!;
+  formAddCatalogue.catalogue_name = catalogue.name!;
+  formAddCatalogue.catalogue_version = catalogue.version!;
+};
+
+const handleSelectUnit = (item: Record<string, any>) => {
+  const unit = item as Unit;
+
+  formAddCatalogue.unit_id = unit.unique_id;
+  formAddCatalogue.unit_name = unit.name;
+  formAddCatalogue.unit_version = unit.version;
+};
+
+const handleSaveCatalogueItem = async () => {
+  if (!formAddCatalogueRef.value) return;
+
+  await formAddCatalogueRef.value.validate(async (valid) => {
+    if (!valid) {
+      return;
+    }
+
+    ruleForm.items.push({
+      id: 0,
+      unique_id: "",
+      order_id: "",
+      order_version: 0,
+      vendor_id: "",
+      vendor_version: 0,
+      pr_item_request_trail_id: null,
+      pr_item_request_trail_version: 0,
+      catalogue_name: formAddCatalogue.catalogue_name,
+      catalogue_version: formAddCatalogue.catalogue_version,
+      quantity: formAddCatalogue.quantity,
+      unit_price: 0,
+      po_unit_price: formAddCatalogue.price,
+      display_po_unit_price: formatCurrencyID(formAddCatalogue.price),
+
+      total_price: 0,
+      is_warranty: false,
+      warranty: 0,
+      is_discount: false,
+      delivery_cost: 0,
+      version: 0,
+      unit_id: formAddCatalogue.unit_id,
+      unit_name: formAddCatalogue.unit_name,
+      created_at: 0,
+      created_by: 0,
+      updated_at: 0,
+      status: PurchaseOrderItemStatus.DRAFT,
+    });
+
+    visibleModalAddCatalogue.value = false;
+  });
+};
+
+const resetFormAddCatalogue = () => {
+  formAddCatalogue.catalogue_id = "";
+  formAddCatalogue.catalogue_name = "";
+  formAddCatalogue.catalogue_version = 0;
+
+  formAddCatalogue.quantity = 1;
+
+  formAddCatalogue.unit_id = "";
+  formAddCatalogue.unit_name = "";
+  formAddCatalogue.unit_version = 0;
+
+  formAddCatalogue.price = 0;
+
+  nextTick(() => {
+    formAddCatalogueRef.value?.clearValidate();
+  });
+};
 
 const filteredPricetagItems = await useAsyncData(
   "search-pricetag-item",
@@ -911,6 +1293,12 @@ const calculatedDiscount = computed(() => {
     return (subtotal.value * ruleForm.discount) / 100;
   }
   return ruleForm.discount;
+});
+
+const getDPPNilaiLainView = computed(() => {
+  let dpp = (subtotal.value * 11) / 12;
+
+  return dpp;
 });
 
 const getDPPNilaiLain = computed(() => {

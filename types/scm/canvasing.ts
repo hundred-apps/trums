@@ -10,6 +10,7 @@ import type { DeliveryUnitTime, DiscountUnit, WarrantyUnit } from "./offers";
 import type { AppFile } from "../file";
 import type { TermOfPayment } from "../payment_term";
 import type { People } from "../people";
+import type { Pricetag_item } from "../pricetag";
 
 export enum CanvassingStatus {
   DRAFT = "draft",
@@ -133,6 +134,7 @@ export type CanvassingItem = {
   equivalent_id: string | null;
   files?: AppFile[];
   image?: string;
+  expected_delivery?: string;
 };
 
 export type CanvassingVendor = {
@@ -174,13 +176,18 @@ export type CanvassingVendor = {
   children?: CanvassingVendor[];
   taxes: CanvassingVendorTax[];
   profit: number;
+  profit_nominal?: number;
+  profit_percent?: number;
   profit_unit: "percent" | "amount";
   fee: number;
+  fee_nominal?: number;
+  fee_percent?: number;
   fee_unit: "percent" | "amount";
   ongkir: number;
   ongkir_unit: "percent" | "amount";
   reference_transaction: ReferenceTransactionAdjustment[];
   files?: AppFile[];
+  expected_delivery?: string;
 };
 
 export type CanvassingVendorTax = {
@@ -210,6 +217,8 @@ export type CanvassingForm = {
   address_id?: string;
   address_version?: number;
   address_view?: string;
+  expired_price_view?: string;
+  expired_price?: number;
 };
 
 export type CanvasingVendorView = {
@@ -267,11 +276,13 @@ export type CanvassingItemForm = {
   ongkir_nominal?: number;
   pricetag_item_id: string;
   pricetag_item_version: number;
+  pricetag_item_data?: Pricetag_item;
   contacts_fee: ReferenceTransactionAdjustment[];
   checked?: boolean;
   has_different_unit?: boolean;
   files?: UploadUserFile[];
   tmp_child_selected?: string;
+  expected_delivery?: string;
 };
 
 export type CanvassingItemVendorSummery = {

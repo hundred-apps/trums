@@ -116,22 +116,47 @@
           </div>
         </el-form-item>
       </div>
-      <el-form-item
-        prop="ruleFormDialogAddItem.total_price"
-        :label="`Total`"
-        class="form-dialog"
-        :disabled="true"
-      >
-        <el-input
-          v-model="ruleFormDialogAddItem.total_price"
-          class="mb-0"
-          inputmode="decimal"
-          placeholder="Harga"
+      <div class="flex gap-2">
+        <el-form-item
+          prop="ruleFormDialogAddItem.total_price"
+          :label="`Total`"
+          class="form-dialog w-full"
           :disabled="true"
-          :formatter="(value: any) => `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
-          :parser="(value: any) => value.replace(/\Rp\s?|(,*)/g, '')"
-        />
-      </el-form-item>
+        >
+          <el-input
+            v-model="ruleFormDialogAddItem.total_price"
+            class="mb-0"
+            inputmode="decimal"
+            placeholder="Harga"
+            :disabled="true"
+            :formatter="(value: any) => `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
+            :parser="(value: any) => value.replace(/\Rp\s?|(,*)/g, '')"
+          />
+        </el-form-item>
+        <el-form-item
+          prop="ruleFormDialogAddItem.status_item"
+          :label="`Ketersediaan`"
+          class="form-dialog w-full"
+          :disabled="true"
+        >
+          <el-select
+            class="text-sm"
+            v-model="ruleFormDialogAddItem.status_item"
+            placeholder="Pilih Ketersedian Barang"
+          >
+            <el-option
+              label="Ready Stok"
+              class="text-sm"
+              :value="PricetagItemStatus.READY_STOCK"
+            />
+            <el-option
+              label="Custom"
+              :value="PricetagItemStatus.CUSTOM"
+              class="text-sm"
+            />
+          </el-select>
+        </el-form-item>
+      </div>
 
       <el-form-item
         :prop="'ruleFormDialogAddItem.garansi'"
@@ -144,6 +169,17 @@
           class="mb-0"
           inputmode="decimal"
         />
+      </el-form-item>
+
+      <el-form-item label="Pengiriman" prop="delivery">
+        <el-radio-group v-model="ruleFormDialogAddItem.delivery">
+          <el-radio :value="DeliveryMethod.DIKIRIM" size="small">{{
+            getDeliveryMethodLabel(DeliveryMethod.DIKIRIM)
+          }}</el-radio>
+          <el-radio :value="DeliveryMethod.PICKUP" size="small">{{
+            getDeliveryMethodLabel(DeliveryMethod.PICKUP)
+          }}</el-radio>
+        </el-radio-group>
       </el-form-item>
 
       <el-form-item
@@ -220,7 +256,12 @@ import type {
 } from "element-plus";
 import type { Catalogue } from "~/types/catalogue";
 import type { ItemSearch } from "~/types/item_search";
-import type { Pricetag_item } from "~/types/pricetag";
+import {
+  DeliveryMethod,
+  getDeliveryMethodLabel,
+  PricetagItemStatus,
+  type Pricetag_item,
+} from "~/types/pricetag";
 import type { BaseResponse } from "~/types/response";
 import type { ResponsePagination } from "~/types/response_pagination";
 import { getFirstFileUrl } from "#imports";
@@ -289,6 +330,8 @@ const getDefaultForm = (): Pricetag_item => ({
   total_price: 0,
   display_total_price: formatCurrencyID(0),
   garansi: 0,
+  status_item: PricetagItemStatus.READY_STOCK,
+  delivery: DeliveryMethod.DIKIRIM,
 });
 
 const ruleFormDialogAddItem = reactive<Pricetag_item>(getDefaultForm());

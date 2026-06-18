@@ -57,10 +57,43 @@ export type Pricetag = {
   reference_transaction_adjustment?: ReferenceTransactionAdjustment[];
 };
 
+export enum PricetagItemStatus {
+  READY_STOCK = "ready",
+  INDENT = "indent",
+  CUSTOM = "custom",
+}
+
+export function getStatusItemLabel(status: PricetagItemStatus) {
+  switch (status) {
+    case PricetagItemStatus.CUSTOM:
+      return "Custom";
+    case PricetagItemStatus.INDENT:
+      return "Indent";
+    case PricetagItemStatus.READY_STOCK:
+      return "Ready";
+  }
+}
+
 export type StatisticPricetag = {
   total_pricetag: number;
   total_vendor: number;
 };
+
+export enum DeliveryMethod {
+  PICKUP = "pickup",
+  DIKIRIM = "dikirim",
+}
+
+export function getDeliveryMethodLabel(method: DeliveryMethod) {
+  switch (method) {
+    case DeliveryMethod.DIKIRIM:
+      return "Dikirim";
+    case DeliveryMethod.PICKUP:
+      return "Pickup";
+    default:
+      return "";
+  }
+}
 
 export type Pricetag_item = {
   item_name?: string;
@@ -93,6 +126,8 @@ export type Pricetag_item = {
   display_total_price?: string;
   reference_transaction?: ReferenceTransactionAdjustment[];
   garansi?: number;
+  status_item?: PricetagItemStatus;
+  delivery?: DeliveryMethod;
 };
 
 export type Pricetag_condition = {

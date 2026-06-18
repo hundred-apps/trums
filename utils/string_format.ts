@@ -38,3 +38,18 @@ export function capitalizeWords(str: string) {
 export const formattedText = (text: string) => {
   return text.replace(/\n/g, "<br>");
 };
+
+export const extractDescription = (note: string) => {
+  let message = note;
+
+  // Ganti newline menjadi <br>
+  message = message.replace(/\r?\n/g, "<br>");
+
+  // Ubah URL menjadi link
+  message = message.replace(
+    /(https?:\/\/[^\s<]+)/g,
+    '<a href="$1" target="_blank" rel="noopener noreferrer" class="text-blue-500 underline">$1</a>'
+  );
+
+  return message;
+};

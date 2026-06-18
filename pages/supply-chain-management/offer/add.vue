@@ -6,7 +6,11 @@
           <span class="text-large font-600 mr-3"> Buat Penawaran </span>
         </template>
       </el-page-header>
-      <AddPriceTagComponent @submit="onSubmit" :data="ruleForm" />
+      <AddPriceTagComponent
+        v-if="!loading"
+        @submit="onSubmit"
+        :data="ruleForm"
+      />
     </div>
   </TrumsWrapper>
 </template>
@@ -19,6 +23,7 @@ import {
   Warning,
 } from "@element-plus/icons-vue";
 import {
+  dayjs,
   ElCheckbox,
   ElIcon,
   ElPopover,
@@ -63,6 +68,8 @@ import PhotoWallUploads from "~/components/trums/PhotoWallUploads.vue";
 import CatalogueAdd from "~/components/trums/CatalogueAdd.vue";
 import { getFirstFileUrl } from "#imports";
 import AddPriceTagComponent from "~/components/trums/AddPriceTagComponent.vue";
+import type { ReferenceTransactionAdjustment } from "~/types/attribute_adjustment";
+import type { TermOfPayment } from "~/types/payment_term";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -101,18 +108,23 @@ const route = useRoute();
 const canvassing_id = computed(() => route.query.canvassing_id as string);
 const id = computed(() => route.query.id as string);
 
+const references = ref<ReferenceTransactionAdjustment[]>([]);
+const termOfPayments = ref<TermOfPayment[]>([]);
+
 const fileList = ref<UploadUserFile[]>([]);
 const formSize = ref<ComponentSize>("default");
 const ruleFormRef = ref<FormInstance>();
+const oneMonthLater = new Date();
+oneMonthLater.setMonth(oneMonthLater.getMonth() + 1);
 const ruleForm = reactive<Pricetag>({
   code: "",
   unique_id: "",
   name: "",
   location_id: "",
   start_date: Date.now(),
-  end_date: Date.now(),
-  start_date_view: "",
-  end_date_view: "",
+  end_date: dayjs(oneMonthLater).unix(),
+  start_date_view: dayjs().format("YYYY-MM-DD"),
+  end_date_view: dayjs().add(1, "month").format("YYYY-MM-DD"),
   owner_id: "",
   created_at: 0,
   created_by: "",
@@ -1046,6 +1058,10 @@ const fetchInitialData = async () => {
       ruleForm.start_date = dateViewStart.getTime();
       if (dateViewEnd != null) {
         ruleForm.end_date = dateViewEnd.getTime();
+        ruleForm.end_date_view = "";
+      } else {
+        ruleForm.end_date = 0;
+        ruleForm.end_date_view = "";
       }
       // ruleForm.start_date_view = dateViewStart.toString();
       // if(pricetagEdit.end_date > 0){
@@ -1057,7 +1073,8 @@ const fetchInitialData = async () => {
       ruleForm.created_by = pricetagEdit.created_by;
       ruleForm.updated_at = pricetagEdit.updated_at;
       ruleForm.version = pricetagEdit.version;
-
+      ruleForm.note = pricetagEdit.note;
+      ruleForm.payment_terms = pricetagEdit.payment_terms || [];
       const itemPricetag: Pricetag_item[] = await getItemPricetag();
 
       ruleForm.pricetag_item = itemPricetag.map((value) => ({
@@ -1103,12 +1120,30 @@ const fetchInitialData = async () => {
         // initialSpecialPrice();
       });
 
+      references.value = (
+        pricetagEdit.reference_transaction_adjustment ?? []
+      ).map((ref) => ({
+        ...ref,
+        adjustment: ref.adjustments_transaction,
+      }));
+
+      ruleForm.reference_transaction_adjustment = (
+        pricetagEdit.reference_transaction_adjustment ?? []
+      ).map((ref) => ({
+        ...ref,
+        adjustment: ref.adjustments_transaction,
+      }));
+
+      termOfPayments.value = pricetagEdit.payment_terms ?? [];
+
       fileList.value = pricetagEdit.files.map((file: AppFile) => ({
         name: file.filename_original || "",
         url: `${baseImageURL}${file.image_path}/${file.filename}`,
         // status: 'success', // status penting untuk menunjukkan file sudah terupload
         // response: file, // simpan response original jika diperlukan
       }));
+
+      console.log("data to edit", ruleForm);
     }
   } catch (error: any) {
     ElMessage.error(`${error.response?.message ?? error}`);

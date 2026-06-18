@@ -264,6 +264,7 @@
     @create-new="visibleModalNewAdjustment = true"
     :data="adjustmentTransactions.data?.value?.data ?? []"
     :search-params="querySearchAdjustmentTransaction"
+    @on-search="onSearch"
   />
 
   <el-dialog
@@ -484,6 +485,10 @@ const onIncExcChange = (
       }
     }
   });
+};
+
+const onSearch = (val: string) => {
+  querySearchAdjustmentTransaction.value.keyword = val;
 };
 
 watch(

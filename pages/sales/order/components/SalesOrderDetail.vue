@@ -111,17 +111,28 @@
         </div>
       </div>
 
-      <el-descriptions title="Informasi Tambahan">
-        <el-descriptions-item label="">
+      <h1 class="font-bold">Informasi Tambahan</h1>
+      <div
+        class="text-sm mt-1"
+        v-if="purchaseOrderData?.additional_information"
+        v-html="
+          `${extractDescription(purchaseOrderData?.additional_information)}`
+        "
+      ></div>
+      <span v-else class="text-sm text-gray-400"
+        >Tidak ada informasi tambahan</span
+      >
+      <!-- <el-descriptions title="Informasi Tambahan">
+        <el-descriptions-item label="Tidak ada informasi tambahan">
           <div
+            v-if="purchaseOrderData?.additional_information"
             v-html="
-              `${formattedText(
-                purchaseOrderData?.additional_information ?? ''
-              )}`
+              `${formattedText(purchaseOrderData?.additional_information)}`
             "
           ></div>
+          <div v-else>Tidak ada informasi tambahan</div>
         </el-descriptions-item>
-      </el-descriptions>
+      </el-descriptions> -->
     </el-card>
 
     <el-card class="mb-3" shadow="hover">
@@ -373,6 +384,7 @@ import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
 import { currencyWithoutSymbol } from "#imports";
 import type { Permission } from "~/types/menu";
+import { extractDescription } from "#imports";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -894,7 +906,7 @@ const getDPPNilaiLain = computed(() => {
   return dpp;
 });
 const getDPPNilaiLainView = computed(() => {
-  let dpp = ((purchaseOrderData.value?.total_price ?? 0) * 11) / 12;
+  let dpp = (subtotal.value * 11) / 12;
   // (purchaseOrderData.value?.reference_transaction ?? []).forEach((element) => {
   //   if (
   //     element.adjustments_transaction?.category == "tax" &&
