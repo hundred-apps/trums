@@ -154,6 +154,14 @@
         </div>
       </div>
 
+      <h5 class="font-bold text-black text-1xl mt-6">Alamat Pengiriman</h5>
+      <div class="text-sm mt-2">
+        ({{ canvassingData?.address?.address_name }})
+        <div class="flex flex-col">
+          <span>{{ canvassingData?.address?.street }}</span>
+          <span>{{ generateAddressViewName(canvassingData?.address!) }}</span>
+        </div>
+      </div>
       <h5 class="font-bold text-black text-1xl mt-6">Lampiran</h5>
       <div v-for="(file, key) in canvassingData?.files" :key="key">
         <NuxtLink
@@ -1169,6 +1177,7 @@ import AddAdjustment from "~/components/trums/AddAdjustment.vue";
 import type { Permission } from "~/types/menu";
 import { canAccess, currency, currencyWithoutSymbol } from "#imports";
 import FormAddress from "~/components/trums/FormAddress.vue";
+import { generateAddressViewName } from "#imports";
 import {
   TermOfPaymentReference,
   type TermOfPayment,
