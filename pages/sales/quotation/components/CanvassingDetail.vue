@@ -115,19 +115,12 @@
       <div class="flex gap-3 my-3">
         <div class="flex-1">
           <el-descriptions title="" :column="1" size="large" border>
-            <el-descriptions-item label="Canvassing Code">
-              {{ canvassingData?.unique_code || "-" }}
-            </el-descriptions-item>
-            <el-descriptions-item label="Source Document">
+            <el-descriptions-item label="No Ref">
               {{ canvassingData?.source_document || "-" }}
             </el-descriptions-item>
-            <el-descriptions-item label="Description">
+            <el-descriptions-item label="Deskripsi">
               {{ canvassingData?.description || "-" }}
             </el-descriptions-item>
-          </el-descriptions>
-        </div>
-        <div class="flex-1">
-          <el-descriptions title="" :column="1" size="large" border>
             <el-descriptions-item
               v-if="canvassingData?.source"
               label="Diminta Oleh"
@@ -139,6 +132,13 @@
                 {{ canvassingData?.source?.request_to?.name ?? "-" }}
               </p>
             </el-descriptions-item>
+          </el-descriptions>
+        </div>
+        <div class="flex-1">
+          <el-descriptions title="" :column="1" size="large" border>
+            <el-descriptions-item v-if="canvassingData?.source" label="PIC">
+              {{ canvassingData?.source?.request_by?.name ?? "-" }}
+            </el-descriptions-item>
             <el-descriptions-item label="Status">
               <div v-if="canvassingData">
                 <el-tag :type="getStatusTagType(canvassingData.status)">
@@ -147,8 +147,14 @@
               </div>
               <span v-else>-</span>
             </el-descriptions-item>
-            <el-descriptions-item v-if="canvassingData?.source" label="PIC">
-              {{ canvassingData?.source?.request_by?.name ?? "-" }}
+            <el-descriptions-item label="Berlaku Hingga">
+              {{
+                canvassingData?.expired_price
+                  ? dayjs
+                      .unix(canvassingData?.expired_price)
+                      .format("YYYY-MM-DD")
+                  : ""
+              }}
             </el-descriptions-item>
           </el-descriptions>
         </div>

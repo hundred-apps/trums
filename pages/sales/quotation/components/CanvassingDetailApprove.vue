@@ -136,62 +136,47 @@
 
       <div :class="`flex ${isMobile ? 'flex-col' : ''} gap-3 my-3`">
         <div class="flex-1">
-          <el-descriptions
-            title=""
-            :column="1"
-            size="default"
-            :border="isMobile ? false : true"
-          >
-            <el-descriptions-item
-              :label-width="isMobile ? 130 : 0"
-              label="Source Document"
-            >
+          <el-descriptions title="" :column="1" size="large" border>
+            <el-descriptions-item label="No Ref">
               {{ canvassingData?.source_document || "-" }}
             </el-descriptions-item>
-            <el-descriptions-item
-              :label-width="isMobile ? 130 : 0"
-              label="Description"
-            >
+            <el-descriptions-item label="Deskripsi">
               {{ canvassingData?.description || "-" }}
             </el-descriptions-item>
-          </el-descriptions>
-        </div>
-        <div class="flex-1">
-          <el-descriptions
-            title=""
-            :column="1"
-            size="default"
-            :border="isMobile ? false : true"
-          >
             <el-descriptions-item
               v-if="canvassingData?.source"
               label="Diminta Oleh"
-              :label-width="isMobile ? 130 : 0"
             >
-              <span
+              <p
                 class="text-blue-600 cursor-pointer"
                 @click="() => (dialogCustomerOverview = true)"
               >
                 {{ canvassingData?.source?.request_to?.name ?? "-" }}
-              </span>
+              </p>
             </el-descriptions-item>
-
-            <el-descriptions-item
-              :label-width="isMobile ? 130 : 0"
-              v-if="canvassingData?.source"
-              label="PIC"
-            >
+          </el-descriptions>
+        </div>
+        <div class="flex-1">
+          <el-descriptions title="" :column="1" size="large" border>
+            <el-descriptions-item v-if="canvassingData?.source" label="PIC">
               {{ canvassingData?.source?.request_by?.name ?? "-" }}
             </el-descriptions-item>
-            <el-descriptions-item
-              :label-width="isMobile ? 130 : 0"
-              label="Approval Note"
-              v-if="
-                canvassingData?.status == CanvassingStatus.DONE ||
-                canvassingData?.status == CanvassingStatus.CANCEL
-              "
-            >
-              {{ canvassingData?.note || "" }}
+            <el-descriptions-item label="Status">
+              <div v-if="canvassingData">
+                <el-tag :type="getStatusTagType(canvassingData.status)">
+                  {{ formatStatus(canvassingData.status) }}
+                </el-tag>
+              </div>
+              <span v-else>-</span>
+            </el-descriptions-item>
+            <el-descriptions-item label="Berlaku Hingga">
+              {{
+                canvassingData?.expired_price
+                  ? dayjs
+                      .unix(canvassingData?.expired_price)
+                      .format("YYYY-MM-DD")
+                  : ""
+              }}
             </el-descriptions-item>
           </el-descriptions>
         </div>
@@ -405,9 +390,7 @@
 
         <el-table-column :label="`Fee`">
           <template #default="{ row }">
-            {{
-              row.type == "percent" ? row.amount + "%" : currency(row.amount)
-            }}
+            {{ row.type == "percent" ? row.value + "%" : currency(row.amount) }}
           </template>
         </el-table-column>
       </el-table>
@@ -1127,6 +1110,7 @@ import { safePercent } from "#imports";
 import OfferDetail from "../../offer/components/OfferDetail.vue";
 import { generateAddressView } from "#imports";
 import CustomerOverview from "~/pages/contact-management/contacts/components/CustomerOverview.vue";
+import { dayjs } from "element-plus";
 
 const { isMobile } = useDevice();
 
@@ -2667,7 +2651,22 @@ const initialCanvassing = (data: Canvassing) => {
   contactsFee.value = [];
   (canvassingData.value.reference_transaction ?? []).forEach((element) => {
     if (element.party_type == PartyType.CONTACT) {
-      contactsFee.value.push(element);
+      if (element.type == FeeType.AMOUNT) {
+        const amount_nominal = (grandTotal.value / (element.value ?? 0)) * 100;
+        contactsFee.value.push({
+          ...element,
+          amount: element.amount,
+          amount_nominal: element.amount,
+          tmp_amount_input: handleInput(`${element.amount}`),
+        });
+      } else {
+        contactsFee.value.push({
+          ...element,
+          amount: element.amount,
+          amount_nominal: element.amount,
+          tmp_amount_input: `${element.value}`,
+        });
+      }
     }
     if (
       (element.adjustments_transaction?.name ?? "").toLowerCase() !== "fee" &&
