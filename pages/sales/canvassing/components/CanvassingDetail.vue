@@ -347,14 +347,6 @@
         </div>
       </template>
     </el-image-viewer>
-    <FeeDrawer
-      v-model="drawerFeeVisible"
-      :item="selectedItemDrawer"
-      :contacts="contactsFeeToEdit"
-      :adjustment="adjustmentContact!"
-      :readonly="true"
-      @save="() => {}"
-    />
 
     <TrumsDialogPriceTagItem
       :data="stateCanvassingVendorDetail?.item"
@@ -561,7 +553,12 @@ const querySearchAdjustmentTransaction = ref<RequestSearch>({
 
 const adjustmentTransactions = await useFetchApi<
   ResponsePagination<AdjustmentTransaction[]>
->("/search", "search-adjustment", "post", querySearchAdjustmentTransaction);
+>(
+  "/search",
+  "search-adjustment",
+  "post",
+  querySearchAdjustmentTransaction.value
+);
 
 const adjustmentContact = computed(() => {
   const data = adjustmentTransactions.data.value?.data || [];
