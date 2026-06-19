@@ -430,6 +430,32 @@
             </template>
           </el-table-column>
 
+          <el-table-column
+            prop=""
+            label="Ketersediaan"
+            width="150"
+            align="center"
+          >
+            <template #default="{ row }">
+              <p v-if="row.type == 'child'">
+                {{ row.pricetag_item_data.status_item.toUpperCase() }}
+              </p>
+              <p v-else></p>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop=""
+            label="Pengiriman"
+            width="150"
+            align="center"
+          >
+            <template #default="{ row }">
+              <p v-if="row.type == 'child'">
+                {{ row.pricetag_item_data.delivery.toUpperCase() }}
+              </p>
+              <p v-else></p>
+            </template>
+          </el-table-column>
           <el-table-column prop="sn" label="SN/PN" width="150">
             <template #default="{ row }">
               {{ row.sn ?? "N/A" }}
@@ -584,7 +610,7 @@
                   >
                 </el-descriptions-item>
                 <el-descriptions-item label="Berlaku Hingga">
-                  {{ dayjs.unix(vendor.end_date).format('YYYY-MM-DD') }}
+                  {{ dayjs.unix(vendor.end_date).format("YYYY-MM-DD") }}
                 </el-descriptions-item>
                 <el-descriptions-item label="Keterangan">
                   {{ vendor?.note ?? "Tidak Ada Keterangan" }}
@@ -1118,7 +1144,11 @@
       </el-table>
     </el-dialog>
 
-    <el-dialog v-model="offerDialogState" title="Detail Penawaran Vendor">
+    <el-dialog
+      v-model="offerDialogState"
+      title="Detail Penawaran Vendor"
+      width="80%"
+    >
       <OfferDetail
         :data-interface="{
           code: 200,
@@ -1213,7 +1243,7 @@ definePageMeta({
   name: "Quotation Component Approve",
 });
 
-const {isMobile} = useDevice();
+const { isMobile } = useDevice();
 
 const router = useRouter();
 const route = useRoute();
@@ -2877,6 +2907,7 @@ const initialCanvassing = (data: Canvassing) => {
             ongkir_unit: child.ongkir_unit,
             ongkir_nominal: child.ongkir,
             pricetag_item_id: child.pricetag_item_id ?? "",
+            pricetag_item_data: child.pricetag_item,
             pricetag_item_version: child.pricetag_item_version ?? 0,
             contacts_fee: (child.reference_transaction ?? []).filter(
               (value) => value.party_type == PartyType.CONTACT
@@ -2985,6 +3016,7 @@ const initialCanvassing = (data: Canvassing) => {
           ongkir: child.ongkir,
           ongkir_unit: child.ongkir_unit,
           pricetag_item_id: child.pricetag_item_id ?? "",
+          pricetag_item_data: child.pricetag_item,
           pricetag_item_version: child.pricetag_item_version ?? 0,
           contacts_fee: (child.reference_transaction ?? []).filter(
             (value) => value.party_type == PartyType.CONTACT

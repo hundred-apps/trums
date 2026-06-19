@@ -145,6 +145,7 @@ export type CanvassingVendor = {
   canvassing_item_id: string;
   canvassing_item?: CanvassingItem;
   pricetag_item_id: string | null;
+  pricetag_item: Pricetag_item;
   vendor_id: string | null;
   vendor?: Contact;
   pricetag_item_version: number;

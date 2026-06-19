@@ -2145,8 +2145,10 @@ watch(
 const netProfitForBuying = computed(() => {
   let fee = 0;
 
-  if (adjustmentTransactionFeeTotal.value) {
-    console.log("fee satuan", adjustmentTransactionFeeTotal.value.type);
+  if (
+    adjustmentTransactionFeeTotal.value &&
+    adjustmentTransactionFeeTotal.value.reference_id != ""
+  ) {
     if (adjustmentTransactionFeeTotal.value.type == FeeType.AMOUNT) {
       fee = adjustmentTransactionFeeTotal.value.amount;
     } else if (adjustmentTransactionFeeTotal.value.type == FeeType.PERCENT) {
@@ -2331,7 +2333,7 @@ const summeryData = computed(() => {
     },
     {
       label: "Total Harga Beli",
-      max: currency(subtotalBuyPrice.value),
+      max: currency(totalBuyingPrice.value),
       beli: "",
       jual: "",
       min: currency(totalBuyingPriceMin.value),
@@ -2400,64 +2402,117 @@ const summeryData = computed(() => {
       )} %`,
     });
   }
+  let fee = 0;
+  if (
+    adjustmentTransactionFeeTotal.value.type == FeeType.AMOUNT &&
+    adjustmentTransactionFeeTotal.value.reference_id != ""
+  ) {
+    fee = adjustmentTransactionFeeTotal.value.amount;
+  } else if (
+    adjustmentTransactionFeeTotal.value.type == FeeType.PERCENT &&
+    adjustmentTransactionFeeTotal.value.reference_id != ""
+  ) {
+    fee = (grandTotal.value * adjustmentTransactionFeeTotal.value.amount) / 100;
+  }
+
+  if (adjustmentTransactionFeeTotal.value.reference_id != "") {
+    tableData.push({
+      label: adjustmentTransactionFeeTotal.value.adjustments_transaction?.name,
+      max: currency(fee),
+      beli: `${safePercent(fee ?? 0, totalBuyingPrice.value)} %`,
+      jual: `${safePercent(fee ?? 0, grandTotal.value)} %`,
+      min: currency(fee ?? 0),
+      beliMin: `${safePercent(fee ?? 0, totalBuyingPriceMin.value)} %`,
+      jualMin: `${safePercent(fee ?? 0, grandTotal.value)} %`,
+      selected: currency(fee ?? 0),
+      selectedBeli: `${safePercent(
+        fee ?? 0,
+        totalBuyingPriceSelected.value
+      )} %`,
+      selectedJual: `${safePercent(fee ?? 0, grandTotal.value)} %`,
+    });
+  }
 
   references.value.forEach((element) => {
-    tableData.push({
-      label: element.adjustments_transaction?.name
-        ? element.adjustments_transaction?.name
-        : element.adjustment?.name
-        ? element.adjustment?.name
-        : "-",
-      max: currency(displayAmount(element, grandTotal.value)),
-      beli: `${safePercent(
-        displayAmount(element, grandTotal.value),
-        totalBuyingPrice.value
-      )}  %`,
-      jual: `${safePercent(
-        displayAmount(element, grandTotal.value),
-        grandTotal.value
-      )}  %`,
-      min: currency(displayAmount(element, totalBuyingPriceMin.value)),
-      beliMin: `${safePercent(
-        displayAmount(element, grandTotal.value),
-        totalBuyingPriceMin.value
-      )}  %`,
-      jualMin: `${safePercent(
-        displayAmount(element, grandTotal.value),
-        grandTotal.value
-      )}  %`,
-      selected: currency(displayAmount(element, grandTotal.value)),
-      selectedBeli: `${safePercent(
-        displayAmount(element, grandTotal.value),
-        totalBuyingPriceSelected.value
-      )}  %`,
-      selectedJual: `${safePercent(
-        displayAmount(element, grandTotal.value),
-        grandTotal.value
-      )}  %`,
-    });
+    if (
+      element.adjustments_transaction?.name.toLowerCase() != "fee" &&
+      element.party_type != PartyType.CONTACT
+    ) {
+      console.log("detail reference", element);
+      tableData.push({
+        label: element.adjustments_transaction?.name
+          ? element.adjustments_transaction?.name
+          : element.adjustment?.name
+          ? element.adjustment?.name
+          : "-",
+        max: currency(displayAmount(element, grandTotal.value)),
+        beli: `${safePercent(
+          displayAmount(element, grandTotal.value),
+          totalBuyingPrice.value
+        )}  %`,
+        jual: `${safePercent(
+          displayAmount(element, grandTotal.value),
+          grandTotal.value
+        )}  %`,
+        min: currency(displayAmount(element, totalBuyingPriceMin.value)),
+        beliMin: `${safePercent(
+          displayAmount(element, grandTotal.value),
+          totalBuyingPriceMin.value
+        )}  %`,
+        jualMin: `${safePercent(
+          displayAmount(element, grandTotal.value),
+          grandTotal.value
+        )}  %`,
+        selected: currency(displayAmount(element, grandTotal.value)),
+        selectedBeli: `${safePercent(
+          displayAmount(element, grandTotal.value),
+          totalBuyingPriceSelected.value
+        )}  %`,
+        selectedJual: `${safePercent(
+          displayAmount(element, grandTotal.value),
+          grandTotal.value
+        )}  %`,
+      });
+    }
   });
+
+  const totalFeeRecive = (canvassingData.value?.reference_transaction || [])
+    .filter(
+      (ref) =>
+        ref.adjustments_transaction?.name.toLowerCase() == "fee" &&
+        ref.party_type == PartyType.CONTACT
+    )
+    .reduce((acc, sum) => acc + (sum.amount ?? 0), 0);
+
+  if (totalFeeRecive > 0) {
+    tableData.push({
+      label: "Total Penerima Fee",
+      max: currency(totalFeeRecive),
+      beli: `${safePercent(totalFeeRecive, totalBuyingPrice.value)} %`,
+      jual: `${safePercent(totalFeeRecive, grandTotal.value)} %`,
+      min: currency(0),
+      beliMin: ``,
+      jualMin: ``,
+    });
+  }
+
+  const netProfit = netProfitForBuying.value - totalFeeRecive;
+  const netProfitSelected = netProfitForBuyingSelected.value - totalFeeRecive;
 
   tableData.push({
     label: "Net Profit",
-    max: currency(netProfitForBuying.value),
-    beli: `${safePercent(netProfitForBuying.value, subtotalBuyPrice.value)} %`,
-    jual: `${safePercent(netProfitForBuying.value, grandTotal.value)} %`,
+    max: currency(netProfit),
+    beli: `${safePercent(netProfit, totalBuyingPrice.value)} %`,
+    jual: `${safePercent(netProfit, grandTotal.value)} %`,
     min: currency(netProfitForBuyingMin.value),
-    beliMin: `${safePercent(
-      netProfitForBuying.value,
-      totalBuyingPriceMin.value
-    )} %`,
-    jualMin: `${safePercent(netProfitForBuying.value, grandTotal.value)} %`,
-    selected: currency(netProfitForBuyingSelected.value),
+    beliMin: `${safePercent(netProfit, totalBuyingPriceMin.value)} %`,
+    jualMin: `${safePercent(netProfit, grandTotal.value)} %`,
+    selected: currency(netProfitSelected),
     selectedBeli: `${safePercent(
-      netProfitForBuyingSelected.value,
+      netProfitSelected,
       totalBuyingPriceSelected.value
     )} %`,
-    selectedJual: `${safePercent(
-      netProfitForBuyingSelected.value,
-      grandTotal.value
-    )} %`,
+    selectedJual: `${safePercent(netProfitSelected, grandTotal.value)} %`,
   });
 
   return tableData;
@@ -2614,21 +2669,12 @@ const initialCanvassing = (data: Canvassing) => {
     if (element.party_type == PartyType.CONTACT) {
       contactsFee.value.push(element);
     }
-
     if (
+      (element.adjustments_transaction?.name ?? "").toLowerCase() !== "fee" &&
       (element.adjustments_transaction?.name ?? "").toLowerCase() !==
-      "ongkos kirim"
+        "ongkos kirim"
     ) {
-      if (
-        (element.adjustments_transaction?.name ?? "").toLowerCase() == "fee" &&
-        element.party == null
-      ) {
-        references.value.push(element);
-      } else if (
-        (element.adjustments_transaction?.name ?? "").toLowerCase() !== "fee"
-      ) {
-        references.value.push(element);
-      }
+      references.value.push(element);
     }
 
     if (
@@ -2638,124 +2684,123 @@ const initialCanvassing = (data: Canvassing) => {
       adjustmentTransactionOngkirTotal.value = element;
     }
 
-    if ((element.adjustments_transaction?.name ?? "").toLowerCase() == "fee") {
+    if (
+      (element.adjustments_transaction?.name ?? "").toLowerCase() == "fee" &&
+      element.party_type != PartyType.CONTACT
+    ) {
       adjustmentTransactionFeeTotal.value = element;
-      console.log(
-        "adjustmentTransactionFeeTotal",
-        adjustmentTransactionFeeTotal.value
-      );
     }
   });
 
   (canvassingData.value.canvassing_item ?? []).forEach((element) => {
-    item_canvassing.value.push({
-      index: `${element.unique_id}`,
-      canvassing_id: element.canvassing_id,
-      canvaasing_version: element.canvaasing_version,
-      item_request_trail_version: element.item_request_trail_version,
-      item_request_trail_id: element.item_request_trail_id,
-      unique_id: element.unique_id,
-      vendor_id: null,
-      vendor_name: "",
-      unit_id: element.unit_id,
-      unit_name: element.unit_name,
-      unit_version: null,
-      offer_item_id: null,
-      offer_item_version: 0,
-      catalogue_id: element.catalogue_id ?? "",
-      parent_catalogue_id: "",
-      catalogue_name: element.catalogue_name ?? "",
-      sn: element.catalogue?.sn ?? "N/A",
-      quantity: element.quantity ?? 1,
-      unit_price: 0,
-      total_price: sumTotalBuyingPrice(element.canvassing_vendor),
-      total_selling_price: element.total_selling_price ?? 0,
-      status: CanvassingVendorStatus.SUBMITTED,
-      taxes: [],
-      editing: null,
-      type: "parent",
-      type_item: element.type_item,
-      equivalent_id: element.equivalent_id,
-      children: element.canvassing_vendor.map((child) => {
-        return {
-          type_item: child.type_item,
-          equivalent_id: child.equivalent_id,
-          index: `${child.unique_id}`,
-          canvassing_id: null,
-          canvaasing_version: null,
-          item_request_trail_version: null,
-          item_request_trail_id: null,
-          unique_id: child.unique_id,
-          vendor_id: child.vendor_id ?? "",
-          vendor_name: child.vendor?.name ?? "",
-          unit_id: child.unit_id,
-          unit_name: child.unit_name,
-          unit_version: null,
-          offer_item_id: null,
-          offer_item_version: 0,
-          catalogue_id: child.catalogue_id ?? "",
-          parent_catalogue_id: child.catalogue_id,
-          catalogue_name: child.catalogue?.name ?? "",
-          sn: child.catalogue?.sn ?? "",
-          quantity: child.quantity,
-          unit_price: child.unit_price,
-          total_price: child.total_price,
-          total_selling_price: child.total_selling_price ?? 0,
-          status: child.status,
-          checked:
-            child.status == CanvassingVendorStatus.SUBMITTED ? true : false,
-          taxes: [],
-          editing: null,
-          type: "child" as "parent" | "child",
-          children: [],
-          selling_price: child.selling_price ?? 0,
-          profit:
-            child.profit_unit == "percent"
-              ? child.profit
-              : nominalToPercent(child.profit, child.unit_price),
-          profit_unit: child.profit_unit,
-          profit_nominal:
-            child.profit_unit == "percent"
-              ? percentToNominal(child.profit, child.unit_price || 0)
-              : child.profit,
-          fee:
-            child.fee_unit == "percent"
-              ? child.fee
-              : nominalToPercent(child.fee, child.unit_price),
-          fee_unit: child.fee_unit,
-          fee_nominal:
-            child.fee_unit == "percent"
-              ? percentToNominal(child.fee, child.unit_price || 0)
-              : child.fee,
-          ongkir:
-            child.ongkir_unit == "percent"
-              ? child.ongkir
-              : nominalToPercent(child.ongkir, child.unit_price),
-          ongkir_unit: child.ongkir_unit,
-          ongkir_nominal:
-            child.ongkir_unit == "percent"
-              ? percentToNominal(child.ongkir, child.unit_price || 0)
-              : child.ongkir,
-          pricetag_item_id: child.pricetag_item_id ?? "",
-          pricetag_item_version: child.pricetag_item_version ?? 0,
-          contacts_fee: (child.reference_transaction ?? []).filter(
-            (value) => value.party_type == PartyType.CONTACT
-          ),
-        };
-      }),
-      selling_price: element.unit_selling_price,
-      profit: 0,
-      profit_unit: "percent",
-      fee: 0,
-      fee_unit: "percent",
-      ongkir: 0,
-      ongkir_unit: "percent",
-      pricetag_item_id: "",
-      pricetag_item_version: 0,
-      contacts_fee: [],
-    });
+    if (element.type_item !== "equivalent") {
+      const toItemCanvassing = {
+        index: `${element.unique_id}`,
+        canvassing_id: element.canvassing_id,
+        canvaasing_version: element.canvaasing_version,
+        item_request_trail_version: element.item_request_trail_version,
+        item_request_trail_id: element.item_request_trail_id,
+        unique_id: element.unique_id,
+        vendor_id: null,
+        vendor_name: "",
+        unit_id: element.unit_id,
+        unit_name: element.unit_name,
+        unit_version: null,
+        offer_item_id: null,
+        offer_item_version: 0,
+        catalogue_id: element.catalogue_id ?? "",
+        parent_catalogue_id: "",
+        catalogue_name: element.catalogue_name ?? "",
+        sn: element.catalogue?.sn ?? "N/A",
+        quantity: element.quantity ?? 1,
+        unit_price: 0,
+        total_price: 0,
+        total_selling_price: element.total_selling_price ?? 0,
+        status: CanvassingVendorStatus.SUBMITTED,
+        taxes: [],
+        editing: null,
+        type: "parent" as "parent" | "child",
+        type_item: element.type_item,
+        equivalent_id: element.equivalent_id,
+        children: element.canvassing_vendor.map((child) => {
+          return {
+            type_item: child.type_item,
+            equivalent_id: child.equivalent_id,
+            index: `${child.unique_id}`,
+            canvassing_id: null,
+            canvaasing_version: null,
+            item_request_trail_version: null,
+            item_request_trail_id: null,
+            unique_id: child.unique_id,
+            vendor_id: child.vendor_id ?? "",
+            vendor_name: child.vendor?.name ?? "",
+            unit_id: child.unit_id,
+            unit_name: child.unit_name,
+            unit_version: null,
+            offer_item_id: null,
+            offer_item_version: 0,
+            catalogue_id: child.catalogue_id ?? "",
+            parent_catalogue_id: child.catalogue_id,
+            catalogue_name: child.catalogue?.name ?? "",
+            sn: child.catalogue?.sn ?? "",
+            quantity: child.quantity,
+            unit_price: child.unit_price,
+            total_price: child.total_price,
+            total_selling_price: child.total_selling_price ?? 0,
+            status: child.status,
+            checked:
+              child.status == CanvassingVendorStatus.SUBMITTED ? true : false,
+            taxes: [],
+            editing: null,
+            type: "child" as "parent" | "child",
+            children: [],
+            selling_price: child.selling_price ?? 0,
+            profit: child.profit,
+            profit_unit: child.profit_unit,
+            profit_nominal: child.profit_nominal,
+            profit_percent: child.profit_percent,
+            fee: child.fee,
+            fee_unit: child.fee_unit,
+            fee_nominal: child.fee_nominal,
+            fee_percent: child.fee_percent,
+            ongkir: child.ongkir,
+            ongkir_unit: child.ongkir_unit,
+            ongkir_nominal: child.ongkir,
+            pricetag_item_id: child.pricetag_item_id ?? "",
+            pricetag_item_data: child.pricetag_item,
+            pricetag_item_version: child.pricetag_item_version ?? 0,
+            contacts_fee: (child.reference_transaction ?? []).filter(
+              (value) => value.party_type == PartyType.CONTACT
+            ),
+          };
+        }),
+        selling_price: element.unit_selling_price,
+        profit: 0,
+        profit_unit: "percent" as "amount" | "percent",
+        fee: 0,
+        fee_unit: "percent" as "amount" | "percent",
+        ongkir: 0,
+        ongkir_unit: "percent" as "amount" | "percent",
+        pricetag_item_id: "",
+        pricetag_item_version: 0,
+        contacts_fee: [],
+      };
+
+      toItemCanvassing.children.forEach((element) => {
+        if (
+          element.total_selling_price == toItemCanvassing.total_selling_price
+        ) {
+          toItemCanvassing.unit_price = element.unit_price;
+          toItemCanvassing.total_price = element.total_price;
+          toItemCanvassing.selling_price = element.selling_price;
+        }
+      });
+
+      console.log("to item canvassing", toItemCanvassing);
+      item_canvassing.value.push(toItemCanvassing);
+    }
   });
-  console.log("to item canvassing", item_canvassing.value[2]);
+
   const equivalent: CanvassingItemForm[] = [];
 
   (canvassingData.value.canvassing_item ?? []).forEach((element) => {
@@ -2780,13 +2825,7 @@ const initialCanvassing = (data: Canvassing) => {
         sn: element.catalogue?.sn ?? "N/A",
         quantity: element.quantity ?? 1,
         unit_price: 0,
-        total_price: element.canvassing_vendor.reduce((sum, item) => {
-          if (item.status === CanvassingVendorStatus.SELECTED) {
-            return sum + item.total_price;
-          }
-
-          return sum;
-        }, 0),
+        total_price: element.total_selling_price ?? 0,
         total_selling_price: element.total_selling_price ?? 0,
         status: CanvassingVendorStatus.SUBMITTED,
         taxes: [],
@@ -2837,6 +2876,7 @@ const initialCanvassing = (data: Canvassing) => {
           ongkir: child.ongkir,
           ongkir_unit: child.ongkir_unit,
           pricetag_item_id: child.pricetag_item_id ?? "",
+          pricetag_item_data: child.pricetag_item,
           pricetag_item_version: child.pricetag_item_version ?? 0,
           contacts_fee: (child.reference_transaction ?? []).filter(
             (value) => value.party_type == PartyType.CONTACT
@@ -2874,23 +2914,7 @@ const initialCanvassing = (data: Canvassing) => {
     }
   });
 
-  // item_canvassing.value.forEach((parent) => {
-  //   parent.children.forEach((child) => {
-  //     if (child.selling_price == parent.selling_price) {
-  //       parent.unit_price = child.unit_price;
-  //       parent.total_price = child.total_price;
-  //       parent.profit = child.profit;
-  //       parent.profit_nominal = child.profit_nominal;
-  //       parent.profit_unit = child.profit_unit;
-  //       parent.fee = child.fee;
-  //       parent.fee_nominal = child.fee_nominal;
-  //       parent.fee_unit = child.fee_unit;
-  //       parent.ongkir = child.ongkir;
-  //       parent.ongkir_nominal = child.ongkir_nominal;
-  //       parent.ongkir_unit = child.ongkir_unit;
-  //     }
-  //   });
-  // });
+  console.log("fee total", adjustmentTransactionFeeTotal.value);
 
   fetchPriceTagWithItems();
 };

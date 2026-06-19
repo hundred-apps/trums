@@ -183,6 +183,13 @@ watch(
   },
   { deep: true }
 );
+watch(
+  () => props.data,
+  (val) => {
+    termOfPayments.value = val || [];
+  },
+  { deep: true }
+);
 
 onMounted(() => {
   console.log("props.data", props.data);

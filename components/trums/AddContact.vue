@@ -501,7 +501,7 @@ const submit = async (formEl: FormInstance | undefined) => {
         province: value.province,
         country: "indonesia",
         codepos: parseInt(`${value.codepos || 0}`),
-        unique_id: value.unique_id,
+        unique_id: value.unique_id.includes("temp-") ? null : value.unique_id,
       })),
       children: ruleForm.children,
     };
