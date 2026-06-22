@@ -222,6 +222,18 @@
           >{{ file.filename_original }}</NuxtLink
         >
       </div>
+      <div>
+        <h5
+          class="font-bold text-black md:text-md text-xs mt-6 mb-3"
+          v-if="[CanvassingStatus.DONE].includes(canvassingData?.status as CanvassingStatus) && canvassingData?.note"
+        >
+          Catatan Approval
+        </h5>
+        <div
+          class="text-sm"
+          v-html="extractDescription(canvassingData?.note ?? '')"
+        ></div>
+      </div>
     </el-card>
 
     <el-card class="mb-3" shadow="never">
@@ -917,7 +929,11 @@
       </template>
     </el-dialog>
 
-    <el-dialog v-model="offerDialogState" title="Detail Penawaran Vendor">
+    <el-dialog
+      v-model="offerDialogState"
+      title="Detail Penawaran Vendor"
+      width="80%"
+    >
       <OfferDetail
         :data-interface="{
           code: 200,
@@ -1111,6 +1127,7 @@ import OfferDetail from "../../offer/components/OfferDetail.vue";
 import { generateAddressView } from "#imports";
 import CustomerOverview from "~/pages/contact-management/contacts/components/CustomerOverview.vue";
 import { dayjs } from "element-plus";
+import { extractDescription } from "#imports";
 
 const { isMobile } = useDevice();
 

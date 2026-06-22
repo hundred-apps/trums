@@ -578,6 +578,7 @@ const request_search_pricelist_item = ref<RequestSearch>({
     column: "created_at",
     order: OrderColumn.ASC,
   },
+  flag: "form",
 });
 
 const pricelist_item_new = ref<Pricelist_item[]>([]);
@@ -1392,7 +1393,7 @@ const querySearchAsyncInventories = (
 watch(
   () => props.dataInterface.data?.unique_id,
   () => {
-    console.log('data interface', props.dataInterface.data);
+    console.log("data interface", props.dataInterface.data);
     request_search_pricelist_item.value.column = [
       {
         tag_id: [props.dataInterface.data?.unique_id],
