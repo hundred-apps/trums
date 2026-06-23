@@ -18,14 +18,11 @@ export function useApiFetch<T>(url: string, options: any = {}): Promise<T> {
             isRefreshing.value = true;
 
             const newToken = await useRefreshToken();
-
+            console.log("new token", !newToken);
             if (!newToken) {
               isRefreshing.value = false;
-
               window.location.href = "/";
-
               requestQueue.value = [];
-
               return Promise.reject("Unauthorized");
             }
           }

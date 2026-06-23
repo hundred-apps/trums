@@ -136,7 +136,7 @@
             </div>
           </el-form-item>
 
-          <el-form-item prop="end_date" label="">
+          <el-form-item prop="end_date_view" label="">
             <el-date-picker
               v-model="ruleForm.end_date_view"
               type="date"
@@ -1108,7 +1108,7 @@ const rules = reactive<FormRules>({
   to_name: [
     { required: true, message: "Vendor Tidak Boleh Kosong!", trigger: "blur" },
   ],
-  end_date: [
+  end_date_view: [
     {
       type: "date",
       required: true,

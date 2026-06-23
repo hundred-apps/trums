@@ -1135,6 +1135,8 @@ const addToForm = async (val: Inquiry) => {
     }
 
     item_canvassing.value.push(tmp);
+
+    nextItemVendorfield(tmp.index);
   });
 
   visibleModalRequest.value = false;
@@ -1601,13 +1603,13 @@ const onHandleSelectItemAutocompleteItem = async (
               child.pricetag_item_id = selected.unique_id ?? "";
               child.pricetag_item_version = selected.version ?? 0;
             }
+
+            nextItemVendorfield(item.index);
           }
         });
       });
     }
   }
-
-  nextItemVendorfield(itemIndex);
 };
 
 const onHandleSelectItemAutocompleteItemEquivalent = async (
@@ -1972,56 +1974,52 @@ const fetchDataEdit = async () => {
   }
 };
 
-const nextItemVendorfield = (itemIndex: string) => {
+const nextItemVendorfield = (parent_index: string) => {
   item_canvassing.value.forEach((item, parentIndex) => {
-    item.children.forEach((child, index) => {
-      if (child.index == itemIndex) {
-        item_canvassing.value[parentIndex].children.push({
-          image: "",
-          index: `${parentIndex}-${item.children.length + 1}`,
-          type_item: "original",
-          equivalent_id: null,
-          canvassing_id: null,
-          canvaasing_version: null,
-          item_request_trail_version: null,
-          item_request_trail_id: null,
-          unique_id: "",
-          vendor_id: "",
-          vendor_name: "",
-          unit_id: "",
-          unit_name: "",
-          unit_version: null,
-          offer_item_id: null,
-          offer_item_version: 0,
-          catalogue_id: "",
-          parent_catalogue_id: "",
-          catalogue_name: "",
-          sn: "N/A",
-          quantity: item.quantity,
-          unit_price: 0,
-          total_price: 0,
-          status: CanvassingVendorStatus.SUBMITTED,
-          parent_index: index,
-          taxes: [],
-          editing: null,
-          type: "child",
-          children: [],
-          selling_price: 0,
-          total_selling_price: 0,
-          profit: 0,
-          profit_unit: "percent",
-          fee: 0,
-          fee_unit: "percent",
-          ongkir: 0,
-          ongkir_unit: "percent",
-          pricetag_item_id: "",
-          pricetag_item_version: 0,
-          contacts_fee: [],
-        });
-
-        return;
-      }
-    });
+    if (item.index == parent_index) {
+      item_canvassing.value[parentIndex].children.push({
+        image: "",
+        index: `${parentIndex}-${item.children.length + 1}`,
+        type_item: "original",
+        equivalent_id: null,
+        canvassing_id: null,
+        canvaasing_version: null,
+        item_request_trail_version: null,
+        item_request_trail_id: null,
+        unique_id: "",
+        vendor_id: "",
+        vendor_name: "",
+        unit_id: "",
+        unit_name: "",
+        unit_version: null,
+        offer_item_id: null,
+        offer_item_version: 0,
+        catalogue_id: "",
+        parent_catalogue_id: "",
+        catalogue_name: "",
+        sn: "N/A",
+        quantity: item.quantity,
+        unit_price: 0,
+        total_price: 0,
+        status: CanvassingVendorStatus.SUBMITTED,
+        parent_index: parentIndex,
+        taxes: [],
+        editing: null,
+        type: "child",
+        children: [],
+        selling_price: 0,
+        total_selling_price: 0,
+        profit: 0,
+        profit_unit: "percent",
+        fee: 0,
+        fee_unit: "percent",
+        ongkir: 0,
+        ongkir_unit: "percent",
+        pricetag_item_id: "",
+        pricetag_item_version: 0,
+        contacts_fee: [],
+      });
+    }
   });
 };
 

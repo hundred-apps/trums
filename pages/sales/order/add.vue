@@ -363,6 +363,20 @@
           :width="100"
           align="right"
           v-for="ref in references.filter(
+            (value) =>
+              value.adjustment?.operator == 'plus' &&
+              value.adjustment?.category == 'adjustment'
+          )"
+          :key="ref.adjustment_id"
+          :label="ref.adjustment?.name ?? ''"
+          >{{
+            currency(showTransactionAdjustmentValue(ref))
+          }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :width="100"
+          align="right"
+          v-for="ref in references.filter(
             (value) => value.adjustment?.operator == 'minus'
           )"
           :key="ref.adjustment_id"
@@ -381,20 +395,7 @@
           v-if="getDPPNilaiLain > 0"
           >{{ currency(getDPPNilaiLainView) }}</el-descriptions-item
         >
-        <el-descriptions-item
-          :width="100"
-          align="right"
-          v-for="ref in references.filter(
-            (value) =>
-              value.adjustment?.operator == 'plus' &&
-              value.adjustment?.category == 'adjustment'
-          )"
-          :key="ref.adjustment_id"
-          :label="ref.adjustment?.name ?? ''"
-          >{{
-            currency(showTransactionAdjustmentValue(ref))
-          }}</el-descriptions-item
-        >
+
         <el-descriptions-item
           :width="100"
           align="right"
@@ -1277,14 +1278,10 @@ const ppnComponent = computed(() => {
 
 const subtotal = computed(() => {
   const sum = totalPrice.value;
-  console.log("get minus", getMinus.value);
-  return sum - (getMinus.value || 0);
+  return sum + (getPlus.value || 0) - getMinus.value;
 });
 const grandTotal = computed(() => {
-  console.log("subtotal", subtotal);
-  console.log("plus", getPlus.value);
-  console.log("ppn", ppnComponent.value);
-  return subtotal.value + getPlus.value + ppnComponent.value;
+  return subtotal.value + ppnComponent.value;
 });
 
 const calculatedDiscount = computed(() => {
@@ -2004,7 +2001,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           formData.append(`item[${index}][unit_price]`, `${value.unit_price}`);
           formData.append(
             `item[${index}][total_price]`,
-            `${value.quantity * value.unit_price || 0}`
+            `${value.quantity * (value.po_unit_price || 0)}`
           );
           formData.append(
             `item[${index}][po_unit_price]`,

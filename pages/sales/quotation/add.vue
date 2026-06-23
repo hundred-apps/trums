@@ -2410,9 +2410,6 @@ function calculatePricing(
   row: CanvassingItemForm,
   activeField: "profit" | "selling_price"
 ) {
-  const hargaBeli = Number(row.unit_price || 0);
-  if (hargaBeli <= 0) return;
-
   if (row.type == "parent" && activeField == "selling_price") {
     row.children.forEach((child) => {
       if (child.type_item == "original") {
@@ -3788,7 +3785,10 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
       tempo_unit: dataCanvassing.tempo_unit,
       address_id: dataCanvassing.address_id,
       expired_price: dataCanvassing.expired_price,
-      expired_price_view: (dataCanvassing.expired_price ?? 0) > 0 ? dayjs.unix(dataCanvassing.expired_price!).format("YYYY-MM-DD") : '',
+      expired_price_view:
+        (dataCanvassing.expired_price ?? 0) > 0
+          ? dayjs.unix(dataCanvassing.expired_price!).format("YYYY-MM-DD")
+          : "",
       address_view: generateResultSearchAddress(dataCanvassing.address ?? null)
         .name,
     });
@@ -3797,20 +3797,20 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
       ruleForm.status = CanvassingStatus.RAB;
     }
 
-    
     contactsFee.value = [];
     (dataCanvassing.reference_transaction ?? []).forEach((element) => {
       if (element.party_type == PartyType.CONTACT) {
-        console.log('reference transaction', element);
-        if(element.type == FeeType.AMOUNT){
-          const amount_nominal = (grandTotal.value / (element.value ?? 0)) * 100;
+        console.log("reference transaction", element);
+        if (element.type == FeeType.AMOUNT) {
+          const amount_nominal =
+            (grandTotal.value / (element.value ?? 0)) * 100;
           contactsFee.value.push({
             ...element,
             amount: element.amount,
             amount_nominal: element.amount,
             tmp_amount_input: handleInput(`${element.amount}`),
           });
-        }else{
+        } else {
           contactsFee.value.push({
             ...element,
             amount: element.amount,
@@ -3818,8 +3818,8 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
             tmp_amount_input: `${element.value}`,
           });
         }
-        
-// unitFee.value = val == "plus" ? FeeType.AMOUNT : FeeType.PERCENT;
+
+        // unitFee.value = val == "plus" ? FeeType.AMOUNT : FeeType.PERCENT;
         if ((element.type as FeeType) === FeeType.AMOUNT) {
           unitFee.value = FeeType.AMOUNT;
           feeState.value = "plus";
@@ -3870,7 +3870,7 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
       }
     });
 
-    console.log('contact fee', contactsFee.value);
+    console.log("contact fee", contactsFee.value);
 
     payment_terms.value = dataCanvassing.payment_terms ?? [];
 
@@ -3930,8 +3930,12 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
           editing: null,
           type: "child" as "parent" | "child",
           children: [],
-          selling_price: Number(vendor.selling_price == 0 ? vendor.unit_price : vendor.selling_price),
-          total_selling_price: vendor.total_selling_price ? Number(vendor.total_selling_price) : Number(vendor.unit_price) * Number(vendor.quantity),
+          selling_price: Number(
+            vendor.selling_price == 0 ? vendor.unit_price : vendor.selling_price
+          ),
+          total_selling_price: vendor.total_selling_price
+            ? Number(vendor.total_selling_price)
+            : Number(vendor.unit_price) * Number(vendor.quantity),
           profit: vendor.profit,
           profit_nominal: vendor.profit_nominal,
           profit_percent: vendor.profit_percent,
@@ -4211,6 +4215,17 @@ const submit = async (formEl: FormInstance | undefined) => {
     paymentTermError.value = true;
 
     ElMessage.warning("Informasi pembayaran wajib diisi");
+    return;
+  }
+
+  const hasError = item_canvassing.value.some((element) => {
+    return (
+      !element.expected_delivery || element.expected_delivery.trim() === ""
+    );
+  });
+
+  if (hasError) {
+    ElMessage.error("Estimasi pengiriman belum lengkap!");
     return;
   }
 

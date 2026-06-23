@@ -15,6 +15,7 @@
             >Hapus</el-button
           >
           <NuxtLink
+            v-if="purchaseOrderData?.status === PurchaseOrderStatus.DONE"
             :to="`/sales/order/add?id=${purchaseOrderData?.unique_id}`"
             class="el-button el-button--default"
           >
@@ -484,7 +485,6 @@ watch(
         order_id: [newValue?.unique_id],
       },
     ];
-    console.log("newValue ", request_search_po_item.value.column);
   },
   { immediate: true }
 );
@@ -866,7 +866,7 @@ const ppnComponent = computed(() => {
 });
 
 const grandTotal = computed(() => {
-  return subtotal.value + getPlus.value + ppnComponent.value;
+  return subtotal.value + ppnComponent.value;
 });
 
 const totalPrice = computed(() => {
@@ -882,7 +882,7 @@ const totalPrice = computed(() => {
 const subtotal = computed(() => {
   const sum = totalPrice.value;
   console.log("get minus", getMinus.value);
-  return sum - (getMinus.value || 0);
+  return sum + getPlus.value - (getMinus.value || 0);
 });
 
 const getDPPNilaiLain = computed(() => {
@@ -929,11 +929,24 @@ const getDPPNilaiLainView = computed(() => {
 const summeryData = computed(() => {
   const tableData: any[] = [
     {
-      label: "Subtotal",
-      value: currency(subtotal.value),
+      label: "Total Price",
+      value: currency(totalPrice.value),
     },
   ];
-
+  (purchaseOrderData.value?.reference_transaction ?? []).forEach((element) => {
+    if (element.adjustments_transaction?.category != "tax") {
+      tableData.push({
+        label: element.adjustments_transaction?.name
+          ? `${element.adjustments_transaction?.name}`
+          : "-",
+        value: currency(displayAmount(element, subtotal.value)),
+      });
+    }
+  });
+  tableData.push({
+    label: "Subtotal",
+    value: currency(subtotal.value),
+  });
   if (getDPPNilaiLain.value > 0) {
     tableData.push({
       label: "DPP Nilai Lain",
@@ -950,13 +963,6 @@ const summeryData = computed(() => {
           ? `${element.adjustments_transaction?.name}`
           : "-",
         value: currency(displayAmount(element, getDPPNilaiLain.value)),
-      });
-    } else {
-      tableData.push({
-        label: element.adjustments_transaction?.name
-          ? `${element.adjustments_transaction?.name}`
-          : "-",
-        value: currency(displayAmount(element, subtotal.value)),
       });
     }
   });

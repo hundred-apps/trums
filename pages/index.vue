@@ -5,14 +5,14 @@ definePageMeta({
 const { t } = useI18n();
 // const oidc = useOidc();
 const oidc = useOIDC();
-const authStore = useAuthStore();
+const authStore = useAuth();
 
 const login = async () => {
   await oidc.signinRedirect();
 };
 
 onMounted(() => {
-  if (authStore.isAuthenticated) {
+  if (authStore.isAuthenticated.value) {
     window.location.href = "/dashboard";
   }
 });

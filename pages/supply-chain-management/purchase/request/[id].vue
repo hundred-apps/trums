@@ -35,6 +35,13 @@
             <el-icon class="me-2"><CircleCheck /></el-icon> Approve
           </el-button>
           <el-button
+            type="danger"
+            v-if="purchaseRequestData?.status === 'waiting_approval'"
+            @click="declinePurchaseRequest"
+          >
+            <el-icon class="me-2"><CircleCheck /></el-icon> Decline
+          </el-button>
+          <el-button
             type="warning"
             v-if="purchaseRequestData?.status === 'draft'"
             @click="submitForApproval"
@@ -260,6 +267,21 @@
         </div>
       </template>
     </el-dialog>
+    <el-dialog v-model="visibleDeclineDialog" title="Decline PR!" width="500">
+      <el-form :model="purchaseRequestData!" :label-position="formApproveLabel">
+        <el-form-item label="Catatan" prop="note">
+          <el-input v-model="purchaseRequestData!.note" type="textarea" />
+        </el-form-item>
+      </el-form>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="visibleApproveDialog = false">Cancel</el-button>
+          <el-button type="primary" @click="declineForApprove">
+            Approve
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </TrumsWrapper>
 </template>
 
@@ -293,6 +315,7 @@ definePageMeta({
 });
 
 const visibleApproveDialog = ref<boolean>(false);
+const visibleDeclineDialog = ref<boolean>(false);
 const router = useRouter();
 const route = useRoute();
 const purchaseRequestId = ref<string>(route.params.id as string);
@@ -339,12 +362,7 @@ type PurchaseRequestItemView = {
 const request_search_item_request_trail = ref<RequestSearch>({
   keyword: "",
   table: "item_request_trail",
-  column: [
-    {
-      reference: ["pr"],
-      reference_id: [],
-    },
-  ],
+  column: [],
   sort: null,
   offset: "1",
   limit: "10",
@@ -353,13 +371,25 @@ const request_search_item_request_trail = ref<RequestSearch>({
 const item_request_trials = await useAsyncData(
   "fetch-item-request-trails",
   async () => {
-    const res = await useFetchApi<ResponsePagination<ItemRequestTrail[]>>(
-      `/search`,
-      "fetch-item-request-trails",
-      "post",
-      request_search_item_request_trail.value
-    );
-    return res.data.value;
+    if (request_search_item_request_trail.value.column.length == 0) {
+      return {
+        success: false,
+        currentPage: 0,
+        total_page: 0,
+        total_data: 0,
+        data: [],
+        privilege: [],
+        message: "",
+      };
+    } else {
+      const res = await useFetchApi<ResponsePagination<ItemRequestTrail[]>>(
+        `/search`,
+        "fetch-item-request-trails",
+        "post",
+        request_search_item_request_trail.value
+      );
+      return res.data.value;
+    }
   }
 );
 
@@ -751,6 +781,21 @@ const approvePurchaseRequest = async () => {
     visibleApproveDialog.value = true;
   }
 };
+const declinePurchaseRequest = async () => {
+  // await updateStatus(PurchaseRequestStatus.APPROVED)
+
+  const validate = (purchaseRequestData.value?.items_request_trail ?? []).find(
+    (value) => value.quantity === 0
+  );
+
+  if (validate) {
+    ElMessage.error(
+      `${validate.item_request?.catalogue_name} Masih Menunggu Approval!`
+    );
+  } else {
+    visibleDeclineDialog.value = true;
+  }
+};
 
 const submitForApproval = async () => {
   await updateStatus(PurchaseRequestStatus.WAITING_APPROVAL);
@@ -762,6 +807,14 @@ const submitForApprove = async () => {
 
   await updateStatus(PurchaseRequestStatus.APPROVED);
   visibleApproveDialog.value = false;
+};
+const declineForApprove = async () => {
+  (purchaseRequestData.value?.items_request_trail ?? []).forEach((element) => {
+    element.status == ItemRequestTrailStatus.DONE;
+  });
+
+  await updateStatus(PurchaseRequestStatus.REJECTED);
+  visibleDeclineDialog.value = false;
 };
 
 const confirmDelete = () => {

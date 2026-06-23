@@ -444,7 +444,7 @@
           >
             <template #default="{ row }">
               <p v-if="row.type == 'child'">
-                {{ row.pricetag_item_data.status_item.toUpperCase() }}
+                {{ (row.pricetag_item_data.status_item ?? "").toUpperCase() }}
               </p>
               <p v-else></p>
             </template>
@@ -457,7 +457,7 @@
           >
             <template #default="{ row }">
               <p v-if="row.type == 'child'">
-                {{ row.pricetag_item_data.delivery.toUpperCase() }}
+                {{ (row.pricetag_item_data.delivery ?? "").toUpperCase() }}
               </p>
               <p v-else></p>
             </template>
@@ -616,7 +616,13 @@
                   >
                 </el-descriptions-item>
                 <el-descriptions-item label="Berlaku Hingga">
-                  {{ dayjs.unix(vendor.end_date).format("YYYY-MM-DD") }}
+                  {{
+                    vendor.end_date != undefined &&
+                    vendor.end_date != null &&
+                    vendor.end_date > 0
+                      ? dayjs.unix(vendor.end_date).format("YYYY-MM-DD")
+                      : ""
+                  }}
                 </el-descriptions-item>
                 <el-descriptions-item label="Keterangan">
                   {{ vendor?.note ?? "Tidak Ada Keterangan" }}
@@ -1409,7 +1415,12 @@ const rules: FormRules = {
 
 const adjustmentTransactions = await useFetchApi<
   ResponsePagination<AdjustmentTransaction[]>
->("/search", "search-adjustment", "post", querySearchAdjustmentTransaction);
+>(
+  "/search",
+  "search-adjustment",
+  "post",
+  querySearchAdjustmentTransaction.value
+);
 
 const customerOverview = await useAsyncData("customer-overview", async () => {
   const res = await useFetchApi<BaseResponse<CustomerOverView>>(

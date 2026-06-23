@@ -40,7 +40,7 @@
             <template #default="{ item }">
               <div v-if="item.isNew" class="flex items-center text-blue-500">
                 <el-icon><Plus /></el-icon>
-                <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                <span class="ml-2">Buat Penawaran Baru </span>
               </div>
               <div v-else>
                 {{ item.value }}
@@ -1458,13 +1458,17 @@ const querySearchCustomer = (query: string, cb: (arg: any) => void) => {
         const contacts: Contact[] = (response.data.value?.data ??
           []) as Contact[];
         if (contacts.length > 0) {
-          cb(
-            contacts.map((value) => ({
+          cb([
+            ...contacts.map((value) => ({
               value: value.name,
               unique_id: value.unique_id,
               data: value,
-            }))
-          );
+            })),
+            {
+              value: `Tambahkan ${query}`,
+              isNew: true,
+            },
+          ]);
         } else {
           cb([
             {
