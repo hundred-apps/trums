@@ -4603,7 +4603,7 @@ const submit = async (formEl: FormInstance | undefined) => {
     });
 
     const response = await useFetchApi<BaseResponse<Canvassing>>(
-      "/canvassing-creates",
+      "/canvassing-create",
       "create-canvasing",
       "post",
       formData
