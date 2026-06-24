@@ -153,77 +153,92 @@
           <span>Purchase Order Items</span>
         </div>
       </template>
-      <el-table :data="data?.data?.purchase_order_item ?? []" border>
-        <el-table-column prop="catalogue_name" label="Item" />
-        <el-table-column
-          prop="quantity"
-          label="QTY"
-          align="right"
-          :width="
-            data?.data?.status === PurchaseOrderStatus.PENDING_APPROVAL
-              ? 200
-              : 70
-          "
-        >
-          <template #default="scope">
-            <el-input-number
-              v-model="scope.row.quantity"
-              width="100"
-              :min="1"
-              v-if="
-                scope.row.status === PurchaseOrderItemStatus.PENDING_APPROVAL ||
-                (scope.row.status === PurchaseOrderItemStatus.DRAFT &&
-                  data?.data?.status === PurchaseOrderStatus.PENDING_APPROVAL)
-              "
-            />
-            <p v-else>
-              {{ scope.row.quantity }}
-            </p>
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="unit_name"
-          label="UOM"
-          align="center"
-          width="100"
-        />
-        <el-table-column
-          prop="unit_price"
-          label="Harga Satuan"
-          align="right"
-          width="150"
-        >
-          <template #default="scope">
-            {{ currency(scope.row.unit_price) }}
-          </template>
-        </el-table-column>
-        <el-table-column
-          prop="total_price"
-          label="Total Harga"
-          align="right"
-          width="150"
-        >
-          <template #default="scope">
-            {{ currency(scope.row.total_price) }}
-          </template>
-        </el-table-column>
+      <TrumsDragScrollTable>
+        <el-table :data="data?.data?.purchase_order_item ?? []" border>
+          <el-table-column
+            prop="catalogue_name"
+            label="Item"
+            width="400"
+            fixed="left"
+          />
+          <el-table-column
+            prop=""
+            label="Ketersediaan"
+            width="120"
+            align="center"
+          >
+            <template #default="scope">
+              {{
+                scope.row.pricetag_item?.status_item
+                  ? getStatusItemLabel(scope.row.pricetag_item.status_item)
+                  : ""
+              }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop=""
+            label="Metode Pengiriman"
+            width="180"
+            align="center"
+          >
+            <template #default="scope">
+              {{
+                scope.row.pricetag_item?.delivery
+                  ? getDeliveryMethodLabel(scope.row.pricetag_item.delivery)
+                  : ""
+              }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="" label="Deskripsi Pengiriman" align="center">
+            <template #default="scope">
+              {{ scope.row.delivery ?? "" }}
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="quantity"
+            label="QTY"
+            align="right"
+            :width="
+              data?.data?.status === PurchaseOrderStatus.PENDING_APPROVAL
+                ? 200
+                : 70
+            "
+          >
+            <template #default="scope">
+              <el-input-number
+                v-model="scope.row.quantity"
+                width="100"
+                :min="1"
+                v-if="
+                  scope.row.status ===
+                    PurchaseOrderItemStatus.PENDING_APPROVAL ||
+                  (scope.row.status === PurchaseOrderItemStatus.DRAFT &&
+                    data?.data?.status === PurchaseOrderStatus.PENDING_APPROVAL)
+                "
+              />
+              <p v-else>
+                {{ scope.row.quantity }}
+              </p>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop="unit_name"
+            label="UOM"
+            align="center"
+            width="100"
+          />
+          <el-table-column prop="unit_price" label="Harga Satuan" align="right">
+            <template #default="scope">
+              {{ currency(scope.row.unit_price) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="total_price" label="Total Harga" align="right">
+            <template #default="scope">
+              {{ currency(scope.row.total_price) }}
+            </template>
+          </el-table-column>
 
-        <el-table-column
-          label="Status"
-          align="center"
-          width="150"
-          v-if="
-            data?.data?.status !== PurchaseOrderStatus.PENDING_APPROVAL &&
-            data?.data?.status !== PurchaseOrderStatus.DONE
-          "
-        >
-          <template #default="scope">
-            <el-tag :type="getItemStatusTagType(scope.row.status)">
-              {{ formatItemStatus(scope.row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <!-- <el-table-column
+          <!-- <el-table-column
           label="Aksi"
           align="center"
           width="300"
@@ -254,7 +269,8 @@
             </el-button>
           </template>
         </el-table-column> -->
-      </el-table>
+        </el-table>
+      </TrumsDragScrollTable>
     </el-card>
 
     <el-card shadow="hover" class="mb-3" v-if="relatedDocuments.length > 0">
@@ -392,6 +408,7 @@ import { currency, formatLocalDate } from "#imports";
 import type { TrumDoc } from "~/types/document";
 import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
 import { generateAddressViewName } from "#imports";
+import { getDeliveryMethodLabel, getStatusItemLabel } from "~/types/pricetag";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -780,8 +797,8 @@ const printDocument = async (code: string) => {
       item.catalogue?.name,
       item.quantity,
       item.unit_name,
-      currency(item.unit_price),
-      currency(item.total_price),
+      currencyWithoutSymbol(item.unit_price),
+      currencyWithoutSymbol(item.total_price),
     ]
   );
 
@@ -794,7 +811,7 @@ const printDocument = async (code: string) => {
     headStyles: { fillColor: [220, 220, 220] },
     columnStyles: {
       0: { halign: "center", cellWidth: 10 },
-      2: { halign: "right", cellWidth: 15 },
+      2: { halign: "left", cellWidth: 15 },
       4: { halign: "right" },
       5: { halign: "right" },
     },
@@ -806,7 +823,7 @@ const printDocument = async (code: string) => {
 
   summaryRows.push([
     { content: "Sub Total", colSpan: 5, styles: { halign: "right" } },
-    currency(subtotal.value),
+    currencyWithoutSymbol(subtotal.value),
   ]);
 
   (data.value?.data?.reference_transaction ?? []).forEach((el) => {
@@ -814,14 +831,12 @@ const printDocument = async (code: string) => {
       {
         content:
           (el.adjustments_transaction?.name ?? "").toLocaleLowerCase() == "ppn"
-            ? `PPN (${Number(
-                displayPercentage(el, subtotal.value) || 0
-              ).toFixed(2)}%)`
+            ? `PPN`
             : el.adjustments_transaction?.name ?? "",
         colSpan: 5,
         styles: { halign: "right" },
       },
-      currency(displayAmount(el, subtotal.value)),
+      currencyWithoutSymbol(displayAmount(el, subtotal.value)),
     ]);
     grandTotal += Number(displayAmount(el, subtotal.value) ?? 0);
   });
@@ -832,7 +847,7 @@ const printDocument = async (code: string) => {
       colSpan: 5,
       styles: { halign: "right", fontStyle: "bold" },
     },
-    currency(grandTotal),
+    currencyWithoutSymbol(grandTotal),
   ]);
 
   autoTable(doc, {
@@ -935,11 +950,13 @@ const downloadPdf = () => {
 
   // ElMessage.success('PDF berhasil di-download')
 };
+
+const totalItem = computed(() => {
+  return data.value?.data?.total_price;
+});
+
 const subtotal = computed(() => {
-  return (data.value?.data?.purchase_order_item ?? []).reduce(
-    (sum, item) => sum + item.unit_price * item.quantity,
-    0
-  );
+  return (totalItem.value || 0) + getPlus.value - getMinus.value;
 });
 
 const getPlus = computed(() => {
@@ -998,14 +1015,20 @@ const getMinus = computed(() => {
         minus +=
           ref.type == FeeType.AMOUNT
             ? Number(ref.amount)
-            : displayAmount(ref, subtotal.value);
+            : displayAmount(ref, totalItem.value ?? 0);
       }
     });
 
   return minus;
 });
 const grandTotal = computed(() => {
-  return subtotal.value + getPlus.value + ppnComponent.value - getMinus.value;
+  return subtotal.value + ppnComponent.value;
+});
+
+const getDPPNilaiLainView = computed(() => {
+  let dpp = (subtotal.value * 11) / 12;
+
+  return dpp;
 });
 
 const getDPPNilaiLain = computed(() => {
@@ -1032,15 +1055,31 @@ const getDPPNilaiLain = computed(() => {
 const summeryData = computed(() => {
   const tableData: any[] = [
     {
-      label: "Subtotal",
-      value: currency(subtotal.value),
+      label: "Total Price",
+      value: currency(totalItem.value || 0),
     },
   ];
+
+  (data.value?.data?.reference_transaction ?? []).forEach((element) => {
+    if (element.adjustments_transaction?.category != "tax") {
+      tableData.push({
+        label: element.adjustments_transaction?.name
+          ? `${element.adjustments_transaction?.name}`
+          : "-",
+        value: currency(displayAmount(element, totalItem.value || 0)),
+      });
+    }
+  });
+
+  tableData.push({
+    label: "Subtotal",
+    value: currency(subtotal.value),
+  });
 
   if (getDPPNilaiLain.value > 0) {
     tableData.push({
       label: "DPP Nilai Lain",
-      value: currency(getDPPNilaiLain.value),
+      value: currency(getDPPNilaiLainView.value),
     });
   }
 
@@ -1054,13 +1093,6 @@ const summeryData = computed(() => {
           ? `${element.adjustments_transaction?.name}`
           : "-",
         value: currency(displayAmount(element, getDPPNilaiLain.value)),
-      });
-    } else {
-      tableData.push({
-        label: element.adjustments_transaction?.name
-          ? `${element.adjustments_transaction?.name}`
-          : "-",
-        value: currency(displayAmount(element, subtotal.value)),
       });
     }
   });

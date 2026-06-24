@@ -70,7 +70,7 @@ export function getStatusItemLabel(status: PricetagItemStatus) {
     case PricetagItemStatus.INDENT:
       return "Indent";
     case PricetagItemStatus.READY_STOCK:
-      return "Ready";
+      return "Ready Stok";
   }
 }
 

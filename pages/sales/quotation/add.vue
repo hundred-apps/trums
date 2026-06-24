@@ -733,7 +733,16 @@
             <div>
               <el-descriptions title="" :column="1" size="small" border>
                 <el-descriptions-item label="Nomor Penawaran">
-                  {{ vendor.unique_code ?? "N/A" }}
+                  <p class="text-blue-600">{{ vendor.unique_code ?? "N/A" }}</p>
+                </el-descriptions-item>
+                <el-descriptions-item label="Berlaku Hingga">
+                  {{
+                    vendor.end_date != undefined &&
+                    vendor.end_date != null &&
+                    vendor.end_date > 0
+                      ? dayjs.unix(vendor.end_date).format("YYYY-MM-DD")
+                      : ""
+                  }}
                 </el-descriptions-item>
                 <el-descriptions-item label="Keterangan">
                   {{ vendor?.note ?? "Tidak Ada Keterangan" }}
@@ -1041,6 +1050,25 @@
       v-model:visible="dialogItemRequest"
       @selected-submit="addItemRequestToCanvassing"
     />
+
+    <el-dialog
+      v-model="offerDialogState"
+      title="Detail Penawaran Vendor"
+      width="80%"
+    >
+      <OfferDetail
+        :data-interface="{
+          code: 200,
+          data:
+            (offerDetail.data.value?.data || []).length > 0
+              ? offerDetail.data.value!.data[0]
+              : null,
+          message: offerDetail?.data.value?.message ?? '',
+          pending: offerDetail.status.value === 'pending',
+          privilege: offerDetail?.data.value?.privilege ?? [],
+        }"
+      />
+    </el-dialog>
   </TrumsWrapper>
 </template>
 
@@ -1122,7 +1150,7 @@ import TableSelectionRFQ from "~/components/trums/TableSelectionRFQ.vue";
 import TableSelectionCanvassing from "~/components/trums/TableSelectionCanvassing.vue";
 import { handleInput } from "#imports";
 import type { ItemRequest } from "~/types/item_request";
-import { ro } from "element-plus/es/locale/index.mjs";
+import OfferDetail from "../offer/components/OfferDetail.vue";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -1393,6 +1421,26 @@ const querySearchAdjustmentTransaction = ref<RequestSearch>({
   limit: "10",
   offset: "1",
   flag: "form",
+});
+
+const request_search_vendor = ref<RequestSearch>({
+  keyword: "",
+  table: "pricetag",
+  column: [],
+  sort: null,
+  offset: "1",
+  limit: "1",
+});
+
+const offerDialogState = ref<boolean>(false);
+const offerDetail = await useAsyncData("pricetag-detail", async () => {
+  const res = await useFetchApi<ResponsePagination<Pricetag[]>>(
+    `/search/`,
+    "pricetag-detail",
+    "post",
+    request_search_vendor.value
+  );
+  return res.data.value;
 });
 
 const adjustmentTransactions = await useAsyncData(
@@ -1738,7 +1786,17 @@ const openFeeDrawer = (item: CanvassingItemForm) => {
 
   drawerFeeVisible.value = true;
 };
+const openDetailVendor = (unique_id: string) => {
+  request_search_vendor.value.column = [
+    {
+      unique_id: [unique_id],
+    },
+  ];
 
+  if (offerDetail.status.value !== "pending") {
+    offerDialogState.value = true;
+  }
+};
 const handleSaveFee = ({
   item,
   contacts,
@@ -4218,11 +4276,19 @@ const submit = async (formEl: FormInstance | undefined) => {
     return;
   }
 
-  const hasError = item_canvassing.value.some((element) => {
-    return (
-      !element.expected_delivery || element.expected_delivery.trim() === ""
-    );
-  });
+  // const hasError = item_canvassing.value.some((element) => {
+  //   return (
+  //     !element.expected_delivery || element.expected_delivery.trim() === ""
+  //   );
+  // });
+
+  const hasError = item_canvassing.value.some(
+    (parent) =>
+      parent.children?.some(
+        (child) =>
+          !child.expected_delivery || child.expected_delivery.trim() === ""
+      ) ?? false
+  );
 
   if (hasError) {
     ElMessage.error("Estimasi pengiriman belum lengkap!");
@@ -4537,7 +4603,7 @@ const submit = async (formEl: FormInstance | undefined) => {
     });
 
     const response = await useFetchApi<BaseResponse<Canvassing>>(
-      "/canvassing-create",
+      "/canvassing-creates",
       "create-canvasing",
       "post",
       formData
@@ -5073,7 +5139,7 @@ const calculateSummaryaData = () => {
 onMounted(async () => {
   if (id.value) {
     await fetchDataEdit();
-    // fetchPriceTagWithItems();
+    fetchPriceTagWithItems();
   }
 
   // if (inquiry_id.value) {

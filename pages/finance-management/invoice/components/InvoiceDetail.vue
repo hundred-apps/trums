@@ -276,6 +276,13 @@
             }}</span>
           </template>
         </el-table-column>
+        <el-table-column prop="" label="DPP" width="200" align="right">
+          <template #default="scope">
+            <span class="font-medium">{{
+              formatCurrency(getDPPNilaiLainItem(scope.row))
+            }}</span>
+          </template>
+        </el-table-column>
       </el-table>
     </el-card>
 
@@ -364,6 +371,13 @@
         >
         <el-descriptions-item
           :width="100"
+          v-if="getDPPNilaiLain > 0"
+          label="DPP Nilai Lain"
+          align="right"
+          >{{ currency(getDPPNilaiLainView) }}</el-descriptions-item
+        >
+        <el-descriptions-item
+          :width="100"
           align="right"
           v-for="ref in (data?.data?.reference_transaction ?? []).filter(
             (value) =>
@@ -390,6 +404,7 @@
           align="right"
           >{{ currency(paidAmount) }}</el-descriptions-item
         > -->
+
         <el-descriptions-item :width="100" label="Grand Total" align="right">{{
           currency(data?.data?.total_amount || 0)
         }}</el-descriptions-item>
@@ -743,6 +758,41 @@ const submitFakturPajak = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+const getDPPNilaiLainView = computed(() => {
+  let dpp = (subtotal.value * 11) / 12;
+
+  return dpp;
+});
+
+const getDPPNilaiLain = computed(() => {
+  let dpp = 0;
+  (data.value?.data?.reference_transaction || []).forEach((element) => {
+    if (
+      element.adjustments_transaction?.category == "tax" &&
+      element.adjustments_transaction.name.toLowerCase() === "ppn"
+    ) {
+      console.log("type", element.type);
+      if (element.type != "amount" && element.amount == 12) {
+        dpp = (subtotal.value * 11) / 12;
+        console.log("dpp 12", dpp);
+      } else {
+        dpp = subtotal.value;
+        console.log("dpp 11", dpp);
+      }
+    }
+  });
+  console.log("dpp nilai lain", dpp);
+  return dpp;
+});
+
+const getDPPNilaiLainItem = (item: InvoiceItem) => {
+  if (data.value?.data?.payment_term_id) {
+    const term = Number(data.value?.data?.payment_terms?.value);
+    return (((item.total_amount * term) / 100) * 11) / 12;
+  }
+  return (item.total_amount * 11) / 12;
 };
 
 const sendApproval = async () => {

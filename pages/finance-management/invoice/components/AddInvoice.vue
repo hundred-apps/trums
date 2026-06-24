@@ -629,7 +629,7 @@
             <el-divider />
             <div class="flex justify-between items-center">
               <p>Subtotal</p>
-              <p>{{ currencyWithoutSymbol(subtotal || 0) }}</p>
+              <p>{{ currencyWithoutSymbol(subtotal) }}</p>
             </div>
 
             <div
@@ -1396,12 +1396,10 @@ const onHandleSelectDO = (values: InventoryMovement[]) => {
   ruleForm.invoice_item = [];
   values.forEach((element) => {
     element.inventory_movement_item.forEach((moveItem) => {
-      console.log("tmp_purchase_order", tmp_purchase_order.value);
       const orderItem = tmp_purchase_order.value?.purchase_order_item.find(
         (find) => find.catalogue_id == moveItem.inventory?.catalogue_id
       );
       if (orderItem) {
-        console.log("movement", orderItem);
         ruleForm.invoice_item.push({
           unique_id: "",
           unique_code: "",
@@ -1453,7 +1451,6 @@ const handleAdjustmentSubmit = () => {
 
 const paidAmount = computed(() => {
   let amount: number = Number(grandTotal.value);
-  console.log("payment term", ruleForm.payment_terms);
   // if (ruleForm.payment_terms) {
   //   amount =
   //     Number(grandTotal.value) * (Number(ruleForm.payment_terms?.value) / 100);
@@ -1484,8 +1481,6 @@ watch(
 const paidHistory = computed(() => {
   var sum = 0;
 
-  console.log("invoice history", invoicesHistory.value);
-
   invoicesHistory.value.forEach((element) => {
     (element.history_payment ?? []).forEach((history) => {
       sum += history.amount;
@@ -1505,13 +1500,10 @@ const getDPPNilaiLain = computed(() => {
       element.adjustment?.category == "tax" &&
       element.adjustment.name.toLowerCase() === "ppn"
     ) {
-      console.log("type", element.type);
       if (element.type != "amount" && element.amount == 12) {
         dpp = (subtotal.value * 11) / 12;
-        console.log("dpp 12", dpp);
       } else {
         dpp = subtotal.value;
-        console.log("dpp 11", dpp);
       }
     }
   });
@@ -1592,7 +1584,6 @@ const grandTotal = computed(() => {
 watch(
   () => references.value,
   () => {
-    console.log("current ref", references.value);
     let total = totalPlus.value || 0;
     (references.value || [])
       .filter((value) => value.adjustment?.operator == "minus")
@@ -1640,7 +1631,7 @@ const getMinus = computed(() => {
 
 const subtotal = computed(() => {
   let subtotal = ruleForm.subtotal || 0;
-
+  console.log("subtotal", getInvoiceDownPayment.value);
   if (ruleForm.is_termin && getInvoiceDownPayment.value > 0) {
     subtotal -= getInvoiceDownPayment.value;
   }
@@ -1763,8 +1754,6 @@ const updateTotalAmount = () => {
   ruleForm.total_amount = amount;
   ruleForm.display_total_amount = formatCurrencyID(amount, 0);
   ruleForm.tmp_round = ruleForm.total_amount;
-
-  console.log("masuk ini", ruleForm);
 };
 
 const getInvoiceDownPaymentLabel = computed(() => {
@@ -1779,7 +1768,6 @@ const getInvoiceDownPaymentLabel = computed(() => {
 });
 const getInvoiceDownPayment = computed(() => {
   let total = 0;
-  console.log("invoice history", invoicesHistory.value);
   if (invoicesHistory.value.length > 0) {
     if (invoicesHistory.value[0].payment_terms) {
       total =
@@ -1885,7 +1873,6 @@ const querySearchBanks = (query: string, cb: (arg: any) => void) => {
 };
 
 const handleSelectBank = (item: any) => {
-  console.log(item);
   if (item.isNew == false) {
     const bank: BankAccount = item as BankAccount;
     transactionBanks.value.push({
@@ -2114,8 +2101,6 @@ const querySearchAddressPublisher = (query: string, cb: (arg: any) => void) => {
 
 const querySearchAccounts = (query: string, cb: (arg: any) => void) => {
   try {
-    console.log(query);
-
     if (query != "" && query != "null") {
       const request_search: RequestSearch = {
         keyword: query,
@@ -2190,7 +2175,6 @@ const querySearchReference = (query: string, cb: (arg: any) => void) => {
 const querySearchCatalogue = (query: string, cb: (arg: any) => void) => {
   try {
     const request_contact = { ...request_search.value };
-    console.log(ruleForm.reference);
     if (ruleForm.reference === FinanceReference.OTHER) {
       request_contact.table = "catalogues";
     } else if (ruleForm.reference === FinanceReference.SALES) {
@@ -2421,7 +2405,6 @@ const getHistoryInvoices = async () => {
     if (response.status.value === "success") {
       (response.data.value?.data ?? []).forEach((element) => {
         if ((element.history_payment ?? []).length > 0) {
-          console.log("invoice history", element);
           invoicesHistory.value.push(element);
         }
       });
@@ -2442,8 +2425,6 @@ const onHandleSelectReference = async (item: any) => {
     ruleForm.reference_number = item.data;
   } else if (ruleForm.reference === FinanceReference.SALES) {
     const po = item as PurchaseOrder;
-
-    console.log("purchase order", po);
 
     tmp_purchase_order.value = po;
 
@@ -2564,7 +2545,6 @@ const handleCreateCatalogue = async (data: any): Promise<Catalogue | null> => {
 const create_catalogue = async (catalogue: Catalogue) => {
   loading.value = true;
   try {
-    console.log("catalogue", catalogue);
     const formData = new FormData();
 
     formData.append("unique_id", catalogue.unique_id ?? "");
@@ -2597,7 +2577,6 @@ const create_catalogue = async (catalogue: Catalogue) => {
       formData
     );
 
-    console.log(response.status);
     if (response.status.value == "success") {
       const catalogue_result: Catalogue | undefined = response.data.value?.data;
       return catalogue_result;
@@ -2626,8 +2605,6 @@ const handleSubmitCatalogue = async (catalogue: Catalogue) => {
       tmpCatalogue.value = undefined;
       dialogFormCatalogue.value = false;
       currentIndexItem.value = -0;
-
-      console.log("masuk");
     }
   } catch (error) {
     console.log("eror", error);
@@ -2635,8 +2612,6 @@ const handleSubmitCatalogue = async (catalogue: Catalogue) => {
 };
 
 const onHandleSelectCatalogue = async (item: any, index: number) => {
-  console.log(item);
-
   // const data: Catalogue = item as Catalogue;
   // ruleForm.invoice_item[index].item_id = data.unique_id;
   // ruleForm.invoice_item[index].item_name = data.name ?? "";
@@ -2722,8 +2697,6 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         const receivedDate = new Date(ruleForm.received_date!);
 
         const formData = new FormData();
-
-        console.log(ruleForm.is_tempo);
 
         formData.append("unique_id", ruleForm.unique_id);
         formData.append("source_document", ruleForm.source_document ?? "");
@@ -3109,18 +3082,10 @@ const fetchDataEdit = async () => {
 
         ruleForm.unique_id = id.value;
         transactionBanks.value = invoice.purchase_order_bank ?? [];
-        console.log("references is value", references.value);
         (invoice.reference_transaction ?? []).forEach((element) => {
           const indexExist = references.value.findIndex(
             (find) => find.adjustment_id == element.adjustment_id
           );
-          console.log("references is existting", indexExist);
-          console.log("references is exist", references.value[indexExist]);
-          console.log(
-            "references is name",
-            element.adjustments_transaction?.name
-          );
-          console.log("references is exist", element.adjustment_id);
           if (indexExist >= 0) {
             references.value[indexExist] = element;
             references.value[indexExist].amount = element.amount;
@@ -3129,8 +3094,6 @@ const fetchDataEdit = async () => {
               formatCurrencyID(element.amount);
             references.value[indexExist].amount_nominal =
               element.amount_nominal;
-
-            console.log("references edit", references.value[indexExist]);
           }
         });
         // references.value = (invoice.reference_transaction ?? []).map(
@@ -3347,8 +3310,6 @@ const fetchRounding = async () => {
           adjustment: element,
         });
       });
-
-      console.log("adjustment", references.value);
     }
   } catch (error: any) {
     console.log("Gagal Mengambil Pembulatan!");
@@ -3361,7 +3322,6 @@ const initialForm = async () => {
   await fetchDiscount();
   await fetchRounding();
 
-  console.log("references exist", references.value);
   loading.value = false;
 };
 

@@ -281,7 +281,45 @@
               >
             </template>
           </el-table-column>
-
+          <el-table-column
+            prop=""
+            label="Ketersediaan"
+            width="150"
+            align="center"
+          >
+            <template #default="{ row }">
+              <p v-if="row.type == 'child'">
+                {{ (row.pricetag_item_data.status_item ?? "").toUpperCase() }}
+              </p>
+              <p v-else></p>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop=""
+            label="Pengiriman"
+            width="150"
+            align="center"
+          >
+            <template #default="{ row }">
+              <p v-if="row.type == 'child'">
+                {{ (row.pricetag_item_data.delivery ?? "").toUpperCase() }}
+              </p>
+              <p v-else></p>
+            </template>
+          </el-table-column>
+          <el-table-column
+            prop=""
+            label="Est Pengiriman"
+            width="150"
+            align="center"
+          >
+            <template #default="{ row }">
+              <p v-if="row.type == 'child'">
+                {{ row.expected_delivery ?? "" }}
+              </p>
+              <p v-else></p>
+            </template>
+          </el-table-column>
           <el-table-column
             prop="type_item"
             label="Item Type"
@@ -2788,6 +2826,7 @@ const initialCanvassing = (data: Canvassing) => {
             contacts_fee: (child.reference_transaction ?? []).filter(
               (value) => value.party_type == PartyType.CONTACT
             ),
+            expected_delivery: child.expected_delivery,
           };
         }),
         selling_price: element.unit_selling_price,
@@ -2897,6 +2936,7 @@ const initialCanvassing = (data: Canvassing) => {
           contacts_fee: (child.reference_transaction ?? []).filter(
             (value) => value.party_type == PartyType.CONTACT
           ),
+          expected_delivery: child.expected_delivery,
         })),
         selling_price: element.unit_selling_price,
         profit: 0,

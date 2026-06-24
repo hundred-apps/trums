@@ -462,6 +462,19 @@
               <p v-else></p>
             </template>
           </el-table-column>
+          <el-table-column
+            prop=""
+            label="Est Pengiriman"
+            width="150"
+            align="center"
+          >
+            <template #default="{ row }">
+              <p v-if="row.type == 'child'">
+                {{ row.expected_delivery ?? "" }}
+              </p>
+              <p v-else></p>
+            </template>
+          </el-table-column>
           <el-table-column prop="sn" label="SN/PN" width="150">
             <template #default="{ row }">
               {{ row.sn ?? "N/A" }}
@@ -1438,7 +1451,7 @@ const getReferences = computed(() => {
 
 const pricetagList = computed(() => {
   const list = removeDuplicates<Pricetag>(pricetags.value, "unique_id");
-  console.log("pricetag list", list);
+
   return list;
 });
 
@@ -2929,6 +2942,7 @@ const initialCanvassing = (data: Canvassing) => {
             contacts_fee: (child.reference_transaction ?? []).filter(
               (value) => value.party_type == PartyType.CONTACT
             ),
+            expected_delivery: child.expected_delivery,
           };
         }),
         selling_price: element.unit_selling_price,
@@ -3038,6 +3052,7 @@ const initialCanvassing = (data: Canvassing) => {
           contacts_fee: (child.reference_transaction ?? []).filter(
             (value) => value.party_type == PartyType.CONTACT
           ),
+          expected_delivery: child.expected_delivery,
         })),
         selling_price: element.unit_selling_price,
         profit: 0,

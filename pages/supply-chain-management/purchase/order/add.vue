@@ -5,32 +5,31 @@
         <span class="text-large font-600 mr-3"> New Purchase Order </span>
       </template>
     </el-page-header>
+    <el-form
+      ref="ruleFormRef"
+      style="max-width: 100%"
+      :model="ruleForm"
+      :rules="rules"
+      label-width="auto"
+      class="demo-ruleForm"
+      size="default"
+      status-icon
+    >
+      <el-card class="my-3">
+        <template #header>
+          <div class="card-header">
+            <div class="flex">
+              <el-button type="primary" @click="submitForm(ruleFormRef)"
+                >Simpan</el-button
+              >
+              <el-button @click="resetForm(ruleFormRef)">Reset</el-button>
+              <el-button @click="goBack">Batal</el-button>
+            </div>
+          </div>
+        </template>
 
-    <el-card class="my-3">
-      <template #header>
-        <div class="card-header">
-          <el-form-item>
-            <el-button type="primary" @click="submitForm(ruleFormRef)"
-              >Simpan</el-button
-            >
-            <el-button @click="resetForm(ruleFormRef)">Reset</el-button>
-            <el-button @click="goBack">Batal</el-button>
-          </el-form-item>
-        </div>
-      </template>
-
-      <el-form
-        ref="ruleFormRef"
-        style="max-width: 600px"
-        :model="ruleForm"
-        :rules="rules"
-        label-width="auto"
-        class="demo-ruleForm"
-        size="default"
-        status-icon
-      >
         <!-- Vendor Selection -->
-        <el-form-item label="Vendor" prop="vendor_name">
+        <el-form-item label="Vendor" prop="vendor_name" style="width: 50%">
           <el-autocomplete
             :fetch-suggestions="querySearchCustomer"
             v-model="ruleForm.vendor_name"
@@ -53,14 +52,22 @@
         </el-form-item>
 
         <!-- Purchase Order Information -->
-        <el-form-item label="Nomor Referensi" prop="source_document">
+        <el-form-item
+          label="Nomor Referensi"
+          prop="source_document"
+          style="width: 50%"
+        >
           <el-input
             v-model="ruleForm.sourcing_document"
             placeholder="Masukkan nomor referensi"
           />
         </el-form-item>
 
-        <el-form-item label="Alamat Pengiriman" prop="delivery_address_id">
+        <el-form-item
+          label="Alamat Pengiriman"
+          prop="delivery_address_id"
+          style="width: 50%"
+        >
           <el-autocomplete
             v-model="ruleForm.delivery_address_view"
             :fetch-suggestions="querySearchAddress"
@@ -82,7 +89,7 @@
           </el-autocomplete>
         </el-form-item>
 
-        <el-form-item v-if="address" label=" ">
+        <el-form-item v-if="address" label=" " style="width: 50%">
           <div>
             <div class="flex items-center gap-2">
               <p>{{ address.address_name }}</p>
@@ -104,7 +111,11 @@
           </div>
         </el-form-item>
 
-        <el-form-item label="Estimasi Tiba" prop="expected_arrival">
+        <el-form-item
+          label="Estimasi Tiba"
+          prop="expected_arrival"
+          style="width: 50%"
+        >
           <el-date-picker
             v-model="ruleForm.expected_arrival!"
             type="date"
@@ -113,20 +124,13 @@
           />
         </el-form-item>
 
-        <el-form-item label="Tanggal PO" prop="date">
+        <el-form-item label="Tanggal PO" prop="date" style="width: 50%">
           <el-date-picker
             v-model="ruleForm.date"
             type="date"
             placeholder="Pilih tanggal"
             style="width: 100%"
           />
-        </el-form-item>
-
-        <!-- Discount Section -->
-        <el-form-item label="Diskon" prop="is_discount">
-          <el-checkbox v-model="ruleForm.is_discount"
-            >Tambahkan diskon</el-checkbox
-          >
         </el-form-item>
 
         <template v-if="ruleForm.is_discount">
@@ -151,7 +155,7 @@
           </el-form-item>
         </template>
 
-        <el-form-item label="Status" prop="status">
+        <el-form-item label="Status" prop="status" style="width: 50%">
           <el-select v-model="ruleForm.status" style="width: 100%">
             <el-option
               v-for="status in purchaseOrderStatusOptions"
@@ -162,60 +166,148 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="File Lampiran" prop="files">
+        <el-form-item label="File Lampiran" prop="files" style="width: 50%">
           <TrumsUploadFile v-model:file-list="fileList" />
         </el-form-item>
 
-        <el-form-item label="Informasi Tambahan" prop="additinal_information">
+        <el-form-item
+          label="Informasi Tambahan"
+          prop="additinal_information"
+          style="width: 50%"
+        >
           <el-input
             v-model="ruleForm.additinal_information"
             type="textarea"
             placeholder="Masukkan informasi tambahan"
           />
         </el-form-item>
-      </el-form>
-    </el-card>
+      </el-card>
 
-    <!-- Items Section -->
-    <el-card class="mb-3">
-      <template #header>
-        <div class="card-header flex justify-between items-center">
-          <span>Items</span>
-          <div class="flex space-x-2">
-            <el-button type="primary" @click="openCanvassingModal">
-              Tambah dari Canvassing
-            </el-button>
+      <!-- Items Section -->
+      <el-card class="mb-3">
+        <template #header>
+          <div class="card-header flex justify-between items-center">
+            <span>Items</span>
+            <div class="flex space-x-2">
+              <el-button type="primary" @click="openCanvassingModal">
+                Tambah dari Canvassing
+              </el-button>
+              <el-button type="primary" @click="openPricetagModal">
+                Tambah dari Penawaran
+              </el-button>
+            </div>
           </div>
-        </div>
-      </template>
+        </template>
 
-      <el-form ref="ruleFormRef" :model="ruleForm" :rules="rules">
-        <el-table :data="ruleForm.items" border style="width: 100%">
-          <el-table-column prop="catalogue_name" label="Item">
-            <template #default="scope">
-              <div class="flex justify-center w-full">
-                <el-button
-                  @click="() => openCatalogueDetail(scope.row, scope.$index)"
-                  text
-                  ><el-icon><Warning /></el-icon
-                ></el-button>
+        <TrumsDragScrollTable>
+          <el-table :data="ruleForm.items" border style="width: 100%">
+            <el-table-column
+              prop="catalogue_name"
+              label="Item"
+              fixed="left"
+              width="500"
+            >
+              <template #default="scope">
+                <div class="flex justify-center w-full">
+                  <el-button
+                    @click="() => openCatalogueDetail(scope.row, scope.$index)"
+                    text
+                    ><el-icon><Warning /></el-icon
+                  ></el-button>
+                  <el-form-item
+                    :prop="`items.${scope.$index}.catalogue_name`"
+                    class="w-full"
+                    style="margin-bottom: 0px !important"
+                    :rules="[
+                      {
+                        required: true,
+                        message: 'Item wajib diisi',
+                        trigger: 'blur',
+                      },
+                    ]"
+                  >
+                    <el-autocomplete
+                      :fetch-suggestions="querySearchAsync"
+                      v-model="scope.row.catalogue_name"
+                      placeholder="Please input"
+                      @select="(item: Record<string, any>) => onHandleSelectItemAutocomplete(item, scope)"
+                    >
+                      <template #default="{ item }">
+                        <div
+                          v-if="item.isNew"
+                          class="flex items-center text-blue-500"
+                        >
+                          <el-icon><Plus /></el-icon>
+                          <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                        </div>
+                        <div v-else class="flex items-center gap-2">
+                          <!-- Informasi produk -->
+                          <div class="flex-1 min-w-0">
+                            <p
+                              style="line-height: 15px"
+                              class="font-bold truncate"
+                            >
+                              {{ item.catalogue_name || item.value }}
+                            </p>
+                            <p class="text-sm text-gray-500 truncate">
+                              PN/SN: {{ item.sn_number || "Tidak Ada" }} |
+                              Brand:
+                              {{ item.brand_name || "N/A" }}
+                            </p>
+                          </div>
+                        </div>
+                      </template>
+                    </el-autocomplete>
+                  </el-form-item>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="quantity"
+              label="QTY"
+              width="150"
+              align="center"
+            >
+              <template #default="scope">
                 <el-form-item
-                  :prop="`items.${scope.$index}.catalogue_name`"
-                  class="w-full"
-                  style="margin-bottom: 0px !important"
+                  :prop="`items.${scope.$index}.quantity`"
                   :rules="[
                     {
                       required: true,
-                      message: 'Item wajib diisi',
-                      trigger: 'blur',
+                      message: 'Qty wajib diisi',
+                      trigger: 'change',
+                    },
+                    {
+                      type: 'number',
+                      min: 1,
+                      message: 'Qty minimal 1',
+                      trigger: 'change',
                     },
                   ]"
+                  style="margin-bottom: 0px !important"
+                >
+                  <el-input-number v-model="scope.row.quantity" :min="1" />
+                </el-form-item>
+              </template>
+            </el-table-column>
+            <el-table-column prop="unit_name" label="UoM" width="130">
+              <template #default="scope">
+                <el-form-item
+                  :prop="`items.${scope.$index}.unit_name`"
+                  :rules="[
+                    {
+                      required: true,
+                      message: 'UoM wajib diisi',
+                      trigger: 'change',
+                    },
+                  ]"
+                  style="margin-bottom: 0px !important"
                 >
                   <el-autocomplete
-                    :fetch-suggestions="querySearchAsync"
-                    v-model="scope.row.catalogue_name"
-                    placeholder="Please input"
-                    @select="(item: Record<string, any>) => onHandleSelectItemAutocomplete(item, scope)"
+                    :fetch-suggestions="querySearchUnit"
+                    v-model="scope.row.unit_name"
+                    placeholder="Input Units"
+                    @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteUnit(item, scope)"
                   >
                     <template #default="{ item }">
                       <div
@@ -223,180 +315,139 @@
                         class="flex items-center text-blue-500"
                       >
                         <el-icon><Plus /></el-icon>
-                        <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+                        <span class="ml-2">Tambahkan "{{ item.label }}"</span>
                       </div>
-                      <div v-else class="flex items-center gap-2">
-                        <!-- Informasi produk -->
-                        <div class="flex-1 min-w-0">
-                          <p
-                            style="line-height: 15px"
-                            class="font-bold truncate"
-                          >
-                            {{ item.catalogue_name || item.value }}
-                          </p>
-                          <p class="text-sm text-gray-500 truncate">
-                            PN/SN: {{ item.sn_number || "Tidak Ada" }} | Brand:
-                            {{ item.brand_name || "N/A" }}
-                          </p>
-                        </div>
+                      <div v-else>
+                        <p class="font-bold">{{ item.name }}</p>
                       </div>
                     </template>
                   </el-autocomplete>
                 </el-form-item>
-              </div>
-            </template>
-          </el-table-column>
-          <el-table-column
-            prop="quantity"
-            label="QTY"
-            width="150"
-            align="center"
-          >
-            <template #default="scope">
-              <el-form-item
-                :prop="`items.${scope.$index}.quantity`"
-                :rules="[
-                  {
-                    required: true,
-                    message: 'Qty wajib diisi',
-                    trigger: 'change',
-                  },
-                  {
-                    type: 'number',
-                    min: 1,
-                    message: 'Qty minimal 1',
-                    trigger: 'change',
-                  },
-                ]"
-                style="margin-bottom: 0px !important"
-              >
-                <el-input-number v-model="scope.row.quantity" :min="1" />
-              </el-form-item>
-            </template>
-          </el-table-column>
-          <el-table-column prop="unit_name" label="UoM" width="130">
-            <template #default="scope">
-              <el-form-item
-                :prop="`items.${scope.$index}.unit_name`"
-                :rules="[
-                  {
-                    required: true,
-                    message: 'UoM wajib diisi',
-                    trigger: 'change',
-                  },
-                ]"
-                style="margin-bottom: 0px !important"
-              >
-                <el-autocomplete
-                  :fetch-suggestions="querySearchUnit"
-                  v-model="scope.row.unit_name"
-                  placeholder="Input Units"
-                  @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteUnit(item, scope)"
-                >
-                  <template #default="{ item }">
-                    <div
-                      v-if="item.isNew"
-                      class="flex items-center text-blue-500"
-                    >
-                      <el-icon><Plus /></el-icon>
-                      <span class="ml-2">Tambahkan "{{ item.label }}"</span>
-                    </div>
-                    <div v-else>
-                      <p class="font-bold">{{ item.name }}</p>
-                    </div>
-                  </template>
-                </el-autocomplete>
-              </el-form-item>
-            </template>
-          </el-table-column>
-          <el-table-column
-            prop="unit_price"
-            label="Harga Satuan"
-            align="right"
-            width="200"
-          >
-            <template #default="scope">
-              <el-form-item
-                label=""
-                :prop="`items.${scope.$index}.displayPrice`"
-                class="mb-0"
-                style="margin-bottom: 0px !important"
-                :rules="[
-                  {
-                    required: true,
-                    message: 'Harga wajib diisi',
-                    trigger: 'change',
-                  },
-                ]"
-              >
-                <el-input
-                  v-model="scope.row.displayPrice"
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="unit_price"
+              label="Harga Satuan"
+              align="right"
+              width="200"
+            >
+              <template #default="scope">
+                <el-form-item
+                  label=""
+                  :prop="`items.${scope.$index}.displayPrice`"
                   class="mb-0"
-                  inputmode="decimal"
-                  @input="
-                    (val) => {
-                      const parsed = parseCurrencyID(val);
-                      scope.row.unit_price = parsed;
-                      scope.row.displayPrice = formatCurrencyID(parsed);
-                    }
-                  "
-                  @blur="
-                    () => {
-                      scope.row.displayPrice = formatCurrencyID(
-                        scope.row.unit_price
-                      );
-                    }
-                  "
-                />
-              </el-form-item>
-            </template>
-          </el-table-column>
-          <el-table-column
-            prop="total_price"
-            label="Total Harga"
-            align="right"
-            width="200"
-          >
-            <template #default="scope">
-              {{ formatCurrency(scope.row.unit_price * scope.row.quantity) }}
-            </template>
-          </el-table-column>
-
-          <el-table-column label="Nomor PR" width="200">
-            <template #default="scope">
-              <el-input
-                v-model="scope.row.pr_number"
-                placeholder="Cari Purchase Request"
-                class="input-with-select"
-                :disabled="true"
-              >
-                <template #append style="background-color: blue !important">
-                  <el-button
-                    :icon="Search"
-                    type="primary"
-                    @click="() => openModalPr(scope.$index)"
+                  style="margin-bottom: 0px !important"
+                  :rules="[
+                    {
+                      required: true,
+                      message: 'Harga wajib diisi',
+                      trigger: 'change',
+                    },
+                  ]"
+                >
+                  <el-input
+                    v-model="scope.row.displayPrice"
+                    class="mb-0"
+                    inputmode="decimal"
+                    @input="
+                      (val) => {
+                        const parsed = parseCurrencyID(val);
+                        scope.row.unit_price = parsed;
+                        scope.row.displayPrice = formatCurrencyID(parsed);
+                      }
+                    "
+                    @blur="
+                      () => {
+                        scope.row.displayPrice = formatCurrencyID(
+                          scope.row.unit_price
+                        );
+                      }
+                    "
                   />
-                </template>
-              </el-input>
-            </template>
-          </el-table-column>
-          <el-table-column label="Aksi" width="100" fixed="right">
-            <template #default="scope">
-              <el-button
-                type="danger"
-                :icon="Delete"
-                circle
-                @click="removeItem(scope.$index)"
-              />
-            </template>
-          </el-table-column>
-        </el-table>
-      </el-form>
-      <el-button class="mt-4" style="width: 100%" @click="AddNewItem">
-        Tambah Item
-      </el-button>
-    </el-card>
+                </el-form-item>
+              </template>
+            </el-table-column>
+            <el-table-column
+              prop="total_price"
+              label="Total Harga"
+              align="right"
+              width="200"
+            >
+              <template #default="scope">
+                {{ formatCurrency(scope.row.unit_price * scope.row.quantity) }}
+              </template>
+            </el-table-column>
 
+            <el-table-column label="Nomor PR" width="200">
+              <template #default="scope">
+                <el-form-item
+                  style="margin-bottom: 0px"
+                  :prop="`items.${scope.$index}.pr_number`"
+                  :show-message="false"
+                  :rules="[
+                    {
+                      required: true,
+                      message: 'PR Number Wajib Diisi',
+                      trigger: 'change',
+                    },
+                  ]"
+                >
+                  <el-input
+                    v-model="scope.row.pr_number"
+                    placeholder="Cari Purchase Request"
+                    class="input-with-select"
+                    :disabled="true"
+                  >
+                    <template #append style="background-color: blue !important">
+                      <el-button
+                        :icon="Search"
+                        type="primary"
+                        @click="() => openModalPr(scope.$index)"
+                      />
+                    </template>
+                  </el-input>
+                </el-form-item>
+              </template>
+            </el-table-column>
+            <el-table-column label="Estimasi Pengiriman" width="200">
+              <template #default="scope">
+                <el-form-item
+                  style="margin-bottom: 0px"
+                  :prop="`items.${scope.$index}.delivery`"
+                  :show-message="false"
+                  :rules="[
+                    {
+                      required: true,
+                      message: 'Estimasi Pengiriman',
+                      trigger: 'change',
+                    },
+                  ]"
+                >
+                  <el-input
+                    v-model="scope.row.delivery"
+                    placeholder="Estimasi Pengiriman"
+                    class="input-with-select"
+                  />
+                </el-form-item>
+              </template>
+            </el-table-column>
+            <el-table-column label="Aksi" width="100" fixed="right">
+              <template #default="scope">
+                <el-button
+                  type="danger"
+                  :icon="Delete"
+                  circle
+                  @click="removeItem(scope.$index)"
+                />
+              </template>
+            </el-table-column>
+          </el-table>
+        </TrumsDragScrollTable>
+        <el-button class="mt-4" style="width: 100%" @click="AddNewItem">
+          Tambah Item
+        </el-button>
+      </el-card>
+    </el-form>
     <AdjustmentTransactionComponent
       v-if="!loadingGetEditData"
       :references="references"
@@ -494,7 +545,7 @@
       <el-row :gutter="20" class="mb-3">
         <el-col :span="6"
           ><el-input
-            v-model="request_search_inquiry.keyword"
+            v-model="request_search_trail.keyword"
             size="default"
             placeholder="Type to search"
         /></el-col>
@@ -557,7 +608,7 @@
 
     <el-dialog
       v-model="visiblePricetagModal"
-      title="Pilih Item dari Pricetag"
+      title="Pilih Item dari Penawaran"
       width="1000"
     >
       <el-row :gutter="20" class="mb-3">
@@ -672,6 +723,14 @@
         }"
       />
     </el-dialog>
+
+    <el-dialog
+      v-model="visibleModalPricetagNewItem"
+      title="Buat Penawaran Baru"
+      width="1000"
+    >
+      <AddPriceTagComponent v-on:submit="handleSubmitPricetag" />
+    </el-dialog>
   </TrumsWrapper>
 </template>
 
@@ -696,7 +755,7 @@ import {
   type CanvassingItem,
   type CanvassingVendor,
 } from "~/types/scm/canvasing";
-import type { Pricetag_item } from "~/types/pricetag";
+import type { Pricetag, Pricetag_item } from "~/types/pricetag";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { BaseResponse } from "~/types/response";
@@ -725,6 +784,7 @@ import FormAddress from "~/components/trums/FormAddress.vue";
 import AdjustmentTransactionComponent from "~/components/trums/AdjustmentTransactionComponent.vue";
 import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
 import type { TermOfPayment } from "~/types/payment_term";
+import AddPriceTagComponent from "~/components/trums/AddPriceTagComponent.vue";
 
 const fileList = ref<UploadUserFile[]>([]);
 
@@ -737,6 +797,8 @@ const loadingGetEditData = ref<boolean>(false);
 const visibleModalRequest = ref(false);
 const visibleModalAdjustmentTransaction = ref(false);
 const visibleModalNewAdjustment = ref(false);
+
+const visibleModalPricetagNewItem = ref<boolean>(false);
 
 const address = ref<AddressType | null>(null);
 
@@ -756,7 +818,7 @@ const ruleForm = reactive({
   vendor_name: "",
   vendor_version: 0,
   sourcing_document: "",
-  delivery_address_id: "",
+  delivery_address_id: null as string | null,
   delivery_address_version: 0,
   delivery_address_view: "",
   expected_arrival: null as number | null,
@@ -842,12 +904,25 @@ const querySearchAdjustmentTransaction = ref<RequestSearch>({
   offset: "1",
 });
 
-const pricetagItems = await useFetchApi<ResponsePagination<Pricetag_item[]>>(
-  "/search",
-  "search-pricetag-item",
-  "post",
-  query_search_pricetag_item.value
-);
+const request_search_pricetag_item = ref<RequestSearch>({
+  column: [],
+  keyword: "",
+  table: "pricetag_item",
+  sort: null,
+  offset: "1",
+  limit: "10",
+});
+
+const pricetagItems = await useAsyncData("search-pricetag-item", async () => {
+  const res = await useFetchApi<ResponsePagination<Pricetag_item[]>>(
+    "/search",
+    "search-pricetag-item",
+    "post",
+    query_search_pricetag_item.value
+  );
+  return res.data.value;
+});
+
 const adjustmentTransactions = await useFetchApi<
   ResponsePagination<AdjustmentTransaction[]>
 >(
@@ -880,10 +955,12 @@ const query_search_canvasing_item = ref<RequestSearch>({
   limit: "10",
 });
 
-const request_search_inquiry = ref<RequestSearch>({
+const request_search_trail = ref<RequestSearch>({
   column: [
     {
       status: [ItemRequestTrailStatus.DONE],
+      reference: ["pr"],
+      pr_purchase_order_item: ["null"],
     },
   ],
   keyword: "",
@@ -901,29 +978,38 @@ const itemRequest = await useAsyncData("search-item-request", async () => {
     `/search`,
     "search-item-request",
     "post",
-    request_search_inquiry.value
+    request_search_trail.value
   );
   return res.data.value;
 });
 
 watch(
-  () => request_search_inquiry.value,
+  () => request_search_trail.value,
   () => itemRequest.refresh(),
   { deep: true }
 );
 
 const paginationClick = (val: number) => {
-  request_search_inquiry.value.offset = val.toString();
+  request_search_trail.value.offset = val.toString();
 };
 
 const handleSizeChange = (size: number) => {
-  request_search_inquiry.value.limit = `${size}`;
+  request_search_trail.value.limit = `${size}`;
 };
 
 // Handle cancel
 const handleCancel = () => {
   tmpCatalogue.value = null;
   drawerCatalogue.value = false;
+};
+
+const handleSubmitPricetag = (pricetag: Pricetag | undefined) => {
+  if (pricetag) {
+    ruleForm.vendor_id = pricetag.owner_id;
+    ruleForm.vendor_name = pricetag.owner_name || "";
+    visibleModalPricetagNewItem.value = false;
+    pricetagItems.refresh();
+  }
 };
 
 const handleSubmit = async (catalogue: Catalogue) => {
@@ -1011,11 +1097,18 @@ const filteredCanvassingItems = await useAsyncData(
   }
 );
 
-const subtotal = computed(() => {
+const totalItems = computed(() => {
   return ruleForm.items.reduce(
     (sum, item) => sum + item.unit_price * item.quantity,
     0
   );
+});
+
+const subtotal = computed(() => {
+  console.log("total", totalItems.value);
+  console.log("get plus", getPlus.value);
+  console.log("get minus", getMinus.value);
+  return totalItems.value + getPlus.value - getMinus.value;
 });
 
 const getPlus = computed(() => {
@@ -1079,7 +1172,7 @@ const getMinus = computed(() => {
         minus +=
           ref.type == FeeType.AMOUNT
             ? Number(ref.amount)
-            : displayAmount(ref, totalPrice.value);
+            : displayAmount(ref, totalItems.value);
       }
     });
 
@@ -1087,7 +1180,7 @@ const getMinus = computed(() => {
 });
 
 const grandTotal = computed(() => {
-  return subtotal.value + getPlus.value + ppnComponent.value - getMinus.value;
+  return subtotal.value + ppnComponent.value;
 });
 
 const paymentMethods = [
@@ -1104,14 +1197,53 @@ const calculatedDiscount = computed(() => {
   return ruleForm.discount;
 });
 
-const totalPrice = computed(() => {
-  return subtotal.value - calculatedDiscount.value + ruleForm.delivery_cost;
-});
+const validateItems = (
+  rule: any,
+  value: any[],
+  callback: (error?: Error) => void
+) => {
+  if (!value || value.length === 0) {
+    ElMessage.error("Item tidak boleh kosong");
+    callback(new Error());
+    return;
+  }
+
+  const invalid = value.some((item) => !item.pr_number);
+
+  if (invalid) {
+    // ElMessage.error("Masih ada PR Number yang belum diisi");
+    callback(new Error());
+    setTimeout(() => {
+      ElMessage.error("Masih ada PR Number yang belum diisi.");
+    }, 0);
+    return;
+  }
+
+  const invalidDelivery = value.some(
+    (item) =>
+      !item.delivery ||
+      (typeof item.delivery === "string" && item.delivery.trim() === "")
+  );
+
+  if (invalidDelivery) {
+    setTimeout(() => {
+      ElMessage.error("Masih ada Estimasi Pengiriman yang belum diisi.");
+    }, 0);
+    callback(new Error());
+    return;
+  }
+
+  callback();
+};
 
 // Validation rules
-const rules: FormRules = {
+const rules = reactive<FormRules>({
   vendor_name: [
-    { required: true, message: "Vendor wajib dipilih", trigger: "change" },
+    {
+      required: true,
+      message: "Vendor Tidak Boleh Kosong!",
+      trigger: ["blur", "change"],
+    },
   ],
   sourcing_document: [
     { required: true, message: "Nomor referensi wajib diisi", trigger: "blur" },
@@ -1120,20 +1252,18 @@ const rules: FormRules = {
     {
       required: true,
       message: "Alamat pengiriman wajib dipilih",
-      trigger: "change",
+      trigger: "blur",
     },
   ],
+
   status: [
     { required: true, message: "Status wajib dipilih", trigger: "change" },
   ],
   items: {
-    type: "array",
-    required: true,
-    min: 1,
-    message: "Item Tidak Boleh Kosong!",
+    validator: validateItems,
     trigger: "change",
   },
-};
+});
 
 const openCatalogueDetail = (cat: ItemInterface, index: number) => {
   if (cat.catalogue == null) {
@@ -1429,6 +1559,16 @@ const formatCurrency = (amount: number) => {
 };
 
 const openModalPr = (index: number) => {
+  request_search_trail.value.column = [
+    {
+      status: [ItemRequestTrailStatus.DONE],
+      reference: ["pr"],
+      pr_purchase_order_item: ["null"],
+      item_request: {
+        catalogue_id: [ruleForm.items[index].catalogue_id],
+      },
+    },
+  ];
   poItemIndex.value = index;
   visibleModalRequest.value = true;
 };
@@ -1438,7 +1578,6 @@ const selectPR = (row: ItemRequestTrail) => {
   ruleForm.items[poItemIndex.value].pr_item_request_trail_version =
     row.version ?? 1;
   visibleModalRequest.value = false;
-  console.log(ruleForm.items[poItemIndex.value]);
 };
 
 const querySearchCustomer = (query: string, cb: (arg: any) => void) => {
@@ -1591,7 +1730,7 @@ const handleEditAddress = (addressEdit: AddressType) => {
 
 const handleDeleteAddress = () => {
   address.value = null;
-  ruleForm.delivery_address_id = "";
+  ruleForm.delivery_address_id = null;
   ruleForm.delivery_address_version = 0;
   ruleForm.delivery_address_view = "";
 };
@@ -1634,12 +1773,12 @@ watch(
   },
   { deep: true }
 );
-watchDebounced(
-  () => query_search_pricetag_item,
+watch(
+  () => query_search_pricetag_item.value,
   () => {
-    refreshNuxtData("search-pricetag-item");
+    pricetagItems.refresh();
   },
-  { debounce: 500 }
+  { deep: true }
 );
 
 const createNewVendor = async (data: any) => {
@@ -1660,28 +1799,29 @@ const createNewVendor = async (data: any) => {
 
 const onHandleSelectVendor = (item: any) => {
   if (item.isNew) {
-    createNewVendor(item.query).then((customer) => {
-      if (customer) {
-        ruleForm.vendor_id = customer.unique_id;
-        ruleForm.vendor_name = customer.name;
-        ruleForm.vendor_version = customer.version;
+    // createNewVendor(item.query).then((customer) => {
+    //   if (customer) {
+    //     ruleForm.vendor_id = customer.unique_id;
+    //     ruleForm.vendor_name = customer.name;
+    //     ruleForm.vendor_version = customer.version;
 
-        query_search_canvasing_item.value.column = [
-          {
-            vendor_id: [customer.unique_id],
-            status: [CanvassingVendorStatus.SELECTED],
-          },
-        ];
-        query_search_pricetag_item.value.column = [
-          {
-            pricetag: {
-              owner_id: [customer.unique_id],
-              type: ["in"],
-            },
-          },
-        ];
-      }
-    });
+    //     query_search_canvasing_item.value.column = [
+    //       {
+    //         vendor_id: [customer.unique_id],
+    //         status: [CanvassingVendorStatus.SELECTED],
+    //       },
+    //     ];
+    //     query_search_pricetag_item.value.column = [
+    //       {
+    //         pricetag: {
+    //           owner_id: [customer.unique_id],
+    //           type: ["in"],
+    //         },
+    //       },
+    //     ];
+    //   }
+    // });
+    visibleModalPricetagNewItem.value = true;
   } else {
     const customer = item.data as Contact;
     ruleForm.vendor_id = customer.unique_id;
@@ -1739,6 +1879,15 @@ const openPricetagModal = () => {
     ElMessage.warning("Pilih vendor terlebih dahulu");
     return;
   }
+
+  query_search_pricetag_item.value.column = [
+    {
+      pricetag: {
+        type: ["in"],
+        owner_id: [ruleForm.vendor_id],
+      },
+    },
+  ];
   visiblePricetagModal.value = true;
 };
 
@@ -1792,6 +1941,8 @@ const addSelectedCanvassingItems = () => {
       item_request_trail_id: "",
       item_request_trail_version: 0,
       item_request_trail: value.canvassing_item?.item_request_trail,
+      pricetag_item_id: value.pricetag_item_id || "",
+      pricetag_item_version: value.pricetag_item_version,
       order_version: 1,
       status: PurchaseOrderItemStatus.DRAFT,
       displayPrice: formatCurrencyID(parsed),
@@ -1837,6 +1988,41 @@ const AddNewItem = () => {
 };
 
 const addSelectedPricetagItems = () => {
+  selectedPricetagItems.value.forEach((element) => {
+    const parsed = formatCurrencyID(element.price || 0);
+    ruleForm.items.push({
+      id: 0,
+      unique_id: "",
+      order_id: "",
+      order_version: 0,
+      vendor_id: "",
+      vendor_version: 0,
+      pr_item_request_trail_id: null,
+      pr_item_request_trail_version: 0,
+      catalogue_name: element.catalogue?.name ?? "",
+      catalogue: element.catalogue!,
+      catalogue_id: element.catalogue_id,
+      catalogue_version: element.catalogue?.version ?? 0,
+      quantity: 1,
+      unit_price: element.price,
+      total_price: element.price,
+      is_warranty: (element.garansi ?? 0) > 0,
+      warranty: element.garansi ?? 0,
+      is_discount: false,
+      delivery_cost: 0,
+      version: 0,
+      unit_id: element.unit_id,
+      unit_name: element.unit_name,
+      pricetag_item_id: element.unique_id || "",
+      pricetag_item_version: element.version,
+      created_at: 0,
+      created_by: 0,
+      updated_at: 0,
+      status: PurchaseOrderItemStatus.DRAFT,
+      displayPrice: parsed,
+    });
+  });
+
   visiblePricetagModal.value = false;
   selectedPricetagItems.value = [];
 };
@@ -1894,215 +2080,234 @@ const removeReferenceTransaction = async (
   );
 };
 
+const onSubmit = async (formEl: FormInstance) => {
+  loading.value = true;
+  try {
+    await formEl.validate();
+    // Calculate total price
+    ruleForm.total_price = totalItems.value;
+
+    const formData = new FormData();
+
+    // Append main fields
+    formData.append("unique_id", `${ruleForm.unique_id}`);
+    formData.append("vendor_id", `${ruleForm.vendor_id}`);
+    formData.append("vendor_name", `${ruleForm.vendor_name}`);
+    formData.append("vendor_version", `${ruleForm.vendor_version}`);
+    formData.append("sourcing_document", `${ruleForm.sourcing_document}`);
+    formData.append("total_price", `${ruleForm.total_price}`);
+    formData.append("delivery_address_id", `${ruleForm.delivery_address_id}`);
+    formData.append(
+      "delivery_address_version",
+      `${ruleForm.delivery_address_version}`
+    );
+    formData.append(
+      "expected_arrival",
+      `${
+        ruleForm.expected_arrival != null
+          ? ruleForm.expected_arrival / 1000
+          : null
+      }`
+    );
+    formData.append("date", `${ruleForm.date / 1000}`);
+    formData.append("is_discount", `${ruleForm.is_discount}`);
+    formData.append("discount", `${ruleForm.discount}`);
+    formData.append("discount_unit", `${ruleForm.discount_unit}`);
+    formData.append("delivery_cost", `${ruleForm.delivery_cost}`);
+    formData.append(
+      "additional_information",
+      `${ruleForm.additinal_information}`
+    );
+    formData.append("is_tempo", `${ruleForm.is_tempo}`);
+    formData.append("term_payment", `${ruleForm.payment_term}`);
+    formData.append("term_payment_value", `${ruleForm.payment_term_value}`);
+    formData.append("term_payment_unit", `${ruleForm.payment_term_unit}`);
+    formData.append("method_payment", `${ruleForm.payment_method}`);
+    formData.append("status", `${ruleForm.status}`);
+    formData.append("type", `po`);
+
+    // Append items array
+    ruleForm.items.forEach((value, index) => {
+      formData.append(`item[${index}][unique_id]`, `${value.unique_id}`);
+      formData.append(`item[${index}][order_id]`, `${value.order_id}`);
+      formData.append(`item[${index}][item_id]`, `${value.catalogue_id}`);
+      formData.append(`item[${index}][item_name]`, `${value.catalogue_name}`);
+      formData.append(
+        `item[${index}][item_version]`,
+        `${value.catalogue_version}`
+      );
+      formData.append(`item[${index}][quantity]`, `${value.quantity}`);
+      formData.append(`item[${index}][unit_price]`, `${value.unit_price}`);
+      formData.append(`item[${index}][unit_id]`, `${value.unit_id}`);
+      formData.append(`item[${index}][unit_name]`, `${value.unit_name}`);
+      formData.append(
+        `item[${index}][total_price]`,
+        `${value.quantity * value.unit_price || 0}`
+      );
+      formData.append(`item[${index}][is_warranty]`, `${value.is_warranty}`);
+      formData.append(`item[${index}][warranty]`, `${value.warranty}`);
+      formData.append(
+        `item[${index}][warranty_unit]`,
+        `${value.warranty_unit}`
+      );
+      formData.append(
+        `item[${index}][is_discount]`,
+        `${value.is_discount ?? false}`
+      );
+      formData.append(`item[${index}][discount]`, `${value.discount ?? null}`);
+      formData.append(
+        `item[${index}][discount_unit]`,
+        `${value.discount_unit ?? null}`
+      );
+      formData.append(
+        `item[${index}][additional_information]`,
+        `${value.additinal_information}`
+      );
+      formData.append(
+        `item[${index}][item_request_id]`,
+        `${value.item_request_trail?.item_request_id}`
+      );
+      formData.append(
+        `item[${index}][item_request_version]`,
+        `${value.item_request_trail?.item_request_version}`
+      );
+      formData.append(
+        `item[${index}][pr_item_request_trail_id]`,
+        `${value.pr_item_request_trail_id}`
+      );
+      formData.append(
+        `item[${index}][pr_item_request_trail_version]`,
+        `${value.item_request_trail_version}`
+      );
+      formData.append(
+        `item[${index}][item_request_trail_id]`,
+        `${value.item_request_trail_id}`
+      );
+      formData.append(
+        `item[${index}][item_request_trail_version]`,
+        `${value.item_request_trail_version}`
+      );
+      formData.append(`item[${index}][version]`, `${value.version}`);
+      formData.append(
+        `item[${index}][order_version]`,
+        `${value.order_version}`
+      );
+      formData.append(`item[${index}][status]`, `${value.status}`);
+      formData.append(
+        `item[${index}][pricetag_item_id]`,
+        `${value.pricetag_item_id}`
+      );
+      formData.append(
+        `item[${index}][pricetag_item_id_version]`,
+        `${value.pricetag_item_version}`
+      );
+      formData.append(`item[${index}][delivery]`, `${value.delivery}`);
+    });
+
+    termOfPayments.value.forEach((top, indexTOP) => {
+      formData.append(
+        `payment_terms[${indexTOP}][unique_id]`,
+        `${top.unique_id}`
+      );
+      formData.append(`payment_terms[${indexTOP}][name]`, `${top.name}`);
+      formData.append(`payment_terms[${indexTOP}][value]`, `${top.value}`);
+      formData.append(`payment_terms[${indexTOP}][unit]`, `${top.unit}`);
+      formData.append(
+        `payment_terms[${indexTOP}][term_of_payment]`,
+        `${top.term_of_payment}`
+      );
+      formData.append(
+        `payment_terms[${indexTOP}][duration]`,
+        `${top.duration}`
+      );
+    });
+    references.value.forEach((ref, index) => {
+      formData.append(`ref_trans_adj[${index}][unique_id]`, `${ref.unique_id}`);
+      formData.append(
+        `ref_trans_adj[${index}][adjustment_id]`,
+        `${ref.adjustment_id}`
+      );
+      formData.append(
+        `ref_trans_adj[${index}][adjustment_version]`,
+        `${ref.adjustment?.version}`
+      );
+      formData.append(`ref_trans_adj[${index}][value]`, `${ref.value}`);
+      formData.append(`ref_trans_adj[${index}][amount]`, `${ref.amount}`);
+      formData.append(
+        `ref_trans_adj[${index}][party_type]`,
+        `${ref.party_type}`
+      );
+      formData.append(`ref_trans_adj[${index}][party_id]`, `${ref.party_id}`);
+      formData.append(`ref_trans_adj[${index}][type]`, `${ref.type}`);
+      formData.append(`ref_trans_adj[${index}][include]`, `${ref.include}`);
+    });
+
+    // Append files
+    fileList.value.forEach((file, index) => {
+      if (file.raw) {
+        formData.append(`files[${index}]`, file.raw);
+      }
+    });
+
+    const response = await useFetchApi<BaseResponse<PurchaseOrder>>(
+      "/purchase-order-create",
+      "create-purchase-order",
+      "post",
+      formData
+    );
+
+    if (response.status.value === "success") {
+      const purchaseOrder: PurchaseOrder | undefined =
+        response.data.value?.data;
+      ElMessage.success("Purchase Order berhasil dibuat");
+      if (purchaseOrder) {
+        router.push(
+          `/supply-chain-management/purchase/order/${purchaseOrder.unique_id}`
+        );
+      }
+    }
+  } catch (error) {
+    ElMessage.error("Gagal membuat Purchase Order");
+    console.error(error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+const validateTermOfPayments = (value: TermOfPayment[]) => {
+  if (!value || value.length === 0) {
+    return "Minimal harus ada 1 term of payment";
+  }
+
+  for (const item of value) {
+    if (!item.name || item.name.trim() === "") {
+      return "Nama term of payment wajib diisi";
+    }
+
+    if (
+      item.term_of_payment === PaymentTerm.TEMPO &&
+      (!item.duration || item.duration <= 0)
+    ) {
+      return "Duration wajib diisi untuk term TEMPO";
+    }
+  }
+
+  return true;
+};
+
 const submitForm = async (formEl: FormInstance | undefined) => {
   if (!formEl) return;
-
-  await formEl.validate(async (valid) => {
+  await formEl.validate((valid, fields) => {
     if (valid) {
-      if (ruleForm.items.length === 0) {
-        ElMessage.warning("Tambahkan minimal satu item");
+      const termResult = validateTermOfPayments(termOfPayments.value);
+
+      if (termResult !== true) {
+        ElMessage.error(termResult);
         return;
       }
-
-      loading.value = true;
-      try {
-        // Calculate total price
-        ruleForm.total_price = totalPrice.value;
-
-        const formData = new FormData();
-
-        // Append main fields
-        formData.append("unique_id", `${ruleForm.unique_id}`);
-        formData.append("vendor_id", `${ruleForm.vendor_id}`);
-        formData.append("vendor_name", `${ruleForm.vendor_name}`);
-        formData.append("vendor_version", `${ruleForm.vendor_version}`);
-        formData.append("sourcing_document", `${ruleForm.sourcing_document}`);
-        formData.append("total_price", `${ruleForm.total_price}`);
-        formData.append(
-          "delivery_address_id",
-          `${ruleForm.delivery_address_id}`
-        );
-        formData.append(
-          "delivery_address_version",
-          `${ruleForm.delivery_address_version}`
-        );
-        formData.append(
-          "expected_arrival",
-          `${
-            ruleForm.expected_arrival != null
-              ? ruleForm.expected_arrival / 1000
-              : null
-          }`
-        );
-        formData.append("date", `${ruleForm.date / 1000}`);
-        formData.append("is_discount", `${ruleForm.is_discount}`);
-        formData.append("discount", `${ruleForm.discount}`);
-        formData.append("discount_unit", `${ruleForm.discount_unit}`);
-        formData.append("delivery_cost", `${ruleForm.delivery_cost}`);
-        formData.append(
-          "additional_information",
-          `${ruleForm.additinal_information}`
-        );
-        formData.append("is_tempo", `${ruleForm.is_tempo}`);
-        formData.append("term_payment", `${ruleForm.payment_term}`);
-        formData.append("term_payment_value", `${ruleForm.payment_term_value}`);
-        formData.append("term_payment_unit", `${ruleForm.payment_term_unit}`);
-        formData.append("method_payment", `${ruleForm.payment_method}`);
-        formData.append("status", `${ruleForm.status}`);
-        formData.append("type", `po`);
-
-        // Append items array
-        ruleForm.items.forEach((value, index) => {
-          formData.append(`item[${index}][unique_id]`, `${value.unique_id}`);
-          formData.append(`item[${index}][order_id]`, `${value.order_id}`);
-          formData.append(`item[${index}][item_id]`, `${value.catalogue_id}`);
-          formData.append(
-            `item[${index}][item_name]`,
-            `${value.catalogue_name}`
-          );
-          formData.append(
-            `item[${index}][item_version]`,
-            `${value.catalogue_version}`
-          );
-          formData.append(`item[${index}][quantity]`, `${value.quantity}`);
-          formData.append(`item[${index}][unit_price]`, `${value.unit_price}`);
-          formData.append(`item[${index}][unit_id]`, `${value.unit_id}`);
-          formData.append(`item[${index}][unit_name]`, `${value.unit_name}`);
-          formData.append(
-            `item[${index}][total_price]`,
-            `${value.quantity * value.unit_price || 0}`
-          );
-          formData.append(
-            `item[${index}][is_warranty]`,
-            `${value.is_warranty}`
-          );
-          formData.append(`item[${index}][warranty]`, `${value.warranty}`);
-          formData.append(
-            `item[${index}][warranty_unit]`,
-            `${value.warranty_unit}`
-          );
-          formData.append(
-            `item[${index}][is_discount]`,
-            `${value.is_discount ?? false}`
-          );
-          formData.append(
-            `item[${index}][discount]`,
-            `${value.discount ?? null}`
-          );
-          formData.append(
-            `item[${index}][discount_unit]`,
-            `${value.discount_unit ?? null}`
-          );
-          formData.append(
-            `item[${index}][additional_information]`,
-            `${value.additinal_information}`
-          );
-          formData.append(
-            `item[${index}][item_request_id]`,
-            `${value.item_request_trail?.item_request_id}`
-          );
-          formData.append(
-            `item[${index}][item_request_version]`,
-            `${value.item_request_trail?.item_request_version}`
-          );
-          formData.append(
-            `item[${index}][pr_item_request_trail_id]`,
-            `${value.pr_item_request_trail_id}`
-          );
-          formData.append(
-            `item[${index}][pr_item_request_trail_version]`,
-            `${value.item_request_trail_version}`
-          );
-          formData.append(
-            `item[${index}][item_request_trail_id]`,
-            `${value.item_request_trail_id}`
-          );
-          formData.append(
-            `item[${index}][item_request_trail_version]`,
-            `${value.item_request_trail_version}`
-          );
-          formData.append(`item[${index}][version]`, `${value.version}`);
-          formData.append(
-            `item[${index}][order_version]`,
-            `${value.order_version}`
-          );
-          formData.append(`item[${index}][status]`, `${value.status}`);
-        });
-
-        termOfPayments.value.forEach((top, indexTOP) => {
-          formData.append(
-            `payment_terms[${indexTOP}][unique_id]`,
-            `${top.unique_id}`
-          );
-          formData.append(`payment_terms[${indexTOP}][name]`, `${top.name}`);
-          formData.append(`payment_terms[${indexTOP}][value]`, `${top.value}`);
-          formData.append(`payment_terms[${indexTOP}][unit]`, `${top.unit}`);
-          formData.append(
-            `payment_terms[${indexTOP}][term_of_payment]`,
-            `${top.term_of_payment}`
-          );
-          formData.append(
-            `payment_terms[${indexTOP}][duration]`,
-            `${top.duration}`
-          );
-        });
-        references.value.forEach((ref, index) => {
-          formData.append(
-            `ref_trans_adj[${index}][unique_id]`,
-            `${ref.unique_id}`
-          );
-          formData.append(
-            `ref_trans_adj[${index}][adjustment_id]`,
-            `${ref.adjustment_id}`
-          );
-          formData.append(
-            `ref_trans_adj[${index}][adjustment_version]`,
-            `${ref.adjustment?.version}`
-          );
-          formData.append(`ref_trans_adj[${index}][value]`, `${ref.value}`);
-          formData.append(`ref_trans_adj[${index}][amount]`, `${ref.amount}`);
-          formData.append(
-            `ref_trans_adj[${index}][party_type]`,
-            `${ref.party_type}`
-          );
-          formData.append(
-            `ref_trans_adj[${index}][party_id]`,
-            `${ref.party_id}`
-          );
-          formData.append(`ref_trans_adj[${index}][type]`, `${ref.type}`);
-          formData.append(`ref_trans_adj[${index}][include]`, `${ref.include}`);
-        });
-
-        // Append files
-        fileList.value.forEach((file, index) => {
-          if (file.raw) {
-            formData.append(`files[${index}]`, file.raw);
-          }
-        });
-
-        const response = await useFetchApi<BaseResponse<PurchaseOrder>>(
-          "/purchase-order-create",
-          "create-purchase-order",
-          "post",
-          formData
-        );
-
-        if (response.status.value === "success") {
-          const purchaseOrder: PurchaseOrder | undefined =
-            response.data.value?.data;
-          ElMessage.success("Purchase Order berhasil dibuat");
-          if (purchaseOrder) {
-            router.push(
-              `/supply-chain-management/purchase/order/${purchaseOrder.unique_id}`
-            );
-          }
-        }
-      } catch (error) {
-        ElMessage.error("Gagal membuat Purchase Order");
-        console.error(error);
-      } finally {
-        loading.value = false;
-      }
+      onSubmit(formEl);
+    } else {
+      console.log("error submit!", fields);
     }
   });
 };
@@ -2197,7 +2402,11 @@ const fetchDataEdit = async () => {
     loadingGetEditData.value = false;
   }
 };
+const getDPPNilaiLainView = computed(() => {
+  let dpp = (subtotal.value * 11) / 12;
 
+  return dpp;
+});
 const getDPPNilaiLain = computed(() => {
   let dpp = 0;
   references.value.forEach((element) => {
@@ -2222,15 +2431,27 @@ const getDPPNilaiLain = computed(() => {
 const summeryData = computed(() => {
   const tableData: any[] = [
     {
-      label: "Subtotal",
-      value: currency(subtotal.value),
+      label: "Total Price",
+      value: currency(totalItems.value),
     },
   ];
 
+  references.value.forEach((element) => {
+    if (element.adjustment?.category != "tax") {
+      tableData.push({
+        label: element.adjustment?.name ? `${element.adjustment?.name}` : "-",
+        value: currency(displayAmount(element, totalItems.value)),
+      });
+    }
+  });
+  tableData.push({
+    label: "Subtotal",
+    value: currency(subtotal.value),
+  });
   if (getDPPNilaiLain.value > 0) {
     tableData.push({
       label: "DPP Nilai Lain",
-      value: currency(getDPPNilaiLain.value),
+      value: currency(getDPPNilaiLainView.value),
     });
   }
 
@@ -2242,11 +2463,6 @@ const summeryData = computed(() => {
       tableData.push({
         label: element.adjustment?.name ? `${element.adjustment?.name}` : "-",
         value: currency(displayAmount(element, getDPPNilaiLain.value)),
-      });
-    } else {
-      tableData.push({
-        label: element.adjustment?.name ? `${element.adjustment?.name}` : "-",
-        value: currency(displayAmount(element, subtotal.value)),
       });
     }
   });

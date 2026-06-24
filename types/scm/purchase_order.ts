@@ -133,6 +133,7 @@ export type PurchaseOrderItem = {
   pricetag_item_id?: string;
   pricetag_item_version?: number;
   pricetag_item?: Pricetag_item;
+  delivery?: string;
 };
 
 export type PurchaseOrderItemTax = {

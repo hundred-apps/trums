@@ -788,6 +788,7 @@ const ruleForm = reactive<Pricetag>(
     start_date_view: "",
     end_date_view: "",
     owner_id: "",
+
     created_at: 0,
     created_by: "",
     updated_at: 0,
