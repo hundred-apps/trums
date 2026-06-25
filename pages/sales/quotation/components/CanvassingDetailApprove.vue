@@ -2841,15 +2841,32 @@ const initialCanvassing = (data: Canvassing) => {
         contacts_fee: [],
       };
 
-      toItemCanvassing.children.forEach((element) => {
-        if (
-          element.total_selling_price == toItemCanvassing.total_selling_price
-        ) {
-          toItemCanvassing.unit_price = element.unit_price;
-          toItemCanvassing.total_price = element.total_price;
-          toItemCanvassing.selling_price = element.selling_price;
-        }
-      });
+      // toItemCanvassing.children.forEach((element) => {
+      //   if (
+      //     element.total_selling_price == toItemCanvassing.total_selling_price
+      //   ) {
+      //     toItemCanvassing.unit_price = element.unit_price;
+      //     toItemCanvassing.total_price = element.total_price;
+      //     toItemCanvassing.selling_price = element.selling_price;
+      //   }
+      // });
+
+      const vSelected = (toItemCanvassing.children || []).filter(
+        (child) => child.status == CanvassingVendorStatus.SELECTED
+      );
+
+      toItemCanvassing.unit_price = vSelected.reduce(
+        (acc, item) => acc + item.unit_price,
+        0
+      );
+      toItemCanvassing.total_price = vSelected.reduce(
+        (acc, item) => acc + item.total_price,
+        0
+      );
+      toItemCanvassing.selling_price = vSelected.reduce(
+        (acc, item) => acc + item.selling_price,
+        0
+      );
 
       console.log("to item canvassing", toItemCanvassing);
       item_canvassing.value.push(toItemCanvassing);
@@ -3057,10 +3074,7 @@ const getSelectedVendorId = (itemId: string) => {
 };
 
 function calculateMargin(row: CanvassingItemForm) {
-  return (
-    ((row.total_selling_price - row.total_price) / row.total_selling_price) *
-    100
-  );
+  return ((row.total_selling_price - row.total_price) / row.total_price) * 100;
 }
 
 const formatDate = (timestamp: number) => {
@@ -4326,7 +4340,7 @@ const generateSCMMemo = async () => {
   const leftLogoHeight = 35;
 
   const rightLogoWidth = 40;
-  const rightLogoHeight = 15;
+  const rightLogoHeight = 14;
 
   // Logo kiri
   doc.addImage(
@@ -4393,7 +4407,7 @@ const generateSCMMemo = async () => {
       return 0;
     }
 
-    return ((totalSell - totalBuy) / totalSell) * 100;
+    return ((totalSell - totalBuy) / totalBuy) * 100;
   };
 
   const getSellingPrice = (row: CanvassingItem) => {
@@ -4804,7 +4818,7 @@ const generateSCMMemo = async () => {
     {
       content: `${safePercent(
         adjustmentTransactionOngkirTotal.value?.amount ?? 0,
-        grandTotal.value
+        subtotalBuyPrice.value
       )}`,
 
       styles: {
@@ -5028,7 +5042,7 @@ const generateSCMMemo = async () => {
   doc.text("Diketahui Oleh,", 120, footerY);
   doc.text("Disetujui Oleh,", 160, footerY);
 
-  doc.text("Stanislaus Adrian Pratama", 14, footerY + 25);
+  doc.text(`"Stanislaus Adrian Pratama"`, 14, footerY + 25);
   doc.text("Nina", 120, footerY + 25);
   doc.text("Chairil Juwono", 160, footerY + 25);
 

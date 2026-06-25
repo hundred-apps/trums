@@ -1822,7 +1822,7 @@ const fetchDataEdit = async () => {
                   offer_item_version: 0,
                   catalogue_id: vendor.catalogue_id ?? "",
                   parent_catalogue_id: vendor.catalogue_id,
-                  catalogue_name: item.catalogue?.name ?? "",
+                  catalogue_name: vendor.catalogue?.name ?? "",
                   sn: vendor.catalogue?.sn ?? "N/A",
                   quantity: vendor.quantity,
                   unit_price: vendor.unit_price,
@@ -1964,6 +1964,7 @@ const fetchDataEdit = async () => {
               },
             ],
           }));
+          console.log("item canvassing", item_canvassing.value);
         }
       }
     }

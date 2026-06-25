@@ -733,7 +733,12 @@
             <div>
               <el-descriptions title="" :column="1" size="small" border>
                 <el-descriptions-item label="Nomor Penawaran">
-                  <p class="text-blue-600">{{ vendor.unique_code ?? "N/A" }}</p>
+                  <p
+                    class="text-blue-600 cursor-pointer"
+                    @click="() => openDetailVendor(vendor.unique_id)"
+                  >
+                    {{ vendor.unique_code ?? "N/A" }}
+                  </p>
                 </el-descriptions-item>
                 <el-descriptions-item label="Berlaku Hingga">
                   {{
@@ -1787,6 +1792,7 @@ const openFeeDrawer = (item: CanvassingItemForm) => {
   drawerFeeVisible.value = true;
 };
 const openDetailVendor = (unique_id: string) => {
+  console.log("open detail vendor", unique_id);
   request_search_vendor.value.column = [
     {
       unique_id: [unique_id],
@@ -1797,6 +1803,13 @@ const openDetailVendor = (unique_id: string) => {
     offerDialogState.value = true;
   }
 };
+
+watch(
+  () => request_search_vendor.value,
+  () => offerDetail.refresh(),
+  { deep: true }
+);
+
 const handleSaveFee = ({
   item,
   contacts,
