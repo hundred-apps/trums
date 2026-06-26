@@ -23,7 +23,7 @@
           <el-button
             type="success"
             v-if="canvassingData?.status === CanvassingStatus.RAB"
-            @click="() => (dialogSelectedItem = true)"
+            @click="() => submitApproveRab(CanvassingStatus.PENDING_APPROVAL)"
           >
             <el-icon class="me-2"><CircleCheck /></el-icon> Submit for Approval
           </el-button>
@@ -46,6 +46,16 @@
             @click="decline"
           >
             <el-icon class="me-2"><CircleClose /></el-icon> Tolak
+          </el-button>
+          <el-button
+            type="default"
+            @click="printSCMMemo"
+            v-if="
+              canvassingData?.status === CanvassingStatus.PENDING_APPROVAL ||
+              canvassingData?.status === CanvassingStatus.DONE
+            "
+          >
+            Cetak SCM Memo
           </el-button>
           <el-button
             type="default"
@@ -118,9 +128,7 @@
             <el-descriptions-item label="No Ref">
               {{ canvassingData?.source_document || "-" }}
             </el-descriptions-item>
-            <el-descriptions-item label="Deskripsi">
-              {{ canvassingData?.description || "-" }}
-            </el-descriptions-item>
+
             <el-descriptions-item
               v-if="canvassingData?.source"
               label="Diminta Oleh"
@@ -132,13 +140,13 @@
                 {{ canvassingData?.source?.request_to?.name ?? "-" }}
               </p>
             </el-descriptions-item>
+            <el-descriptions-item v-if="canvassingData?.source" label="PIC">
+              {{ canvassingData?.source?.request_by?.name ?? "-" }}
+            </el-descriptions-item>
           </el-descriptions>
         </div>
         <div class="flex-1">
           <el-descriptions title="" :column="1" size="large" border>
-            <el-descriptions-item v-if="canvassingData?.source" label="PIC">
-              {{ canvassingData?.source?.request_by?.name ?? "-" }}
-            </el-descriptions-item>
             <el-descriptions-item label="Status">
               <div v-if="canvassingData">
                 <el-tag :type="getStatusTagType(canvassingData.status)">
@@ -160,6 +168,13 @@
         </div>
       </div>
 
+      <h5 class="font-bold text-black text-1xl mt-6">Catatan</h5>
+      <div class="text-sm mt-2" v-if="canvassingData?.description">
+        <div
+          class="text-sm"
+          v-html="extractDescription(canvassingData?.description ?? '')"
+        ></div>
+      </div>
       <h5 class="font-bold text-black text-1xl mt-6">Alamat Pengiriman</h5>
       <div class="text-sm mt-2" v-if="canvassingData?.address">
         ({{ canvassingData?.address?.address_name }})
@@ -368,7 +383,7 @@
             fixed="left"
           >
             <template #default="{ row }">
-              {{ row.catalogue_name }}
+              {{ displayCatalogueName(row.catalogue) }}
             </template>
           </el-table-column>
           <el-table-column v-else prop="item_name" label="Item" fixed="left">
@@ -866,6 +881,122 @@
       </el-table>
     </el-card>
 
+    <el-card shadow="never">
+      <template #header>
+        <div class="card-header flex justify-between items-center">
+          <p>Komentar</p>
+        </div>
+      </template>
+      <div class="flex gap-5">
+        <el-avatar
+          v-if="authStore.userInfo?.photo"
+          :src="`${imageUrl}/${authStore.userInfo?.photo.image_path}/${authStore.userInfo?.photo.filename}`"
+        />
+        <el-avatar v-else :icon="UserFilled" />
+        <div class="flex flex-col w-full">
+          <el-form
+            :model="commentForm"
+            ref="ruleFormRefComment"
+            :rules="rulesComment"
+          >
+            <el-form-item prop="comment" label="">
+              <el-input
+                v-model="commentForm.comment"
+                :rows="3"
+                type="textarea"
+                placeholder="Tulis Komentar...."
+              />
+            </el-form-item>
+          </el-form>
+          <TrumsCustomButton
+            style="width: 10%"
+            :disabled="loadingComment"
+            type="primary"
+            v-on:click="() => submitComment(ruleFormRefComment)"
+            :is-circle="false"
+            :loading="loadingComment"
+          >
+            Kirim
+          </TrumsCustomButton>
+        </div>
+      </div>
+      <div class="mt-10">
+        <div
+          class="flex gap-5 mb-5"
+          v-for="(comment, index) in comments.data.value?.data ?? []"
+        >
+          <el-avatar
+            v-if="comment.people?.photo"
+            :src="`${imageUrl}/${comment.people?.photo.image_path}/${comment.people?.photo.filename}`"
+          />
+          <el-avatar v-else :icon="UserFilled" />
+          <div class="flex flex-col w-full gap-1">
+            <div class="flex gap-2">
+              <p class="text-sm font-bold">{{ comment.people?.name }}</p>
+              <span class="text-sm text-gray-500">{{
+                formatLocalDateTime(comment.created_at)
+              }}</span>
+              <el-button
+                v-if="editCommentIndex != index"
+                type="warning"
+                @click="() => onCommentEdit(index)"
+                link
+              >
+                Edit
+              </el-button>
+              <el-popconfirm
+                width="220"
+                :icon="InfoFilled"
+                icon-color="#626AEF"
+                title="Anda yakin ingin menghapus komentar ini?"
+                @confirm="() => onDeleteComment(comment)"
+              >
+                <template #reference>
+                  <el-button
+                    style="margin-left: 0"
+                    v-if="editCommentIndex != index"
+                    type="danger"
+                    link
+                  >
+                    Hapus
+                  </el-button>
+                </template>
+                <template #actions="{ confirm, cancel }">
+                  <el-button size="small" @click="cancel">Batal!</el-button>
+                  <el-button type="danger" size="small" @click="confirm">
+                    Hapus
+                  </el-button>
+                </template>
+              </el-popconfirm>
+            </div>
+            <div
+              v-if="editCommentIndex != index"
+              class="text-sm"
+              v-html="extractDescription(comment.comment)"
+            ></div>
+            <div v-if="editCommentIndex == index" class="flex flex-col gap-2">
+              <el-input
+                v-model="comment.comment"
+                :rows="3"
+                type="textarea"
+                placeholder="Tulis Komentar...."
+              />
+              <TrumsCustomButton
+                style="width: 10%"
+                :disabled="loadingComment"
+                type="primary"
+                v-on:click="() => submitCommentEdit()"
+                :is-circle="false"
+                :loading="loadingComment"
+              >
+                Simpan
+              </TrumsCustomButton>
+            </div>
+          </div>
+        </div>
+      </div>
+    </el-card>
+
     <el-dialog
       v-model="visibleApproveDialog"
       title="Approve Canvasing!"
@@ -1187,6 +1318,28 @@
         }"
       />
     </el-dialog>
+
+    <el-dialog
+      v-model="previewSCMMemoDialog"
+      title="Preview PDF"
+      width="80%"
+      destroy-on-close
+    >
+      <iframe
+        v-if="pdfUrl"
+        :src="pdfUrl"
+        width="100%"
+        height="600px"
+        style="border: none"
+      ></iframe>
+
+      <template #footer>
+        <el-button @click="previewSCMMemoDialog = false">Tutup</el-button>
+        <el-button type="success" @click="downloadSCMMemo"
+          >Download PDF</el-button
+        >
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -1205,6 +1358,8 @@ import {
   Operation,
   Download,
   ArrowRight,
+  UserFilled,
+  InfoFilled,
 } from "@element-plus/icons-vue";
 import {
   CanvassingStatus,
@@ -1240,7 +1395,7 @@ import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { Contact, CustomerOverView } from "~/types/contact";
 import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
+import autoTable, { type RowInput } from "jspdf-autotable";
 import {
   OperationPriceTag,
   ReferencePriceTag,
@@ -1262,6 +1417,11 @@ import {
   type TermOfPayment,
 } from "~/types/payment_term";
 import { dayjs } from "element-plus";
+import { extractDescription } from "#imports";
+import { displayCatalogueName } from "#imports";
+import { CommentReference, type CommentData } from "~/types/comment";
+import { formatLocalDateTime } from "#imports";
+import { PDFDocument, PDFFont, rgb, StandardFonts } from "pdf-lib";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -1273,6 +1433,8 @@ const { isMobile } = useDevice();
 const router = useRouter();
 const route = useRoute();
 const canvassingId = ref<string>(route.params.id as string);
+
+const pdfBlob = ref<Blob | null>(null);
 
 const { removeDuplicates } = useArray();
 
@@ -1294,6 +1456,7 @@ const dialogCancelApproval = ref(false);
 const dialogNewAddress = ref(false);
 const dialogSelectedItem = ref<boolean>(false);
 const loading = ref(false);
+const loadingComment = ref(false);
 const editState = ref<boolean>(false);
 const editStateFee = ref<boolean>(false);
 const visibleModalAdjustmentTransaction = ref(false);
@@ -1307,6 +1470,7 @@ const visibleDeclineDialog = ref<boolean>(false);
 const drawerFeeVisible = ref(false);
 const dialogCustomerOverview = ref<boolean>(false);
 const dialogDetailInvoiceUnpaid = ref<boolean>(false);
+const previewSCMMemoDialog = ref<boolean>(false);
 
 const formApproveLabel = ref<FormProps["labelPosition"]>("top");
 const contactsFee = ref<ReferenceTransactionAdjustment[]>([]);
@@ -1340,7 +1504,28 @@ const activeCollapseVendor = ref<string[]>([""]);
 const address = ref<AddressType>();
 
 const config = useRuntimeConfig();
+const authStore = useAuthStore();
+
+const imageUrl = config.public.baseImageURL;
 const baseImageURL = config.public.baseImageURL;
+
+const ruleFormRefComment = ref<FormInstance>();
+const commentForm = reactive<CommentData>({
+  unique_id: null,
+  comment: "",
+  reference: CommentReference.CANVASSING,
+  reference_id: canvassingData.value?.unique_id!,
+  created_by: authStore.userInfo?.unique_id!,
+  created_at: 0,
+  updated_at: 0,
+  version: 0,
+});
+
+const rulesComment: FormRules = {
+  comment: [
+    { required: true, message: "Tulis komentar anda!", trigger: "change" },
+  ],
+};
 
 const ruleFormRef = ref<FormInstance>();
 const bulkProfit = ref("");
@@ -1401,13 +1586,41 @@ const request_search_vendor = ref<RequestSearch>({
   offset: "1",
   limit: "1",
 });
+
+const request_search_comments = ref<RequestSearch>({
+  keyword: "",
+  table: "comments",
+  column: [
+    {
+      reference: ["canvassing"],
+      reference_id: [canvassingData.value?.unique_id],
+    },
+  ],
+  sort: {
+    column: "created_at",
+    order: "DESC",
+  },
+  offset: "1",
+  limit: "50",
+});
 const offerDialogState = ref<boolean>(false);
 const offerDetail = await useAsyncData("pricetag-detail", async () => {
   const res = await useFetchApi<ResponsePagination<Pricetag[]>>(
-    `/search/`,
+    `/search`,
     "pricetag-detail",
     "post",
     request_search_vendor.value
+  );
+  return res.data.value;
+});
+
+const editCommentIndex = ref<number>(-1);
+const comments = await useAsyncData("fetch-comments", async () => {
+  const res = await useFetchApi<ResponsePagination<CommentData[]>>(
+    `/search`,
+    "fetch-comments",
+    "post",
+    request_search_comments.value
   );
   return res.data.value;
 });
@@ -1574,6 +1787,48 @@ const submitDeletePaymentTerm = async (data: TermOfPayment) => {
     }
   } catch (error: any) {
     ElMessage.error(error?.response?.message ?? error);
+  }
+};
+
+const submitComment = async (formEl: FormInstance | undefined) => {
+  if (!formEl) return;
+
+  await formEl.validate(async (valid) => {
+    if (valid) {
+      try {
+        await sendComment();
+      } catch (error) {
+        ElMessage.error("Failed to comment!");
+      }
+    }
+  });
+};
+
+const sendComment = async () => {
+  loadingComment.value = true;
+
+  try {
+    const formData = new FormData();
+
+    formData.append("unique_id", commentForm.unique_id ?? "");
+    formData.append("reference", commentForm.reference);
+    formData.append("reference_id", commentForm.reference_id);
+    formData.append("comment", commentForm.comment);
+
+    const response = await useFetchApi<BaseResponse<CommentData>>(
+      "/comments-create",
+      "create-comment",
+      "post",
+      formData
+    );
+    if (response.status.value === "success") {
+      comments.refresh();
+      resetComment();
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+  } finally {
+    loadingComment.value = false;
   }
 };
 
@@ -2051,6 +2306,17 @@ const addContact = () => {
   });
 };
 
+const blobToBase64 = (blob: Blob): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+
+    reader.readAsDataURL(blob);
+  });
+};
+
 async function getBase64ImageFromUrl(imageUrl: string): Promise<string> {
   const res = await fetch(imageUrl);
   const blob = await res.blob();
@@ -2127,6 +2393,53 @@ const generateQuotationPdf = async (items: CanvassingItem[]) => {
   doc.text("Operation Manager", 10, finalY + 100);
 
   return doc;
+};
+
+const onDeleteComment = async (comment: CommentData) => {
+  loadingComment.value = true;
+  try {
+    const response = await useFetchApi(
+      "/comments-delete",
+      "delete-comment",
+      "post",
+      [comment.unique_id]
+    );
+    if (response.status.value == "success") {
+      comments.refresh();
+    }
+  } catch (error) {
+    ElMessage.error("Gagal Menghapus Komentar!");
+  } finally {
+    loadingComment.value = false;
+  }
+};
+
+const onCommentEdit = (index: number) => {
+  editCommentIndex.value = index;
+};
+
+const submitCommentEdit = async () => {
+  commentForm.comment =
+    comments.data.value?.data[editCommentIndex.value].comment!;
+  commentForm.unique_id =
+    comments.data.value?.data[editCommentIndex.value].unique_id!;
+
+  await sendComment();
+
+  editCommentIndex.value = -1;
+
+  resetComment();
+};
+
+const resetComment = () => {
+  commentForm.unique_id = null;
+  commentForm.comment = "";
+  commentForm.reference = CommentReference.CANVASSING;
+  commentForm.reference_id = canvassingData.value?.unique_id!;
+  commentForm.created_by = authStore.userInfo?.unique_id!;
+  commentForm.created_at = 0;
+  commentForm.updated_at = 0;
+  commentForm.version = 0;
 };
 
 const generateResultSearchAddress = (address: AddressType | null) => {
@@ -2892,6 +3205,7 @@ const initialCanvassing = (data: Canvassing) => {
         type: "parent" as "parent" | "child",
         type_item: element.type_item,
         equivalent_id: element.equivalent_id,
+        catalogue: element.catalogue,
         children: element.canvassing_vendor.map((child) => {
           return {
             type_item: child.type_item,
@@ -2939,6 +3253,7 @@ const initialCanvassing = (data: Canvassing) => {
             pricetag_item_id: child.pricetag_item_id ?? "",
             pricetag_item_data: child.pricetag_item,
             pricetag_item_version: child.pricetag_item_version ?? 0,
+            catalogue: child.catalogue,
             contacts_fee: (child.reference_transaction ?? []).filter(
               (value) => value.party_type == PartyType.CONTACT
             ),
@@ -2957,15 +3272,24 @@ const initialCanvassing = (data: Canvassing) => {
         contacts_fee: [],
       };
 
-      toItemCanvassing.children.forEach((element) => {
-        if (
-          element.total_selling_price == toItemCanvassing.total_selling_price
-        ) {
-          toItemCanvassing.unit_price = element.unit_price;
-          toItemCanvassing.total_price = element.total_price;
-          toItemCanvassing.selling_price = element.selling_price;
-        }
-      });
+      const vSelected = (toItemCanvassing.children || []).filter(
+        (child) =>
+          child.status == CanvassingVendorStatus.SELECTED &&
+          child.type_item == "original"
+      );
+
+      toItemCanvassing.unit_price = vSelected.reduce(
+        (acc, item) => acc + item.unit_price,
+        0
+      );
+      toItemCanvassing.total_price = vSelected.reduce(
+        (acc, item) => acc + item.total_price,
+        0
+      );
+      toItemCanvassing.selling_price = vSelected.reduce(
+        (acc, item) => acc + item.selling_price,
+        0
+      );
 
       console.log("to item canvassing", toItemCanvassing);
       item_canvassing.value.push(toItemCanvassing);
@@ -3004,6 +3328,7 @@ const initialCanvassing = (data: Canvassing) => {
         type: "parent",
         type_item: element.type_item,
         equivalent_id: element.equivalent_id,
+        catalogue: element.catalogue,
         children: element.canvassing_vendor.map((child) => ({
           type_item: child.type_item,
           equivalent_id: child.equivalent_id,
@@ -3021,6 +3346,7 @@ const initialCanvassing = (data: Canvassing) => {
           offer_item_id: null,
           offer_item_version: 0,
           catalogue_id: child.catalogue_id ?? "",
+          catalogue: child.catalogue,
           parent_catalogue_id: child.catalogue_id,
           catalogue_name: child.catalogue?.name ?? "",
           sn: child.catalogue?.sn ?? "",
@@ -3169,33 +3495,32 @@ const isRowSelected = (
 watch(
   () => item_canvassing.value,
   () => {
-    item_canvassing.value.forEach((element) => {
-      const findCanvassingItem = (
-        canvassingData.value?.canvassing_item ?? []
-      ).findIndex((item) => item.unique_id == element.unique_id);
-      element.children.forEach((child) => {
-        if (findCanvassingItem >= 0) {
-          const vendorIndex = (
-            canvassingData.value?.canvassing_item[findCanvassingItem]
-              .canvassing_vendor ?? []
-          ).findIndex((v) => v.unique_id == child.unique_id);
-
-          if (vendorIndex >= 0) {
-            if (child.checked == true && CanvassingStatus.DONE) {
-              canvassingData.value!.canvassing_item[
-                findCanvassingItem
-              ].canvassing_vendor[vendorIndex].status =
-                CanvassingVendorStatus.SELECTED;
-            } else {
-              canvassingData.value!.canvassing_item[
-                findCanvassingItem
-              ].canvassing_vendor[vendorIndex].status =
-                CanvassingVendorStatus.SUBMITTED;
-            }
-          }
-        }
-      });
-    });
+    // item_canvassing.value.forEach((element) => {
+    //   const findCanvassingItem = (
+    //     canvassingData.value?.canvassing_item ?? []
+    //   ).findIndex((item) => item.unique_id == element.unique_id);
+    //   element.children.forEach((child) => {
+    //     if (findCanvassingItem >= 0) {
+    //       const vendorIndex = (
+    //         canvassingData.value?.canvassing_item[findCanvassingItem]
+    //           .canvassing_vendor ?? []
+    //       ).findIndex((v) => v.unique_id == child.unique_id);
+    //       if (vendorIndex >= 0) {
+    //         if (child.checked == true && CanvassingStatus.DONE) {
+    //           canvassingData.value!.canvassing_item[
+    //             findCanvassingItem
+    //           ].canvassing_vendor[vendorIndex].status =
+    //             CanvassingVendorStatus.SELECTED;
+    //         } else {
+    //           canvassingData.value!.canvassing_item[
+    //             findCanvassingItem
+    //           ].canvassing_vendor[vendorIndex].status =
+    //             CanvassingVendorStatus.SUBMITTED;
+    //         }
+    //       }
+    //     }
+    //   });
+    // });
   },
   { deep: true }
 );
@@ -3507,21 +3832,10 @@ const submitApproveRab = async (status: CanvassingStatus) => {
             : false
         );
 
-        if (
-          selectedChildren.value.find(
-            (child) => child.unique_id == vendor.unique_id
-          )
-        ) {
-          formData.append(
-            `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
-            `${CanvassingVendorStatus.SELECTED}`
-          );
-        } else {
-          formData.append(
-            `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
-            `${CanvassingVendorStatus.SUBMITTED}`
-          );
-        }
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][status]`,
+          `${vendor.status}`
+        );
 
         let referenceCanvassingVendor: ReferenceTransactionAdjustment[] =
           vendor.contacts_fee;
@@ -4111,6 +4425,7 @@ const updateStatus = async (status: CanvassingStatus) => {
       );
 
       element.canvassing_vendor.forEach((vendor, vI) => {
+        console.log("vendor", vendor.status);
         formData.append(
           `canvassing_items[${i}][canvassing_vendor][${vI}][unique_id]`,
           `${vendor.unique_id}`
@@ -4160,6 +4475,1289 @@ const createQuotationPrice = async (data: any) => {
   } finally {
     loading.value = false;
   }
+};
+
+const generateSCMMemo = async () => {
+  const doc = new jsPDF();
+  const today = new Date();
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const marginX = 10;
+
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  const marginTop = 10;
+  const marginBottom = 55; // sisakan ruang footer
+  const footerHeight = 35;
+
+  let currentY = 0;
+
+  const ensureSpace = (heightNeeded: number) => {
+    if (currentY + heightNeeded > pageHeight - marginBottom) {
+      doc.addPage();
+      currentY = marginTop;
+    }
+  };
+
+  const formatted = today.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+
+  // Logo
+  const imgLogo = await getBase64ImageFromUrl("/images/trumecs-logo.png"); // path logo (public/logo.png)
+  const tmsLogo = await getBase64ImageFromUrl("/images/tms-logo.png"); // path logo (public/logo.png)
+  const headerTop = 10;
+  const headerHeight = 25;
+  const headerCenterY = headerTop + headerHeight / 2;
+
+  const leftLogoWidth = 40;
+  const leftLogoHeight = 35;
+
+  const rightLogoWidth = 40;
+  const rightLogoHeight = 14;
+
+  // Logo kiri
+  doc.addImage(
+    tmsLogo,
+    "PNG",
+    marginX,
+    headerCenterY - leftLogoHeight / 2,
+    leftLogoWidth,
+    leftLogoHeight
+  );
+
+  // Logo kanan
+  doc.addImage(
+    imgLogo,
+    "PNG",
+    pageWidth - marginX - rightLogoWidth,
+    headerCenterY - rightLogoHeight / 3,
+    rightLogoWidth,
+    rightLogoHeight
+  );
+
+  // ================= TITLE =================
+  doc.setFontSize(18);
+  doc.text("SCM MEMO", pageWidth / 2, 50, { align: "center" });
+
+  // ================= INFO =================
+
+  const labelX = marginX;
+  const colonX = marginX + 28;
+  const valueX = marginX + 32;
+
+  doc.setFontSize(8);
+  doc.text("Customer", labelX, 60);
+  doc.text(":", colonX, 60);
+  doc.text(`${canvassingData?.value?.source?.request_to?.name}`, valueX, 60);
+  // doc.text(`Jakarta, ${formatted}`, pageWidth - marginX, 60, {
+  //   align: "right",
+  // });
+
+  // doc.text("Supplier", labelX, 66);
+  // doc.text(":", colonX, 66);
+  // doc.text(`${currentCompany().name ?? "-"}`, valueX, 66);
+
+  doc.text("RFQ Number", labelX, 66);
+  doc.text(":", colonX, 66);
+  doc.text(`${canvassingData?.value?.source_document ?? "-"}`, valueX, 66);
+  doc.text("Dikirim Ke", labelX, 72);
+  doc.text(":", colonX, 72);
+  doc.text(
+    `${generateAddressView(canvassingData.value!.address!) ?? "-"}`,
+    valueX,
+    72
+  );
+
+  const calculateMargin = (totalBuy: number, totalSell: number) => {
+    // const totalBuy = Number(getTotalBuyingPrice(row));
+    // const totalSell = Number(getTotalSellingPrice(row));
+
+    // Hindari division by zero
+    if (totalSell === 0) {
+      return 0;
+    }
+
+    return ((totalSell - totalBuy) / totalBuy) * 100;
+  };
+
+  const getSellingPrice = (row: CanvassingItem) => {
+    if (
+      row.canvassing_vendor.length == 1 &&
+      (row.canvassing_vendor[0].type_item === "equivalent" ||
+        row.canvassing_vendor[0].type_item === "quotation")
+    ) {
+      return 0;
+    } else {
+      return row.unit_selling_price || 0;
+    }
+  };
+  const getTotalSellingPrice = (row: CanvassingItem) => {
+    if (
+      row.canvassing_vendor.length == 1 &&
+      (row.canvassing_vendor[0].type_item === "equivalent" ||
+        row.canvassing_vendor[0].type_item === "quotation")
+    ) {
+      return 0;
+    } else {
+      return row.total_selling_price || 0;
+    }
+  };
+
+  const getTotalBuyingPrice = (row: CanvassingItem) => {
+    if (
+      row.canvassing_vendor.length == 1 &&
+      row.canvassing_vendor[0].type_item == "equivalent"
+    ) {
+      return 0;
+    } else {
+      return row.canvassing_vendor.reduce((sum, vendor) => {
+        if (
+          vendor.status === CanvassingVendorStatus.SELECTED &&
+          vendor.type_item !== "equivalent"
+        ) {
+          return sum + vendor.total_price;
+        }
+
+        return sum;
+      }, 0);
+    }
+  };
+
+  const generateRowData = () => {
+    const rows: RowInput[] = [];
+
+    (canvassingData.value?.canvassing_item ?? []).forEach(
+      (item: CanvassingItem, index: number) => {
+        // =========================
+        // ORIGINAL ITEM
+        // =========================
+        rows.push([
+          {
+            content: `${index + 1}`,
+            styles: {
+              halign: "center",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: `${item.catalogue?.name}`,
+            styles: {
+              halign: "left",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: ``,
+            styles: {
+              halign: "left",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: ``,
+            styles: {
+              halign: "center",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: ``,
+            styles: {
+              halign: "center",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: ``,
+            styles: {
+              halign: "center",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: ``,
+            styles: {
+              halign: "right",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: ``,
+            styles: {
+              halign: "right",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: ``,
+            styles: {
+              halign: "right",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: ``,
+            styles: {
+              halign: "right",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: ``,
+            styles: {
+              halign: "right",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+        ]);
+
+        // =========================
+        // EQUIVALENT ITEM
+        // =========================
+        // const equivalentItems = item.canvassing_vendor.filter(
+        //   (vendor) => vendor.type_item === "equivalent"
+        // );
+
+        item.canvassing_vendor.forEach((vendor, eqIndex) => {
+          let delimiter = "";
+
+          if (vendor.type_item == "equivalent") {
+            delimiter = "EQ - ";
+          } else if (vendor.type_item == "original") {
+            delimiter = "REQ - ";
+          } else if (vendor.type_item == "quotation") {
+            delimiter = "SUB - ";
+          }
+
+          let checked = "";
+
+          if (vendor.status == CanvassingVendorStatus.SELECTED) {
+            checked = "V";
+          }
+
+          rows.push([
+            {
+              content: `${checked}`,
+              styles: {
+                halign: "center",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `${delimiter}${displayCatalogueName(vendor.catalogue!)}`,
+              styles: {
+                halign: "left",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `${vendor.vendor?.name || "-"}`,
+              styles: {
+                halign: "left",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `${vendor.quantity}`,
+              styles: {
+                halign: "center",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `${vendor.unit_name}`,
+              styles: {
+                halign: "center",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `${currencyWithoutSymbol(vendor.unit_price || 0)}`,
+              styles: {
+                halign: "right",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `${currencyWithoutSymbol(
+                vendor.unit_price! * vendor.quantity
+              )}`,
+              styles: {
+                halign: "right",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `${currencyWithoutSymbol(vendor.selling_price || 0)}`,
+              styles: {
+                halign: "right",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `${currencyWithoutSymbol(
+                vendor.total_selling_price || 0
+              )}`,
+              styles: {
+                halign: "right",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `${currencyWithoutSymbol(
+                Number(vendor.total_selling_price || 0) -
+                  Number(vendor.total_price || 0)
+              )}`,
+              styles: {
+                halign: "right",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `${calculateMargin(
+                vendor.total_price,
+                vendor.total_selling_price || 0
+              ).toFixed(2)}`,
+              styles: {
+                halign: "right",
+                fontStyle: "italic",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+          ]);
+        });
+      }
+    );
+
+    return rows;
+  };
+
+  let rowData: RowInput[] = generateRowData();
+
+  // console.log(rowData);
+  // rowData.push(['','','','','Total Price',grandTotal])
+  // rowData.push(['','','','','PPN','11%'])
+
+  let summeryNumber = (canvassingData.value?.canvassing_item ?? []).length + 1;
+
+  const subtotalUnitSellingPrice = () => {
+    let total = 0;
+    canvassingData.value?.canvassing_item.forEach((element) => {
+      total += element.canvassing_vendor.reduce(
+        (sum, acc) => sum + (acc.selling_price || 0),
+        0
+      );
+    });
+
+    return total;
+  };
+  const subtotalSellingPrice = () => {
+    let total = 0;
+    canvassingData.value?.canvassing_item.forEach((element) => {
+      total += element.canvassing_vendor.reduce(
+        (sum, acc) => sum + (acc.total_selling_price || 0),
+        0
+      );
+    });
+
+    return total;
+  };
+  const subtotalMarginNominal =
+    subtotalSellingPrice() - subtotalBuyTotalPrice.value;
+  const subtotalMargin =
+    (subtotalMarginNominal / subtotalBuyTotalPrice.value) * 100;
+
+  let grandTotal = subtotalSellingPrice() - subtotalBuyTotalPrice.value;
+
+  grandTotal -= adjustmentTransactionOngkirTotal.value?.amount || 0;
+
+  summeryNumber++;
+  rowData.push([
+    {
+      content: `Subtotal`,
+      colSpan: 5,
+      styles: {
+        halign: "right",
+        fontStyle: "bold",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${currencyWithoutSymbol(subtotalBuyPrice.value)}`,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${currencyWithoutSymbol(subtotalBuyTotalPrice.value)}`,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${currencyWithoutSymbol(subtotalUnitSellingPrice())}`,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${currencyWithoutSymbol(subtotalSellingPrice())}`,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${currencyWithoutSymbol(subtotalMarginNominal)}`,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${currencyWithoutSymbol(subtotalMargin)}`,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+  ]);
+
+  rowData.push([
+    {
+      content: `${adjustmentTransactionOngkirTotal?.value.adjustments_transaction?.name}`,
+      colSpan: 5,
+      styles: {
+        halign: "right",
+        fontStyle: "bold",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${currencyWithoutSymbol(
+        adjustmentTransactionOngkirTotal.value?.amount ?? 0
+      )}`,
+      colSpan: 5,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${safePercent(
+        adjustmentTransactionOngkirTotal.value?.amount ?? 0,
+        subtotalBuyTotalPrice.value
+      )}`,
+
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+  ]);
+
+  (references.value ?? []).forEach((element) => {
+    grandTotal -= element.amount;
+    rowData.push([
+      {
+        content: `${element.adjustments_transaction?.name}`,
+        colSpan: 5,
+        styles: {
+          halign: "right",
+          fontStyle: "bold",
+          cellWidth: 0.0,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${currencyWithoutSymbol(
+          showTransactionAdjustmentValue(element)
+        )}`,
+        colSpan: 4,
+        styles: {
+          halign: "right",
+          cellWidth: 0.0,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+      {
+        content: `${safePercent(
+          displayAmount(element, subtotalBuyTotalPrice.value),
+          subtotalBuyTotalPrice.value
+        )}`,
+        styles: {
+          halign: "right",
+          cellWidth: 0.0,
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+          fillColor: [255, 255, 255],
+        },
+      },
+    ]);
+  });
+
+  summeryNumber++;
+  rowData.push([
+    {
+      content: `Grand Total`,
+      colSpan: 5,
+      styles: {
+        halign: "right",
+        fontStyle: "bold",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${currencyWithoutSymbol(grandTotal || 0)}`,
+      colSpan: 5,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${safePercent(grandTotal, subtotalBuyTotalPrice.value)}`,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+  ]);
+
+  // Table
+
+  autoTable(doc, {
+    startY: 80,
+    theme: "grid",
+    head: [
+      [
+        {
+          content: "No",
+          rowSpan: 2,
+        },
+        {
+          content: "Nama Barang",
+          rowSpan: 2,
+        },
+        {
+          content: "Vendor",
+          rowSpan: 2,
+        },
+        {
+          content: "Jml Order",
+          rowSpan: 2,
+        },
+        {
+          content: "Kemasan",
+          rowSpan: 2,
+        },
+        {
+          content: "Harga Beli",
+          colSpan: 2,
+        },
+        {
+          content: "Harga Jual",
+          colSpan: 2,
+        },
+        {
+          content: "Margin",
+          rowSpan: 2,
+        },
+        {
+          content: "% Margin",
+          rowSpan: 2,
+        },
+      ],
+      [
+        {
+          content: "Harga Beli",
+        },
+        {
+          content: "Total Harga",
+        },
+        {
+          content: "Harga Jual",
+        },
+        {
+          content: "Total Harga",
+        },
+      ],
+    ],
+    body: rowData,
+    styles: {
+      fontSize: 6,
+    },
+    margin: { left: marginX, right: marginX },
+    headStyles: {
+      fillColor: [248, 248, 248], // background
+      textColor: [0, 0, 0], // warna text
+      fontStyle: "bold", // bold
+      halign: "center", // center text
+      valign: "middle", // vertical align
+      lineWidth: 0.1, // border
+      lineColor: [0, 0, 0], // warna border
+    },
+  });
+
+  // // Summary
+  currentY = (doc as any).lastAutoTable.finalY + 10;
+  // doc.text(`Total Price: Rp ${currency(grandTotal)}`, 140, finalY)
+  // doc.text(`PPN: Rp ${currency(grandTotal)}`, 140, finalY + 10)
+
+  // finalY += 10
+  // doc.text(`Grand Total: Rp ${currency(grandTotal.value)}`, 140, finalY)
+  // Notes
+  ensureSpace(10);
+
+  doc.text("Notes:", 10, currentY);
+
+  currentY += 8;
+
+  doc.setFontSize(8);
+  const writeWrappedText = (text: string, x = 20, lineHeight = 5) => {
+    const lines = doc.splitTextToSize(text, pageWidth - 30);
+
+    ensureSpace(lines.length * lineHeight);
+
+    doc.text(lines, x, currentY);
+
+    currentY += lines.length * lineHeight;
+  };
+
+  writeWrappedText(
+    `\u2022 Dikirim ke ${
+      generateResultSearchAddress(canvassingData?.value?.address ?? null).name
+    }`
+  );
+
+  (canvassingData.value?.payment_terms ?? []).forEach((element) => {
+    writeWrappedText(
+      `\u2022 ${element.name} ${
+        element.term_of_payment == PaymentTerm.TEMPO
+          ? `${element.duration}D`
+          : ""
+      }`
+    );
+  });
+
+  if (canvassingData.value?.note) {
+    const splits = `${canvassingData.value?.note}`.split("\n");
+
+    splits.forEach((value) => {
+      writeWrappedText(`\u2022 ${value ?? "-"}`);
+      // yFinal = yFinal + Number(5);
+      // console.log("final Y", yFinal);
+      // doc.text(`\u2022 ${value ?? "-"}`, 20, yFinal);
+    });
+  }
+  currentY += 8;
+  const drawFooter = () => {
+    const lastPage = doc.getNumberOfPages();
+
+    doc.setPage(lastPage);
+
+    const footerY = pageHeight - footerHeight;
+
+    doc.text(
+      `Jakarta, ${formatLocalDate(canvassingData.value!.created_at!)}`,
+      14,
+      footerY - 30
+    );
+
+    doc.text("Diketahui Oleh,", 120, footerY - 30);
+
+    doc.text("Disetujui Oleh,", 160, footerY - 30);
+
+    doc.text("Stanislaus Adrian Pratama", 14, footerY + 5);
+
+    doc.text("Nina", 120, footerY + 5);
+
+    doc.text("Chairil Juwono", 160, footerY + 5);
+
+    doc.text("Operation", 14, footerY + 10);
+
+    doc.text("Finance", 120, footerY + 10);
+
+    doc.text("Direktur", 160, footerY + 10);
+  };
+  drawFooter();
+
+  doc.addPage();
+
+  doc.setFontSize(12);
+  doc.text("Daftar Vendor", marginX, 20);
+
+  const vendorRows = pricetagList.value.map((vendor, index) => [
+    index + 1,
+    vendor.owner?.name ?? "-",
+    formatLocalDate(vendor.end_date),
+    vendor.note
+      ? vendor.note
+          .split("\n")
+          .map((v) => `• ${v}`)
+          .join("\n")
+      : "-",
+  ]);
+
+  autoTable(doc, {
+    startY: 28,
+    theme: "grid",
+
+    head: [["No", "Vendor", "Berlaku S/d", "Note"]],
+
+    body: vendorRows,
+
+    styles: {
+      fontSize: 8,
+      lineWidth: 0.1,
+      lineColor: [0, 0, 0],
+      valign: "top",
+      cellPadding: 2,
+    },
+
+    headStyles: {
+      fillColor: [248, 248, 248],
+      textColor: [0, 0, 0],
+      fontStyle: "bold",
+      halign: "center",
+    },
+
+    columnStyles: {
+      0: {
+        halign: "center",
+        cellWidth: 12,
+      },
+      1: {
+        cellWidth: 55,
+      },
+      2: {
+        halign: "center",
+        cellWidth: 30,
+      },
+      3: {
+        cellWidth: "auto",
+      },
+    },
+
+    margin: {
+      left: marginX,
+      right: marginX,
+    },
+  });
+
+  doc.setFontSize(8);
+
+  const appendVendorImages = async (doc: jsPDF) => {
+    const hasImage = pricetagList.value.some((vendor) =>
+      vendor.files?.some((file) => {
+        const filename = file.filename.toLowerCase();
+
+        return (
+          filename.endsWith(".jpg") ||
+          filename.endsWith(".jpeg") ||
+          filename.endsWith(".png") ||
+          filename.endsWith(".webp")
+        );
+      })
+    );
+
+    if (!hasImage) return;
+
+    doc.addPage();
+
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+
+    const marginTop = 15;
+    const marginBottom = 15;
+
+    let currentY = marginTop;
+
+    const imageWidth = 85;
+    const imageHeight = 85;
+
+    const columnGap = 15;
+    const rowGap = 15;
+
+    const leftX = 10;
+    const rightX = leftX + imageWidth + columnGap;
+
+    for (const vendor of pricetagList.value) {
+      if (!vendor.files?.length) continue;
+
+      const imageFiles = vendor.files.filter((file) => {
+        const filename = file.filename.toLowerCase();
+
+        return (
+          filename.endsWith(".jpg") ||
+          filename.endsWith(".jpeg") ||
+          filename.endsWith(".png") ||
+          filename.endsWith(".webp")
+        );
+      });
+
+      if (!imageFiles.length) continue;
+
+      // jika label vendor + minimal 1 baris gambar tidak muat
+      if (currentY + 15 + imageHeight > pageHeight - marginBottom) {
+        doc.addPage();
+        currentY = marginTop;
+      }
+
+      doc.setFontSize(11);
+      doc.setFont(StandardFonts.Helvetica, "bold");
+      doc.text(`Vendor : ${vendor.owner?.name ?? "-"}`, 10, currentY);
+
+      currentY += 8;
+
+      doc.setFont(StandardFonts.Helvetica, "normal");
+      doc.setFontSize(8);
+
+      let column = 0;
+      let row = 0;
+
+      for (let i = 0; i < imageFiles.length; i++) {
+        const file = imageFiles[i];
+
+        // setiap 4 gambar pindah halaman
+        if (i > 0 && i % 4 === 0) {
+          doc.addPage();
+
+          currentY = marginTop;
+
+          doc.setFontSize(11);
+          doc.setFont(StandardFonts.Helvetica, "bold");
+          doc.text(`Vendor : ${vendor.owner?.name ?? "-"}`, 10, currentY);
+
+          currentY += 8;
+
+          doc.setFont(StandardFonts.Helvetica, "normal");
+          doc.setFontSize(8);
+
+          column = 0;
+          row = 0;
+        }
+
+        const imageUrl = `${baseImageURL}/${file.image_path}/${file.filename}`;
+
+        const response = await fetch(imageUrl);
+
+        if (!response.ok) continue;
+
+        const blob = await response.blob();
+
+        const base64 = await blobToBase64(blob);
+
+        const x = column === 0 ? leftX : rightX;
+        const y = currentY + row * (imageHeight + rowGap);
+
+        doc.addImage(
+          base64,
+          file.filename.toLowerCase().endsWith(".png") ? "PNG" : "JPEG",
+          x,
+          y,
+          imageWidth,
+          imageHeight
+        );
+
+        column++;
+
+        if (column === 2) {
+          column = 0;
+          row++;
+        }
+      }
+
+      const rowsUsed = Math.ceil(Math.min(imageFiles.length, 4) / 2);
+
+      currentY += rowsUsed * (imageHeight + rowGap) + 10;
+    }
+  };
+  await appendVendorImages(doc);
+
+  const blob = doc.output("blob");
+
+  const mergedPdf = await PDFDocument.create();
+
+  const memoBytes = await blob.arrayBuffer();
+
+  const memoPdf = await PDFDocument.load(memoBytes);
+
+  const memoPages = await mergedPdf.copyPages(
+    memoPdf,
+    memoPdf.getPageIndices()
+  );
+
+  memoPages.forEach((page) => {
+    mergedPdf.addPage(page);
+  });
+
+  for (const vendor of pricetagList.value) {
+    if (!vendor.files?.length) continue;
+
+    for (const file of vendor.files) {
+      try {
+        const response = await fetch(
+          `${baseImageURL}/${file.image_path}/${file.filename}`
+        );
+
+        if (!response.ok) continue;
+
+        // Cek apakah benar PDF
+        const contentType = response.headers.get("content-type") ?? "";
+
+        if (!contentType.includes("application/pdf")) {
+          continue;
+        }
+
+        const bytes = await response.arrayBuffer();
+
+        const vendorPdf = await PDFDocument.load(bytes);
+
+        const vendorPages = await mergedPdf.copyPages(
+          vendorPdf,
+          vendorPdf.getPageIndices()
+        );
+
+        vendorPages.forEach((page) => {
+          mergedPdf.addPage(page);
+        });
+      } catch (err) {
+        console.error("Gagal membaca file vendor", err);
+      }
+    }
+  }
+
+  let historyPage = mergedPdf.addPage();
+
+  const { width, height } = historyPage.getSize();
+
+  const font = await mergedPdf.embedFont(StandardFonts.Helvetica);
+  const fontBold = await mergedPdf.embedFont(StandardFonts.HelveticaBold);
+
+  currentY = height - 40;
+
+  historyPage.drawText("Riwayat Komentar", {
+    x: 40,
+    y: currentY,
+    size: 16,
+    font: fontBold,
+  });
+
+  currentY -= 25;
+
+  const maxWidth = width - 90;
+
+  const writeWrappedComment = (
+    text: string,
+    x: number,
+    font: PDFFont,
+    size: number
+  ) => {
+    const normalizedText = (text ?? "").replace(/\r/g, "");
+
+    const paragraphs = normalizedText.split("\n");
+
+    for (const paragraph of paragraphs) {
+      // Jika memang baris kosong, beri jarak lalu lanjut
+      if (paragraph.trim() === "") {
+        currentY -= 14;
+
+        if (currentY < 60) {
+          historyPage = mergedPdf.addPage();
+
+          currentY = height - 40;
+
+          historyPage.drawText("Riwayat Komentar", {
+            x: 40,
+            y: currentY,
+            size: 16,
+            font: fontBold,
+          });
+
+          currentY -= 25;
+        }
+
+        continue;
+      }
+
+      const words = paragraph.split(" ");
+
+      let line = "";
+
+      for (const word of words) {
+        const testLine = line ? `${line} ${word}` : word;
+
+        const textWidth = font.widthOfTextAtSize(testLine, size);
+
+        if (textWidth > maxWidth) {
+          if (currentY < 60) {
+            historyPage = mergedPdf.addPage();
+
+            currentY = height - 40;
+
+            historyPage.drawText("Riwayat Komentar", {
+              x: 40,
+              y: currentY,
+              size: 16,
+              font: fontBold,
+            });
+
+            currentY -= 25;
+          }
+
+          historyPage.drawText(line, {
+            x,
+            y: currentY,
+            size,
+            font,
+            color: rgb(0, 0, 0),
+          });
+
+          currentY -= 14;
+
+          line = word;
+        } else {
+          line = testLine;
+        }
+      }
+
+      if (line) {
+        if (currentY < 60) {
+          historyPage = mergedPdf.addPage();
+
+          currentY = height - 40;
+
+          historyPage.drawText("Riwayat Komentar", {
+            x: 40,
+            y: currentY,
+            size: 16,
+            font: fontBold,
+          });
+
+          currentY -= 25;
+        }
+
+        historyPage.drawText(line, {
+          x,
+          y: currentY,
+          size,
+          font,
+          color: rgb(0, 0, 0),
+        });
+
+        currentY -= 14;
+      }
+
+      // Jarak antar paragraph
+      currentY -= 4;
+    }
+  };
+
+  for (const comment of comments.data.value?.data ?? []) {
+    // kalau sudah mentok bawah, tambah halaman
+    if (currentY < 60) {
+      const page = mergedPdf.addPage();
+
+      currentY = height - 40;
+
+      page.drawText("Riwayat Komentar", {
+        x: 40,
+        y: currentY,
+        size: 16,
+        font: fontBold,
+      });
+
+      currentY -= 25;
+
+      // ganti halaman aktif
+      historyPage = page;
+    }
+
+    historyPage.drawText(
+      `${comment.people?.name ?? "-"} ${formatLocalDateTime(
+        comment.created_at
+      )}`,
+      {
+        x: 40,
+        y: currentY,
+        size: 10,
+        color: rgb(0.45, 0.45, 0.45),
+      }
+    );
+
+    currentY -= 15;
+
+    writeWrappedComment(comment.comment ?? "-", 40, font, 10);
+
+    currentY -= 10;
+
+    const lines = Math.ceil((comment.comment?.length ?? 0) / 90);
+
+    currentY -= lines * 14 + 15;
+  }
+
+  const mergedBytes = await mergedPdf.save();
+  const mergedBlob = new Blob([new Uint8Array(mergedBytes)], {
+    type: "application/pdf",
+  });
+
+  pdfBlob.value = mergedBlob;
+  pdfUrl.value = URL.createObjectURL(blob);
+
+  return {
+    blob: mergedBlob,
+  };
+};
+
+const printSCMMemo = async () => {
+  const { blob } = await generateSCMMemo();
+
+  pdfBlob.value = blob;
+  pdfUrl.value = URL.createObjectURL(blob);
+
+  previewSCMMemoDialog.value = true;
+};
+
+const downloadSCMMemo = () => {
+  if (!pdfBlob.value) {
+    ElMessage.warning("Tidak ada PDF untuk di-download");
+    return;
+  }
+
+  const filename = `SCM-MEMO-${
+    canvassingData.value?.unique_code || "document"
+  }.pdf`;
+
+  // Buat URL object untuk blob
+  const url = URL.createObjectURL(pdfBlob.value);
+
+  // Buat anchor element untuk download
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+
+  // Cleanup
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  // ElMessage.success('PDF berhasil di-download')
 };
 
 const submitForApproval = async () => {
@@ -4242,6 +5840,43 @@ const selectVendor = async (item: CanvassingItem, vendor: CanvassingVendor) => {
     console.error(error);
   }
 };
+const showTransactionAdjustmentValue = (
+  ref: ReferenceTransactionAdjustment
+) => {
+  if (ref.include) {
+    return 0;
+  } else {
+    return ref.type == "amount"
+      ? ref.amount
+      : displayAmount(ref, grandTotal.value || 0);
+  }
+};
+const subtotalBuyPrice = computed(() => {
+  let subtotalBeli = 0;
+  (canvassingData.value?.canvassing_item || []).forEach((element) => {
+    const totalBuyPrice = element.canvassing_vendor.reduce((sum, item) => {
+      return sum + item.unit_price;
+
+      return sum;
+    }, 0);
+    subtotalBeli += Number(totalBuyPrice);
+  });
+
+  return subtotalBeli;
+});
+const subtotalBuyTotalPrice = computed(() => {
+  let subtotalBeli = 0;
+  (canvassingData.value?.canvassing_item || []).forEach((element) => {
+    const totalBuyPrice = element.canvassing_vendor.reduce((sum, item) => {
+      return sum + item.unit_price * item.quantity;
+
+      return sum;
+    }, 0);
+    subtotalBeli += Number(totalBuyPrice);
+  });
+
+  return subtotalBeli;
+});
 
 const confirmDelete = () => {
   ElMessageBox.confirm(

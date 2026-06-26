@@ -2852,7 +2852,9 @@ const initialCanvassing = (data: Canvassing) => {
       // });
 
       const vSelected = (toItemCanvassing.children || []).filter(
-        (child) => child.status == CanvassingVendorStatus.SELECTED
+        (child) =>
+          child.status == CanvassingVendorStatus.SELECTED &&
+          child.type_item == "original"
       );
 
       toItemCanvassing.unit_price = vSelected.reduce(

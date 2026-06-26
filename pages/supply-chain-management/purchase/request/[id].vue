@@ -415,27 +415,36 @@ watch(
         index: `${index}`,
         unique_id: element.unique_id,
         object_unique_id: element.item_request?.unique_id || "",
-        object_name: element.item_request?.catalogue?.name || "",
+        object_name:
+          displayCatalogueName(element.item_request?.catalogue!) || "",
         request_number:
           (element.data_reference as PurchaseRequest).unique_code || "",
         quantity: element.quantity || 0,
         total_price:
-          element.vendor?.reduce(
-            (acc, item) => acc + (item.total_price || 0),
-            0
-          ) || 0,
+          element.vendor
+            ?.filter(
+              (filter) =>
+                filter.catalogue_id ==
+                element.item_request?.catalogue?.unique_id
+            )
+            .reduce((acc, item) => acc + (item.total_price || 0), 0) || 0,
         unit_name: element.item_request?.unit_name || "",
-        children: (element.vendor || []).map((vendor, vindex) => ({
-          index: `${index}-${vindex}`,
-          unique_id: vendor.unique_id || "",
-          object_name: vendor.vendor?.name || "",
-          object_unique_id: vendor.vendor?.unique_id || "",
-          request_number: "",
-          quantity: vendor.quantity || 0,
-          total_price: vendor.total_price || 0,
-          unit_name: vendor.unit_name ?? "",
-          children: [],
-        })),
+        children: (element.vendor || [])
+          .filter(
+            (filter) =>
+              filter.catalogue_id == element.item_request?.catalogue?.unique_id
+          )
+          .map((vendor, vindex) => ({
+            index: `${index}-${vindex}`,
+            unique_id: vendor.unique_id || "",
+            object_name: vendor.vendor?.name || "",
+            object_unique_id: vendor.vendor?.unique_id || "",
+            request_number: "",
+            quantity: vendor.quantity || 0,
+            total_price: vendor.total_price || 0,
+            unit_name: vendor.unit_name ?? "",
+            children: [],
+          })),
       });
     });
   },

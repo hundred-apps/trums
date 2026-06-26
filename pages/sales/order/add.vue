@@ -478,7 +478,7 @@
         <el-table-column type="selection" width="55" />
         <el-table-column prop="catalogue.name" label="Item">
           <template #default="scope">
-            {{ scope.row.catalogue?.name || "-" }}
+            {{ displayCatalogueName(scope.row.catalogue) }}
           </template>
         </el-table-column>
         <el-table-column prop="pricetag.name" label="Nomor Penawaran">
@@ -760,6 +760,7 @@ import { boolean, string } from "yup";
 import { parseCurrencyID, formatCurrencyID } from "#imports";
 import type { Catalogue } from "~/types/catalogue";
 import type { Unit } from "~/types/unit";
+import { displayCatalogueName } from "#imports";
 
 definePageMeta({
   middleware: ["auth", "check-access"],

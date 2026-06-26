@@ -9,6 +9,7 @@ export default defineNuxtConfig({
       baseURL: process.env.NUXT_API_URL, // Base URL untuk API
       baseImageURL: process.env.NUXT_API_BASE, // Base URL untuk image
       baseBE: process.env.NUXT_API_BASE,
+      noAvatarPath: process.env.NUXT_NO_AVATAR_PATH,
       baseOIDCIssuer: process.env.NUXT_OPENID_CONNECT_OP_ISSUER,
       baseOIDCICID: process.env.NUXT_OPENID_CONNECT_OP_CLIENT_ID,
       baseOIDCICSecret: process.env.NUXT_OPENID_CONNECT_OP_CLIENT_SECRET,

@@ -250,6 +250,7 @@ export type CanvassingItemForm = {
   offer_item_version: number;
   catalogue_id: string;
   catalogue_name: string;
+  catalogue?: Catalogue;
   sn: string;
   quantity: number;
   unit_price: number;

@@ -1324,7 +1324,10 @@ const fetchPricetagItems = async (
     if (response.status.value == "success") {
       const pricetagItem: Pricetag_item[] = (
         response.data.value?.data || []
-      ).map((item) => ({ ...item, item_name: item.catalogue?.name || "" }));
+      ).map((item) => ({
+        ...item,
+        item_name: displayCatalogueName(item.catalogue!),
+      }));
       loading.value = false;
       return pricetagItem;
     } else {

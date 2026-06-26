@@ -8,22 +8,8 @@
       </template>
     </el-page-header>
 
-    <CanvassingDetailApprove
-      v-if="
-        canvassingData &&
-        (canvassingData.status == CanvassingStatus.PENDING_APPROVAL ||
-          canvassingData.status == CanvassingStatus.DONE ||
-          canvassingData.status == CanvassingStatus.CANCEL)
-      "
-      :canvassingData="canvassingData"
-      :privilages="currentPrivilage"
-    />
     <CanvassingDetail
-      v-if="
-        canvassingData &&
-        (canvassingData.status == CanvassingStatus.PENDING_APPROVAL_RAB ||
-          canvassingData.status == CanvassingStatus.RAB)
-      "
+      v-if="canvassingData"
       :canvassingData="canvassingData"
       :privilages="currentPrivilage"
     />
@@ -72,8 +58,6 @@ const fetchCanvassing = async () => {
     if (response.status.value == "success" && response.data.value?.data) {
       currentPrivilage.value = response.data.value.privilege ?? [];
       canvassingData.value = response.data.value.data;
-
-      console.log("reference", canvassingData.value.status);
     }
   } catch (error) {
     ElMessage.error("Failed to fetch canvassing data");

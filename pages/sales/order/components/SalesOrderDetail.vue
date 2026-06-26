@@ -164,7 +164,7 @@
         />
         <el-table-column
           prop="harga_quo"
-          label="Harga PNW"
+          label="Harga QUO"
           align="right"
           width="150"
         >
@@ -993,7 +993,7 @@ watch(
                   .canvassing_vendor ?? []
               )
                 .filter(
-                  (vendor) => vendor.status === CanvassingVendorStatus.SELECTED
+                  (vendor) => vendor.catalogue_id === element.catalogue_id
                 )
                 .map((vendor) => ({
                   unique_id: vendor.unique_id || "",
@@ -1001,9 +1001,9 @@ watch(
                   item_id: vendor.catalogue_id || "",
                   quantity: vendor.quantity || 0,
                   unit_name: vendor.unit_name || "N/A",
-                  harga_quo: vendor.unit_price || 0,
+                  harga_quo: vendor.selling_price || 0,
                   harga_po: 0,
-                  total: vendor.unit_price * vendor.quantity,
+                  total: vendor.selling_price! * vendor.quantity,
                   quo_number: "",
                   children: [],
                 }));
@@ -1013,7 +1013,7 @@ watch(
 
       purchaseOrderItemsView.value.push({
         unique_id: element.unique_id,
-        item_name: element.catalogue_name,
+        item_name: displayCatalogueName(element.catalogue!),
         item_id: element.catalogue_id || "",
         quantity: element.quantity,
         unit_name: element.unit_name || "N/A",

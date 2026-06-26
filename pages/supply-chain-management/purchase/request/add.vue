@@ -407,7 +407,7 @@ const handleItemRequestPageChange = (page: number) => {
   fetchItemRequests();
 };
 
-const addItemsToForm = (items: ItemRequest[]) => {
+const addItemsToForm = (items: ItemRequest[], inqNumber: string | null) => {
   items.forEach((item) => {
     // Check if item already exists in the form
     const exists = ruleForm.items.some(
@@ -426,7 +426,7 @@ const addItemsToForm = (items: ItemRequest[]) => {
         created_by: "",
         updated_at: 0,
         item_name: item.catalogue_name ?? "",
-        request_number: item.inquiry?.unique_code ?? "Tidak Ada",
+        request_number: inqNumber ?? "Tidak Ada",
         item_request_version: item.version ?? 1,
       });
     }
@@ -685,7 +685,7 @@ const fetchInquiryDetail = async () => {
         ruleForm.requester_name = inquiryData.request_to?.name ?? "";
         ruleForm.requester_version = inquiryData.request_to?.version ?? 0;
         ruleForm.source_document = inquiryData.unique_code;
-        addItemsToForm(inquiryData.item_request);
+        addItemsToForm(inquiryData.item_request, inquiryData.unique_code);
       }
     }
   } catch (error) {

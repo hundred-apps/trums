@@ -34,7 +34,7 @@ export const useAuthStore = defineStore("auth", () => {
 
   const isTokenExpired = computed(() => tokenExpiresIn.value === 0);
 
-  const userInfo = computed(() => profile.value);
+  const userInfo = computed(() => user_data.value);
 
   const setMenu = (data: Menu[]) => {
     if (process.client) {

@@ -212,7 +212,7 @@
         :align="isMobile ? 'center' : 'left'"
       >
         <template #default="scope">
-          <p>{{ scope.row.no }}</p>
+          <p>{{ scope.row.hasChild ? scope.row.no : "" }}</p>
         </template>
       </el-table-column>
       <el-table-column
@@ -225,9 +225,9 @@
       >
         <template #default="scope">
           <p
-            :class="`text-start text-blue-600 ${
-              scope.row.is_equivalent ? 'italic' : ''
-            }`"
+            :class="`text-start ${
+              scope.row.hasChild ? 'text-black' : 'text-blue-600'
+            } ${scope.row.hasChild ? 'font-bold' : 'italic'}`"
           >
             <!-- {{
               scope.row.catalogue?.brand == undefined
@@ -303,7 +303,9 @@
         width="150"
       >
         <template #default="scope">
-          {{ getStatusItemLabel(scope.row.status_item) }}
+          {{
+            scope.row.hasChild ? "" : getStatusItemLabel(scope.row.status_item)
+          }}
         </template>
       </el-table-column>
       <el-table-column
@@ -313,12 +315,15 @@
         width="150"
       >
         <template #default="scope">
-          {{ getDeliveryMethodLabel(scope.row.delivery) }}
+          {{
+            scope.row.hasChild ? "" : getDeliveryMethodLabel(scope.row.delivery)
+          }}
         </template>
       </el-table-column>
       <el-table-column prop="note" label="Catatan" class="mb-0" width="150">
         <template #default="scope">
           <div
+            v-if="scope.row.hasChild"
             class="text-sm"
             v-html="extractDescription(scope.row.note ?? '')"
           ></div>
@@ -624,71 +629,107 @@ watch(
   (data) => {
     pricetag_item_views.value = [];
     let no = 1;
+
     (data ?? []).forEach((item) => {
-      pricetag_item_views.value.push({
-        no: `${no}`,
-        unique_id: item.unique_id || "",
-        item_name: item.catalogue?.name || "",
-        price: item.price,
-        qty: item.quantity,
-        unit_id: item.unit_id || "",
-        unit_name: item.unit_name || "",
-        garansi: item.garansi ? item.garansi + " Hari" : "N/A",
-        note: item.note || "",
-        is_equivalent: false,
-        equivalent_from_id: "",
-        delivery: item.delivery,
-        status_item: item.status_item,
-        hasChild: item.data_reference
-          ? (item.data_reference as CanvassingItem).canvassing_vendor.length > 0
-            ? (
-                item.data_reference as CanvassingItem
-              ).canvassing_vendor.findLast(
-                (v) => v.type_item == "quotation" || v.type_item == "equivalent"
-              )
-              ? true
-              : false
-            : false
-          : false,
-      });
-
       if (item.data_reference) {
-        (item.data_reference as CanvassingItem).canvassing_vendor.forEach(
-          async (vendor) => {
-            if (
-              vendor.type_item == "equivalent" ||
-              vendor.type_item == "quotation"
-            ) {
-              pricetag_item_views.value.push({
-                no: "",
-                unique_id: vendor.unique_id || "",
-                item_name:
-                  `(${
-                    vendor.type_item == "equivalent"
-                      ? "Equivalent"
-                      : "Subtitution"
-                  }) ` + getCatalogueName(vendor.catalogue!),
-                price: vendor.selling_price || 0,
-                qty: vendor.quantity,
-                unit_id: vendor.unit_id || "",
-                unit_name: vendor.unit_name || "",
-                garansi: "N/A",
-                note: "",
-                is_equivalent: true,
-                hasChild: false,
-
-                equivalent_from_id: item.unique_id || "",
-              });
-            }
-          }
+        const isExist = pricetag_item_views.value.findIndex(
+          (find) => find.unique_id == item.reference_id
         );
+
+        if (isExist < 0) {
+          pricetag_item_views.value.push({
+            no: `${no}`,
+            unique_id: item.reference_id || "",
+            item_name: item.catalogue?.name || "",
+            price: item.price,
+            qty: item.quantity,
+            unit_id: item.unit_id || "",
+            unit_name: item.unit_name || "",
+            garansi: item.garansi ? item.garansi + " Hari" : "N/A",
+            note: item.note || "",
+            is_equivalent: false,
+            equivalent_from_id: "",
+            delivery: item.delivery,
+            status_item: item.status_item,
+            hasChild: true,
+          });
+          no += 1;
+
+          pricetag_item_views.value.push({
+            no: `${no}`,
+            unique_id: item.unique_id || "",
+            item_name: displayCatalogueName(item.catalogue!),
+            price: item.price,
+            qty: item.quantity,
+            unit_id: item.unit_id || "",
+            unit_name: item.unit_name || "",
+            garansi: item.garansi ? item.garansi + " Hari" : "N/A",
+            note: item.note || "",
+            is_equivalent: false,
+            equivalent_from_id: "",
+            delivery: item.delivery,
+            status_item: item.status_item,
+            hasChild: false,
+          });
+        } else {
+          pricetag_item_views.value.push({
+            no: `${no}`,
+            unique_id: item.unique_id || "",
+            item_name: displayCatalogueName(item.catalogue!),
+            price: item.price,
+            qty: item.quantity,
+            unit_id: item.unit_id || "",
+            unit_name: item.unit_name || "",
+            garansi: item.garansi ? item.garansi + " Hari" : "N/A",
+            note: item.note || "",
+            is_equivalent: false,
+            equivalent_from_id: "",
+            delivery: item.delivery,
+            status_item: item.status_item,
+            hasChild: false,
+          });
+        }
+
+        // (data ?? []).forEach((item) => {
+        //   pricetag_item_views.value.push({
+        //     no: `${no}`,
+        //     unique_id: item.unique_id || "",
+        //     item_name: item.catalogue?.name || "",
+        //     price: item.price,
+        //     qty: item.quantity,
+        //     unit_id: item.unit_id || "",
+        //     unit_name: item.unit_name || "",
+        //     garansi: item.garansi ? item.garansi + " Hari" : "N/A",
+        //     note: item.note || "",
+        //     is_equivalent: false,
+        //     equivalent_from_id: "",
+        //     delivery: item.delivery,
+        //     status_item: item.status_item,
+        //     hasChild: false,
+        //   });
+        //   no += 1;
+        // });
+      } else {
+        pricetag_item_views.value.push({
+          no: `${no}`,
+          unique_id: item.unique_id || "",
+          item_name: displayCatalogueName(item.catalogue!),
+          price: item.price,
+          qty: item.quantity,
+          unit_id: item.unit_id || "",
+          unit_name: item.unit_name || "",
+          garansi: item.garansi ? item.garansi + " Hari" : "N/A",
+          note: item.note || "",
+          is_equivalent: false,
+          equivalent_from_id: "",
+          delivery: item.delivery,
+          status_item: item.status_item,
+          hasChild: false,
+        });
       }
-
-      no += 1;
-
-      // pricetag_item_views.value = toView;
-      // console.log("pricetag item", pricetag_item_views.value);
     });
+
+    console.log("item views", pricetag_item_views.value);
   },
   { deep: true }
 );
@@ -953,7 +994,7 @@ const generateQuotationPdf = async () => {
       item.item_name.includes("(Subtitution)");
     rowData.push([
       {
-        content: `${isChild ? "" : no}`,
+        content: `${item.hasChild ? no : ""}`,
         styles: {
           halign: "center",
           lineWidth: 0.1,
@@ -1393,7 +1434,6 @@ const querySearchAsyncInventories = (
 watch(
   () => props.dataInterface.data?.unique_id,
   () => {
-    console.log("data interface", props.dataInterface.data);
     request_search_pricelist_item.value.column = [
       {
         tag_id: [props.dataInterface.data?.unique_id],

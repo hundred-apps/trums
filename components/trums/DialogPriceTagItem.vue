@@ -521,7 +521,8 @@ const onHandleSelectItemAutocompleteModal = async (
     drawerCatalogue.value = true;
   } else {
     const selected: ItemSearch = record as ItemSearch;
-    ruleFormDialogAddItem.item_name = selected.catalogue_name!;
+    ruleFormDialogAddItem.item_name =
+      selected.catalogue_name! + `- ${selected.brand_name}`;
     ruleFormDialogAddItem.catalogue_id = selected.catalogue_id!;
     // ruleFormDialogAddItem.unit_id = selected.unit_id ?? "";
     // ruleFormDialogAddItem.unit_name = selected.unit_name ?? "";
@@ -562,7 +563,7 @@ const handleSubmitCatalogue = async () => {
       (await create_catalogue(tmpCatalogue.value!)) ?? undefined;
 
     if (catalogueInsert != undefined) {
-      ruleFormDialogAddItem.item_name = catalogueInsert?.name ?? "";
+      ruleFormDialogAddItem.item_name = displayCatalogueName(catalogueInsert);
       // dataTable.value[itemActive.value].item_id = catalogueInsert?.unique_id ?? '';
       ruleFormDialogAddItem.sn = catalogueInsert?.sn ?? "";
       ruleFormDialogAddItem.catalogue = catalogueInsert;
