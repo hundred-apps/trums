@@ -250,7 +250,7 @@
           >
             <template #default="scope">
               <p
-                class="text-start text-blue-600"
+                class="text-start text-blue-600 cursor-pointer"
                 @click="() => detailItem(scope.row, scope.$index)"
               >
                 {{ scope.row.item_name }}

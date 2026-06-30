@@ -1058,7 +1058,9 @@ const fetchInitialData = async () => {
       ruleForm.start_date = dateViewStart.getTime();
       if (pricetagEdit.end_date > 0) {
         ruleForm.end_date = pricetagEdit.end_date;
-        ruleForm.end_date_view = dayjs.unix(pricetagEdit.end_date).format("YYYY-MM-DD");
+        ruleForm.end_date_view = dayjs
+          .unix(pricetagEdit.end_date)
+          .format("YYYY-MM-DD");
       } else {
         ruleForm.end_date = 0;
         ruleForm.end_date_view = "";
@@ -1079,7 +1081,7 @@ const fetchInitialData = async () => {
 
       ruleForm.pricetag_item = itemPricetag.map((value) => ({
         ...value,
-        item_name: value.catalogue?.name ?? "",
+        item_name: displayCatalogueName(value.catalogue!),
         sn: value.catalogue?.sn ?? "N/A",
         is_new: false,
         garansi:

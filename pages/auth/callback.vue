@@ -21,6 +21,10 @@ const api = useApi();
 const profile = ref<UserProfile | null>(null);
 const user = localStorage.getItem("user");
 const appUserData = useCookie("userdata");
+
+const { labelPosition } = useFormConfig();
+const { isMobile } = useDevice();
+
 const userToken = useCookie("token", {
   maxAge: 60 * 60 * 24 * 30,
   path: "/",
@@ -370,7 +374,10 @@ onMounted(() => {
 <template>
   <NuxtLayout :name="layout">
     <div class="w-full h-screen flex items-center justify-center">
-      <el-card class="bg-red-800 dark:bg-slate-800 w-1/2" v-if="isCreate">
+      <el-card
+        :class="`bg-red-800 dark:bg-slate-800 ${isMobile ? 'w-full' : 'w-1/2'}`"
+        v-if="isCreate"
+      >
         <div class="flex justify-center mb-3">
           <el-upload
             class="avatar-uploader flex flex-col items-center gap-2"
@@ -395,6 +402,7 @@ onMounted(() => {
           label-width="auto"
           :size="formSize"
           class="flex flex-col gap-1"
+          :label-position="labelPosition"
           status-icon
         >
           <el-form-item

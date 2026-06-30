@@ -81,4 +81,7 @@ export type TransactionItem = {
   kredit?: number;
   debit_display?: string;
   kredit_display?: string;
+  account_name?: string;
+  party_id?: string;
+  party_name?: string;
 };

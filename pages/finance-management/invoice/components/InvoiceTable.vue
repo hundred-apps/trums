@@ -365,6 +365,8 @@ interface Props {
   type?: "finance" | "invoicing";
 }
 
+const { isMobile } = useDevice();
+
 const props = withDefaults(defineProps<Props>(), {
   type: "finance",
 });
@@ -553,7 +555,7 @@ const columns: ColumnTable<Invoice>[] = [
     title: "Nomor Invoice",
     dataKey: "unique_code",
     width: 200,
-    fixed: true,
+    fixed: isMobile ? undefined : true,
     cellRenderer: ({ rowData: row }) => (
       <NuxtLink
         href={
@@ -571,7 +573,7 @@ const columns: ColumnTable<Invoice>[] = [
     key: "customer_id",
     title: "Customer",
     dataKey: "customer_id",
-    fixed: true,
+    fixed: isMobile ? undefined : true,
     cellRenderer: ({ rowData }: { rowData: Invoice }) => (
       <span>{rowData.customer_name}</span>
     ),

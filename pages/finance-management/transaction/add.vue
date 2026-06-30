@@ -302,6 +302,38 @@
           </template>
         </el-table-column> -->
 
+        <el-table-column label="Akun">
+          <template #default="{ row, $index }">
+            <el-autocomplete
+              v-model="row.account_name"
+              :fetch-suggestions="(query, cb) => querySearchAccount(query, cb)"
+              placeholder="Cari daftar akun"
+              class="w-full"
+              @select="(selected) => onHandleSelectAccounts($index, selected)"
+            >
+              <template #default="{ item: suggestion }">
+                <div
+                  v-if="suggestion.isNew"
+                  class="flex items-center text-blue-500"
+                >
+                  <el-icon><Plus /></el-icon>
+                  <span class="ml-2">Tambahkan "{{ suggestion.value }}"</span>
+                </div>
+                <div v-else>
+                  <p>{{ suggestion.data.code }} - {{ suggestion.value }}</p>
+                </div>
+              </template>
+            </el-autocomplete>
+
+            <!-- <el-input
+              v-else
+              v-model="row.reference_value"
+              :disabled="row.reference == null"
+              placeholder="Nama item"
+            /> -->
+          </template>
+        </el-table-column>
+
         <el-table-column label="Total Price" width="200">
           <template #default="{ row, $index }">
             <el-input
@@ -395,7 +427,7 @@
       </el-button>
     </el-card>
 
-    <AdjustmentTransactionComponent
+    <!-- <AdjustmentTransactionComponent
       v-if="!loading"
       :references="references"
       @update:total="
@@ -403,7 +435,7 @@
           console.log('update total', value);
         }
       "
-    />
+    /> -->
 
     <el-card class="mb-3" shadow="never">
       <template #header>
@@ -982,92 +1014,112 @@ const querySearchReference = (
     cb([]);
   }
 };
-
-const querySearchAccounts = (query: string, cb: (arg: any) => void) => {
+const querySearchAccount = (query: string, cb: (arg: any) => void) => {
   try {
-    console.log(query);
+    const request_search: RequestSearch = {
+      keyword: query,
+      table: "accounts",
+      column: [],
+      sort: null,
+      offset: "1",
+      limit: "10",
+    };
+    useFetchApi<ResponsePagination<Account[]>>(
+      "/search",
+      "search-accounts",
+      "post",
+      request_search
+    ).then((response) => {
+      if (response.status.value == "success") {
+        const accounts: Account[] = (response.data.value?.data ??
+          []) as Account[];
+        cb(
+          accounts.map((account) => ({
+            value: account.name,
+            data: account,
+          }))
+        );
+      }
+    });
 
-    if (query != "" && query != "null") {
-      const request_search: RequestSearch = {
-        keyword: query,
-        table: "accounts",
-        column: [],
-        sort: {
-          column: "created_at",
-          order: OrderColumn.ASC,
-        },
-        offset: "1",
-        limit: "10",
-      };
+    // if (referenceType === "invoice") {
 
-      useFetchApi<ResponsePagination<Account[]>>(
-        "/search",
-        "search-account",
-        "post",
-        request_search
-      ).then((response) => {
-        if (response.status.value == "success") {
-          const accounts: Account[] = (response.data.value?.data ??
-            []) as Account[];
-          cb(
-            accounts.map((value) => ({
-              value: `${value.name} (${value.code})`,
-              isNew: false,
-              ...value,
-            }))
-          );
-        }
-      });
-    }
+    // } else if (referenceType === "bill") {
+    //   request_search.column = [
+    //     {
+    //       type: ["in"],
+    //     },
+    //   ];
+    //   useFetchApi<ResponsePagination<Invoice[]>>(
+    //     "/search",
+    //     "inovices",
+    //     "post",
+    //     request_search
+    //   ).then((response) => {
+    //     if (response.status.value == "success") {
+    //       const invoices: Invoice[] = (response.data.value?.data ??
+    //         []) as Invoice[];
+    //       cb(
+    //         invoices.map((inv) => ({
+    //           value: inv.unique_code,
+    //           ...inv,
+    //           reference: "invoice",
+    //         }))
+    //       );
+    //     }
+    //   });
+    // } else if (referenceType === "other") {
+    //   const request_search: RequestSearch = {
+    //     keyword: query,
+    //     table: "catalogues",
+    //     column: [],
+    //     sort: {
+    //       column: "created_at",
+    //       order: OrderColumn.ASC,
+    //     },
+    //     offset: "1",
+    //     limit: "10",
+    //   };
+
+    //   useFetchApi<ResponsePagination<Catalogue[]>>(
+    //     "/search",
+    //     "search-catalogue",
+    //     "post",
+    //     request_search
+    //   ).then((response) => {
+    //     if (response.status.value == "success") {
+    //       const catalogues: Catalogue[] = (response.data.value?.data ??
+    //         []) as Catalogue[];
+    //       if (catalogues.length > 0) {
+    //         cb(
+    //           catalogues.map((value) => ({
+    //             value: value.name,
+    //             ...value,
+    //             isNew: false,
+    //           }))
+    //         );
+    //       } else {
+    //         cb([
+    //           {
+    //             value: `Tambahkan ${query}`,
+    //             data: query,
+    //             isNew: true,
+    //           },
+    //         ]);
+    //       }
+    //     }
+    //   });
+    // }
   } catch (error) {
-    console.error("Failed to fetch accounts", error);
+    console.error("Failed to fetch references", error);
     cb([]);
   }
 };
-const searchAccounts = (query: string) => {
-  try {
-    console.log(query);
 
-    if (query != "" && query != "null") {
-      const request_search: RequestSearch = {
-        keyword: query,
-        table: "accounts",
-        column: [],
-        sort: {
-          column: "created_at",
-          order: OrderColumn.ASC,
-        },
-        offset: "1",
-        limit: "10",
-      };
-
-      useFetchApi<ResponsePagination<Account[]>>(
-        "/search",
-        "search-account",
-        "post",
-        request_search
-      ).then((response) => {
-        if (response.status.value == "success") {
-          const accounts: Account[] = (response.data.value?.data ??
-            []) as Account[];
-          // cb(
-          //   accounts.map((value) => ({
-          //     value: `${value.name} (${value.code})`,
-          //     isNew: false,
-          //     ...value,
-          //   }))
-          // );
-          options.value = accounts.map((account) => ({
-            label: account.name,
-            value: account.unique_id,
-          }));
-        }
-      });
-    }
-  } catch (error) {
-    console.error("Failed to fetch accounts", error);
-    // cb([]);
-  }
+const onHandleSelectAccounts = (index: number, item: any) => {
+  const account: Account = item.data as Account;
+  ruleForm.transaction_items[index].account_id = account.unique_id;
+  ruleForm.transaction_items[index].account_name = account.name;
 };
 
 const handleSelectAccount = (item: any, type: "to" | "from") => {

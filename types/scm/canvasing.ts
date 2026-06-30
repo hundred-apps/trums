@@ -22,6 +22,25 @@ export enum CanvassingStatus {
   CANCEL = "cancel",
 }
 
+export const getStatusCanvassingLabel = (status: CanvassingStatus) => {
+  switch (status) {
+    case CanvassingStatus.DRAFT:
+      return "DRAFT";
+    case CanvassingStatus.CANVASSING:
+      return "CANVASSING";
+    case CanvassingStatus.RAB:
+      return "RAB";
+    case CanvassingStatus.PENDING_APPROVAL:
+      return "RAB Menunggu Disetujui";
+    case CanvassingStatus.PENDING_APPROVAL_RAB:
+      return "Canvassing Menunggu Disetujui";
+    case CanvassingStatus.DONE:
+      return "Selesai";
+    case CanvassingStatus.CANCEL:
+      return "Dibatalkan";
+  }
+};
+
 export const statusRAB = () => [
   CanvassingStatus.RAB,
   CanvassingStatus.PENDING_APPROVAL,

@@ -22,7 +22,7 @@
     />
   </div>
 
-  <el-dialog v-model="dialogContact" title="Detail Kontak">
+  <el-dialog v-model="dialogContact" title="Detail Kontak" style="width: 80%">
     <AddContact
       ref="formFieldsRefContact"
       :data="tmpContact!"

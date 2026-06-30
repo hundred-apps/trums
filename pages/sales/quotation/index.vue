@@ -52,29 +52,47 @@
 
     <!-- Action Bar -->
     <div class="mb-3" v-if="isMobile">
-      <el-input
-        v-model="request_search.keyword"
-        size="default"
-        placeholder="Cari canvassing..."
-        clearable
-      />
-      <NuxtLink
-        class="el-button el-button--primary el-button--default"
-        href="quotation/add"
-      >
-        Buat RAB Baru
-      </NuxtLink>
-      <el-button
-        size="default"
-        :loading-icon="Eleme"
-        :loading="pending"
-        @click="onRefresh"
-      >
-        Muat Ulang
-      </el-button>
-      <el-button type="danger" :disabled="!hasSelected" @click="bulkDelete">
-        Hapus yang Dipilih
-      </el-button>
+      <div class="flex px-2 gap-3">
+        <el-input
+          v-model="request_search.keyword"
+          size="default"
+          placeholder="Cari canvassing..."
+          clearable
+        />
+        <el-dropdown @command="handleCommand">
+          <span class="el-dropdown-link">
+            <TrumsCustomButton
+              :is-circle="true"
+              :type="'primary'"
+              :disabled="loading"
+              :loading="loading"
+              @click="() => {}"
+            >
+              <el-icon><MoreFilled /></el-icon>
+            </TrumsCustomButton>
+          </span>
+          <template #dropdown>
+            <el-dropdown-menu>
+              <el-dropdown-item :command="'add'">Buat RAB</el-dropdown-item>
+              <el-dropdown-item
+                :command="'delete-bulk'"
+                :class="'danger-dropdown-item'"
+                :disabled="!hasSelected"
+                >Hapus</el-dropdown-item
+              >
+            </el-dropdown-menu>
+          </template>
+        </el-dropdown>
+        <TrumsCustomButton
+          :is-circle="true"
+          :loading="loading"
+          :disabled="loading"
+          type="default"
+          @click="() => drawerFilterState(true)"
+        >
+          <el-icon><Filter /></el-icon>
+        </TrumsCustomButton>
+      </div>
     </div>
     <el-row :gutter="20" class="mb-3" v-else>
       <el-col :span="6">
@@ -116,7 +134,7 @@
     <div class="flex justify-end mt-3">
       <el-pagination
         background
-        layout="prev, pager, next, sizes, total"
+        :layout="`prev, pager, next, ${isMobile ? '' : 'sizes, total'}`"
         :total="data?.total_data ?? 0"
         :current-page="Number(request_search.offset)"
         :page-size="Number(request_search.limit)"
@@ -124,11 +142,40 @@
         @size-change="handleSizeChange"
       />
     </div>
+
+    <el-divider v-if="isMobile"
+      ><p class="text-xs">Total Data {{ data?.total_data }}</p></el-divider
+    >
+
+    <el-drawer
+      v-model="drawerFilter"
+      @close="() => drawerFilterState(false)"
+      :direction="direction"
+      resizable
+      :with-header="false"
+    >
+      <FilterFormComponent
+        :label-position="labelPosition"
+        :loading="loading"
+        :model="ruleFormFilter"
+        :rules="rulesFormFilter"
+        @cancel="() => {}"
+        @reset="() => {}"
+        @submit="onSubmitFilter"
+      />
+    </el-drawer>
   </TrumsWrapper>
 </template>
 
 <script lang="tsx" setup>
-import { Eleme, SetUp, Filter, Setting } from "@element-plus/icons-vue";
+import {
+  Eleme,
+  SetUp,
+  Filter,
+  Setting,
+  Plus,
+  MoreFilled,
+} from "@element-plus/icons-vue";
 import {
   type Column,
   type CheckboxValueType,
@@ -143,9 +190,14 @@ import {
   ElDropdown,
   ElDropdownMenu,
   ElDropdownItem,
+  type DrawerProps,
+  type FormInstance,
+  dayjs,
+  type FormRules,
 } from "element-plus";
 import {
   CanvassingStatus,
+  getStatusCanvassingLabel,
   type Canvassing,
   type StatisticRAB,
 } from "~/types/scm/canvasing";
@@ -164,8 +216,18 @@ import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import { TypeInquiry } from "~/types/inquiry";
 import type { ColumnTable } from "~/types/ColumnTable";
 import { isNuxtMajorVersion } from "nuxt/kit";
+import { load } from "@fingerprintjs/fingerprintjs";
+import type { Contact } from "~/types/contact";
+import FilterFormComponent from "./components/FilterFormComponent.vue";
 
 const { isMobile } = useDevice();
+
+const route = useRoute();
+const router = useRouter();
+const { labelPosition } = useFormConfig();
+
+const direction = ref<DrawerProps["direction"]>("btt");
+const drawerFilter = ref<boolean>(false);
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -223,6 +285,42 @@ const statistic = await useFetchApi<BaseResponse<StatisticRAB>>(
   request_statistic.value
 );
 
+type FormFilter = {
+  contact_ids: string[];
+  contact_names: string[];
+  contact_data: Contact | null;
+  date_start: string;
+  date_end: string;
+  status: CanvassingStatus;
+};
+const ruleFormFilter = reactive<FormFilter>({
+  contact_ids: [],
+  contact_names: [],
+  contact_data: null,
+  date_start: dayjs().format("YYYY-MM-DD"),
+  date_end: "",
+  status: CanvassingStatus.DRAFT,
+});
+
+const ruleFormRefFilter = ref<FormInstance>();
+
+const rulesFormFilter = reactive<FormRules>({
+  contact_names: [
+    {
+      required: true,
+      message: "Contact harus dipilih",
+      trigger: "change",
+    },
+  ],
+  date_start: [
+    {
+      required: true,
+      message: "Tanggal Mulai harus dipilih",
+      trigger: "change",
+    },
+  ],
+});
+
 const selectedCanvassing = ref<Canvassing[]>([]);
 const loading = ref<boolean>(false);
 const columnsSelected = ref<string[]>([
@@ -240,35 +338,42 @@ const columnsSelected = ref<string[]>([
 // Columns
 const columns: ColumnTable<Canvassing>[] = [
   {
-    key: "unique_code",
-    title: "Nomor Canvassing",
-    dataKey: "unique_code",
-    width: 200,
-    cellRenderer: ({ rowData: row }) => (
-      <NuxtLink
-        href={`/sales/quotation/${row.unique_id}`}
-        class="text-blue-500"
-      >
-        {row.unique_code}
-      </NuxtLink>
-    ),
-  },
-  {
-    key: "source_document",
-    title: "Dokumen Sumber",
-    dataKey: "source_document",
-    width: 300,
-    cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
-      <span>{rowData.source_document || "-"}</span>
-    ),
-  },
-  {
     key: "customer",
     title: "Customer",
     dataKey: "customer",
     width: 300,
     cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
       <span>{rowData.source?.request_to?.name || "-"}</span>
+    ),
+  },
+  {
+    key: "unique_code",
+    title: "No.Canv",
+    dataKey: "unique_code",
+    width: isMobile ? 100 : 200,
+    cellRenderer: ({ rowData: row }) => (
+      <NuxtLink
+        href={`/sales/quotation/${row.unique_id}`}
+        class="text-blue-500"
+      >
+        {isMobile ? wrapUniqueCode(row.unique_code) : row.unique_code}
+      </NuxtLink>
+    ),
+  },
+
+  {
+    key: "source_document",
+    title: "No.RFQ",
+    dataKey: "source_document",
+    width: isMobile ? 100 : 300,
+    cellRenderer: ({ rowData }: { rowData: Canvassing }) => (
+      <span>
+        {!rowData.source_document
+          ? "-"
+          : isMobile
+          ? wrapUniqueCode(rowData.source_document!)
+          : rowData.source_document}
+      </span>
     ),
   },
   {
@@ -472,6 +577,18 @@ columns[columns.length - 1].headerCellRenderer = () => {
   );
 };
 
+const drawerFilterState = (state: boolean) => {
+  drawerFilter.value = state;
+};
+
+const handleCommand = (command: string) => {
+  if (command == "add") {
+    router.push("quotation/add");
+  } else if (command == "delete-bulk") {
+    bulkDelete();
+  }
+};
+
 // Computed
 const filteredColumns = computed(() => {
   return columns.filter((col) =>
@@ -600,6 +717,27 @@ const onSort = (sortBy: { order: string; prop: string }) => {
   };
 };
 
+const onSubmitFilter = () => {
+  console.log("start date", dayjs(ruleFormFilter.date_start).unix());
+  console.log(
+    "end date",
+    ruleFormFilter.date_end ? dayjs(ruleFormFilter.date_start).unix() : null
+  );
+  console.log("status", ruleFormFilter.status);
+  console.log("contacts", ruleFormFilter.contact_ids);
+};
+
+const submitFilter = async (formEl: FormInstance | undefined) => {
+  if (!formEl) return;
+  await formEl.validate((valid, fields) => {
+    if (valid) {
+      onSubmitFilter();
+    } else {
+      console.log("error submit!", fields);
+    }
+  });
+};
+
 // Watch search query
 watchDebounced(
   request_search,
@@ -640,6 +778,16 @@ onMounted(() => {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+:deep(.danger-dropdown-item) {
+  color: #f56c6c;
+  font-weight: 500;
+}
+
+:deep(.danger-dropdown-item:hover) {
+  background-color: #fef0f0;
+  color: #f56c6c;
 }
 
 .statistic-footer .footer-item span:last-child {

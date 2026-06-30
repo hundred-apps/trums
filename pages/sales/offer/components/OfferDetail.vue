@@ -212,7 +212,7 @@
         :align="isMobile ? 'center' : 'left'"
       >
         <template #default="scope">
-          <p>{{ scope.row.hasChild ? scope.row.no : "" }}</p>
+          <p>{{ scope.row.no }}</p>
         </template>
       </el-table-column>
       <el-table-column
@@ -656,7 +656,7 @@ watch(
           no += 1;
 
           pricetag_item_views.value.push({
-            no: `${no}`,
+            no: ``,
             unique_id: item.unique_id || "",
             item_name: displayCatalogueName(item.catalogue!),
             price: item.price,
@@ -673,7 +673,7 @@ watch(
           });
         } else {
           pricetag_item_views.value.push({
-            no: `${no}`,
+            no: ``,
             unique_id: item.unique_id || "",
             item_name: displayCatalogueName(item.catalogue!),
             price: item.price,

@@ -35,7 +35,7 @@
             "
             @click="approve"
           >
-            <el-icon class="me-2"><CircleCheck /></el-icon> Approve
+            <el-icon class="me-2"><CircleCheck /></el-icon> Setujui
           </el-button>
           <el-button
             type="danger"

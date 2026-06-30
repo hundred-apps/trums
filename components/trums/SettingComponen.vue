@@ -47,14 +47,23 @@
     <div class="space-y-6">
       <!-- Default Company Selection -->
       <div class="setting-item el-card el-card__body">
-        <div class="flex items-center justify-between mb-4">
+        <div
+          :class="`flex ${isMobile ? 'flex-col gap-2' : ''}  ${
+            isMobile ? 'items-start' : 'items-center justify-between'
+          } mb-4`"
+        >
           <div class="">
             <div class="el-text el-text--large font-bold">Default Company</div>
             <div class="el-text">
               Pilih perusahaan default yang akan digunakan dalam transaksi
             </div>
           </div>
-          <el-button type="primary" size="default" @click="drawerContact = true"
+          <el-button
+            type="primary"
+            link
+            size="default"
+            @click="drawerContact = true"
+            :icon="Plus"
             >Tambah Perusahaan</el-button
           >
         </div>
@@ -92,7 +101,13 @@
 
       <!-- Default Address Selection -->
       <div class="setting-item el-card el-card__body">
-        <div class="flex items-center justify-between mb-4">
+        <div
+          :class="`flex ${
+            isMobile
+              ? 'flex-col items-start gap-2'
+              : 'items-center justify-between'
+          } mb-4`"
+        >
           <div>
             <div class="el-text el-text--large font-bold">Default Alamat</div>
             <p class="el-text el-text--default">
@@ -102,6 +117,8 @@
           <el-button
             type="primary"
             size="default"
+            link
+            :icon="Plus"
             :disabled="currentSettings.company === null"
             @click="dialogAddAddress = true"
             >Tambah Alamat</el-button
@@ -218,7 +235,12 @@
 </template>
 
 <script lang="tsx" setup>
-import { CircleCheck, OfficeBuilding, Location } from "@element-plus/icons-vue";
+import {
+  CircleCheck,
+  OfficeBuilding,
+  Location,
+  Plus,
+} from "@element-plus/icons-vue";
 import type { AddressType } from "~/types/address";
 import type { Contact } from "~/types/contact";
 import type { RequestSearch } from "~/types/request_search";

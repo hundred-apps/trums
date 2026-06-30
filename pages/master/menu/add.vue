@@ -80,7 +80,7 @@ const request_search = ref<RequestSearch>({
   table: "menus",
   column: [
     {
-      parent_id: [null], // Hanya ambil parent menus
+      parent_id: ["null"], // Hanya ambil parent menus
     },
   ],
   limit: "100",
@@ -154,24 +154,6 @@ const pageTitle = computed(() =>
 );
 
 const isSubmenu = computed(() => !!parent_id.value || !!ruleForm.parent_id);
-
-// Methods
-const fetchParentMenus = async () => {
-  try {
-    const response = await useFetchApi<ResponsePagination<Menu[]>>(
-      "/search",
-      "get-parent-menus",
-      "post",
-      request_search
-    );
-    console.log(response.status);
-    if (response.status.value === "success") {
-      parentMenus.value = response.data.value?.data || [];
-    }
-  } catch (error) {
-    ElMessage.error("Gagal memuat data menu parent");
-  }
-};
 
 const fetchMenuDetail = async () => {
   if (!id.value) return;
@@ -250,7 +232,6 @@ const onSubmit = async () => {
       );
       if (!id.value) {
         ruleFormRef.value?.resetFields();
-        fetchParentMenus();
       }
     }
   } catch (error: any) {
@@ -306,28 +287,6 @@ const resetForm = (formEl: FormInstance | undefined) => {
   }
 };
 
-const querySearchParentMenus = (
-  queryString: string,
-  cb: (arg: any) => void
-) => {
-  const results = queryString
-    ? parentMenus.value.filter((menu) =>
-        menu.name.toLowerCase().includes(queryString.toLowerCase())
-      )
-    : parentMenus.value;
-
-  cb(
-    results.map((menu) => ({
-      ...menu,
-      value: menu.name,
-    }))
-  );
-};
-
-const handleSelectParentMenu = (item: any) => {
-  ruleForm.parent_id = item.unique_id;
-  ruleForm.parent_view = item.value;
-};
 const handleClearParent = () => {
   ruleForm.parent_id = "deleted";
   ruleForm.parent_view = "";
@@ -394,7 +353,6 @@ if (parent_id.value) {
 
   // Find parent menu untuk auto-generate route
   onMounted(async () => {
-    await fetchParentMenus();
     const parentMenu = parentMenus.value.find(
       (menu) => menu.unique_id === parent_id.value
     );
@@ -406,7 +364,6 @@ if (parent_id.value) {
 }
 
 onMounted(async () => {
-  await fetchParentMenus();
   if (id.value) {
     await fetchMenuDetail();
   } else if (!parent_id.value) {
@@ -639,6 +596,42 @@ const onHandleSelectPosition = async (
   ].position_id = selected.unique_id;
 };
 
+const querySearchParents = (queryString: string, cb: (arg: any) => void) => {
+  request_search.value.keyword = queryString;
+  request_search.value.flag = "form";
+
+  useFetchApi<ResponsePagination<Menu[]>>(
+    "/search",
+    `search-menus-${queryString}`,
+    "post",
+    request_search.value
+  )
+    .then((response) => {
+      if (response.status.value == "success") {
+        const resultApi: Menu[] = response.data.value?.data || [];
+        if (resultApi.length > 0) {
+          const results = resultApi.map((data: Menu) => {
+            return { data: data, value: `${data.name}` };
+          });
+
+          cb(results);
+        }
+      } else {
+        ElMessage.error(response.data.value?.message || "");
+      }
+    })
+    .catch((error: any) => {
+      ElMessage.error(error.response.data.message);
+    });
+};
+
+const onHandleSelectMenu = (menuData: any) => {
+  const menu: Menu = menuData.data as Menu;
+
+  ruleForm.parent_id = menu.unique_id;
+  ruleForm.parent_view = menu.name;
+};
+
 const initialApprovalSetting = () => {
   ruleForm.permissions.forEach((element) => {
     console.log("type permission", element.type);
@@ -743,17 +736,15 @@ const initialApprovalSetting = () => {
         <el-form-item label="Parent Menu" prop="parent_id">
           <el-autocomplete
             v-model="ruleForm.parent_view"
-            :fetch-suggestions="querySearchParentMenus"
+            :fetch-suggestions="querySearchParents"
             placeholder="Pilih parent menu (kosongkan untuk menu utama)"
-            clearable
-            @select="handleSelectParentMenu"
-            @clear="handleClearParent"
+            @select="onHandleSelectMenu"
           >
             <template #default="{ item }">
               <div class="flex items-center">
-                <span>{{ item.name }}</span>
-                <el-tag v-if="item.route" size="small" class="ml-2">
-                  {{ item.route }}
+                <span>{{ item.value }}</span>
+                <el-tag v-if="item.data.route" size="small" class="ml-2">
+                  {{ item.data.route }}
                 </el-tag>
               </div>
             </template>
