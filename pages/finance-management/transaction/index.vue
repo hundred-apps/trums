@@ -140,6 +140,7 @@ import {
   ElDropdownMenu,
   ElDropdownItem,
   ElCheckboxGroup,
+  ElTag,
 } from "element-plus";
 import { NuxtLink } from "#components";
 import CustomTable from "~/components/trums/table/customTable.vue";
@@ -553,11 +554,11 @@ const filteredColumns = computed(() => {
 const renderTypeTag = (type: string) => {
   switch (type.toLowerCase()) {
     case "income":
-      return <el-tag type="success">PEMASUKAN</el-tag>;
+      return <ElTag type="success">PEMASUKAN</ElTag>;
     case "expense":
-      return <el-tag type="danger">PENGELUARAN</el-tag>;
+      return <ElTag type="danger">PENGELUARAN</ElTag>;
     default:
-      return <el-tag>{type.toUpperCase()}</el-tag>;
+      return <ElTag>{type.toUpperCase()}</ElTag>;
   }
 };
 

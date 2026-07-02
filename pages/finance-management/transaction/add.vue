@@ -1492,8 +1492,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           if (transaction) {
             ruleForm.unique_id = transaction.unique_id;
             ruleForm.transaction_items = transaction.transaction_items;
-            // window.location.href =
-            //   "/finance-management/transaction/" + transaction.unique_id;
+            window.location.href = "/finance-management/transaction/";
           }
         }
       } catch (error: any) {
