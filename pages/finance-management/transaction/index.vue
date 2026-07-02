@@ -87,6 +87,11 @@
           Hapus yang Dipilih
         </el-button>
       </el-col>
+      <el-col :span="3">
+        <el-button type="default" style="width: 100%" @click="exportToExcel">
+          Export ke Excel
+        </el-button>
+      </el-col>
       <el-col :span="6">
         <el-date-picker
           v-model="monthRange"
@@ -104,7 +109,7 @@
       :columns="filteredColumns"
       :data="data?.data ?? []"
       :loading="loading"
-      :column-sort="onSort"
+      @sort-change="onSort"
       @selection-change="handleSelectionChange"
     />
 
@@ -134,19 +139,22 @@ import {
   ElDropdown,
   ElDropdownMenu,
   ElDropdownItem,
+  ElCheckboxGroup,
 } from "element-plus";
 import { NuxtLink } from "#components";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import type { ResponsePagination } from "~/types/response_pagination";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
-import type { Transaction } from "~/types/finance/transaction";
+import type { Transaction, TransactionItem } from "~/types/finance/transaction";
 import { Filter } from "@element-plus/icons-vue";
 import type { BaseResponse } from "~/types/response";
 import { unique } from "element-plus/es/utils/arrays.mjs";
 import { useCookie } from "#app";
 import type { ColumnTable } from "~/types/ColumnTable";
 import type { Canvassing } from "~/types/canvassing";
+
+const { XLSX, createWorkbook } = useSheetjs();
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -164,21 +172,24 @@ const request_search = ref<RequestSearch>({
   keyword: "",
   column: [
     {
-      type: ["income", "expense"],
-      status: [],
+      transaction: {
+        type: [],
+      },
     },
   ],
   limit: "10",
   offset: "1",
-  table: "transactions",
+  table: "transaction_items",
   sort: {
     column: "created_at",
     order: OrderColumn.DESC,
   },
   filter: {
-    date: {
-      min: monthRange.value[0].getTime() / 1000,
-      max: monthRange.value[1].getTime() / 1000,
+    transaction: {
+      date: {
+        min: monthRange.value[0].getTime() / 1000,
+        max: monthRange.value[1].getTime() / 1000,
+      },
     },
   },
   flag: "list",
@@ -207,15 +218,18 @@ const cashflow = await useAsyncData("get-cashflow", async () => {
 });
 
 // Data state
-const { data, refresh } = await useAsyncData("fetch-transaction", async () => {
-  const res = await useFetchApi<ResponsePagination<Transaction[]>>(
-    `/search`,
-    "fetch-transaction",
-    "post",
-    request_search.value
-  );
-  return res.data.value;
-});
+const { data, refresh } = await useAsyncData(
+  "fetch-transaction-item",
+  async () => {
+    const res = await useFetchApi<ResponsePagination<TransactionItem[]>>(
+      `/search`,
+      "fetch-transaction-item",
+      "post",
+      request_search.value
+    );
+    return res.data.value;
+  }
+);
 
 const selectedTransactions = ref<any[]>([]);
 const loading = ref(false);
@@ -252,29 +266,35 @@ const shortcuts = [
 const columnsSelected = ref<string[]>([
   "selection",
   "unique_code",
+  "description",
+  "account",
   "date",
   "type",
   "reference_number",
   "amount",
-  "description",
   "operations",
   "setup",
 ]);
-const columns: ColumnTable<Transaction>[] = [
+const columns: ColumnTable<TransactionItem>[] = [
   {
     key: "unique_code",
     title: "Kode Transaksi",
     dataKey: "unique_code",
     width: 300,
     fixed: true,
-    cellRenderer: ({ rowData }: { rowData: Transaction }) => (
+    cellRenderer: ({ rowData }: { rowData: TransactionItem }) => (
       <NuxtLink
-        href={`/finance-management/transaction/${rowData.unique_id}`}
+        href={`/finance-management/transaction/${rowData.transaction?.unique_id}`}
         class="text-blue-500"
       >
-        {rowData.unique_code}
+        {rowData.transaction?.unique_code}
       </NuxtLink>
     ),
+  },
+  {
+    key: "description",
+    title: "Deskripsi",
+    dataKey: "description",
   },
   {
     key: "type",
@@ -291,24 +311,13 @@ const columns: ColumnTable<Transaction>[] = [
             default: () => (
               <div class="filter-wrapper">
                 <div class="filter-group flex flex-col">
-                  <ElCheckbox
-                    value="income"
-                    v-model={request_search.value.column[0].type}
+                  <ElCheckboxGroup
+                    v-model={request_search.value.column[0].transaction.type}
                   >
-                    Pemasukan
-                  </ElCheckbox>
-                  <ElCheckbox
-                    value="expense"
-                    v-model={request_search.value.column[0].type}
-                  >
-                    Pengeluaran
-                  </ElCheckbox>
-                  <ElCheckbox
-                    value="transfer"
-                    v-model={request_search.value.column[0].type}
-                  >
-                    Transfer
-                  </ElCheckbox>
+                    <ElCheckbox value="income">Pemasukan</ElCheckbox>
+                    <ElCheckbox value="expense">Pengeluaran</ElCheckbox>
+                    <ElCheckbox value="transfer">Transfer</ElCheckbox>
+                  </ElCheckboxGroup>
                 </div>
               </div>
             ),
@@ -321,39 +330,20 @@ const columns: ColumnTable<Transaction>[] = [
         </ElPopover>
       </div>
     ),
-    cellRenderer: ({ rowData }: { rowData: Transaction }) =>
-      renderTypeTag(rowData.type),
+    cellRenderer: ({ rowData }: { rowData: TransactionItem }) =>
+      renderTypeTag(rowData.transaction!.type),
   },
   {
     key: "date",
     title: "Tanggal",
     dataKey: "date",
     width: 150,
-    cellRenderer: ({ rowData }: { rowData: Transaction }) => (
-      <span>{rowData.date ? formatLocalDate(rowData.date) : "-"}</span>
-    ),
-  },
-
-  {
-    key: "account_name",
-    title: "CoA",
-    dataKey: "account_name",
-    width: 150,
-    cellRenderer: ({ rowData }: { rowData: Transaction }) => (
-      <>
-        {rowData.account_name} ({rowData.account?.code})
-      </>
-    ),
-  },
-  {
-    key: "account_bank_name",
-    title: "Rekening",
-    dataKey: "account_bank_name",
-    width: 300,
-    cellRenderer: ({ rowData }: { rowData: Transaction }) => (
-      <>
-        {rowData.account_bank_name} ({rowData.account_bank_number})
-      </>
+    cellRenderer: ({ rowData }: { rowData: TransactionItem }) => (
+      <span>
+        {rowData.transaction!.date
+          ? formatLocalDate(rowData.transaction!.date)
+          : "-"}
+      </span>
     ),
   },
   {
@@ -362,19 +352,70 @@ const columns: ColumnTable<Transaction>[] = [
     dataKey: "amount",
     width: 200,
     sortable: true,
-    cellRenderer: ({ rowData }: { rowData: Transaction }) => (
+    cellRenderer: ({ rowData }: { rowData: TransactionItem }) => (
       <span
-        class={rowData.type === "income" ? "text-green-500" : "text-red-500"}
+        class={
+          rowData.transaction!.type === "income"
+            ? "text-green-500"
+            : "text-red-500"
+        }
       >
         {currency(rowData.amount)}
       </span>
     ),
   },
   {
-    key: "description",
-    title: "Deskripsi",
-    dataKey: "description",
+    key: "account",
+    title: "CoA",
+    dataKey: "account",
+    width: 150,
+    cellRenderer: ({ rowData }: { rowData: TransactionItem }) => (
+      <>{rowData.account?.name}</>
+    ),
   },
+  {
+    key: "pic",
+    title: "PIC",
+    dataKey: "pic",
+    width: 150,
+    cellRenderer: ({ rowData }: { rowData: TransactionItem }) => (
+      <>{rowData.party_data?.name ?? ""}</>
+    ),
+  },
+  {
+    key: "reference",
+    title: "referensi",
+    dataKey: "reference",
+    width: 150,
+    cellRenderer: ({ rowData }: { rowData: TransactionItem }) => (
+      <>{rowData.reference_value ?? ""}</>
+    ),
+  },
+  {
+    key: "account_bank_name",
+    title: "Rekening Sumber",
+    dataKey: "account_bank_name",
+    width: 300,
+    cellRenderer: ({ rowData }: { rowData: TransactionItem }) => (
+      <>
+        {rowData.transaction!.account_bank_name} (
+        {rowData.transaction!.account_bank_number})
+      </>
+    ),
+  },
+  {
+    key: "account_bank_to_name",
+    title: "Rekening Tujuan",
+    dataKey: "account_bank_to_name",
+    width: 300,
+    cellRenderer: ({ rowData }: { rowData: TransactionItem }) => (
+      <>
+        {rowData.transaction!.account_bank_to_name} (
+        {rowData.transaction!.account_bank_to_number})
+      </>
+    ),
+  },
+
   {
     key: "operations",
     title: "Aksi",
@@ -394,10 +435,10 @@ const columns: ColumnTable<Transaction>[] = [
     // ),
     // width: 150,
     // align: "center",
-    cellRenderer: ({ rowData }: { rowData: Transaction }) => {
+    cellRenderer: ({ rowData }: { rowData: TransactionItem }) => {
       const onCommand = (command: string) => {
         if (command === "edit") {
-          onEdit(rowData);
+          onEdit(rowData.transaction!);
         }
         if (command === "delete") {
           onDelete([rowData.unique_id!]);
@@ -478,19 +519,15 @@ columns[columns.length - 1].headerCellRenderer = () => {
           default: () => (
             <div class="filter-wrapper">
               <div class="filter-group flex flex-col">
-                {columns.map((value) =>
-                  value.key != "selection" && value.key != "setup" ? (
-                    <ElCheckbox
-                      onChange={() => console.log("ok")}
-                      value={value.key!.toString()}
-                      v-model={columnsSelected.value}
-                    >
-                      {value.title}
-                    </ElCheckbox>
-                  ) : (
-                    <></>
-                  )
-                )}
+                <ElCheckboxGroup v-model={columnsSelected.value}>
+                  {columns
+                    .filter((c) => c.key !== "selection" && c.key !== "setup")
+                    .map((value) => (
+                      <ElCheckbox key={value.key} value={value.key!.toString()}>
+                        {value.title}
+                      </ElCheckbox>
+                    ))}
+                </ElCheckboxGroup>
               </div>
             </div>
           ),
@@ -539,16 +576,13 @@ const handleSizeChange = (size: number) => {
   request_search.value.limit = `${size}`;
 };
 
-const onSort = async (sortBy: SortBy) => {
-  // console.log('sort', sortBy.key);
-  // console.log(request_search.value);
-  // const data:RequestSearch = {...request_search.value};
+const onSort = async (sortBy: { order: string; prop: string }) => {
   request_search.value.sort = {
-    column: sortBy.key.toString(),
+    column: sortBy.prop,
     order:
-      request_search.value.sort?.order == OrderColumn.ASC
-        ? OrderColumn.DESC
-        : OrderColumn.ASC,
+      sortBy.order === OrderColumn.ASCENDING
+        ? OrderColumn.ASC
+        : OrderColumn.DESC,
   };
 };
 
@@ -558,9 +592,9 @@ const hasSelected = computed(() => {
 
 // Edit transaction
 const onEdit = (transaction: Transaction) => {
-  const unique_id = useCookie("unique_id");
-  unique_id.value = transaction.unique_id;
-  router.push(`/finance-management/transaction/add`);
+  router.push(
+    `/finance-management/transaction/add?id=${transaction.unique_id}`
+  );
 };
 
 // Delete transaction
@@ -573,7 +607,7 @@ const onDelete = async (ids: string[]) => {
     );
 
     const response = await useFetchApi<BaseResponse<any>>(
-      "/transaction-delete",
+      "/transaction-items-delete",
       "delete-transaction",
       "post",
       ids
@@ -593,19 +627,60 @@ const batchDelete = async () => {
   for (let index = 0; index < (data.value?.data ?? []).length; index++) {
     const element = data.value?.data[index];
     if (element?.checked) {
-      ids.push(element.unique_id);
+      ids.push(element.unique_id!);
     }
   }
   onDelete(ids);
 };
 
+const exportToExcel = () => {
+  const workbook = XLSX.utils.book_new();
+  const dataToExcel = (data.value?.data ?? []).map((value) => ({
+    Kode: value.transaction?.unique_code,
+    Type: value.transaction?.type == "expense" ? "Pengeluaran" : "Pemasukan",
+    Keterangan: value.description ?? "",
+    Tanggal: formatLocalDate(value.transaction!.date!),
+    Jumlah: value.amount,
+    CoA:
+      value.account == null
+        ? ""
+        : `${value.account?.code}-${value.account?.name}`,
+    "No.Ref": value.reference_value,
+    PIC: `${value.party?.name ?? ""}`,
+    "Rek.Sumber": `${value.transaction?.account_bank_name} (${value.transaction?.account_bank_number})`,
+    "Rek.Tujuan":
+      value.transaction?.account_bank_to_name == null
+        ? ""
+        : `${value.transaction?.account_bank_to_name} (${value.transaction?.account_bank_to_number})`,
+  }));
+  const worksheet = XLSX.utils.json_to_sheet(dataToExcel);
+  const headers = Object.keys(dataToExcel[0] ?? {});
+
+  worksheet["!cols"] = headers.map((header) => {
+    const maxLength = Math.max(
+      header.length,
+      ...dataToExcel.map(
+        (row) => String(row[header as keyof typeof row] ?? "").length
+      )
+    );
+
+    return {
+      wch: maxLength + 2,
+    };
+  });
+
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Data");
+
+  XLSX.writeFile(workbook, "Laporan-Pengeluaran-dan-Pemasukan.xlsx");
+};
+
 // Watch search query
 watchDebounced(
-  request_search.value,
+  () => request_search.value,
   () => {
     refresh();
   },
-  { debounce: 500 }
+  { debounce: 500, deep: true }
 );
 
 watch(
@@ -626,9 +701,11 @@ watch(
     request_cashflow.value.end_date = endMs / 1000;
 
     request_search.value.filter = {
-      date: {
-        min: startMs / 1000,
-        max: endMs / 1000,
+      transaction: {
+        date: {
+          min: startMs / 1000,
+          max: endMs / 1000,
+        },
       },
     };
     refreshData();

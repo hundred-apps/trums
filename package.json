@@ -41,6 +41,7 @@
     "vue": "latest",
     "vue-echarts": "^8.0.1",
     "vue-router": "latest",
+    "xlsx": "^0.18.5",
     "yup": "^1.6.1"
   },
   "devDependencies": {

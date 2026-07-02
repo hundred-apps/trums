@@ -115,7 +115,7 @@ definePageMeta({
 const refreshKey = "get-sales-order";
 const refreshTrigger = ref<number>(0);
 
-const selected = ref<string[]>([]);
+const selected = ref<PurchaseOrder[]>([]);
 const loading = ref<boolean>(false);
 
 const hasCreate = await checkPermission("purchase-order-create");
@@ -182,7 +182,7 @@ const onDelete = async (uniques: string[]) => {
 
 const batchDelete = async () => {
   if (selected.value.length > 0) {
-    await onDelete(selected.value);
+    await onDelete(selected.value.map((value) => value.unique_id));
   }
 };
 

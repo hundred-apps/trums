@@ -76,8 +76,8 @@
           <el-input
             v-model="ruleFormDialogAddItem.price"
             class="mb-0"
-            inputmode="decimal"
             placeholder="Harga"
+            inputmode="decimal"
             :formatter="(value: any) => `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
             :parser="(value: any) => value.replace(/\Rp\s?|(,*)/g, '')"
             @input="

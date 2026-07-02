@@ -1769,7 +1769,7 @@ const handleDeleteAddress = () => {
             clearable
             class="inline-input w-50"
             placeholder="Cari Alamat/Buat Baru"
-            @select="(record) => handleSelectAddress(record)"
+            @select="(record: any) => handleSelectAddress(record)"
           >
             <template #default="{ item }">
               <div v-if="!item.new">

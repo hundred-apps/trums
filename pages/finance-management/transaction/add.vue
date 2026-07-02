@@ -64,19 +64,12 @@
               </el-select>
             </el-form-item>
 
-            <h3
-              class="text-lg font-medium mb-4"
-              v-if="ruleForm.payment_method === PaymentMethod.BankTransfer"
-            >
+            <h3 class="text-lg font-medium mb-4">
               Informasi Bank
               {{ ruleForm.type === "income" ? "Penerima" : "Pengirim" }}
             </h3>
 
-            <el-form-item
-              label="Rekening Bank"
-              prop="account_bank_name"
-              v-if="ruleForm.payment_method === PaymentMethod.BankTransfer"
-            >
+            <el-form-item label="Rekening Bank" prop="account_bank_name">
               <el-autocomplete
                 v-model="ruleForm.account_bank_name!"
                 :fetch-suggestions="querySearchBanks"
@@ -113,15 +106,9 @@
               </div>
             </el-form-item>
 
-            <h3
-              v-if="ruleForm.type == 'transfer'"
-              class="text-lg font-medium mb-4"
-            >
-              Informasi Bank Penerima
-            </h3>
+            <h3 class="text-lg font-medium mb-4">Informasi Bank Penerima</h3>
 
             <el-form-item
-              v-if="ruleForm.type == 'transfer'"
               label="Rekening Bank Penerima"
               prop="account_bank_to_name"
             >
@@ -227,82 +214,25 @@
       </template>
 
       <el-table :data="ruleForm.transaction_items" border style="width: 100%">
-        <!-- <el-table-column label="Referensi" width="200">
-          <template #default="{ row, $index }">
-            <el-select v-model="row.reference" placeholder="pilih referensi">
-              <el-option label="Invoice" value="invoice" />
-              <el-option label="Bill" value="bill" />
-              <el-option label="Other" value="other" />
-            </el-select>
+        <el-table-column>
+          <template #header>
+            <span class="required-header"> Deskripsi </span>
           </template>
-        </el-table-column> -->
-
-        <el-table-column label="Nomor/Nama Item">
           <template #default="{ row, $index }">
-            <el-autocomplete
-              v-model="row.reference_value"
-              :fetch-suggestions="
-                (query, cb) => querySearchReference(query, cb, row.reference)
-              "
-              placeholder="Cari nomor referensi"
+            <el-input
+              v-model="row.description"
+              :min="0"
+              :precision="2"
+              controls-position="right"
               class="w-full"
-              @select="
-                (selected) =>
-                  onHandleSelectReference(selected, $index, row.reference)
-              "
-            >
-              <template #default="{ item: suggestion }">
-                <div
-                  v-if="suggestion.isNew"
-                  class="flex items-center text-blue-500"
-                >
-                  <el-icon><Plus /></el-icon>
-                  <span class="ml-2">Tambahkan "{{ suggestion.value }}"</span>
-                </div>
-                <div v-else>
-                  <p style="line-height: 15px" class="font-bold">
-                    {{
-                      // row.reference == "invoice"
-                      //   ? suggestion.customer_name
-                      //   : row.reference == "bill"
-                      //   ? suggestion.vendor_name
-                      //   : ""
-                      suggestion.customer_name || suggestion.vendor_name || ""
-                    }}
-                  </p>
-                  <p>
-                    Nomor: {{ suggestion.unique_code ?? "Tidak Ada" }} | Jumlah:
-                    {{ currency(suggestion.total_amount) ?? "Tidak Ada" }}
-                  </p>
-                </div>
-              </template>
-            </el-autocomplete>
-
-            <!-- <el-input
-              v-else
-              v-model="row.reference_value"
-              :disabled="row.reference == null"
-              placeholder="Nama item"
-            /> -->
+            />
           </template>
         </el-table-column>
 
-        <!-- <el-table-column label="Kuantitas">
-          <template #default="{ row, $index }">
-            <el-input-number
-              v-model="row.quantity"
-              :min="0.01"
-              :step="0.01"
-              :precision="2"
-              :disabled="row.reference == null"
-              controls-position="right"
-              class="w-full"
-              @change="calculateItemAmount($index)"
-            />
+        <el-table-column>
+          <template #header>
+            <span class="required-header"> CoA </span>
           </template>
-        </el-table-column> -->
-
-        <el-table-column label="Akun">
           <template #default="{ row, $index }">
             <el-autocomplete
               v-model="row.account_name"
@@ -324,21 +254,18 @@
                 </div>
               </template>
             </el-autocomplete>
-
-            <!-- <el-input
-              v-else
-              v-model="row.reference_value"
-              :disabled="row.reference == null"
-              placeholder="Nama item"
-            /> -->
           </template>
         </el-table-column>
 
-        <el-table-column label="Total Price" width="200">
+        <el-table-column width="200">
+          <template #header>
+            <span class="required-header"> Amount </span>
+          </template>
           <template #default="{ row, $index }">
             <el-input
               v-model="row.display_price_per_unit"
               :min="0"
+              :disabled="(row as TransactionItem).transaction_item_reference.length > 0"
               :precision="2"
               controls-position="right"
               class="w-full"
@@ -363,51 +290,35 @@
             />
           </template>
         </el-table-column>
-
-        <!-- <el-table-column label="Kredit" width="200">
+        <el-table-column label="Kontak" width="200">
           <template #default="{ row, $index }">
-            <el-input
-              v-model="(row as TransactionItem).kredit_display"
-              :precision="2"
-              controls-position="right"
-              class="w-full"
-              @input="
-                (val) => {
-                  const parsed = parseCurrencyID(val);
-                  row.kredit = parsed;
-                  row.kredit_display = formatCurrencyID(parsed);
-                }
-              "
-              @blur="
-                () => {
-                  row.kredit_display = formatCurrencyID(row.kredit);
-                }
-              "
+            <TrumsAutocompleteContact
+              v-model="row.party_name"
+              :contact="row.party"
+              :fetch-suggestions="(queryString: string, cb: (arg: any) => void) => querySearchVendors(queryString, cb)"
+              @save-contact="(data: Contact) => onHandleSelectContact($index, data)"
             />
           </template>
         </el-table-column>
-        <el-table-column label="Debit" width="200">
+        <el-table-column label="Referensi" width="200">
           <template #default="{ row, $index }">
-            <el-input
-              v-model="(row as TransactionItem).debit_display"
-              :precision="2"
-              controls-position="right"
-              class="w-full"
-              @input="
-                (val) => {
-                  const parsed = parseCurrencyID(val);
-                  row.dedit = parsed;
-                  row.debit_display = formatCurrencyID(parsed);
-                }
-              "
-              @blur="
-                () => {
-                  row.debit_display = formatCurrencyID(row.dedit);
-                }
-              "
-            />
+            <div
+              v-if="row.reference_id != null"
+              class="text-blue-600 cursor-pointer"
+              @click="() => openDialogReferenceSelection($index)"
+            >
+              {{ row.reference_value }}
+            </div>
+            <el-button
+              v-else
+              type="primary"
+              link
+              :icon="Search"
+              @click="() => openDialogReferenceSelection($index)"
+              >Cari Referensi</el-button
+            >
           </template>
-        </el-table-column> -->
+        </el-table-column>
 
         <el-table-column label="Aksi" width="70">
           <template #default="scope">
@@ -510,6 +421,143 @@
         >
       </div>
     </el-card>
+
+    <el-dialog
+      v-model="dialogReferenceItem"
+      title="Cari Referensi"
+      style="width: 80%"
+    >
+      <el-tabs type="border-card">
+        <el-tab-pane label="Purchase Order">
+          <TableSingleSelectOrder
+            :type="'po'"
+            :key="'purchase-order'"
+            @on-selected="
+              (value) =>
+                onHandleSelectReference(value, TypeTransactionItemReference.PO)
+            "
+          />
+        </el-tab-pane>
+        <el-tab-pane label="Sales Order">
+          <TableSingleSelectOrder
+            :key="'sales-order'"
+            :type="'so'"
+            @on-selected="
+              (value) =>
+                onHandleSelectReference(value, TypeTransactionItemReference.SO)
+            "
+          />
+        </el-tab-pane>
+        <el-tab-pane label="Invoice">
+          <TableSelectionInvoice
+            :key="'invoice'"
+            :type="'invoice'"
+            @on-selected="
+              (value) =>
+                onHandleSelectReference(
+                  value,
+                  TypeTransactionItemReference.INVOICE
+                )
+            "
+          />
+        </el-tab-pane>
+        <el-tab-pane label="Bill">
+          <TableSelectionInvoice
+            :type="'bill'"
+            :key="'bill'"
+            @on-selected="
+              (value) =>
+                onHandleSelectReference(
+                  value,
+                  TypeTransactionItemReference.BILL
+                )
+            "
+          />
+        </el-tab-pane>
+      </el-tabs>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="dialogReferenceItem = false">Batal</el-button>
+          <el-button type="primary" @click="submitSelection">
+            Simpan
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
+
+    <el-dialog
+      v-model="dialogReferenceItemSelected"
+      title="Referensi Terpilih"
+      width="800"
+    >
+      <el-table
+        :data="
+          ruleForm.transaction_items[
+            transaction_item_active_index
+          ].transaction_item_reference.filter(
+            (filter) => filter.is_deleted == false
+          )
+        "
+        border
+        style="width: 100%"
+      >
+        <el-table-column>
+          <template #header>
+            <span class="required-header"> No.Ref </span>
+          </template>
+          <template #default="{ row, $index }">
+            {{ row.reference_view }}
+          </template>
+        </el-table-column>
+
+        <el-table-column width="200">
+          <template #header>
+            <span class="required-header"> Amount </span>
+          </template>
+          <template #default="{ row, $index }">
+            <el-input
+              v-model="row.amount"
+              :min="0"
+              :precision="2"
+              controls-position="right"
+              class="w-full"
+              inputmode="decimal"
+              :formatter="(value: any) => `Rp ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')"
+              :parser="(value: any) => value.replace(/\Rp\s?|(,*)/g, '')"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column label="Aksi" width="70">
+          <template #default="scope">
+            <el-button
+              type="danger"
+              :icon="Delete"
+              circle
+              @click="() => deleteTransactionItemRef(scope.$index)"
+              :disabled="ruleForm.transaction_items.length <= 1"
+            />
+          </template>
+        </el-table-column>
+      </el-table>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="dialogReferenceItemSelected = false"
+            >Batal</el-button
+          >
+          <el-button
+            type="primary"
+            @click="
+              () => {
+                dialogReferenceItemSelected = false;
+                dialogReferenceItem = false;
+              }
+            "
+          >
+            Simpan
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
   </TrumsWrapper>
 </template>
 
@@ -521,9 +569,15 @@ import type {
   UploadUserFile,
 } from "element-plus";
 import { ElMessage } from "element-plus";
-import { Delete } from "@element-plus/icons-vue";
+import { Delete, Search } from "@element-plus/icons-vue";
 import type { BankAccount } from "~/types/bank_account";
-import type { Transaction, TransactionItem } from "~/types/finance/transaction";
+import {
+  ItemReference,
+  TypeTransactionItemReference,
+  type Transaction,
+  type TransactionItem,
+  type TransactionItemReference,
+} from "~/types/finance/transaction";
 import { PaymentMethod, PaymentStatus, type Bill } from "~/types/finance/bill";
 import type { Invoice } from "~/types/finance/invoice";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
@@ -535,12 +589,16 @@ import type { DefaultResponsePagination } from "~/types/pagination";
 import TrumsUploadFile from "~/components/trums/form/TrumsUploadFile.vue";
 import { currency, parseCurrencyID, formatCurrencyID } from "#imports";
 import AdjustmentTransactionComponent from "~/components/trums/AdjustmentTransactionComponent.vue";
+import TableSingleSelectOrder from "~/components/trums/TableSingleSelectOrder.vue";
+import TableSelectionInvoice from "~/components/trums/TableSelectionInvoice.vue";
 import {
   FeeType,
   ReferenceAdjustment,
   type ReferenceTransactionAdjustment,
 } from "~/types/attribute_adjustment";
 import { _0 } from "#tailwind-config/theme/backdropBlur";
+import type { Contact } from "~/types/contact";
+import type { PurchaseOrder } from "~/types/scm/purchase_order";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -555,6 +613,15 @@ const id = computed(() => route.query.id as string);
 
 const ruleFormRef = ref<FormInstance>();
 const loading = ref(false);
+const dialogReferenceItem = ref<boolean>(false);
+const dialogReferenceItemSelected = ref<boolean>(false);
+
+const selection_so = ref<PurchaseOrder[]>([]);
+const selection_po = ref<PurchaseOrder[]>([]);
+const selection_invoice = ref<Invoice[]>([]);
+const selection_bill = ref<Invoice[]>([]);
+
+const transaction_item_active_index = ref<number>(-1);
 
 const fileList = ref<UploadUserFile[]>([]);
 
@@ -575,6 +642,7 @@ const createEmptyItem = (): TransactionItem => {
     debit: 0,
     debit_display: formatCurrencyID(0),
     kredit: 0,
+    transaction_item_reference: [],
   };
 };
 
@@ -746,6 +814,16 @@ const showTransactionAdjustmentValue = (
   }
 };
 
+// const handleSelection
+
+const deleteTransactionItemRef = (index: number) => {
+  if (transaction_item_active_index.value >= 0) {
+    ruleForm.transaction_items[
+      transaction_item_active_index.value
+    ].transaction_item_reference[index].is_deleted = true;
+  }
+};
+
 // Watch total amount and update main amount
 watch(
   () => ruleForm.transaction_items,
@@ -856,164 +934,6 @@ const removeItem = async (index: number) => {
   }
 };
 
-const calculateItemAmount = (index: number, amount: string) => {
-  const item = ruleForm.transaction_items[index];
-  if (ruleForm.transaction_items[index].reference == "other") {
-    ruleForm.transaction_items[index].amount = Number(
-      item.price_per_unit.toFixed(2)
-    );
-    ruleForm.transaction_items[index].display_amount = formatCurrencyID(
-      Number(item.price_per_unit.toFixed(2))
-    );
-  } else {
-    const total = Number((item.quantity * item.price_per_unit).toFixed(2));
-    ruleForm.transaction_items[index].amount = total;
-    ruleForm.transaction_items[index].display_amount = formatCurrencyID(total);
-  }
-
-  console.log("amount", ruleForm.transaction_items[index].amount);
-  console.log(
-    "display_amount",
-    ruleForm.transaction_items[index].display_amount
-  );
-};
-
-const handleItemReferenceChange = (index: number) => {
-  const item = ruleForm.transaction_items[index];
-  item.reference_id = null;
-  item.reference_value = "";
-};
-
-const querySearchReference = (
-  query: string,
-  cb: (arg: any) => void,
-  referenceType: string | null
-) => {
-  try {
-    const request_search: RequestSearch = {
-      keyword: query,
-      table: "invoices",
-      column: [
-        {
-          // status: ["received", "performa", "draft"],
-          type: ["out"],
-        },
-      ],
-      sort: null,
-      offset: "1",
-      limit: "10",
-    };
-
-    if (ruleForm.type == "income") {
-      request_search.column = [
-        {
-          // status: ["received", "performa", "draft"],
-          type: ["out"],
-        },
-      ];
-    } else if (ruleForm.type == "expense") {
-      request_search.column = [
-        {
-          // status: ["received", "performa", "draft"],
-          type: ["in"],
-        },
-      ];
-    }
-
-    console.log("invoice");
-
-    useFetchApi<ResponsePagination<Invoice[]>>(
-      "/search",
-      "inovices",
-      "post",
-      request_search
-    ).then((response) => {
-      if (response.status.value == "success") {
-        const invoices: Invoice[] = (response.data.value?.data ??
-          []) as Invoice[];
-        cb(
-          invoices.map((inv) => ({
-            value: inv.unique_code,
-            ...inv,
-            reference: "invoice",
-          }))
-        );
-      }
-    });
-
-    // if (referenceType === "invoice") {
-
-    // } else if (referenceType === "bill") {
-    //   request_search.column = [
-    //     {
-    //       type: ["in"],
-    //     },
-    //   ];
-    //   useFetchApi<ResponsePagination<Invoice[]>>(
-    //     "/search",
-    //     "inovices",
-    //     "post",
-    //     request_search
-    //   ).then((response) => {
-    //     if (response.status.value == "success") {
-    //       const invoices: Invoice[] = (response.data.value?.data ??
-    //         []) as Invoice[];
-    //       cb(
-    //         invoices.map((inv) => ({
-    //           value: inv.unique_code,
-    //           ...inv,
-    //           reference: "invoice",
-    //         }))
-    //       );
-    //     }
-    //   });
-    // } else if (referenceType === "other") {
-    //   const request_search: RequestSearch = {
-    //     keyword: query,
-    //     table: "catalogues",
-    //     column: [],
-    //     sort: {
-    //       column: "created_at",
-    //       order: OrderColumn.ASC,
-    //     },
-    //     offset: "1",
-    //     limit: "10",
-    //   };
-
-    //   useFetchApi<ResponsePagination<Catalogue[]>>(
-    //     "/search",
-    //     "search-catalogue",
-    //     "post",
-    //     request_search
-    //   ).then((response) => {
-    //     if (response.status.value == "success") {
-    //       const catalogues: Catalogue[] = (response.data.value?.data ??
-    //         []) as Catalogue[];
-    //       if (catalogues.length > 0) {
-    //         cb(
-    //           catalogues.map((value) => ({
-    //             value: value.name,
-    //             ...value,
-    //             isNew: false,
-    //           }))
-    //         );
-    //       } else {
-    //         cb([
-    //           {
-    //             value: `Tambahkan ${query}`,
-    //             data: query,
-    //             isNew: true,
-    //           },
-    //         ]);
-    //       }
-    //     }
-    //   });
-    // }
-  } catch (error) {
-    console.error("Failed to fetch references", error);
-    cb([]);
-  }
-};
 const querySearchAccount = (query: string, cb: (arg: any) => void) => {
   try {
     const request_search: RequestSearch = {
@@ -1116,10 +1036,122 @@ const querySearchAccount = (query: string, cb: (arg: any) => void) => {
   }
 };
 
+const querySearchVendors = (query: string, cb: (arg: any) => void) => {
+  try {
+    const request_search: RequestSearch = {
+      column: [],
+      keyword: query,
+      limit: "50",
+      offset: "1",
+      sort: {
+        column: "created_at",
+        order: OrderColumn.ASC,
+      },
+      flag: "form",
+      table: "contacts",
+    };
+
+    useFetchApi<ResponsePagination<Contact>>(
+      "/search",
+      "search-customer",
+      "post",
+      request_search
+    ).then((response) => {
+      if (response.status.value == "success") {
+        const contacts: Contact[] = (response.data.value?.data ??
+          []) as Contact[];
+        if (contacts.length > 0) {
+          cb([
+            ...contacts.map((value) => ({
+              value: value.name,
+              unique_id: value.unique_id,
+              data: value,
+            })),
+            {
+              value: query,
+              isNew: true,
+              keyword: query,
+            },
+          ]);
+        } else {
+          cb([
+            {
+              value: query,
+              isNew: true,
+              keyword: query,
+            },
+          ]);
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Failed to fetch vendors", error);
+    cb([]);
+  }
+};
+
+const onHandleSelectContact = (index: number, contact: Contact) => {
+  ruleForm.transaction_items[index].party_name = contact.name;
+  ruleForm.transaction_items[index].party_id = contact.unique_id;
+};
+
 const onHandleSelectAccounts = (index: number, item: any) => {
   const account: Account = item.data as Account;
   ruleForm.transaction_items[index].account_id = account.unique_id;
   ruleForm.transaction_items[index].account_name = account.name;
+};
+
+const onHandleSelectReference = (
+  data: any,
+  ref: TypeTransactionItemReference
+) => {
+  if (
+    ref == TypeTransactionItemReference.BILL ||
+    ref == TypeTransactionItemReference.INVOICE
+  ) {
+    const reference = data as Invoice;
+    ruleForm.transaction_items[transaction_item_active_index.value].reference =
+      ref;
+    ruleForm.transaction_items[
+      transaction_item_active_index.value
+    ].reference_id = reference.unique_id;
+    ruleForm.transaction_items[
+      transaction_item_active_index.value
+    ].reference_value = reference.unique_code;
+    ruleForm.transaction_items[transaction_item_active_index.value].amount =
+      reference.total_amount;
+    ruleForm.transaction_items[
+      transaction_item_active_index.value
+    ].display_price_per_unit = formatCurrencyID(reference.total_amount);
+    ruleForm.transaction_items[transaction_item_active_index.value].party_id =
+      reference.vendor?.unique_id;
+    ruleForm.transaction_items[transaction_item_active_index.value].party_name =
+      reference.vendor?.name;
+  } else if (
+    ref == TypeTransactionItemReference.PO ||
+    ref == TypeTransactionItemReference.SO
+  ) {
+    ruleForm.transaction_items[transaction_item_active_index.value].reference =
+      ref;
+    const reference = data as PurchaseOrder;
+    ruleForm.transaction_items[
+      transaction_item_active_index.value
+    ].reference_id = reference.unique_id;
+    ruleForm.transaction_items[
+      transaction_item_active_index.value
+    ].reference_value = reference.unique_code;
+    ruleForm.transaction_items[transaction_item_active_index.value].amount =
+      reference.total_price;
+    ruleForm.transaction_items[
+      transaction_item_active_index.value
+    ].display_price_per_unit = formatCurrencyID(reference.total_price);
+    ruleForm.transaction_items[transaction_item_active_index.value].party_id =
+      reference.vendor_id;
+    ruleForm.transaction_items[transaction_item_active_index.value].party_name =
+      reference.vendor_name;
+  }
+
+  dialogReferenceItem.value = false;
 };
 
 const handleSelectAccount = (item: any, type: "to" | "from") => {
@@ -1218,59 +1250,52 @@ async function createCatalogue(data: any): Promise<Catalogue | null> {
   }
 }
 
-const onHandleSelectReference = async (
-  selected: any,
-  index: number,
-  reference: string
-) => {
-  const invoice = selected as Invoice;
-  ruleForm.transaction_items[index].reference_value = invoice.unique_code;
-  ruleForm.transaction_items[index].reference_id = invoice.unique_id;
-  ruleForm.transaction_items[index].description = "";
-  ruleForm.transaction_items[index].price_per_unit = invoice.total_amount;
-  ruleForm.transaction_items[index].quantity = 1;
+const openDialogReferenceSelection = (index: number) => {
+  transaction_item_active_index.value = index;
+  dialogReferenceItem.value = true;
+};
+const openDialogReferenceSelectionExist = (index: number) => {
+  transaction_item_active_index.value = index;
+  dialogReferenceItemSelected.value = true;
+};
 
-  let amount = invoice.total_amount;
+const submitSelection = async () => {
+  let refs: TransactionItemReference[] = [];
 
-  (invoice.history_payment || []).forEach((pay) => {
-    amount -= pay.amount;
+  [...selection_po.value, ...selection_so.value].forEach((element) => {
+    refs.push({
+      transaction_item_id: "",
+      reference: ItemReference.PO,
+      reference_view: element.unique_code,
+      reference_id: element.unique_id,
+      amount: 0,
+      amount_view: "0",
+      is_deleted: false,
+    });
   });
+  [...selection_invoice.value, ...selection_bill.value].forEach((element) => {
+    refs.push({
+      transaction_item_id: "",
+      reference: ItemReference.INVOICE,
+      reference_view: element.unique_code,
+      reference_id: element.unique_id,
+      amount: 0,
+      amount_view: "0",
+      is_deleted: false,
+    });
+  });
+  ruleForm.transaction_items[transaction_item_active_index.value].amount = 0;
+  ruleForm.transaction_items[
+    transaction_item_active_index.value
+  ].transaction_item_reference = refs;
 
-  ruleForm.transaction_items[index].amount = amount;
-  ruleForm.transaction_items[index].display_price_per_unit =
-    formatCurrencyID(amount);
-  ruleForm.transaction_items[index].display_amount = formatCurrencyID(amount);
+  console.log(
+    "refs",
+    ruleForm.transaction_items[transaction_item_active_index.value]
+      .transaction_item_reference
+  );
 
-  if (invoice.type == "in") {
-    ruleForm.transaction_items[index].reference = "bill";
-  } else if (invoice.type == "out") {
-    ruleForm.transaction_items[index].reference = "invoice";
-
-    // console.log("reference item");
-  }
-
-  // if (selected.reference === "invoice" || selected.reference === "bill") {
-  // } else {
-  //   if (selected.isNew) {
-  //     const catalogue: Catalogue | null = await createCatalogue({
-  //       name: selected.data,
-  //     });
-  //     item.reference_value = catalogue?.name ?? "";
-  //     item.reference_id = catalogue?.unique_id ?? "";
-  //     item.description = "";
-  //     item.price_per_unit = 0;
-  //     item.quantity = 1;
-  //     item.amount = 0;
-  //   } else {
-  //     const catalogue: Catalogue = selected.data as Catalogue;
-  //     item.reference_value = catalogue.name ?? "";
-  //     item.reference_id = catalogue.unique_id;
-  //     item.description = "";
-  //     item.price_per_unit = 0;
-  //     item.quantity = 1;
-  //     item.amount = 0;
-  //   }
-  // }
+  dialogReferenceItemSelected.value = true;
 };
 
 const submitForm = async (formEl: FormInstance | undefined) => {
@@ -1315,6 +1340,17 @@ const submitForm = async (formEl: FormInstance | undefined) => {
             quantity: value.quantity,
             price_per_unit: value.price_per_unit,
             amount: value.amount,
+            party_id: value.party_id,
+            party: "contacts",
+            is_deleted: value.is_deleted ?? false,
+            transaction_item_reference: value.transaction_item_reference.map(
+              (ref) => ({
+                transaction_item_id: value.unique_id,
+                reference: ref.reference,
+                reference_id: ref.reference_id,
+                amount: ref.amount,
+              })
+            ),
           })),
         };
 
@@ -1332,9 +1368,19 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         formData.append("payment_method", `${payload.payment_method}`);
         formData.append("recipient_bank", `${payload.recipient_bank}`);
         formData.append("account_bank_name", `${payload.accont_bank_name}`);
+
+        formData.append("recipient_bank_to", `${payload.recipient_bank_to}`);
         formData.append(
-          "account_bank_number",
-          `${payload.account_bank_number}`
+          "account_bank_to_name",
+          `${payload.account_bank_to_name}`
+        );
+        formData.append(
+          "account_bank_to_number",
+          `${payload.account_bank_to_number}`
+        );
+        formData.append(
+          "account_bank_to_version",
+          `${payload.account_to_version || 0}`
         );
 
         ruleForm.transaction_items.forEach((value, index) => {
@@ -1344,7 +1390,11 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           );
           formData.append(
             `transaction_items[${index}][reference]`,
-            value.reference == "other" ? "null" : value.reference || ""
+            `${value.reference}`
+          );
+          formData.append(
+            `transaction_items[${index}][account_id]`,
+            value.account_id || ""
           );
           formData.append(
             `transaction_items[${index}][reference_id]`,
@@ -1370,6 +1420,30 @@ const submitForm = async (formEl: FormInstance | undefined) => {
             `transaction_items[${index}][amount]`,
             `${value.amount}`
           );
+          formData.append(`transaction_items[${index}][party]`, `contacts`);
+          formData.append(
+            `transaction_items[${index}][party_id]`,
+            `${value.party_id}`
+          );
+
+          value.transaction_item_reference.forEach((ref, indexRef) => {
+            formData.append(
+              `transaction_items[${index}][transaction_item_reference][${indexRef}]['transaction_item_id']`,
+              `${ref.transaction_item_id}`
+            );
+            formData.append(
+              `transaction_items[${index}][transaction_item_reference][${indexRef}]['reference']`,
+              `${ref.reference}`
+            );
+            formData.append(
+              `transaction_items[${index}][transaction_item_reference][${indexRef}]['reference_id']`,
+              `${ref.reference_id}`
+            );
+            formData.append(
+              `transaction_items[${index}][transaction_item_reference][${indexRef}]['amount']`,
+              `${ref.amount}`
+            );
+          });
         });
 
         console.log(fileList);
@@ -1418,8 +1492,8 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           if (transaction) {
             ruleForm.unique_id = transaction.unique_id;
             ruleForm.transaction_items = transaction.transaction_items;
-            window.location.href =
-              "/finance-management/transaction/" + transaction.unique_id;
+            // window.location.href =
+            //   "/finance-management/transaction/" + transaction.unique_id;
           }
         }
       } catch (error: any) {
@@ -1471,22 +1545,28 @@ const fetchDataEdit = async () => {
       const trx: Transaction | null = response.data.value?.data as Transaction;
       if (trx != null) {
         Object.assign(ruleForm, trx);
-
+        console.log("items", trx.transaction_items[0].party_data);
         ruleForm.transaction_items = trx.transaction_items.map((item) => ({
           unique_id: item.unique_id,
-          account_id: "",
+          account_id: item.account_id,
           reference: item.reference,
           reference_id: item.reference_id,
           reference_value: item.reference_value,
           description: item.description,
+          account_name: item.account?.name,
           quantity: item.quantity,
           price_per_unit: item.price_per_unit,
           amount: item.amount,
+          party_id: item.party_id,
+          party_name: item.party_data?.name,
           display_price_per_unit: formatCurrencyID(item.price_per_unit || 0),
           display_amount: formatCurrencyID(item.amount || 0),
+          transaction_item_reference: item.transaction_item_reference ?? [],
         }));
 
         ruleForm.date = new Date(trx.date! * 1000).getTime();
+
+        console.log("items", ruleForm.transaction_items);
       } else {
         ElMessage.error(`Data Tidak Di Temukan!`);
         router.back();
@@ -1526,5 +1606,11 @@ onMounted(() => {
 
 .item-container:hover {
   border-color: #c0c4cc;
+}
+
+.required-header::before {
+  content: "*";
+  color: var(--el-color-danger);
+  margin-right: 4px;
 }
 </style>

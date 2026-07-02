@@ -47,30 +47,49 @@ import type { BaseResponse } from "~/types/response";
 import CustomTable from "~/components/trums/table/customTable.vue";
 import type { ColumnTable } from "~/types/ColumnTable";
 
-const props = defineProps<{
-  request_search: RequestSearch;
-  refreshKey: string;
-  refreshTrigger: number;
-}>();
+const props = withDefaults(
+  defineProps<{
+    request_search: RequestSearch;
+    refreshKey: string;
+    refreshTrigger: number;
+    readonly?: boolean;
+  }>(),
+  {
+    readonly: false,
+  }
+);
 
 const selectedIds = ref<string[]>([]);
 const loading = ref<boolean>(false);
 const request_search = ref<RequestSearch>(props.request_search);
-const columnsSelected = ref<string[]>([
-  "selection",
-  "unique_code",
-  "vendor_name",
-  "total_price",
-  "date",
-  "expected_arrival",
-  "status",
-  "created_at",
-  "operations",
-  "setup",
-]);
+const columnsSelected = ref<string[]>(
+  props.readonly
+    ? [
+        "selection",
+        "unique_code",
+        "vendor_name",
+        "total_price",
+        "date",
+        "expected_arrival",
+        "status",
+        "created_at",
+      ]
+    : [
+        "selection",
+        "unique_code",
+        "vendor_name",
+        "total_price",
+        "date",
+        "expected_arrival",
+        "status",
+        "created_at",
+        "operations",
+        "setup",
+      ]
+);
 
 const emit = defineEmits<{
-  (e: "has-bulk", value: string[]): void;
+  (e: "has-bulk", value: PurchaseOrder[]): void;
   (e: "on-pending", value: boolean): void;
   (e: "on-success", value: ResponsePagination<PurchaseOrder[]> | null): void;
 }>();
@@ -355,7 +374,12 @@ const handleSizeChange = (size: number) => {
 watch(
   selectedIds,
   (val) => {
-    emit("has-bulk", val);
+    emit(
+      "has-bulk",
+      (data.value?.data || []).filter((filter) =>
+        val.includes(filter.unique_id)
+      )
+    );
   },
   { deep: true }
 );

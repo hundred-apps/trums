@@ -1,4 +1,5 @@
 import type { BankAccount } from "../bank_account";
+import type { Contact } from "../contact";
 import type { AppFile } from "../file";
 import type { People } from "../people";
 import type { Account } from "./account";
@@ -64,10 +65,17 @@ export type Transaction = {
   people?: People;
 };
 
+export enum TypeTransactionItemReference {
+  BILL = "bill",
+  INVOICE = "invoice",
+  PO = "po",
+  SO = "so",
+}
+
 export type TransactionItem = {
   unique_id: string | null;
   account_id: string | null;
-  reference: string | null; // digunakan untuk jika itemnya adalah invoice, bill, pembayaran atau kosong
+  reference: TypeTransactionItemReference | null; // digunakan untuk jika itemnya adalah invoice, bill, pembayaran atau kosong
   reference_id: string | null; // digunakan untuk menyimpan ID jika itemnya adalah invoice, bill, pembayaran
   reference_value: string; // digunakan untuk menyimpan nomor jika itemnya adalah invoice, bill, pembayaran atau jika pembelian langsung maka ini sebagai nama item
   description?: string;
@@ -82,6 +90,29 @@ export type TransactionItem = {
   debit_display?: string;
   kredit_display?: string;
   account_name?: string;
+  account?: Account;
   party_id?: string;
   party_name?: string;
+  party_data?: Contact;
+  party?: Contact;
+  transaction_item_reference: TransactionItemReference[];
+  is_deleted?: boolean;
+  checked?: boolean;
+  reference_data?: any;
+};
+
+export enum ItemReference {
+  PO = "po",
+  INVOICE = "invoice",
+  BILL = "invoice",
+}
+
+export type TransactionItemReference = {
+  transaction_item_id: string;
+  reference: ItemReference;
+  reference_view: string;
+  reference_id: string;
+  amount: number;
+  amount_view: string;
+  is_deleted?: boolean;
 };

@@ -965,7 +965,11 @@ const onSort = (sortBy: { order: string; prop: string }) => {
   };
 };
 
-watchDebounced(request_search.value, () => refreshData(), { debounce: 500 });
+watchDebounced(
+  () => request_search.value,
+  () => refreshData(),
+  { debounce: 500, deep: true }
+);
 
 const handleSelectionChange = (selection: Invoice[]) => {
   selectedInvoices.value = selection;
