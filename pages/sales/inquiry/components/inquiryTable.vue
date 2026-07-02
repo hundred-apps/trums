@@ -379,17 +379,41 @@ const getStatus = (data: Inquiry) => {
   // 'draft','waiting','approve','done','cancelled','repair'
 
   if (data.status == InquiryStatus.DRAFT) {
-    return <ElTag type="info">{(data?.status ?? "").toUpperCase()}</ElTag>;
+    return (
+      <ElTag onClick={() => {}} class={"cursor-pointer"} type="danger">
+        {"TODO".toUpperCase()}
+      </ElTag>
+    );
   } else if (data.status == InquiryStatus.CANVASSING) {
-    return <ElTag type="warning">{(data?.status ?? "").toUpperCase()}</ElTag>;
+    return (
+      <ElTag onClick={() => {}} class={"cursor-pointer"} type="warning">
+        {(data?.status ?? "").toUpperCase()}
+      </ElTag>
+    );
   } else if (data.status == InquiryStatus.RAB) {
-    return <ElTag type="success">{(data?.status ?? "").toUpperCase()}</ElTag>;
+    return (
+      <ElTag onClick={() => {}} class={"cursor-pointer"} type="success">
+        {(data?.status ?? "").toUpperCase()}
+      </ElTag>
+    );
   } else if (data.status == InquiryStatus.PENAWARAN) {
-    return <ElTag type="primary">{(data?.status ?? "").toUpperCase()}</ElTag>;
+    return (
+      <ElTag onClick={() => {}} class={"cursor-pointer"} type="primary">
+        {(data?.status ?? "").toUpperCase()}
+      </ElTag>
+    );
   } else if (data.status == "cancelled") {
-    return <ElTag type="danger">{(data?.status ?? "").toUpperCase()}</ElTag>;
+    return (
+      <ElTag onClick={() => {}} class={"cursor-pointer"} type="danger">
+        {(data?.status ?? "").toUpperCase()}
+      </ElTag>
+    );
   } else {
-    return <ElTag type="info">{data?.status ?? ""}</ElTag>;
+    return (
+      <ElTag onClick={() => {}} class={"cursor-pointer"} type="info">
+        {data?.status ?? ""}
+      </ElTag>
+    );
   }
 };
 

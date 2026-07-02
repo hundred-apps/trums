@@ -1,10 +1,12 @@
 <template>
   <TrumsWrapper>
     <CashFlow />
+    <CashFlowTable />
   </TrumsWrapper>
 </template>
 <script lang="tsx" setup>
 import CashFlow from "./components/CashFlow.vue";
+import CashFlowTable from "./components/CashFlowTable.vue";
 </script>
 <style scoped>
 .statistic-card {

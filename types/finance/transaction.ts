@@ -20,6 +20,29 @@ export type TransactionBank = {
   bank?: BankAccount;
 };
 
+export const getTagColor = (
+  type: "income" | "expense" | "transfer"
+): "danger" | "success" | "primary" => {
+  switch (type) {
+    case "expense":
+      return "danger";
+    case "income":
+      return "success";
+    case "transfer":
+      return "primary";
+  }
+};
+export const getTagValue = (type: "income" | "expense" | "transfer") => {
+  switch (type) {
+    case "expense":
+      return "OUT";
+    case "income":
+      return "IN";
+    case "transfer":
+      return "TF";
+  }
+};
+
 export type Transaction = {
   unique_id: string;
   unique_code: string;

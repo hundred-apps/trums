@@ -11,7 +11,6 @@
       v-if="canvassingData"
       :canvassingData="canvassingData"
       :privilages="currentPrivilage"
-      ,
       :itemHighlights="itemHighlights"
     />
   </TrumsWrapper>

@@ -1,4 +1,14 @@
 <template>
+  <el-date-picker
+    class="mb-3"
+    v-model="monthRange"
+    type="monthrange"
+    unlink-panels
+    range-separator="To"
+    start-placeholder="Start month"
+    end-placeholder="End month"
+    :shortcuts="shortcuts"
+  />
   <el-row :gutter="16">
     <el-col :xs="24" :sm="12" :md="12" class="mb-4">
       <div class="statistic-card">
@@ -56,6 +66,37 @@ type SummeryType = {
   pembelian: number;
   penjualan: number;
 };
+
+const currentYear = new Date().getFullYear();
+
+const monthRange = ref([
+  new Date(currentYear, 0, 1),
+  new Date(currentYear, 11, 1),
+]);
+
+const shortcuts = [
+  {
+    text: "This month",
+    value: [new Date(), new Date()],
+  },
+  {
+    text: "This year",
+    value: () => {
+      const end = new Date();
+      const start = new Date(new Date().getFullYear(), 0);
+      return [start, end];
+    },
+  },
+  {
+    text: "Last 6 months",
+    value: () => {
+      const end = new Date();
+      const start = new Date();
+      start.setMonth(start.getMonth() - 6);
+      return [start, end];
+    },
+  },
+];
 
 const { data, pending } = await useFetchApi<BaseResponse<SummeryType>>(
   "/purchase-orders-summary",
