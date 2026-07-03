@@ -1,15 +1,15 @@
 <template>
   <el-card shadow="never">
-    <el-row :gutter="20" class="mb-3">
-      <el-col :span="4">
+    <div class="flex gap-5">
+      <el-form-item label="Cari">
         <el-input
           v-model="request_search.keyword"
           size="default"
           placeholder="Cari transaksi..."
           clearable
         />
-      </el-col>
-      <el-col :span="6">
+      </el-form-item>
+      <el-form-item label="Tanggal">
         <el-date-picker
           v-model="monthRange"
           type="monthrange"
@@ -19,8 +19,23 @@
           end-placeholder="End month"
           :shortcuts="shortcuts"
         />
-      </el-col>
-    </el-row>
+      </el-form-item>
+      <el-form-item label="CoA">
+        <el-tree-select
+          v-model="request_search.column[0].account_id"
+          :data="treeAccounts.data.value?.data"
+          placeholder="Filter CoA"
+          multiple
+          show-checkbox
+          check-strictly
+          node-key="unique_id"
+          :props="{
+            label: 'name',
+            children: 'children',
+          }"
+        />
+      </el-form-item>
+    </div>
 
     <TrumsDragScrollTable>
       <CustomTable
@@ -61,6 +76,7 @@ import {
   ElDropdownItem,
   ElCheckboxGroup,
   ElTag,
+  ElButton,
 } from "element-plus";
 import { NuxtLink } from "#components";
 import CustomTable from "~/components/trums/table/customTable.vue";
@@ -74,6 +90,7 @@ import { unique } from "element-plus/es/utils/arrays.mjs";
 import { useCookie } from "#app";
 import type { ColumnTable } from "~/types/ColumnTable";
 import type { Canvassing } from "~/types/canvassing";
+import type { Account } from "~/types/finance/account";
 
 const { XLSX, createWorkbook } = useSheetjs();
 
@@ -96,6 +113,7 @@ const request_search = ref<RequestSearch>({
       transaction: {
         type: [],
       },
+      account_id: [],
     },
   ],
   limit: "10",
@@ -128,12 +146,27 @@ const request_cashflow = ref<{ start_date: number; end_date: number }>({
   end_date: monthRange.value[1].getTime() / 1000,
 });
 
-const cashflow = await useAsyncData("get-cashflow", async () => {
-  const res = await useFetchApi<ResponsePagination<CashFlow[]>>(
-    `/laporan-pengeluaran`,
-    "get-cashflow",
+// const cashflow = await useAsyncData("get-cashflow", async () => {
+//   const res = await useFetchApi<ResponsePagination<CashFlow[]>>(
+//     `/laporan-pengeluaran`,
+//     "get-cashflow",
+//     "post",
+//     request_search.value
+//   );
+//   return res.data.value;
+// });
+
+const paginateRequestTreeAccount = ref<{ limit: number; offset: number }>({
+  limit: 10,
+  offset: 1,
+});
+
+const treeAccounts = await useAsyncData("get-tree-accounts", async () => {
+  const res = await useFetchApi<ResponsePagination<Account[]>>(
+    `/account-list`,
+    "get-tree-accounts",
     "post",
-    request_search.value
+    paginateRequestTreeAccount.value
   );
   return res.data.value;
 });
@@ -191,6 +224,10 @@ const columnsSelected = ref<string[]>([
   "date",
   "type",
   "amount",
+  "pic",
+  "source_cash",
+  "destination",
+  "reference",
   "setup",
 ]);
 const columns: ColumnTable<TransactionItem>[] = [
@@ -213,6 +250,7 @@ const columns: ColumnTable<TransactionItem>[] = [
     key: "description",
     title: "Deskripsi",
     dataKey: "description",
+    width: 400,
   },
   {
     key: "date",
@@ -304,7 +342,11 @@ const columns: ColumnTable<TransactionItem>[] = [
     dataKey: "source_cash",
     width: 300,
     cellRenderer: ({ rowData }: { rowData: TransactionItem }) => (
-      <>{`${rowData.transaction?.account_bank_name} (${rowData.transaction?.account_bank_number})`}</>
+      <>
+        {rowData.transaction?.account_bank_name == null
+          ? ""
+          : `${rowData.transaction?.account_bank_name} (${rowData.transaction?.account_bank_number})`}
+      </>
     ),
   },
   {
@@ -313,7 +355,11 @@ const columns: ColumnTable<TransactionItem>[] = [
     dataKey: "destination",
     width: 300,
     cellRenderer: ({ rowData }: { rowData: TransactionItem }) => (
-      <>{`${rowData.transaction?.account_bank_to_name} (${rowData.transaction?.account_bank_number})`}</>
+      <>
+        {rowData.transaction?.account_bank_name == null
+          ? ""
+          : `${rowData.transaction?.account_bank_to_name} (${rowData.transaction?.account_bank_number})`}
+      </>
     ),
   },
   {

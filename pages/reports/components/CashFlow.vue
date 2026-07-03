@@ -137,15 +137,17 @@ const shortcuts = [
   },
 ];
 
-const { data } = await useFetchApi<BaseResponse<CashFlow[]>>(
-  "/laporan-pengeluaran",
-  "get-cashflow",
-  "post",
-  request_cashflow.value
-);
-
+const { data, refresh } = await useAsyncData("get-cashflow", async () => {
+  const res = await useFetchApi<BaseResponse<CashFlow[]>>(
+    "/laporan-pengeluaran",
+    "get-cashflow",
+    "post",
+    request_cashflow.value
+  );
+  return res.data.value;
+});
 watch(
-  () => monthRange,
+  () => monthRange.value,
   (newValue) => {
     const start = new Date(monthRange.value[0]);
     start.setDate(1);
@@ -160,7 +162,7 @@ watch(
 
     request_cashflow.value.start_date = startMs / 1000;
     request_cashflow.value.end_date = endMs / 1000;
-    refreshNuxtData("get-cashflow");
+    refresh();
   },
   { deep: true }
 );
