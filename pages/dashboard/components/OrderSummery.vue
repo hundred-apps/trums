@@ -98,11 +98,62 @@ const shortcuts = [
   },
 ];
 
-const { data, pending } = await useFetchApi<BaseResponse<SummeryType>>(
-  "/purchase-orders-summary",
+const { data, status, refresh } = await useAsyncData(
   "fetch-po-summary",
-  "get",
-  null
+  async () => {
+    const res = await useFetchApi<BaseResponse<SummeryType>>(
+      `/purchase-orders-summary?start_date=${
+        monthRange.value[0].getTime() / 1000
+      }&end_date=${monthRange.value[1].getTime() / 1000}`,
+      "fetch-po-summary",
+      "get",
+      null
+    );
+    return res.data.value;
+  }
+);
+
+// SELECT
+//     i.unique_id,
+//     i.unique_code,
+
+//     COUNT(DISTINCT ir.unique_id) AS total_item,
+
+//     COUNT(DISTINCT CASE
+//         WHEN cv.id IS NOT NULL THEN ir.id
+//     END) AS completed_item,
+
+//     ROUND(
+//         COUNT(DISTINCT CASE
+//             WHEN cv.unique_id IS NOT NULL THEN ir.unique_id
+//         END)
+//         * 100 /
+//         NULLIF(COUNT(DISTINCT ir.id),0),
+//         2
+//     ) AS progress
+
+// FROM inquiries i
+
+// LEFT JOIN item_request ir ON ir.inquiry_id = i.
+
+// LEFT JOIN canvassing c
+//     ON c.source_document = i.unique_code
+
+// LEFT JOIN item_canvassing ic
+//     ON ic.canvassing_id = c.unique_id
+//     AND ic.catalogue_id = ir.catalogue_id
+
+// LEFT JOIN canvassing_vendor cv
+//     ON cv.item_canvassing_id = ic.unique_id
+
+// GROUP BY
+//     i.unique_id,
+//     i.unique_code;
+
+watch(
+  () => monthRange.value,
+  () => refresh(),
+  { deep: true }
 );
 </script>
 

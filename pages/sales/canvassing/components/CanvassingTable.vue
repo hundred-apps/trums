@@ -10,12 +10,13 @@
 
   <!-- Pagination -->
   <div class="flex justify-end mt-3">
-    <TrumsCustomPagination
-      :total="data?.total_data ?? 0"
-      :current-page="Number(request_search.offset)"
-      :page-size="Number(request_search.limit)"
-      @page-change="handlePageChange"
+    <el-pagination
+      background
+      :layout="`prev, pager, next, ${isMobile ? '' : 'sizes, total'}`"
+      :total="data?.total_data"
+      @current-change="handlePageChange"
       @size-change="handleSizeChange"
+      size="small"
     />
   </div>
 </template>
@@ -46,6 +47,7 @@ import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import type { ColumnTable } from "~/types/ColumnTable";
 
 const router = useRouter();
+const { isMobile } = useDevice();
 
 const props = defineProps<{
   // onSubmit: (catalogue: Catalogue) => void,

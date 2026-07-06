@@ -28,6 +28,7 @@ import {
   ElIcon,
   ElMessage,
   ElPopover,
+  ElProgress,
   ElTag,
   TableV2FixedDir,
   type CheckboxValueType,
@@ -55,12 +56,14 @@ const column_selected = ref<string[]>([
   "date",
   "request_by.name",
   "request_to.name",
+  "progress",
   "status",
   "operation",
   "setup",
 ]);
 const popoverRef = ref();
 const config = useRuntimeConfig();
+const router = useRouter();
 
 const axios = useApi();
 
@@ -244,6 +247,15 @@ const availableColumn: ColumnTable<Inquiry>[] = [
     ),
   },
   {
+    title: "Progress",
+    dataKey: "progress",
+    key: "progress",
+    width: 200,
+    cellRenderer: ({ rowData: row }) => (
+      <ElProgress percentage={row.progress ?? 0} />
+    ),
+  },
+  {
     title: "Status",
     dataKey: "status",
     key: "status",
@@ -380,37 +392,73 @@ const getStatus = (data: Inquiry) => {
 
   if (data.status == InquiryStatus.DRAFT) {
     return (
-      <ElTag onClick={() => {}} class={"cursor-pointer"} type="danger">
+      <ElTag
+        onClick={() => {
+          router.push(`/sales/inquiry/${data.unique_id}`);
+        }}
+        class={"cursor-pointer"}
+        type="danger"
+      >
         {"TODO".toUpperCase()}
       </ElTag>
     );
   } else if (data.status == InquiryStatus.CANVASSING) {
     return (
-      <ElTag onClick={() => {}} class={"cursor-pointer"} type="warning">
+      <ElTag
+        onClick={() => {
+          router.push(`/sales/canvassing/${data.ref_id}`);
+        }}
+        class={"cursor-pointer"}
+        type="warning"
+      >
         {(data?.status ?? "").toUpperCase()}
       </ElTag>
     );
   } else if (data.status == InquiryStatus.RAB) {
     return (
-      <ElTag onClick={() => {}} class={"cursor-pointer"} type="success">
+      <ElTag
+        onClick={() => {
+          router.push(`/sales/quotation/${data.ref_id}`);
+        }}
+        class={"cursor-pointer"}
+        type="success"
+      >
         {(data?.status ?? "").toUpperCase()}
       </ElTag>
     );
-  } else if (data.status == InquiryStatus.PENAWARAN) {
+  } else if (data.status == InquiryStatus.QUOTATION) {
     return (
-      <ElTag onClick={() => {}} class={"cursor-pointer"} type="primary">
+      <ElTag
+        onClick={() => {
+          router.push(`/sales/offer/${data.ref_id}`);
+        }}
+        class={"cursor-pointer"}
+        type="primary"
+      >
         {(data?.status ?? "").toUpperCase()}
       </ElTag>
     );
   } else if (data.status == "cancelled") {
     return (
-      <ElTag onClick={() => {}} class={"cursor-pointer"} type="danger">
+      <ElTag
+        onClick={() => {
+          router.push(`/sales/inquiry/${data.unique_id}`);
+        }}
+        class={"cursor-pointer"}
+        type="danger"
+      >
         {(data?.status ?? "").toUpperCase()}
       </ElTag>
     );
   } else {
     return (
-      <ElTag onClick={() => {}} class={"cursor-pointer"} type="info">
+      <ElTag
+        onClick={() => {
+          router.push(`/sales/inquiry/${data.unique_id}`);
+        }}
+        class={"cursor-pointer"}
+        type="info"
+      >
         {data?.status ?? ""}
       </ElTag>
     );

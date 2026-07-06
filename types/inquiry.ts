@@ -77,4 +77,7 @@ export type Inquiry = {
   sales_order?: PurchaseOrder;
   version?: number;
   files?: AppFile[];
+  ref_code?: string;
+  ref_id?: string;
+  progess?: number;
 };

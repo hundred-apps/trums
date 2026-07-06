@@ -162,7 +162,7 @@ definePageMeta({
 
 const currentYear = new Date().getFullYear();
 
-const monthRange = ref([
+const monthRange = ref<any>([
   new Date(currentYear, 0, 1),
   new Date(currentYear, 11, 1),
 ]);
@@ -267,8 +267,6 @@ const columnsSelected = ref<string[]>([
   "type",
   "reference_number",
   "amount",
-  "operations",
-  "setup",
 ]);
 const columns: ColumnTable<Transaction>[] = [
   {
@@ -374,47 +372,6 @@ const columns: ColumnTable<Transaction>[] = [
         {rowData.account_bank_to_name} ({rowData.account_bank_to_number})
       </>
     ),
-  },
-
-  {
-    key: "operations",
-    title: "Aksi",
-    dataKey: "operations",
-    cellRenderer: ({ rowData }: { rowData: Transaction }) => {
-      const onCommand = (command: string) => {
-        if (command === "edit") {
-          onEdit(rowData);
-        }
-        if (command === "delete") {
-          onDelete([rowData.unique_id!]);
-        }
-      };
-
-      return (
-        <ElDropdown onCommand={onCommand} hideOnClick={false}>
-          {{
-            default: () => (
-              <span class="cursor-pointer text-primary">
-                <ElIcon>
-                  <Setting />
-                </ElIcon>
-              </span>
-            ),
-            dropdown: () => (
-              <ElDropdownMenu>
-                <ElDropdownItem command="edit">Edit</ElDropdownItem>
-                <ElDropdownItem class={"text-red-600"} command="delete" divided>
-                  Delete
-                </ElDropdownItem>
-              </ElDropdownMenu>
-            ),
-          }}
-        </ElDropdown>
-      );
-    },
-    width: 70,
-    align: "center",
-    fixed: TableV2FixedDir.RIGHT,
   },
 ];
 
