@@ -3542,7 +3542,7 @@ const onHandleSelectItemAutocompleteItem = async (
         }
       });
 
-      item_canvassing.value.forEach((element) => setProfit(element));
+      // item_canvassing.value.forEach((element) => setProfit(element));
     } else {
       item_canvassing.value.forEach((item) => {
         // const existSelected =
@@ -3566,11 +3566,15 @@ const onHandleSelectItemAutocompleteItem = async (
             if (!item.tmp_child_selected) {
               item.tmp_child_selected = child.index;
             }
+
+            calculatePricing(child, "selling_price");
           }
         });
+
+        // autoSelectSingleChild(item);
       });
 
-      item_canvassing.value.forEach((element) => setProfit(element));
+      // item_canvassing.value.forEach((element) => setProfit(element));
     }
     fetchPriceTagWithItems();
   }

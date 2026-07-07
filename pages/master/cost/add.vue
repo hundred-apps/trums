@@ -406,16 +406,13 @@ const onSubmit = async () => {
         .filter((filter) => filter.account_id != "")
         .map((map) => ({
           unique_id: map.unique_id,
-          reference: map.reference,
-          reference_id: form.value.unique_id,
           account_role_id: map.account_role_id,
           account_id: map.account_id,
-          version: map.version || 0,
         })),
     };
 
     const response = await useFetchApi<BaseResponse<AdjustmentTransaction>>(
-      "/adjustments-transaction-creates",
+      "/adjustments-transaction-create",
       "adjustment-create",
       "post",
       payload

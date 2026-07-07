@@ -412,6 +412,12 @@ const getStatus = (data: Inquiry) => {
         <ElTag type="primary">{(data?.status ?? "").toUpperCase()}</ElTag>
       </NuxtLink>
     );
+  } else if (data.status == InquiryStatus.PENAWARAN) {
+    return (
+      <NuxtLink href={`/sales/offer/${data.ref_id}`}>
+        <ElTag type="primary">{(data?.status ?? "").toUpperCase()}</ElTag>
+      </NuxtLink>
+    );
   } else if (data.status == "cancelled") {
     return (
       <NuxtLink href={`/sales/inquiry/${data.unique_id}`}>
