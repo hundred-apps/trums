@@ -406,7 +406,7 @@
         > -->
 
         <el-descriptions-item :width="100" label="Grand Total" align="right">{{
-          currency(data?.data?.total_amount || 0)
+          currency(grandTotal || 0)
         }}</el-descriptions-item>
       </el-descriptions>
     </el-card>
@@ -1489,7 +1489,7 @@ const generatePDF = async () => {
       },
     },
     {
-      content: `${currencyWithoutSymbol(data.value?.data?.total_amount || 0)}`,
+      content: `${currencyWithoutSymbol(grandTotal.value || 0)}`,
       styles: {
         halign: "right",
         cellWidth: 0.0,

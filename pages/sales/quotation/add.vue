@@ -4758,6 +4758,9 @@ watch(
           amount = totalFee;
         }
 
+        console.log("amount", amount);
+        console.log("value", value);
+
         ref.amount = toNumber(handleInput(`${amount}`));
         ref.tmp_amount_input = handleInput(`${amount.toFixed(2)}`);
       }
