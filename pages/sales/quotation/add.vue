@@ -4624,7 +4624,7 @@ const submit = async (formEl: FormInstance | undefined) => {
     });
 
     const response = await useFetchApi<BaseResponse<Canvassing>>(
-      "/canvassing-create",
+      "/canvassing-creates",
       "create-canvasing",
       "post",
       formData
@@ -4735,17 +4735,31 @@ watchDebounced(request_search_contact.value, () => fetchContact(), {
 watch(
   () => contactsFee.value,
   () => {
-    const totalAmount = contactsFee.value.reduce(
+    const totalFee = contactsFee.value.reduce(
       (acc, item) => Number(acc) + toNumber(handleInput(`${item.amount}`)),
       0
     );
+
     references.value.forEach((ref) => {
       if (
         (ref.adjustments_transaction || ref.adjustment)?.name.toLowerCase() ==
         "fee"
       ) {
-        ref.amount = toNumber(handleInput(`${totalAmount}`));
-        ref.tmp_amount_input = handleInput(`${totalAmount.toFixed(2)}`);
+        ref.type = FeeType.AMOUNT;
+
+        let amount = 0;
+        let value = 0;
+
+        if (unitFee.value == FeeType.PERCENT) {
+          value = totalFee;
+          amount = displayAmount(totalFee, totalBuyingPrice.value);
+        } else {
+          value = totalFee;
+          amount = totalFee;
+        }
+
+        ref.amount = toNumber(handleInput(`${amount}`));
+        ref.tmp_amount_input = handleInput(`${amount.toFixed(2)}`);
       }
     });
   },
