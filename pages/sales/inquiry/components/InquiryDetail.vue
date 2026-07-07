@@ -95,14 +95,15 @@
               <el-icon class="me-2"><Edit /></el-icon> Edit
             </NuxtLink>
 
-            <NuxtLink
-              :href="`/sales/canvassing/add?inquiry_id=${inquiryData?.unique_id}`"
-              class="el-button el-button--primary"
-              :disabled="loading"
+            <el-button
+              type="primary"
               :loading="loading"
+              :disabled="loading"
+              @click="canvassingClick"
             >
               Canvassing
-            </NuxtLink>
+            </el-button>
+
             <el-button
               type="primary"
               :disabled="loading"
@@ -364,6 +365,8 @@ const imageUrl = config.public.baseImageURL;
 const props = defineProps<{
   dataInterface: DataInterface<Inquiry>;
 }>();
+
+const emit = defineEmits(["onCanvassingClick"]);
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -812,6 +815,10 @@ const getSourceRequestNumber = () => {
   } else if (inquiryData.value!.reference == "so") {
     return (inquiryData.value!.reference_data as PurchaseOrder).unique_code;
   }
+};
+
+const canvassingClick = () => {
+  emit("onCanvassingClick");
 };
 </script>
 

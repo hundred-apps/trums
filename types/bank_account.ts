@@ -1,3 +1,4 @@
+import type { Account } from "./finance/account";
 import type { People } from "./people";
 
 export type Bank = {
@@ -9,7 +10,7 @@ export type Bank = {
   updated_at: number;
   people?: People;
   checked?: boolean;
-}
+};
 
 export type BankAccount = {
   id: number;
@@ -18,10 +19,11 @@ export type BankAccount = {
   bank_name: string;
   account_name: string;
   account_number: string;
+  account_id?: string;
+  account?: Account;
   created_at: number; // timestamp
   created_by: number;
   updated_at: number;
   checked?: boolean;
   version?: number;
-}
-
+};

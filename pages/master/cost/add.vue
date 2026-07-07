@@ -351,7 +351,7 @@ const querySearchAccounts = (query: string, cb: (arg: any) => void) => {
       table: "accounts",
     };
 
-    useFetchApi<ResponsePagination<Account>>(
+    useFetchApi<ResponsePagination<Account[]>>(
       "/search",
       "search-customer",
       "post",
@@ -392,6 +392,8 @@ const onSubmit = async () => {
 
     loading.value = true;
 
+    console.log("account mappings", account_mappings.value);
+
     const payload = {
       unique_id: form.value.unique_id,
       unique_code: form.value.unique_code,
@@ -400,10 +402,20 @@ const onSubmit = async () => {
       default_value: form.value.default_value,
       operator: form.value.operator,
       allow_party: form.value.allow_party,
+      account_mappings: account_mappings.value
+        .filter((filter) => filter.account_id != "")
+        .map((map) => ({
+          unique_id: map.unique_id,
+          reference: map.reference,
+          reference_id: form.value.unique_id,
+          account_role_id: map.account_role_id,
+          account_id: map.account_id,
+          version: map.version || 0,
+        })),
     };
 
     const response = await useFetchApi<BaseResponse<AdjustmentTransaction>>(
-      "/adjustments-transaction-create",
+      "/adjustments-transaction-creates",
       "adjustment-create",
       "post",
       payload

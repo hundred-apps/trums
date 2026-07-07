@@ -23,6 +23,7 @@
         <InquiryDetail
           v-if="!inquiryData.pending && inquiryData.data"
           :data-interface="inquiryData!"
+          @on-canvassing-click="onCanvassingClick"
         />
       </el-tab-pane>
       <el-tab-pane label="CANVASSING" name="canvassing" class="h-full">
@@ -31,42 +32,18 @@
           v-else-if="!loading && !inquiryData.pending && inquiryData.data"
           class="h-full"
         >
-          <!-- Action Bar -->
-          <el-row :gutter="20" class="mb-3">
-            <el-col :span="6">
-              <el-input
-                v-model="canvassing_search.keyword"
-                size="default"
-                placeholder="Cari canvassing..."
-                clearable
-              />
-            </el-col>
-            <NuxtLink
-              class="el-button el-button--primary el-button--default"
-              :href="`/sales/canvassing/add?inquiry_id=${inquiryData.data?.unique_id}`"
-            >
-              Buat Canvassing Baru
-            </NuxtLink>
-            <el-button
-              size="default"
-              :loading-icon="Eleme"
-              :loading="loading"
-              @click="
-                () => {
-                  canvassingRefreshTrigger++;
-                }
-              "
-            >
-              Muat Ulang
-            </el-button>
-          </el-row>
-          <CanvassingTable
-            :refresh-trigger="canvassingRefreshTrigger"
-            :request_search="canvassing_search"
-            :fetch-key="'get-canvassing-inquiry'"
-            :type="'CANVASSING'"
-            @selection-change="(value) => {}"
-          />
+          <div v-if="canvassing.pending == true" class="flex justify-center">
+            Menunggu Data....
+          </div>
+          <div v-else>
+            <CanvassingDetail
+              v-if="canvassing.data"
+              :canvassingData="canvassing.data!"
+              :privilages="canvassing.privilege ?? []"
+              :itemHighlights="[]"
+            />
+            <NuxtLink v-else href="">Buat Canvassing</NuxtLink>
+          </div>
         </div>
 
         <el-result
@@ -301,6 +278,7 @@ const rab = ref<DataInterface<Canvassing>>({
   message: "",
   pending: true,
 });
+
 const penawaran = ref<DataInterface<Pricetag>>({
   code: 200,
   data: null,
@@ -350,11 +328,7 @@ const fetchInquiry = async () => {
 
         canvassing_search.value.column = [
           {
-            canvassing_item: {
-              catalogue_id: (inquiryData.value.data?.item_request ?? []).map(
-                (value) => value.catalogue_id
-              ),
-            },
+            source_document: [inquiryData.value.data?.unique_code],
             status: [
               CanvassingStatus.DRAFT,
               CanvassingStatus.PENDING_APPROVAL_RAB,
@@ -400,6 +374,8 @@ const fetchInquiry = async () => {
             type: "so",
           },
         ];
+
+        fetchCanvassing();
         // fetchRAB();
       } else {
         inquiryData.value = {
@@ -416,6 +392,56 @@ const fetchInquiry = async () => {
     inquiryData.value.pending = false;
     loadingService.close();
   }
+};
+const fetchCanvassing = async () => {
+  canvassing.value.pending = true;
+  try {
+    // Fetch related purchase orders
+    const response = await useFetchApi<BaseResponse<Canvassing[]>>(
+      `/search`,
+      "fetch-canvassing",
+      "post",
+      canvassing_search.value
+    );
+
+    if (response.status.value == "success") {
+      if (response.data.value?.data) {
+        const canvassingList: Canvassing[] = response.data.value?.data ?? [];
+        if (canvassingList.length > 0) {
+          canvassing.value = {
+            code: 200,
+            data: canvassingList[0],
+            message: response.data.value.message ?? "",
+            pending: false,
+            privilege: response.data.value.privilege ?? [],
+          };
+        }
+      } else {
+        canvassing.value = {
+          code: 200,
+          data: null,
+          message: "",
+          pending: false,
+        };
+      }
+    }
+  } catch (error) {
+    console.error("Failed to fetch related data", error);
+  } finally {
+    canvassing.value.pending = false;
+  }
+};
+
+const onCanvassingClick = () => {
+  let url = `/sales/canvassing/add?inquiry_id=${inquiryData?.value.data?.unique_id}`;
+
+  if (canvassing.value.data) {
+    // url = `/sales/canvassing/add?id=${canvassing.value.data.unique_id}`;
+    activeNameTab.value = "canvassing";
+    return;
+  }
+
+  window.location.href = url;
 };
 
 // watch(inquiryData.value!, fetchCanvassing, {immediate: true});

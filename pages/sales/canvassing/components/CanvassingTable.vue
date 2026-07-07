@@ -249,7 +249,7 @@ const columns: ColumnTable<Canvassing>[] = [
     cellRenderer: ({ rowData }: { rowData: Canvassing }) => {
       const onCommand = (command: string) => {
         if (command === "edit") {
-          window.location.href = `/supply-chain-management/canvassing/add?id=${rowData.unique_id}`;
+          window.location.href = `/sales/canvassing/add?id=${rowData.unique_id}`;
         }
         if (command === "delete") {
           handleSubmitDelete([rowData.unique_id!]);

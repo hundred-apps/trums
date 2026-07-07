@@ -1,10 +1,13 @@
 <script lang="ts" setup>
 import type { FormInstance, FormRules } from "element-plus";
 import type { Bank, BankAccount } from "~/types/bank_account";
+import type { Account } from "~/types/finance/account";
 import type {
   DefaultResponse,
   DefaultResponsePagination,
 } from "~/types/pagination";
+import { OrderColumn, type RequestSearch } from "~/types/request_search";
+import type { ResponsePagination } from "~/types/response_pagination";
 
 interface Props {
   account?: BankAccount | null;
@@ -25,10 +28,16 @@ const form = reactive({
   account_name: props.account?.account_name || "",
   account_number: props.account?.account_number || "",
   bank_id: props.account?.bank_id || null,
+  account_id: props.account?.account_id || null,
+  coa_name: props.account?.account?.name ?? "",
 });
 
 // Form validation rules
 const rules = reactive<FormRules>({
+  coa_name: [
+    { required: true, message: "Nama bank wajib diisi", trigger: "blur" },
+    { min: 3, max: 100, message: "Panjang 3-100 karakter", trigger: "blur" },
+  ],
   bank_name: [
     { required: true, message: "Nama bank wajib diisi", trigger: "blur" },
     { min: 3, max: 100, message: "Panjang 3-100 karakter", trigger: "blur" },
@@ -99,6 +108,53 @@ const submitForm = async () => {
   }
 };
 
+const querySearchAccounts = (query: string, cb: (arg: any) => void) => {
+  try {
+    const request_search: RequestSearch = {
+      column: [],
+      keyword: query,
+      limit: "50",
+      offset: "1",
+      sort: {
+        column: "created_at",
+        order: OrderColumn.ASC,
+      },
+      flag: "form",
+      table: "accounts",
+    };
+
+    useFetchApi<ResponsePagination<Account[]>>(
+      "/search",
+      "search-customer",
+      "post",
+      request_search
+    ).then((response) => {
+      if (response.status.value == "success") {
+        const contacts: Account[] = (response.data.value?.data ??
+          []) as Account[];
+        if (contacts.length > 0) {
+          cb([
+            ...contacts.map((value) => ({
+              value: value.name,
+              unique_id: value.unique_id,
+              data: value,
+            })),
+          ]);
+        }
+      }
+    });
+  } catch (error) {
+    console.error("Failed to fetch vendors", error);
+    cb([]);
+  }
+};
+
+const handleSelectAccount = (item: any) => {
+  const accountData: Account = item.data as Account;
+  form.account_id = accountData.unique_id;
+  form.coa_name = accountData.name;
+};
+
 // Initialize component
 onMounted(async () => {
   await fetchBankOptions();
@@ -162,6 +218,24 @@ onMounted(async () => {
         placeholder="Masukkan nomor rekening"
         clearable
       />
+    </el-form-item>
+    <el-form-item label="CoA" prop="account_name">
+      <el-autocomplete
+        v-model="form.coa_name!"
+        :fetch-suggestions="querySearchAccounts"
+        placeholder="Cari Akun"
+        @select="(item) => handleSelectAccount(item)"
+      >
+        <template #default="{ item }">
+          <div v-if="item.isNew" class="flex items-center text-blue-500">
+            <el-icon><Plus /></el-icon>
+            <span class="ml-2">Tambahkan "{{ item.value }}"</span>
+          </div>
+          <div v-else>
+            {{ item.value }}
+          </div>
+        </template>
+      </el-autocomplete>
     </el-form-item>
 
     <div class="flex justify-end gap-3 mt-6">

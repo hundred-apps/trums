@@ -51,14 +51,12 @@ import CustomLinkButton from "~/components/trums/CustomLinkButton.vue";
 const { isMobile } = useDevice();
 
 const column_selected = ref<string[]>([
-  "selection",
   "unique_code",
   "date",
   "request_by.name",
   "request_to.name",
   "progress",
   "status",
-  "operation",
   "setup",
 ]);
 const popoverRef = ref();
@@ -259,7 +257,7 @@ const availableColumn: ColumnTable<Inquiry>[] = [
     title: "Status",
     dataKey: "status",
     key: "status",
-    width: isMobile ? 130 : 0,
+    width: isMobile ? 130 : 150,
     align: "center",
     cellRenderer: ({ rowData: row }: CellRendererParams<Inquiry>) =>
       getStatus(row),
@@ -392,75 +390,39 @@ const getStatus = (data: Inquiry) => {
 
   if (data.status == InquiryStatus.DRAFT) {
     return (
-      <ElTag
-        onClick={() => {
-          router.push(`/sales/inquiry/${data.unique_id}`);
-        }}
-        class={"cursor-pointer"}
-        type="danger"
-      >
-        {"TODO".toUpperCase()}
-      </ElTag>
+      <NuxtLink href={`/sales/inquiry/${data.unique_id}`}>
+        <ElTag type="danger">{"TODO".toUpperCase()}</ElTag>
+      </NuxtLink>
     );
   } else if (data.status == InquiryStatus.CANVASSING) {
     return (
-      <ElTag
-        onClick={() => {
-          router.push(`/sales/canvassing/${data.ref_id}`);
-        }}
-        class={"cursor-pointer"}
-        type="warning"
-      >
-        {(data?.status ?? "").toUpperCase()}
-      </ElTag>
+      <NuxtLink href={`/sales/canvassing/${data.ref_id}`}>
+        <ElTag type="warning">{(data?.status ?? "").toUpperCase()}</ElTag>
+      </NuxtLink>
     );
   } else if (data.status == InquiryStatus.RAB) {
     return (
-      <ElTag
-        onClick={() => {
-          router.push(`/sales/quotation/${data.ref_id}`);
-        }}
-        class={"cursor-pointer"}
-        type="success"
-      >
-        {(data?.status ?? "").toUpperCase()}
-      </ElTag>
+      <NuxtLink href={`/sales/quotation/${data.ref_id}`}>
+        <ElTag type="success">{(data?.status ?? "").toUpperCase()}</ElTag>
+      </NuxtLink>
     );
   } else if (data.status == InquiryStatus.QUOTATION) {
     return (
-      <ElTag
-        onClick={() => {
-          router.push(`/sales/offer/${data.ref_id}`);
-        }}
-        class={"cursor-pointer"}
-        type="primary"
-      >
-        {(data?.status ?? "").toUpperCase()}
-      </ElTag>
+      <NuxtLink href={`/sales/offer/${data.ref_id}`}>
+        <ElTag type="primary">{(data?.status ?? "").toUpperCase()}</ElTag>
+      </NuxtLink>
     );
   } else if (data.status == "cancelled") {
     return (
-      <ElTag
-        onClick={() => {
-          router.push(`/sales/inquiry/${data.unique_id}`);
-        }}
-        class={"cursor-pointer"}
-        type="danger"
-      >
-        {(data?.status ?? "").toUpperCase()}
-      </ElTag>
+      <NuxtLink href={`/sales/inquiry/${data.unique_id}`}>
+        <ElTag type="danger">{(data?.status ?? "").toUpperCase()}</ElTag>
+      </NuxtLink>
     );
   } else {
     return (
-      <ElTag
-        onClick={() => {
-          router.push(`/sales/inquiry/${data.unique_id}`);
-        }}
-        class={"cursor-pointer"}
-        type="info"
-      >
-        {data?.status ?? ""}
-      </ElTag>
+      <NuxtLink href={`/sales/inquiry/${data.unique_id}`}>
+        <ElTag type="info">{data?.status ?? ""}</ElTag>
+      </NuxtLink>
     );
   }
 };
@@ -680,14 +642,6 @@ watch(
           @click="refreshTable"
           >Refresh</TrumsCustomButton
         >
-
-        <TrumsCustomButton
-          type="danger"
-          :disabled="!hasSelected"
-          :loading="loading"
-          @click="bulkDelete"
-          >Hapus</TrumsCustomButton
-        >
       </div>
     </el-col>
     <el-col :xs="24" :sm="12" :md="6"
@@ -767,3 +721,9 @@ watch(
     </template>
   </el-drawer>
 </template>
+
+<style scoped>
+:deep(.el-table__cell) {
+  padding: 5px !important;
+}
+</style>
