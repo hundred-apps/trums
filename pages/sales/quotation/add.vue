@@ -2419,21 +2419,26 @@ const calculateProfitAndFee = (
     ongkirPercent = parseFloat(((row.ongkir / hargaBeli) * 100).toFixed(2));
   }
 
-  let feePercent = 0;
-  let feeNominal = 0;
+  let feePercent = Number(row.fee_percent || 0);
+  let feeNominal = Number(row.fee_nominal || 0);
 
-  if (row.fee_unit == "percent") {
-    feePercent = Number(fee || 0);
-    feeNominal = customMathCeil((profitNominal * Number(fee || 0)) / 100);
-  } else {
-    feePercent = ((fee || 0) / profitNominal) * 100;
-    feeNominal = customMathCeil(fee || 0);
-  }
+  // if (row.fee_unit == "percent") {
+  //   feePercent = Number(fee || 0);
+  //   feeNominal = customMathCeil((profitNominal * Number(fee || 0)) / 100);
+  // } else {
+  //   feePercent = ((fee || 0) / profitNominal) * 100;
+  //   feeNominal = customMathCeil(fee || 0);
+  // }
 
-  console.log("fee nominal unit percent", feeNominal);
+  console.log("fee nominal unit percent", row.fee_unit);
 
   if (activeField == "selling_price") {
     let selisih = row.selling_price - (hargaBeli + ongkirNominal);
+
+    if (selisih < 0) {
+      selisih = 0;
+    }
+
     const tmpProfit = 100;
     const tmpFee = feePercent;
 
@@ -2445,6 +2450,8 @@ const calculateProfitAndFee = (
 
     feeNominal = customMathCeil(selisih - profitNominal) as number;
 
+    console.log("tmpFee", tmpFee);
+    console.log("profitAndFee", profitAndFee);
     console.log("selisih", selisih);
     console.log("fee nominal selling price", profitNominal);
   }
@@ -4132,15 +4139,15 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
     //   }
     // });
 
-    item_canvassing.value.forEach((element) => {
-      element.children.forEach((child) => {
-        if (child.selling_price == element.selling_price) {
-          element.tmp_child_selected = child.index;
-          element.unit_price = child.unit_price;
-          element.total_price = child.total_price;
-        }
-      });
-    });
+    // item_canvassing.value.forEach((element) => {
+    //   element.children.forEach((child) => {
+    //     if (child.selling_price == element.selling_price) {
+    //       element.tmp_child_selected = child.index;
+    //       element.unit_price = child.unit_price;
+    //       element.total_price = child.total_price;
+    //     }
+    //   });
+    // });
 
     // item_canvassing.value.forEach((element) => );
 
@@ -4152,16 +4159,13 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
       });
     });
   }
-  console.log("contact fee", contactsFee.value);
+
   item_canvassing.value.forEach((element) => {
     autoSelectSingleChild(element);
   });
 
   item_canvassing.value.forEach((item) => {
     item.children.forEach((child) => {
-      // child.fee_nominal = customMathCeil(child.fee_nominal ?? 0);
-      // child.profit_nominal = customMathCeil(child.profit_nominal ?? 0);
-      // child.ongkir_nominal = customMathCeil(child.ongkir_nominal ?? 0);
       calculatePricing(child, "selling_price");
     });
   });
