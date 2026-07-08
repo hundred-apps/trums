@@ -3921,7 +3921,12 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
           references.value.push(element);
         } else {
           if (!element.party) {
-            references.value.push(element);
+            console.log("masuk reference", element);
+
+            references.value.push({
+              ...element,
+              tmp_amount_input: handleInput(`${element.amount}`),
+            });
           }
         }
       }
@@ -4624,7 +4629,7 @@ const submit = async (formEl: FormInstance | undefined) => {
     });
 
     const response = await useFetchApi<BaseResponse<Canvassing>>(
-      "/canvassing-creates",
+      "/canvassing-create",
       "create-canvasing",
       "post",
       formData
@@ -4745,24 +4750,23 @@ watch(
         (ref.adjustments_transaction || ref.adjustment)?.name.toLowerCase() ==
         "fee"
       ) {
-        ref.type = FeeType.AMOUNT;
+        if (ref.party_id != null) {
+          ref.type = FeeType.AMOUNT;
 
-        let amount = 0;
-        let value = 0;
+          let amount = 0;
+          let value = 0;
 
-        if (unitFee.value == FeeType.PERCENT) {
-          value = totalFee;
-          amount = displayAmount(totalFee, totalBuyingPrice.value);
-        } else {
-          value = totalFee;
-          amount = totalFee;
+          if (unitFee.value == FeeType.PERCENT) {
+            value = totalFee;
+            amount = displayAmount(totalFee, totalBuyingPrice.value);
+          } else {
+            value = totalFee;
+            amount = totalFee;
+          }
+
+          ref.amount = toNumber(handleInput(`${amount}`));
+          ref.tmp_amount_input = handleInput(`${amount.toFixed(2)}`);
         }
-
-        console.log("amount", amount);
-        console.log("value", value);
-
-        ref.amount = toNumber(handleInput(`${amount}`));
-        ref.tmp_amount_input = handleInput(`${amount.toFixed(2)}`);
       }
     });
   },

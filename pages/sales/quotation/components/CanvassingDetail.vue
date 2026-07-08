@@ -1744,19 +1744,6 @@ const handleAdjustmentSubmit = () => {
   refreshNuxtData("search-adjustment");
 };
 
-watch(
-  () => contactsFee.value,
-  () => {
-    if (contactsFee.value.length > 0) {
-      adjustmentTransactionFeeTotal.value.amount = contactsFee.value.reduce(
-        (sum, c) => Number(sum) + Number(c.amount || 0),
-        0
-      );
-    }
-  },
-  { deep: true }
-);
-
 const changeDiscount = (
   vendor: CanvassingItemVendorSummery | null,
   price: number
@@ -2883,6 +2870,9 @@ const summeryData = computed(() => {
       )} %`,
     });
   }
+
+  console.log("adjustment fee", adjustmentTransactionFeeTotal.value.amount);
+
   let fee = 0;
   if (
     adjustmentTransactionFeeTotal.value.type == FeeType.AMOUNT &&
@@ -3149,6 +3139,7 @@ const initialCanvassing = (data: Canvassing) => {
 
   contactsFee.value = [];
   (canvassingData.value.reference_transaction ?? []).forEach((element) => {
+    console.log("masuk fee total", element);
     if (element.party_type == PartyType.CONTACT) {
       contactsFee.value.push(element);
     }

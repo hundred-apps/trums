@@ -556,6 +556,7 @@
           class="w-full"
           style="height: 39px"
           type="primary"
+          :loading="loading"
           @click="submitForm(ruleFormRef)"
           >Simpan</el-button
         >
@@ -2698,7 +2699,15 @@ const submitForm = async (formEl: FormInstance | undefined) => {
   if (!formEl) return;
   await formEl.validate((valid, fields) => {
     if (valid) {
-      onSubmit(formEl);
+      if (ruleForm.type == "in") {
+        if (fileList.value.length == 0) {
+          ElMessage.error("Lampiran Tidak Boleh Kosong!");
+        } else {
+          onSubmit(formEl);
+        }
+      } else {
+        onSubmit(formEl);
+      }
     } else {
       console.log("error submit!", fields);
     }
