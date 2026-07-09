@@ -93,6 +93,21 @@
         </el-card>
       </el-col>
       <el-col :span="24">
+        <el-card class="mb-6">
+          <template #header>
+            <div class="flex items-center">
+              <el-icon class="mr-2"><Briefcase /></el-icon>
+              <span>Photo Tanda Tangan</span>
+            </div>
+          </template>
+          <TrumsDragAndDropUploadFileLarge
+            v-model="ttdFile.url"
+            @change="handleChangeTTD"
+            @remove="() => handleRemoveFile(AppFileType.TANDA_TANGAN)"
+          />
+        </el-card>
+      </el-col>
+      <el-col :span="24">
         <el-card>
           <template #header>
             <div class="flex items-center">
@@ -136,6 +151,7 @@ import PermissionTreeManager from "~/components/trums/PermissionTreeManager.vue"
 import type { RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
 import { formatLocalDate, formatLocalDateTime } from "#imports";
+import { AppFileType, type AppFile } from "~/types/file";
 
 interface PermissionTreeNode {
   unique_id: string;
@@ -145,6 +161,20 @@ interface PermissionTreeNode {
   is_granted?: boolean;
   children?: PermissionTreeNode[];
 }
+
+const ttdFile = ref<{ url: string; file: AppFile }>({
+  url: "",
+  file: {
+    id: 0,
+    unique_id: "",
+    filename: "",
+    mime_type: "",
+    image_path: "",
+    created_at: 0,
+    type: AppFileType.TANDA_TANGAN,
+    file: null,
+  },
+});
 
 const router = useRouter();
 const route = useRoute();
@@ -225,6 +255,15 @@ const fetchPeopleDetail = async () => {
     if (response.status.value === "success") {
       console.log("masuk sini");
       peopleData.value = response.data.value?.data || ({} as People);
+
+      (peopleData.value.files || []).forEach((element) => {
+        if (element.type == AppFileType.TANDA_TANGAN) {
+          ttdFile.value = {
+            file: element,
+            url: `${imageUrl}/${element?.image_path}/${element?.filename}`,
+          };
+        }
+      });
     }
   } catch (error) {
     ElMessage.error("Gagal memuat detail people");
@@ -373,6 +412,85 @@ const getGenderTagType = (
     | "info"
     | "primary"
     | "danger";
+};
+
+const handleChangeTTD = async (file: File) => {
+  loading.value = true;
+  try {
+    const formDataPayload = new FormData();
+
+    formDataPayload.append("unique_id", `${peopleData?.value.unique_id}`);
+    formDataPayload.append("photo[0][type]", `${ttdFile.value.file.type}`);
+    formDataPayload.append("photo[0]", file!);
+
+    const response = await useFetchApi(
+      "/people-create",
+      "upload-ttd",
+      "post",
+      formDataPayload
+    );
+    if (response.status.value == "success") {
+      ElMessage.success("Berhasil Memperbarui Data!");
+      fetchPeopleDetail();
+    }
+  } catch (e: any) {
+    ElMessage.error(e?.response?.message ?? "Gagal Mengupload Gambar!");
+  } finally {
+    loading.value = false;
+  }
+};
+
+const deleteFile = async (unique_id: string): Promise<boolean> => {
+  loading.value = true;
+  try {
+    const response = await useFetchApi("/file-delete", "delete-file", "post", [
+      unique_id,
+    ]);
+    if (response.status.value == "success") {
+      ElMessage.success("File Telah Dihapus!");
+      return true;
+    } else {
+      ElMessage.success("File Gagal Dihapus!");
+      return false;
+    }
+    loading.value = false;
+  } catch (e: any) {
+    ElMessage.error(e?.response?.message ?? "Gagal Menghapus File!");
+    loading.value = false;
+    return false;
+  }
+};
+
+const handleRemoveFile = async (type: AppFileType) => {
+  ElMessageBox.confirm("Anda Yakin Ingin Menghapus File ini?", "Warning", {
+    confirmButtonText: "Delete",
+    cancelButtonText: "Cancel",
+    type: "warning",
+  })
+    .then(async () => {
+      if (type == AppFileType.TANDA_TANGAN) {
+        const deleted = await deleteFile(ttdFile.value.file.unique_id);
+        if (deleted) {
+          ttdFile.value = {
+            url: "",
+            file: {
+              id: 0,
+              unique_id: "",
+              filename: "",
+              mime_type: "",
+              image_path: "",
+              created_at: 0,
+              type: AppFileType.TANDA_TANGAN,
+              file: null,
+            },
+          };
+        }
+      }
+    })
+    .catch(() => {});
+
+  // jika ingin sekaligus hapus dari server,
+  // panggil API delete di sini.
 };
 
 // Lifecycle

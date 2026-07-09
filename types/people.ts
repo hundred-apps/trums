@@ -30,6 +30,7 @@ export type People = {
   user_permissions?: UserPermission[];
   menu?: Menu[];
   devices: DeviceInfo[];
+  files?: AppFile[];
 };
 
 export type DeviceInfo = {

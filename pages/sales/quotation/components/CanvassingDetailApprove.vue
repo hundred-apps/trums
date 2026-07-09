@@ -89,48 +89,6 @@
           >
             <el-icon class="me-2"><CircleClose /></el-icon> Tolak
           </TrumsCustomButton>
-          <!-- <el-dropdown>
-            <span class="el-dropdown-link">
-              Dropdown List
-              <el-icon class="el-icon--right">
-                <arrow-down />
-              </el-icon>
-            </span>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item>Action 1</el-dropdown-item>
-                <el-dropdown-item>Action 2</el-dropdown-item>
-                <el-dropdown-item>Action 3</el-dropdown-item>
-                <el-dropdown-item disabled>Action 4</el-dropdown-item>
-                <el-dropdown-item divided>Action 5</el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown> -->
-          <!-- <el-button type="danger" :icon="Delete" @click="confirmDelete"
-              >Hapus</el-button
-            >
-            <NuxtLink
-              v-if="
-                canvassingData?.status === CanvassingStatus.RAB ||
-                canvassingData?.status === CanvassingStatus.PENDING_APPROVAL_RAB
-              "
-              :to="`/sales/quotation/add?id=${canvassingData?.unique_id}`"
-              class="el-button el-button--default"
-            >
-              <el-icon class="me-2"><Edit /></el-icon> Edit
-            </NuxtLink>
-            
-            
-            <el-button
-              type="default"
-              @click="printSCMMemo"
-              v-if="
-                canvassingData?.status === CanvassingStatus.PENDING_APPROVAL ||
-                canvassingData?.status === CanvassingStatus.DONE
-              "
-            >
-              Cetak SCM Memo
-            </el-button> -->
         </div>
       </template>
 
@@ -3570,6 +3528,38 @@ const submitApproveRab = async (status: CanvassingStatus) => {
     loading.value = false;
   }
 };
+
+const backToRab = async () => {
+  loading.value = true;
+  try {
+    // Membuat FormData
+    const formData = new FormData();
+
+    // Menambahkan data utama
+    formData.append("unique_id", canvassingData.value?.unique_id || "");
+    formData.append("status", CanvassingStatus.RAB || "");
+
+    const response = await useFetchApi<BaseResponse<Canvassing>>(
+      "/canvassing-create",
+      "create-canvasing",
+      "post",
+      formData
+    );
+    if (response.status.value === "success") {
+      ElMessage.success(`Berhasil Membatalkan RAB!`);
+      item_canvassing.value = [];
+      contactsFee.value = [];
+      editState.value = false;
+      dialogCancelApproval.value = false;
+      fetchCanvassing();
+    }
+  } catch (error: any) {
+    ElMessage.error(error.response?.message ?? error);
+  } finally {
+    loading.value = false;
+  }
+};
+
 const cancelSubmissionApproval = async () => {
   loading.value = true;
   try {

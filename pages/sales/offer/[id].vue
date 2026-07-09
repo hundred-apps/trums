@@ -42,11 +42,11 @@ import {
 } from "~/types/scm/canvasing";
 import OfferDetail from "./components/OfferDetail.vue";
 
-definePageMeta({
-  middleware: ["auth", "check-access"],
-  requiredPermission: "pricetag-read",
-  name: "Trums Offer Detail",
-});
+// definePageMeta({
+//   middleware: ["auth", "check-access"],
+//   requiredPermission: "pricetag-read",
+//   name: "Trums Offer Detail",
+// });
 
 const router = useRouter();
 const loading = ref<boolean>(false);

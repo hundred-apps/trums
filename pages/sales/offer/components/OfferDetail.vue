@@ -1222,8 +1222,12 @@ const generateQuotationPdf = async () => {
     props.dataInterface?.data?.reference_data;
 
   if (canvassing) {
+    writeWrappedText(`\u2022 Dikirim ke :`);
+    writeWrappedText(`   ${canvassing?.address?.address_name}`);
     writeWrappedText(
-      `\u2022 Dikirim ke ${generateAddressView(canvassing?.address!)}`
+      `   ${canvassing?.address?.street} ${generateAddressView(
+        canvassing?.address!
+      )}`
     );
 
     (props.dataInterface.data?.payment_terms ?? []).forEach((element) => {

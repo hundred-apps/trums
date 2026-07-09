@@ -10,115 +10,191 @@
       element-loading-background="rgba(122, 122, 122, 0.8)"
     >
       <template #header>
-        <div class="card-header flex justify-end">
-          <el-button type="danger" :icon="Delete" @click="confirmDelete"
-            >Hapus</el-button
-          >
-          <NuxtLink
-            :to="`/sales/quotation/add?id=${canvassingData?.unique_id}`"
-            class="el-button el-button--default"
-          >
-            <el-icon class="me-2"><Edit /></el-icon> Edit
-          </NuxtLink>
-          <el-button
-            type="success"
+        <div v-if="isMobile">
+          <div
             v-if="canvassingData?.status === CanvassingStatus.RAB"
-            @click="() => submitApproveRab(CanvassingStatus.PENDING_APPROVAL)"
+            class="card-header flex justify-center gap-2"
           >
-            <el-icon class="me-2"><CircleCheck /></el-icon> Submit for Approval
-          </el-button>
-          <el-button
-            type="success"
+            <el-button
+              type="success"
+              style="width: 100%"
+              v-if="canvassingData?.status === CanvassingStatus.RAB"
+              @click="() => submitApproveRab(CanvassingStatus.PENDING_APPROVAL)"
+            >
+              <el-icon class="me-2"><CircleCheck /></el-icon> Ajukan RAB
+            </el-button>
+            <el-dropdown placement="bottom" @command="handleCommand">
+              <el-button>
+                <el-icon><Tools /></el-icon>
+              </el-button>
+              <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item command="edit">Edit</el-dropdown-item>
+                  <el-dropdown-item command="delete" class="dropdown-delete"
+                    >Hapus</el-dropdown-item
+                  >
+                </el-dropdown-menu>
+              </template>
+            </el-dropdown>
+          </div>
+          <div
+            v-if="canvassingData?.status === CanvassingStatus.DONE"
+            class="card-header flex justify-center gap-2"
+          >
+            <el-button type="primary" :icon="Printer" @click="printSCMMemo">
+              Cetak SCM Memo
+            </el-button>
+            <el-button type="danger" :icon="Close" @click="backToRab">
+              Batalkan RAB
+            </el-button>
+          </div>
+          <div
             v-if="
-              canvassingData?.status === CanvassingStatus.PENDING_APPROVAL &&
-              canAccess('canvassing-approve', privilages, 2)
+              canvassingData?.status === CanvassingStatus.PENDING_APPROVAL_RAB
             "
-            @click="approve"
+            class="card-header flex justify-center gap-2"
           >
-            <el-icon class="me-2"><CircleCheck /></el-icon> Setujui
-          </el-button>
-          <el-button
-            type="danger"
-            v-if="
-              canvassingData?.status === CanvassingStatus.PENDING_APPROVAL &&
-              canAccess('canvassing-approve', privilages, 2)
-            "
-            @click="decline"
-          >
-            <el-icon class="me-2"><CircleClose /></el-icon> Tolak
-          </el-button>
-          <el-button
-            type="default"
-            @click="printSCMMemo"
-            v-if="
-              canvassingData?.status === CanvassingStatus.PENDING_APPROVAL ||
-              canvassingData?.status === CanvassingStatus.DONE
-            "
-          >
-            Cetak SCM Memo
-          </el-button>
-          <el-button
-            type="default"
+            <NuxtLink
+              class="el-button el-button--success w-full"
+              :href="`/sales/quotation/add?id=${canvassingData?.unique_id}`"
+            >
+              Setuju & Buat RAB
+            </NuxtLink>
+            <el-button type="danger" :icon="Close" @click="backToRab">
+              Tolak
+            </el-button>
+          </div>
+          <div
             v-if="canvassingData?.status === CanvassingStatus.PENDING_APPROVAL"
-            @click="dialogCancelApproval = true"
+            class="card-header flex justify-center gap-2"
           >
-            Batalkan Pengajuan
-          </el-button>
+            <el-button
+              type="success"
+              class="w-full"
+              :icon="Check"
+              @click="approve"
+            >
+              Setujui
+            </el-button>
+            <el-button type="danger" :icon="Close" @click="decline">
+              Tolak
+            </el-button>
+          </div>
+        </div>
+        <div v-else>
+          <div class="card-header flex justify-end">
+            <el-button type="danger" :icon="Delete" @click="confirmDelete"
+              >Hapus</el-button
+            >
+            <NuxtLink
+              :to="`/sales/quotation/add?id=${canvassingData?.unique_id}`"
+              class="el-button el-button--default"
+            >
+              <el-icon class="me-2"><Edit /></el-icon> Edit
+            </NuxtLink>
+            <el-button
+              type="success"
+              v-if="canvassingData?.status === CanvassingStatus.RAB"
+              @click="() => submitApproveRab(CanvassingStatus.PENDING_APPROVAL)"
+            >
+              <el-icon class="me-2"><CircleCheck /></el-icon> Ajukan RAB
+            </el-button>
+            <el-button
+              type="success"
+              v-if="
+                canvassingData?.status === CanvassingStatus.PENDING_APPROVAL &&
+                canAccess('canvassing-approve', privilages, 2)
+              "
+              @click="approve"
+            >
+              <el-icon class="me-2"><CircleCheck /></el-icon> Setujui
+            </el-button>
+            <el-button
+              type="danger"
+              v-if="
+                canvassingData?.status === CanvassingStatus.PENDING_APPROVAL &&
+                canAccess('canvassing-approve', privilages, 2)
+              "
+              @click="decline"
+            >
+              <el-icon class="me-2"><CircleClose /></el-icon> Tolak
+            </el-button>
+            <el-button
+              type="default"
+              @click="printSCMMemo"
+              v-if="
+                canvassingData?.status === CanvassingStatus.PENDING_APPROVAL ||
+                canvassingData?.status === CanvassingStatus.DONE
+              "
+            >
+              Cetak SCM Memo
+            </el-button>
+            <el-button
+              type="default"
+              v-if="
+                canvassingData?.status === CanvassingStatus.PENDING_APPROVAL
+              "
+              @click="dialogCancelApproval = true"
+            >
+              Batalkan Pengajuan
+            </el-button>
 
-          <NuxtLink
-            v-if="
-              canvassingData?.status ===
-                CanvassingStatus.PENDING_APPROVAL_RAB && editState == false
-            "
-            class="el-button el-button--success el-button--default"
-            :href="`/sales/quotation/add?id=${canvassingData?.unique_id}`"
-          >
-            <el-icon class="me-2"><CircleCheck /></el-icon> Approve dan Buat RAB
-          </NuxtLink>
+            <NuxtLink
+              v-if="
+                canvassingData?.status ===
+                  CanvassingStatus.PENDING_APPROVAL_RAB && editState == false
+              "
+              class="el-button el-button--success el-button--default"
+              :href="`/sales/quotation/add?id=${canvassingData?.unique_id}`"
+            >
+              <el-icon class="me-2"><CircleCheck /></el-icon> Approve dan Buat
+              RAB
+            </NuxtLink>
 
-          <!-- <NuxtLink
+            <!-- <NuxtLink
             :href="`sales/quotation/add?id=${canvassingData.unique_id}`"
             v-if="canvassingData?.status === CanvassingStatus.PENDING_APPROVAL_RAB"
             class="el-button el-button--success"
           >
             <el-icon class="me-2"><CircleCheck /></el-icon> Approve dan Buat RAP
           </NuxtLink> -->
-          <NuxtLink
-            v-if="canvassingData?.status === CanvassingStatus.DONE"
-            :href="`/sales/offer/add?canvassing_id=${canvassingData?.unique_id}&type=out`"
-            class="el-button el-button--default"
-          >
-            Buat Penawaran
-          </NuxtLink>
-          <el-button
-            v-if="editState"
-            type="default"
-            size="default"
-            @click="() => (editState = false)"
-            class="mr-3"
-          >
-            Batal
-          </el-button>
-          <el-button
-            v-if="editState"
-            type="success"
-            size="default"
-            @click="() => submitRAB(ruleFormRef)"
-            :loading="loading"
-          >
-            <el-icon class="me-2"><CircleCheck /></el-icon>
-            Simpan dan Lanjutkan
-          </el-button>
-          <el-button
-            v-if="editState"
-            type="primary"
-            size="default"
-            @click="() => submitApproveRab(CanvassingStatus.RAB)"
-            :loading="loading"
-          >
-            <el-icon class="me-2"><CircleCheck /></el-icon>
-            Simpan
-          </el-button>
+            <NuxtLink
+              v-if="canvassingData?.status === CanvassingStatus.DONE"
+              :href="`/sales/offer/add?canvassing_id=${canvassingData?.unique_id}&type=out`"
+              class="el-button el-button--default"
+            >
+              Buat Penawaran
+            </NuxtLink>
+            <el-button
+              v-if="editState"
+              type="default"
+              size="default"
+              @click="() => (editState = false)"
+              class="mr-3"
+            >
+              Batal
+            </el-button>
+            <el-button
+              v-if="editState"
+              type="success"
+              size="default"
+              @click="() => submitRAB(ruleFormRef)"
+              :loading="loading"
+            >
+              <el-icon class="me-2"><CircleCheck /></el-icon>
+              Simpan dan Lanjutkan
+            </el-button>
+            <el-button
+              v-if="editState"
+              type="primary"
+              size="default"
+              @click="() => submitApproveRab(CanvassingStatus.RAB)"
+              :loading="loading"
+            >
+              <el-icon class="me-2"><CircleCheck /></el-icon>
+              Simpan
+            </el-button>
+          </div>
         </div>
       </template>
 
@@ -1360,6 +1436,10 @@ import {
   ArrowRight,
   UserFilled,
   InfoFilled,
+  Tools,
+  Printer,
+  Close,
+  Check,
 } from "@element-plus/icons-vue";
 import {
   CanvassingStatus,
@@ -2887,6 +2967,7 @@ const summeryData = computed(() => {
   }
 
   if (adjustmentTransactionFeeTotal.value.reference_id != "") {
+    console.log("masuk fee total");
     tableData.push({
       label: adjustmentTransactionFeeTotal.value.adjustments_transaction?.name,
       max: currency(fee),
@@ -4926,9 +5007,9 @@ const generateSCMMemo = async () => {
   const subtotalMargin =
     (subtotalMarginNominal / subtotalBuyTotalPrice.value) * 100;
 
-  let grandTotal = subtotalSellingPrice() - subtotalBuyTotalPrice.value;
+  let grandTotalPrint = subtotalSellingPrice() - subtotalBuyTotalPrice.value;
 
-  grandTotal -= adjustmentTransactionOngkirTotal.value?.amount || 0;
+  grandTotalPrint -= adjustmentTransactionOngkirTotal.value?.amount || 0;
 
   summeryNumber++;
   rowData.push([
@@ -5048,11 +5129,26 @@ const generateSCMMemo = async () => {
     },
   ]);
 
-  (references.value ?? []).forEach((element) => {
-    grandTotal -= element.amount;
+  let fee = 0;
+  if (
+    adjustmentTransactionFeeTotal.value.type == FeeType.AMOUNT &&
+    adjustmentTransactionFeeTotal.value.reference_id != ""
+  ) {
+    fee = adjustmentTransactionFeeTotal.value.amount;
+  } else if (
+    adjustmentTransactionFeeTotal.value.type == FeeType.PERCENT &&
+    adjustmentTransactionFeeTotal.value.reference_id != ""
+  ) {
+    fee =
+      (Number(grandTotal.value) * adjustmentTransactionFeeTotal.value.amount) /
+      100;
+  }
+
+  if (adjustmentTransactionFeeTotal.value.reference_id != "") {
+    grandTotalPrint -= fee;
     rowData.push([
       {
-        content: `${element.adjustments_transaction?.name}`,
+        content: `${adjustmentTransactionFeeTotal.value.adjustments_transaction?.name}`,
         colSpan: 5,
         styles: {
           halign: "right",
@@ -5064,10 +5160,8 @@ const generateSCMMemo = async () => {
         },
       },
       {
-        content: `${currencyWithoutSymbol(
-          showTransactionAdjustmentValue(element)
-        )}`,
-        colSpan: 4,
+        content: `${currencyWithoutSymbol(fee)}`,
+        colSpan: 5,
         styles: {
           halign: "right",
           cellWidth: 0.0,
@@ -5077,10 +5171,8 @@ const generateSCMMemo = async () => {
         },
       },
       {
-        content: `${safePercent(
-          displayAmount(element, subtotalBuyTotalPrice.value),
-          subtotalBuyTotalPrice.value
-        )}`,
+        content: `${safePercent(fee ?? 0, totalBuyingPrice.value)}`,
+
         styles: {
           halign: "right",
           cellWidth: 0.0,
@@ -5090,6 +5182,55 @@ const generateSCMMemo = async () => {
         },
       },
     ]);
+  }
+
+  (references.value ?? []).forEach((element) => {
+    if (
+      element.adjustments_transaction?.name.toLowerCase() != "fee" &&
+      element.party_type != PartyType.CONTACT
+    ) {
+      grandTotalPrint -= element.amount;
+      rowData.push([
+        {
+          content: `${element.adjustments_transaction?.name}`,
+          colSpan: 5,
+          styles: {
+            halign: "right",
+            fontStyle: "bold",
+            cellWidth: 0.0,
+            lineWidth: 0.1,
+            lineColor: [0, 0, 0],
+            fillColor: [255, 255, 255],
+          },
+        },
+        {
+          content: `${currencyWithoutSymbol(
+            showTransactionAdjustmentValue(element)
+          )}`,
+          colSpan: 4,
+          styles: {
+            halign: "right",
+            cellWidth: 0.0,
+            lineWidth: 0.1,
+            lineColor: [0, 0, 0],
+            fillColor: [255, 255, 255],
+          },
+        },
+        {
+          content: `${safePercent(
+            displayAmount(element, subtotalBuyTotalPrice.value),
+            subtotalBuyTotalPrice.value
+          )}`,
+          styles: {
+            halign: "right",
+            cellWidth: 0.0,
+            lineWidth: 0.1,
+            lineColor: [0, 0, 0],
+            fillColor: [255, 255, 255],
+          },
+        },
+      ]);
+    }
   });
 
   summeryNumber++;
@@ -5107,7 +5248,7 @@ const generateSCMMemo = async () => {
       },
     },
     {
-      content: `${currencyWithoutSymbol(grandTotal || 0)}`,
+      content: `${currencyWithoutSymbol(grandTotalPrint || 0)}`,
       colSpan: 5,
       styles: {
         halign: "right",
@@ -5118,7 +5259,7 @@ const generateSCMMemo = async () => {
       },
     },
     {
-      content: `${safePercent(grandTotal, subtotalBuyTotalPrice.value)}`,
+      content: `${safePercent(grandTotalPrint, subtotalBuyTotalPrice.value)}`,
       styles: {
         halign: "right",
         cellWidth: 0.0,
@@ -5245,8 +5386,8 @@ const generateSCMMemo = async () => {
     );
   });
 
-  if (canvassingData.value?.note) {
-    const splits = `${canvassingData.value?.note}`.split("\n");
+  if (canvassingData.value?.description) {
+    const splits = `${canvassingData.value?.description}`.split("\n");
 
     splits.forEach((value) => {
       writeWrappedText(`\u2022 ${value ?? "-"}`);
@@ -5715,6 +5856,48 @@ const generateSCMMemo = async () => {
   };
 };
 
+const backToRab = async () => {
+  ElMessageBox.confirm("Yakin Ingin Membatalkan RAB?", "Warning", {
+    confirmButtonText: "Delete",
+    cancelButtonText: "Cancel",
+    type: "warning",
+  })
+    .then(async () => {
+      loading.value = true;
+
+      try {
+        // Membuat FormData
+        const formData = new FormData();
+
+        // Menambahkan data utama
+        formData.append("unique_id", canvassingData.value?.unique_id || "");
+        formData.append("status", CanvassingStatus.RAB || "");
+
+        const response = await useFetchApi<BaseResponse<Canvassing>>(
+          "/canvassing-create",
+          "create-canvasing",
+          "post",
+          formData
+        );
+        if (response.status.value === "success") {
+          ElMessage.success(`Berhasil Membatalkan RAB!`);
+          item_canvassing.value = [];
+          contactsFee.value = [];
+          editState.value = false;
+          dialogCancelApproval.value = false;
+          fetchCanvassing();
+        }
+      } catch (error: any) {
+        ElMessage.error(error.response?.message ?? error);
+      } finally {
+        loading.value = false;
+      }
+    })
+    .catch(() => {
+      // Cancel
+    });
+};
+
 const printSCMMemo = async () => {
   const { blob } = await generateSCMMemo();
 
@@ -5868,6 +6051,20 @@ const subtotalBuyTotalPrice = computed(() => {
 
   return subtotalBeli;
 });
+
+const handleCommand = (command: string) => {
+  if (command == "edit") {
+    window.location.href = `/sales/quotation/add?id=${canvassingData?.value?.unique_id}`;
+  } else if (command == "delete") {
+    confirmDelete();
+  } else if (command == "submit_approval") {
+    submitForApproval();
+  } else if (command == "approve") {
+    approve();
+  } else if (command == "decline") {
+    decline();
+  }
+};
 
 const confirmDelete = () => {
   ElMessageBox.confirm(
@@ -6071,5 +6268,9 @@ onMounted(() => {});
 .el-fade-in-leave-to {
   opacity: 0;
   transform: translateY(100%);
+}
+
+:deep(.dropdown-delete) {
+  color: red;
 }
 </style>

@@ -365,7 +365,7 @@ watch(
           unique_id: item.unique_id!,
           unique_code: "",
           description: item.description ?? "",
-          type: "",
+          type: element.type,
           date: 0,
           source: "",
           destination: "",

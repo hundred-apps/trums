@@ -51,4 +51,5 @@ export type AppFile = {
   image_path: string;
   created_at: number;
   type: AppFileType | null;
+  file?: File | null;
 };
