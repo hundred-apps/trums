@@ -2797,21 +2797,6 @@ const removeReference = (index: number) => {
   references.value.splice(index, 1);
 };
 
-const displayAmount = (ref: any, multiplier: number) => {
-  if (ref.type === "percent") {
-    return (multiplier || 0) * (toNumber(`${ref.amount}`) / 100);
-  } else {
-    return toNumber(`${ref.amount}`);
-  }
-};
-const displayPercentage = (ref: any, multiplier: number) => {
-  if (ref.type === "amount") {
-    return toNumber(`${ref.amount}`) / multiplier || 0 * 100;
-  } else {
-    return displayAmount(ref, multiplier);
-  }
-};
-
 const applyAllBulk = () => {
   item_canvassing.value.forEach((item) => {
     if (item.children && item.children.length) {
@@ -5104,7 +5089,9 @@ const calculateSummaryaData = () => {
     },
     {
       label: "Ongkos Kirim",
-      max: currency(adjustmentTransactionOngkirTotal.value.amount),
+      max: currency(
+        displayAmount(adjustmentTransactionOngkirTotal, grandTotalValue)
+      ),
       beli: `${safePercent(
         adjustmentTransactionOngkirTotal.value.amount,
         totalBuyingPrice.value
@@ -5126,19 +5113,16 @@ const calculateSummaryaData = () => {
   ];
 
   references.value.forEach((element) => {
+    console.log("ref", element.adjustments_transaction?.name);
+    console.log("ref type", element.type);
+    console.log("value", safePercent(element.amount, totalBuyingPrice.value));
     data.push({
       label: element.adjustment?.name
         ? element.adjustment?.name
         : element.adjustments_transaction?.name ?? "-",
       max: currency(displayAmount(element, grandTotalValue)),
-      beli: `${safePercent(
-        displayPercentage(element, grandTotalValue),
-        totalBuyingPrice.value
-      )} %`,
-      jual: `${safePercent(
-        displayPercentage(element, grandTotalValue),
-        grandTotalValue
-      )} %`,
+      beli: `${safePercent(element.amount, totalBuyingPrice.value)} %`,
+      jual: `${safePercent(element.amount, grandTotalValue)} %`,
       min: currency(0),
       beliMin: `${safePercent(0, 1)}`,
       jualMin: `${safePercent(displayPercentage(element, grandTotalValue), 1)}`,

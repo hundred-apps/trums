@@ -31,13 +31,13 @@
             <el-icon><Edit /></el-icon>
           </NuxtLink>
 
-          <!-- <NuxtLink
+          <NuxtLink
             v-if="canAccess('pricetag-update', dataInterface?.privilege ?? [])"
-            :href="`/sales/offer/add?id=${dataInterface?.data?.unique_id}&type=${dataInterface?.data?.type}`"
+            :href="`/sales/offer/editor?id=${dataInterface?.data?.unique_id}`"
             class="el-button el-button--defult"
           >
-            Edit
-          </NuxtLink> -->
+            <el-icon><EditPen /></el-icon> Editor
+          </NuxtLink>
           <TrumsCustomButton
             v-if="dataInterface.data?.type == 'out'"
             :type="'primary'"
@@ -468,7 +468,13 @@
 
 <script lang="tsx" setup>
 import { TrumsWrapper } from "#components";
-import { Edit, InfoFilled, Picture, Printer } from "@element-plus/icons-vue";
+import {
+  Edit,
+  EditPen,
+  InfoFilled,
+  Picture,
+  Printer,
+} from "@element-plus/icons-vue";
 import type { ComponentSize, ElTable } from "element-plus";
 import jsPDF from "jspdf";
 import autoTable, {
@@ -628,52 +634,73 @@ watch(
   () => items.data.value?.data,
   (data) => {
     pricetag_item_views.value = [];
-    let no = 1;
+    if (props.dataInterface.data?.raw_payload) {
+      // forea
+    } else {
+      let no = 1;
 
-    (data ?? []).forEach((item) => {
-      if (item.data_reference) {
-        const isExist = pricetag_item_views.value.findIndex(
-          (find) => find.unique_id == item.reference_id
-        );
+      (data ?? []).forEach((item) => {
+        if (item.data_reference) {
+          const isExist = pricetag_item_views.value.findIndex(
+            (find) => find.unique_id == item.reference_id
+          );
 
-        if (isExist < 0) {
-          pricetag_item_views.value.push({
-            no: `${no}`,
-            unique_id: item.reference_id || "",
-            item_name: item.catalogue?.name || "",
-            price: item.price,
-            qty: item.quantity,
-            unit_id: item.unit_id || "",
-            unit_name: item.unit_name || "",
-            garansi: item.garansi ? item.garansi + " Hari" : "N/A",
-            note: item.note || "",
-            is_equivalent: false,
-            equivalent_from_id: "",
-            delivery: item.delivery,
-            status_item: item.status_item,
-            hasChild: true,
-          });
-          no += 1;
+          if (isExist < 0) {
+            pricetag_item_views.value.push({
+              no: `${no}`,
+              unique_id: item.reference_id || "",
+              item_name: item.catalogue?.name || "",
+              price: item.price,
+              qty: item.quantity,
+              unit_id: item.unit_id || "",
+              unit_name: item.unit_name || "",
+              garansi: item.garansi ? item.garansi + " Hari" : "N/A",
+              note: item.note || "",
+              is_equivalent: false,
+              equivalent_from_id: "",
+              delivery: item.delivery,
+              status_item: item.status_item,
+              hasChild: true,
+            });
+            no += 1;
 
-          pricetag_item_views.value.push({
-            no: ``,
-            unique_id: item.unique_id || "",
-            item_name: displayCatalogueName(item.catalogue!),
-            price: item.price,
-            qty: item.quantity,
-            unit_id: item.unit_id || "",
-            unit_name: item.unit_name || "",
-            garansi: item.garansi ? item.garansi + " Hari" : "N/A",
-            note: item.note || "",
-            is_equivalent: false,
-            equivalent_from_id: "",
-            delivery: item.delivery,
-            status_item: item.status_item,
-            hasChild: false,
-          });
+            pricetag_item_views.value.push({
+              no: ``,
+              unique_id: item.unique_id || "",
+              item_name: displayCatalogueName(item.catalogue!),
+              price: item.price,
+              qty: item.quantity,
+              unit_id: item.unit_id || "",
+              unit_name: item.unit_name || "",
+              garansi: item.garansi ? item.garansi + " Hari" : "N/A",
+              note: item.note || "",
+              is_equivalent: false,
+              equivalent_from_id: "",
+              delivery: item.delivery,
+              status_item: item.status_item,
+              hasChild: false,
+            });
+          } else {
+            pricetag_item_views.value.push({
+              no: ``,
+              unique_id: item.unique_id || "",
+              item_name: displayCatalogueName(item.catalogue!),
+              price: item.price,
+              qty: item.quantity,
+              unit_id: item.unit_id || "",
+              unit_name: item.unit_name || "",
+              garansi: item.garansi ? item.garansi + " Hari" : "N/A",
+              note: item.note || "",
+              is_equivalent: false,
+              equivalent_from_id: "",
+              delivery: item.delivery,
+              status_item: item.status_item,
+              hasChild: false,
+            });
+          }
         } else {
           pricetag_item_views.value.push({
-            no: ``,
+            no: `${no}`,
             unique_id: item.unique_id || "",
             item_name: displayCatalogueName(item.catalogue!),
             price: item.price,
@@ -689,45 +716,8 @@ watch(
             hasChild: false,
           });
         }
-
-        // (data ?? []).forEach((item) => {
-        //   pricetag_item_views.value.push({
-        //     no: `${no}`,
-        //     unique_id: item.unique_id || "",
-        //     item_name: item.catalogue?.name || "",
-        //     price: item.price,
-        //     qty: item.quantity,
-        //     unit_id: item.unit_id || "",
-        //     unit_name: item.unit_name || "",
-        //     garansi: item.garansi ? item.garansi + " Hari" : "N/A",
-        //     note: item.note || "",
-        //     is_equivalent: false,
-        //     equivalent_from_id: "",
-        //     delivery: item.delivery,
-        //     status_item: item.status_item,
-        //     hasChild: false,
-        //   });
-        //   no += 1;
-        // });
-      } else {
-        pricetag_item_views.value.push({
-          no: `${no}`,
-          unique_id: item.unique_id || "",
-          item_name: displayCatalogueName(item.catalogue!),
-          price: item.price,
-          qty: item.quantity,
-          unit_id: item.unit_id || "",
-          unit_name: item.unit_name || "",
-          garansi: item.garansi ? item.garansi + " Hari" : "N/A",
-          note: item.note || "",
-          is_equivalent: false,
-          equivalent_from_id: "",
-          delivery: item.delivery,
-          status_item: item.status_item,
-          hasChild: false,
-        });
-      }
-    });
+      });
+    }
 
     console.log("item views", pricetag_item_views.value);
   },
@@ -878,7 +868,111 @@ const getDPPNilaiLain = computed(() => {
 
   return dpp;
 });
+type SpreadsheetSheet = {
+  rows: Record<string, any>;
+  styles?: any[];
+};
 
+function spreadsheetToAutoTable(sheet: SpreadsheetSheet) {
+  const rows = sheet.rows ?? {};
+  const styles = sheet.styles ?? [];
+
+  const rowEntries = Object.entries(rows)
+    .filter(([key]) => key !== "len")
+    .sort(([a, b]) => Number(a) - Number(b));
+
+  if (rowEntries.length === 0) {
+    return {
+      head: [],
+      body: [],
+    };
+  }
+
+  // ================= HEADER =================
+
+  const headerRow: any = rowEntries[0][1];
+
+  const headerKeys = Object.keys(headerRow.cells)
+    .map(Number)
+    .sort((a, b) => a - b);
+
+  const totalColumns = headerKeys.length;
+
+  const head: RowInput[] = [
+    headerKeys.map(
+      (col): CellInput => ({
+        content: headerRow.cells[col]?.text ?? "",
+        styles: {
+          fontStyle: "bold",
+          halign: "center",
+          valign: "middle",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+        },
+      })
+    ),
+  ];
+
+  // ================= BODY =================
+
+  const body: RowInput[] = [];
+
+  rowEntries.slice(1).forEach(([_, row]: any) => {
+    const rowData: CellInput[] = [];
+
+    for (let col = 0; col < totalColumns; col++) {
+      const cell = row.cells?.[col];
+
+      const style = cell?.style != null ? styles[cell.style] ?? {} : {};
+
+      let label = cell?.text ?? "";
+      if (row.__unique_id) {
+        const dataInViewApps = pricetag_item_views.value.find(
+          (find) => find.unique_id == row.__unique_id
+        );
+
+        if (col == 1) {
+          label = dataInViewApps?.item_name;
+        }
+        if (col == 2) {
+          label = currencyWithoutSymbol(dataInViewApps!.price);
+        }
+        if (col == 3) {
+          label = dataInViewApps?.qty;
+        }
+        if (col == 4) {
+          label = dataInViewApps?.unit_name;
+        }
+        if (col == 5) {
+          label = dataInViewApps?.hasChild
+            ? ""
+            : currencyWithoutSymbol(
+                Number(dataInViewApps!.price) * Number(dataInViewApps!.qty),
+                0
+              );
+        }
+      }
+
+      rowData.push({
+        content: label,
+        styles: {
+          fontStyle: style.font?.bold ? "bold" : "normal",
+          halign: style.align ?? "left",
+          valign: style.valign ?? "middle",
+          lineWidth: 0.1,
+          lineColor: [0, 0, 0],
+        },
+      });
+    }
+
+    body.push(rowData);
+  });
+
+  return {
+    head,
+    body,
+  };
+}
 const generateQuotationPdf = async () => {
   const doc = new jsPDF();
 
@@ -1051,8 +1145,9 @@ const generateQuotationPdf = async () => {
     }
   });
 
+  let summeryData: RowInput[] = [];
   if (typeSummery.value === "total") {
-    rowData.push([
+    summeryData.push([
       {
         content: `Total Price`,
         colSpan: 5,
@@ -1073,7 +1168,7 @@ const generateQuotationPdf = async () => {
       },
     ]);
 
-    rowData.push([
+    summeryData.push([
       {
         content: `Subtotal`,
         colSpan: 5,
@@ -1102,7 +1197,7 @@ const generateQuotationPdf = async () => {
       )
       .forEach((element) => {
         if (element.adjustments_transaction?.name.toLowerCase() == "ppn") {
-          rowData.push([
+          summeryData.push([
             {
               content: `DPP Nilai Lain`,
               colSpan: 5,
@@ -1148,7 +1243,7 @@ const generateQuotationPdf = async () => {
         ]);
       });
 
-    rowData.push([
+    summeryData.push([
       {
         content: `Grand Total`,
         colSpan: 5,
@@ -1170,10 +1265,24 @@ const generateQuotationPdf = async () => {
     ]);
   }
 
+  const { head, body } = !props.dataInterface.data?.raw_payload
+    ? {}
+    : spreadsheetToAutoTable(props.dataInterface.data?.raw_payload[0]);
+
+  let bodyTable: RowInput[] = [];
+
+  if (props.dataInterface.data?.raw_payload) {
+    bodyTable = [...body!, ...summeryData];
+  } else {
+    bodyTable = [...rowData, ...summeryData];
+  }
+
   autoTable(doc, {
     startY: 105,
-    head: [["No", "Item", "Qty", "UoM", "Price", "Total Price"]],
-    body: rowData,
+    head: props.dataInterface.data?.raw_payload
+      ? head
+      : [["No", "Item", "Qty", "UoM", "Price", "Total Price"]],
+    body: bodyTable,
     styles: {
       fontSize: 7,
     },
@@ -1337,6 +1446,7 @@ const showTransactionAdjustmentValue = (
 };
 
 const generateQuotation = async () => {
+  // console.log("data", props.dataInterface.data?.raw_payload[0]);
   const { doc } = await generateQuotationPdf();
   const blob = doc.output("blob");
   pdfUrl.value = URL.createObjectURL(blob);

@@ -55,6 +55,7 @@ export type Pricetag = {
   fileUploads?: UploadUserFile[];
   total_price?: number;
   reference_transaction_adjustment?: ReferenceTransactionAdjustment[];
+  raw_payload?: any | null;
 };
 
 export enum PricetagItemStatus {
