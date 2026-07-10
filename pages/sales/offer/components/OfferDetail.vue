@@ -947,6 +947,12 @@ function spreadsheetToAutoTable(sheet: SpreadsheetSheet) {
                 0
               );
         }
+
+        if (dataInViewApps?.hasChild) {
+          if (col > 1) {
+            label = "";
+          }
+        }
       }
 
       rowData.push({

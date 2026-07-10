@@ -323,7 +323,7 @@ const onSubmit = async (data: any) => {
       const pricetag: Pricetag | undefined = response.data.value?.data;
       ElMessage.success("Berhasil");
 
-      // window.location.href = "/sales/offer/" + id.value;
+      window.location.href = "/sales/offer/" + id.value;
     }
   } catch (error: any) {
     ElMessage.error(error);
