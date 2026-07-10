@@ -338,7 +338,7 @@ const purchaseRequestData = ref<PurchaseRequest | null>(null);
 const purchaseRequestItem = ref<PurchaseRequestItemView[]>([]);
 const notes = ref("");
 const relatedPurchaseOrders = ref<ResponsePagination<PurchaseOrderItem[]>>({
-  currentPage: 0,
+  current_page: 0,
   data: [],
   success: true,
   total_data: 0,
@@ -374,7 +374,7 @@ const item_request_trials = await useAsyncData(
     if (request_search_item_request_trail.value.column.length == 0) {
       return {
         success: false,
-        currentPage: 0,
+        current_page: 0,
         total_page: 0,
         total_data: 0,
         data: [],
@@ -573,7 +573,7 @@ const fetchRelatedData = async () => {
 
     if (poResponse.status.value === "success") {
       relatedPurchaseOrders.value = poResponse.data.value || {
-        currentPage: 0,
+        current_page: 0,
         data: [],
         success: true,
         total_data: 0,

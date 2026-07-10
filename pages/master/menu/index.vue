@@ -490,7 +490,7 @@ const fetchData = async () => {
     );
     if (response.status.value == "success") {
       data.value = response.data.value ?? {
-        currentPage: 0,
+        current_page: 0,
         data: [],
         success: true,
         total_data: 0,

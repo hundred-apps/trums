@@ -368,7 +368,11 @@ const querySearchUnit = (queryString: string, cb: (arg: any) => void) => {
   };
   params.keyword = queryString;
   params.table = "units";
-  params.column = [];
+  params.column = [
+    {
+      is_active: [false],
+    },
+  ];
   params.flag = "form";
   useFetchApi<ResponsePagination<Unit[]>>(
     "/search",
@@ -382,8 +386,6 @@ const querySearchUnit = (queryString: string, cb: (arg: any) => void) => {
 
         if (resultApi.length > 0) {
           cb(resultApi.map((value) => ({ ...value, value: value.name })));
-        } else {
-          cb([{ value: `Tambahkan ${queryString}`, label: `${queryString}` }]);
         }
       }
     })

@@ -163,7 +163,7 @@ const request_search = ref<RequestSearch>({
 
 const items = ref<ResponsePagination<DataRequestItem[]>>({
   success: true,
-  currentPage: 1,
+  current_page: 1,
   total_page: 1,
   total_data: 0,
   data: [],
@@ -182,7 +182,7 @@ const { data, refresh, status } = await useAsyncData<
   );
   return {
     success: res.data.value?.success ?? false,
-    currentPage: res.data.value?.currentPage ?? 0,
+    current_page: res.data.value?.current_page ?? 0,
     total_page: res.data.value?.total_page ?? 0,
     total_data: res.data.value?.total_data ?? 0,
     data: (res.data.value?.data ?? []).map((value) => ({

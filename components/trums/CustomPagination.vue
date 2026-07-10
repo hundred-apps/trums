@@ -17,7 +17,7 @@ const { isMobile } = useDevice();
 
 interface Props {
   total: number;
-  currentPage: number;
+  current_page: number;
   pageSize: number;
 }
 

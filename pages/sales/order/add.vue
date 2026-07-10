@@ -483,7 +483,22 @@
         </el-table-column>
         <el-table-column prop="pricetag.name" label="Nomor Penawaran">
           <template #default="scope">
-            {{ scope.row.pricetag?.unique_code || "N/A" }}
+            <NuxtLink
+              :target="'_blank'"
+              class="text-blue-600"
+              :to="`/sales/offer/${scope.row.pricetag?.unique_id}`"
+              >{{ scope.row.pricetag?.unique_code || "N/A" }}</NuxtLink
+            >
+          </template>
+        </el-table-column>
+        <el-table-column prop="pricetag.name" label="Nomor RAB">
+          <template #default="scope">
+            <NuxtLink
+              :target="'_blank'"
+              class="text-blue-600"
+              :href="`/sales/quotation/${ (scope.row.pricetag?.reference_data as Canvassing).unique_id }`"
+              >{{ (scope.row.pricetag?.reference_data as Canvassing).unique_code || "N/A" }}
+            </NuxtLink>
           </template>
         </el-table-column>
         <el-table-column prop="" label="Berlaku s/d" width="200">

@@ -173,7 +173,7 @@ import {
 import type { Maintenance } from "~/types/maintenance";
 import type { BaseResponse, DataInterface } from "~/types/response";
 import ErrorPage from "~/components/trums/ErrorPage.vue";
-import type { RequestSearch } from "~/types/request_search";
+import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { PurchaseOrder } from "~/types/scm/purchase_order";
 import type { AddressType } from "~/types/address";
 import ActionNotPermitted from "~/components/trums/ActionNotPermitted.vue";
@@ -187,6 +187,8 @@ import OfferDetail from "../offer/components/OfferDetail.vue";
 import CanvassingTable from "../canvassing/components/CanvassingTable.vue";
 import OfferTable from "../offer/components/OfferTable.vue";
 import OrderTable from "../order/components/OrderTable.vue";
+import type { ResponsePagination } from "~/types/response_pagination";
+import { fa } from "element-plus/es/locale/index.mjs";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -202,6 +204,8 @@ const activeNameTab = ref("inquiry");
 
 const goBack = () => router.back();
 const id = ref<string>((router.currentRoute.value.params.id as string) ?? "");
+
+const loadingInquiry = ref<boolean>(true);
 
 const inquiryData = ref<DataInterface<Inquiry>>({
   code: 200,
@@ -297,6 +301,75 @@ const salesOrder = ref<DataInterface<PurchaseOrder>>({
   pending: true,
 });
 
+// const query_search_item_request = ref<RequestSearch>({
+//   column: [],
+//   keyword: "",
+//   limit: "10",
+//   offset: "1",
+//   sort: {
+//     column: "created_at",
+//     order: OrderColumn.DESC,
+//   },
+//   table: "item_request",
+//   flag: "form",
+// });
+
+// const item_request = await useAsyncData("fetch-item-request", async () => {
+//   if (query_search_item_request.value.column.length > 0) {
+//     const res = await useFetchApi<ResponsePagination<ItemRequest[]>>(
+//       `/search`,
+//       "fetch-item-request-in-id",
+//       "post",
+//       query_search_item_request.value
+//     );
+//     return res.data.value;
+//   }
+// });
+
+// watch(
+//   () => query_search_item_request.value,
+//   () => item_request.refresh(),
+//   { deep: true }
+// );
+// watch(
+//   () => item_request.data.value?.data,
+//   (newValue) => {
+//     const inquiry: Inquiry = inquiryData.value.data!;
+
+//     inquiry.item_request = [
+//       ...(inquiryData.value.data?.item_request ?? []),
+//       ...(newValue || []).map((element) => ({
+//         ...element,
+//         files: [...(element.catalogue?.files ?? []), ...(element.files ?? [])],
+//       })),
+//     ];
+
+//     inquiryData.value = {
+//       code: 200,
+//       data: inquiry,
+//       message: "",
+//       pending: false,
+//     };
+//     console.log("currentPage", item_request.data.value?.current_page);
+//     console.log("total_page", item_request.data.value?.total_page);
+//     if (
+//       item_request.status.value != "pending" &&
+//       item_request.data.value?.data
+//     ) {
+//       if (
+//         item_request.data.value?.current_page! <
+//         item_request.data.value?.total_page
+//       ) {
+//         query_search_item_request.value.offset = `${
+//           Number(query_search_item_request.value.offset) + 1
+//         }`;
+//       } else {
+//         loadingInquiry.value = false;
+//       }
+//     }
+//   }
+// );
+
 const fetchInquiry = async () => {
   inquiryData.value.pending = true;
   try {
@@ -312,7 +385,7 @@ const fetchInquiry = async () => {
       if (inquiry.data.value?.data) {
         const inquiryDataValue: Inquiry = inquiry.data.value!.data!;
 
-        inquiryDataValue.item_request.forEach((element) => {
+        (inquiryDataValue.item_request || []).forEach((element) => {
           element.files = [
             ...(element.catalogue?.files ?? []),
             ...(element.files ?? []),
@@ -325,6 +398,12 @@ const fetchInquiry = async () => {
           message: "",
           pending: false,
         };
+
+        // query_search_item_request.value.column = [
+        //   {
+        //     inquiry_id: [inquiryDataValue.unique_id],
+        //   },
+        // ];
 
         canvassing_search.value.column = [
           {

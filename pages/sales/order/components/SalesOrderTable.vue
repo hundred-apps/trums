@@ -73,7 +73,7 @@
         (value) => {
           console.log('purchase order data ', value);
           data = value ?? {
-            currentPage: 0,
+            current_page: 0,
             data: [],
             success: false,
             total_page: 0,
@@ -123,7 +123,7 @@ const hasUpdate = await checkPermission("purchase-order-update");
 const hasDelete = await checkPermission("purchase-order-delete");
 
 const data = ref<ResponsePagination<PurchaseOrder[]>>({
-  currentPage: 0,
+  current_page: 0,
   data: [],
   success: false,
   total_page: 0,

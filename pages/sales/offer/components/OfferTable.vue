@@ -136,9 +136,9 @@ const availableColumn: ColumnTable<Pricetag>[] = [
     cellRenderer: ({ rowData }: { rowData: Pricetag }) => {
       const onCommand = (command: string) => {
         if (command === "edit") {
-          if(props.type == 'in'){
+          if (props.type == "in") {
             window.location.href = `/supply-chain-management/offer/add?id=${rowData.unique_id}&type=${rowData.type}`;
-          }else{
+          } else {
             window.location.href = `/sales/offer/add?id=${rowData.unique_id}&type=${rowData.type}`;
           }
         }
@@ -183,7 +183,7 @@ const availableColumn: ColumnTable<Pricetag>[] = [
       const onChange = (value: CheckboxValueType) =>
         (data.value = {
           success: true,
-          currentPage: _data?.currentPage ?? 0,
+          current_page: _data?.currentPage ?? 0,
           total_data: _data?.total_data ?? 0,
           total_page: _data?.total_data ?? 0,
           data: _data?.data?.map((row: any) => {
@@ -220,7 +220,7 @@ const availableColumn: ColumnTable<Pricetag>[] = [
 //     const onChange = (value: CheckboxValueType) =>
 //       (data.value = {
 //         success: true,
-//         currentPage: _data?.currentPage ?? 0,
+//         current_page: _data?.currentPage ?? 0,
 //         total_data: _data?.total_data ?? 0,
 //         total_page: _data?.total_data ?? 0,
 //         data: _data?.data?.map((row: any) => {

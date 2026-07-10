@@ -1209,7 +1209,7 @@ const fileList = ref<UploadUserFile[]>([]);
 const references = ref<ReferenceTransactionAdjustment[]>([]);
 const quotationItems = ref<QuotationItemInterface[]>([]);
 const contacts = ref<ResponsePagination<Contact[]>>({
-  currentPage: 0,
+  current_page: 0,
   data: [],
   success: true,
   total_data: 0,
@@ -3769,7 +3769,7 @@ const fetchContact = async () => {
 
     if (response.status.value === "success") {
       contacts.value = response.data.value ?? {
-        currentPage: 0,
+        current_page: 0,
         data: [],
         success: true,
         total_data: 0,
@@ -3941,8 +3941,6 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
           element.adjustments_transaction;
       }
     });
-
-    console.log("contact fee", contactsFee.value);
 
     payment_terms.value = dataCanvassing.payment_terms ?? [];
 

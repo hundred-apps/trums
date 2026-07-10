@@ -377,7 +377,7 @@ const loadingSubtitution = ref<boolean>(false);
 const loadingInventory = ref(false);
 const catalogueData = ref<Catalogue | null>(null);
 const inventoryData = ref<ResponsePagination<Inventory[]>>({
-  currentPage: 0,
+  current_page: 0,
   data: [],
   success: true,
   total_data: 0,
@@ -820,7 +820,7 @@ availableColumn.unshift({
     const onChange = (value: CheckboxValueType) =>
       (inventoryData.value = {
         success: true,
-        currentPage: _data?.currentPage ?? 0,
+        current_page: _data?.currentPage ?? 0,
         total_data: _data?.total_data ?? 0,
         total_page: _data?.total_data ?? 0,
         data: _data?.data?.map((row: any) => {

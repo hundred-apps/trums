@@ -264,7 +264,7 @@ const request_sugestion_item = ref<RequestSearch>({
 });
 
 const releatedItemRequest = ref<ResponsePagination<Inventory[]>>({
-  currentPage: 0,
+  current_page: 0,
   data: [],
   success: true,
   total_data: 0,
@@ -533,7 +533,7 @@ const fetchRelatedData = async () => {
 
     if (inventoriesResponse.status.value === "success") {
       releatedItemRequest.value = inventoriesResponse.data.value || {
-        currentPage: 0,
+        current_page: 0,
         data: [],
         success: true,
         total_data: 0,

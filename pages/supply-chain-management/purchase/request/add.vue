@@ -311,7 +311,7 @@ const itemRequestSearch = reactive<RequestSearch>({
 
 // Data from API
 const itemRequests = ref<ResponsePagination<ItemRequest[]>>({
-  currentPage: 0,
+  current_page: 0,
   data: [],
   success: true,
   total_data: 0,

@@ -446,7 +446,7 @@ const purchaseOrderData = ref<PurchaseOrder | null>(props.purchaseOrder);
 const purchaseOrderItem = await useAsyncData("fetch-inquiries", async () => {
   let res: ResponsePagination<PurchaseOrderItem[]> = {
     success: false,
-    currentPage: 0,
+    current_page: 0,
     total_page: 0,
     total_data: 0,
     data: [],
@@ -462,7 +462,7 @@ const purchaseOrderItem = await useAsyncData("fetch-inquiries", async () => {
 
     res = response.data.value ?? {
       success: false,
-      currentPage: 0,
+      current_page: 0,
       total_page: 0,
       total_data: 0,
       data: [],

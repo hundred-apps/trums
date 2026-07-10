@@ -812,12 +812,7 @@ const querySearchUnit = (queryString: string, cb: (arg: any) => void) => {
         ...value,
         value: value.name,
       }));
-      cb([
-        ...callback,
-        { value: queryString, label: `${queryString}`, isNew: true },
-      ]);
-    } else {
-      cb([{ value: `${queryString}`, label: `${queryString}`, isNew: true }]);
+      cb(callback);
     }
   });
 

@@ -102,7 +102,7 @@
       v-if="isMobile"
       :expand-row-key="getExpandRowKeys"
       :item_canvassing="item_canvassing"
-      :loading="loading"
+      :loading="loadingItem"
       :query-search-catalogue="querySearchCatalogue"
       :query-search-unit="querySearchUnit"
       @calculate-selling-price="calculateSellingPrice"
@@ -133,7 +133,7 @@
           :data="item_canvassing"
           row-key="index"
           :tree-props="{ children: 'children' }"
-          :loading="loading"
+          :loading="loadingItem"
           :expand-row-keys="getExpandRowKeys ?? []"
           :row-class-name="tableRowClassName"
           border
@@ -586,6 +586,7 @@ const inquiry_id = computed(() => route.query.inquiry_id as string);
 const ruleFormRef = ref<FormInstance>();
 const tableRef = ref();
 const loading = ref(false);
+const loadingItem = ref(true);
 
 const visibleModalSearchItemExample = ref(false);
 const visibleModalRequest = ref(false);
@@ -611,7 +612,7 @@ const config = useRuntimeConfig();
 const fileList = ref<UploadUserFile[]>([]);
 const references = ref<ReferenceTransactionAdjustment[]>([]);
 const contacts = ref<ResponsePagination<Contact[]>>({
-  currentPage: 0,
+  current_page: 0,
   data: [],
   success: true,
   total_data: 0,
@@ -640,6 +641,19 @@ const request_search_inquiry = ref<RequestSearch>({
     order: OrderColumn.DESC,
   },
   table: "inquiries",
+  flag: "form",
+});
+
+const query_search_item_request = ref<RequestSearch>({
+  column: [],
+  keyword: "",
+  limit: "1",
+  offset: "1",
+  sort: {
+    column: "created_at",
+    order: OrderColumn.DESC,
+  },
+  table: "item_request",
   flag: "form",
 });
 
@@ -1085,7 +1099,11 @@ const addToForm = async (val: Inquiry) => {
   ruleForm.source_document = val.unique_code;
   ruleForm.inquiry = val;
 
-  val.item_request.forEach(async (item, index) => {
+  visibleModalRequest.value = false;
+};
+
+const addItemRequest = (items: ItemRequest[]) => {
+  items.forEach(async (item, index) => {
     const tmp: CanvassingItemForm = {
       type_item: "request",
       equivalent_id: null,
@@ -1135,12 +1153,98 @@ const addToForm = async (val: Inquiry) => {
     }
 
     item_canvassing.value.push(tmp);
-
-    nextItemVendorfield(tmp.index);
   });
 
-  visibleModalRequest.value = false;
+  item_canvassing.value.forEach((element, index) => {
+    if (element.children.length == 0) {
+      element.children.push({
+        image: "",
+        index: `${index}-${element.children.length + 1}`,
+        type_item: "original",
+        equivalent_id: null,
+        canvassing_id: null,
+        canvaasing_version: null,
+        item_request_trail_version: null,
+        item_request_trail_id: null,
+        unique_id: "",
+        vendor_id: "",
+        vendor_name: "",
+        unit_id: "",
+        unit_name: "",
+        unit_version: null,
+        offer_item_id: null,
+        offer_item_version: 0,
+        catalogue_id: "",
+        parent_catalogue_id: "",
+        catalogue_name: "",
+        sn: "N/A",
+        quantity: element.quantity,
+        unit_price: 0,
+        total_price: 0,
+        status: CanvassingVendorStatus.SUBMITTED,
+        parent_index: index,
+        taxes: [],
+        editing: null,
+        type: "child",
+        children: [],
+        selling_price: 0,
+        total_selling_price: 0,
+        profit: 0,
+        profit_unit: "percent",
+        fee: 0,
+        fee_unit: "percent",
+        ongkir: 0,
+        ongkir_unit: "percent",
+        pricetag_item_id: "",
+        pricetag_item_version: 0,
+        contacts_fee: [],
+      });
+    }
+  });
 };
+
+const item_request = await useAsyncData(
+  "fetch-item-request-to-item-canvassing",
+  async () => {
+    if (query_search_item_request.value.column.length > 0) {
+      const res = await useFetchApi<ResponsePagination<ItemRequest[]>>(
+        `/search`,
+        "fetch-item-request-to-item-canvassing",
+        "post",
+        query_search_item_request.value
+      );
+      return res.data.value;
+    }
+  }
+);
+
+watch(
+  () => item_request.data.value?.data,
+  (newValue) => {
+    console.log("new value item request", newValue);
+    if (newValue) {
+      addItemRequest(newValue);
+    }
+
+    if (
+      (item_request.data.value?.current_page || 0) <
+      (item_request.data.value?.total_page || 0)
+    ) {
+      query_search_item_request.value.offset = `${
+        Number(query_search_item_request.value.offset) + 1
+      }`;
+    } else {
+      loadingItem.value = false;
+    }
+  },
+  { deep: true }
+);
+
+watch(
+  () => query_search_item_request.value,
+  () => item_request.refresh(),
+  { deep: true }
+);
 
 const mapApiFilesToUpload = (files: any[]) => {
   const baseUrl = useRuntimeConfig().public.baseImageURL;
@@ -1714,7 +1818,7 @@ const fetchContact = async () => {
 
     if (response.status.value === "success") {
       contacts.value = response.data.value ?? {
-        currentPage: 0,
+        current_page: 0,
         data: [],
         success: true,
         total_data: 0,
@@ -2287,6 +2391,11 @@ const fetchInquiryDetail = async () => {
     if (inquiry.status.value === "success") {
       if (inquiry.data.value?.data) {
         addToForm(inquiry.data.value!.data);
+        query_search_item_request.value.column = [
+          {
+            inquiry_id: [inquiry.data.value!.data.unique_id],
+          },
+        ];
       }
     }
   } catch (error) {
