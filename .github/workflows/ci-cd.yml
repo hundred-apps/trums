@@ -1,6 +1,4 @@
 name: Deploy Nuxt 3
-
-
 on:
   push:
     branches: ["konsinyasi", "main"]
