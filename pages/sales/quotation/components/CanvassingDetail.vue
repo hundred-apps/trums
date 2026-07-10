@@ -862,12 +862,12 @@
       "
     >
       <el-table :data="summeryData ?? []" style="width: 100%">
-        <el-table-column label="" prop="label" fixed="left" width="250">
+        <el-table-column label="" prop="label" fixed="left">
           <template #default="{ row }">
             <div class="font-bold">{{ row.label }}</div>
           </template>
         </el-table-column>
-        <el-table-column label="Profit" prop="max" align="right">
+        <el-table-column label="Profit" prop="max" align="right" width="200">
           <template #default="scope">
             {{ scope.row.max }}
           </template>
@@ -5468,9 +5468,14 @@ const generateSCMMemo = async () => {
     doc.text("Direktur", 160, footerY + 10);
 
     if (canvassingData.value?.approved_by) {
-      doc.addImage(approvedSignBase64, "PNG", 155, footerY - 22, 35, 20);
+      const type =
+        canvassingData.value.approved_by?.files![0].mime_type.split("/");
+      doc.addImage(approvedSignBase64, type[1], 155, footerY - 22, 35, 20);
     }
-    if (canvassingData.value?.request_by) {
+    if (
+      canvassingData.value?.request_by?.files &&
+      canvassingData.value?.request_by?.files.length > 0
+    ) {
       doc.addImage(requestSignBase64, "PNG", 10, footerY - 22, 35, 20);
     }
   };
