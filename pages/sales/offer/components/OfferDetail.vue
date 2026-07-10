@@ -521,6 +521,7 @@ import type { Catalogue } from "~/types/catalogue";
 const { isMobile } = useDevice();
 
 const router = useRouter();
+
 const loading = ref<boolean>(false);
 const goBack = () => router.back();
 
@@ -1366,20 +1367,72 @@ const generateQuotationPdf = async () => {
 
   currentY = checkPageBreak(currentY, 50);
 
+  currentY = checkPageBreak(currentY, 50);
+
   doc.setFontSize(9);
 
-  doc.text("Best Regards,", 10, currentY);
+  // Area tanda tangan kiri
+  const signAreaX = 10;
+  const signAreaWidth = 60;
+  const signCenterX = signAreaX + signAreaWidth / 2;
+
+  const signImageWidth = 35;
+  const signImageHeight = 20;
+
+  doc.text("Best Regards,", signCenterX, currentY, {
+    align: "center",
+  });
 
   currentY += 30;
 
   if (props.dataInterface?.data?.type === "in") {
-    doc.text(props.dataInterface?.data?.owner?.name ?? "", 10, currentY);
+    doc.text(
+      props.dataInterface?.data?.owner?.name ?? "",
+      signCenterX,
+      currentY,
+      {
+        align: "center",
+      }
+    );
   } else {
-    doc.text("Stanislaus Adrian Pratama,", 10, currentY);
+    const canvassing: Canvassing | null = props.dataInterface.data
+      ?.reference_data as Canvassing | null;
+
+    if (canvassing && canvassing.request_by) {
+      let requestSignBase64 = "";
+
+      if (
+        canvassing.request_by.files &&
+        canvassing.request_by.files.length > 0
+      ) {
+        requestSignBase64 = await getBase64ImageFromUrl(
+          `${baseImageURL}/${canvassing.request_by.files[0].image_path}/${canvassing.request_by.files[0].filename}`
+        );
+
+        doc.addImage(
+          requestSignBase64,
+          "PNG",
+          signCenterX - signImageWidth / 2,
+          currentY - 25,
+          signImageWidth,
+          signImageHeight
+        );
+      }
+
+      doc.text(canvassing.request_by?.name ?? "", signCenterX, currentY - 5, {
+        align: "center",
+      });
+    } else {
+      doc.text("Stanislaus Adrian Pratama", signCenterX, currentY - 5, {
+        align: "center",
+      });
+    }
 
     currentY += 10;
 
-    doc.text("Operation Manager", 10, currentY);
+    // doc.text("Operation Manager", signCenterX, currentY, {
+    //   align: "center",
+    // });
   }
 
   // ================= OUTPUT =================

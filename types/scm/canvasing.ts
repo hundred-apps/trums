@@ -126,6 +126,8 @@ export type Canvassing = {
   people?: People;
   files: AppFile[];
   expired_price?: number;
+  approved_by?: People | null;
+  request_by?: People | null;
 };
 
 export type CanvassingItem = {

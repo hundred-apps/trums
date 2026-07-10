@@ -5397,7 +5397,36 @@ const generateSCMMemo = async () => {
     });
   }
   currentY += 8;
-  const drawFooter = () => {
+  const drawFooter = async () => {
+    let approvedSignBase64 = "";
+    let requestSignBase64 = "";
+    let checkerSignBase64 = "";
+
+    if (canvassingData.value?.approved_by) {
+      if (
+        canvassingData.value?.approved_by.files &&
+        canvassingData.value?.approved_by.files.length > 0
+      ) {
+        approvedSignBase64 = await getBase64ImageFromUrl(
+          `${imageUrl}/${
+            canvassingData.value?.approved_by.files![0].image_path
+          }/${canvassingData.value?.approved_by.files![0].filename}`
+        );
+      }
+    }
+    if (canvassingData.value?.request_by) {
+      if (
+        canvassingData.value?.request_by.files &&
+        canvassingData.value?.request_by.files.length > 0
+      ) {
+        requestSignBase64 = await getBase64ImageFromUrl(
+          `${imageUrl}/${
+            canvassingData.value?.request_by.files![0].image_path
+          }/${canvassingData.value?.request_by.files![0].filename}`
+        );
+      }
+    }
+
     const lastPage = doc.getNumberOfPages();
 
     doc.setPage(lastPage);
@@ -5414,19 +5443,38 @@ const generateSCMMemo = async () => {
 
     doc.text("Disetujui Oleh,", 160, footerY - 30);
 
-    doc.text("Stanislaus Adrian Pratama", 14, footerY + 5);
+    doc.text(
+      canvassingData.value?.approved_by
+        ? `${capitalizeWords(canvassingData.value?.request_by?.name ?? "")}`
+        : "Stanislaus Adrian Pratama",
+      14,
+      footerY + 5
+    );
 
     doc.text("Nina", 120, footerY + 5);
 
-    doc.text("Chairil Juwono", 160, footerY + 5);
+    doc.text(
+      canvassingData.value?.approved_by
+        ? `${capitalizeWords(canvassingData.value?.approved_by?.name ?? "")}`
+        : "Chairil Juwono",
+      160,
+      footerY + 5
+    );
 
     doc.text("Operation", 14, footerY + 10);
 
     doc.text("Finance", 120, footerY + 10);
 
     doc.text("Direktur", 160, footerY + 10);
+
+    if (canvassingData.value?.approved_by) {
+      doc.addImage(approvedSignBase64, "PNG", 155, footerY - 22, 35, 20);
+    }
+    if (canvassingData.value?.request_by) {
+      doc.addImage(requestSignBase64, "PNG", 10, footerY - 22, 35, 20);
+    }
   };
-  drawFooter();
+  await drawFooter();
 
   doc.addPage();
 
