@@ -1745,6 +1745,7 @@ const onHandleSelectVendor = (item: Contact, type: "vendor" | "pic") => {
         pricetag: {
           category: ["penawaran"],
           to_id: [item.unique_id],
+          type: ["out"],
         },
       },
     ];
