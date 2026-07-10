@@ -5089,9 +5089,7 @@ const calculateSummaryaData = () => {
     },
     {
       label: "Ongkos Kirim",
-      max: currency(
-        displayAmount(adjustmentTransactionOngkirTotal, grandTotalValue)
-      ),
+      max: currency(adjustmentTransactionOngkirTotal.value?.amount ?? 0),
       beli: `${safePercent(
         adjustmentTransactionOngkirTotal.value.amount,
         totalBuyingPrice.value
