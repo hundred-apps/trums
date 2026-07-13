@@ -70,4 +70,5 @@ export type ReferenceTransactionAdjustment = {
   created_at?: number; // unix timestamp
   inc_tmp?: string;
   include?: boolean;
+  disabled?: boolean;
 };

@@ -803,6 +803,7 @@
             <el-input
               v-model="ref.tmp_amount_input"
               style="max-width: 300px"
+              :disabled="ref.disabled || false"
               placeholder="Masukan Nilai"
               @input="
                 (value) => {
@@ -815,7 +816,7 @@
               <template #append>
                 <el-select
                   v-model="ref.type"
-                  :disabled="ref.changeType == false"
+                  :disabled="ref.changeType == false || ref.disabled"
                   style="width: 100px"
                 >
                   <el-option label="%" value="percent" />
@@ -827,7 +828,7 @@
               type="danger"
               :icon="Delete"
               circle
-              :disabled="index === 0"
+              :disabled="index === 0 || ref.disabled"
               @click="removeAnotherCost(ref.adjustment_id)"
             />
           </span>
@@ -1832,11 +1833,32 @@ const handleSaveFee = ({
       child.fee_nominal = customMathCeil(child.fee_nominal ?? 0);
       child.profit_nominal = customMathCeil(child.profit_nominal ?? 0);
       child.ongkir_nominal = customMathCeil(child.ongkir_nominal ?? 0);
-      calculatePricing(child, "profit");
+      calculatePricing(child, "selling_price");
     });
   });
 
   syncFeeAcumulation();
+
+  const feeAccumulation = (references.value || []).filter(
+    (filter) =>
+      filter.adjustments_transaction?.name.toLowerCase() == "fee" &&
+      filter.disabled
+  );
+
+  if (feeAccumulation.length > 0) {
+    const feeAccumulationAmount = (contactsFee.value || []).reduce(
+      (acc, data) => acc + (data.amount_nominal || 0),
+      0
+    );
+    feeAccumulation[0].amount = feeAccumulationAmount;
+    feeAccumulation[0].amount_nominal = feeAccumulationAmount;
+    feeAccumulation[0].amount_nominal_display = handleInput(
+      `${feeAccumulationAmount}`
+    );
+    feeAccumulation[0].tmp_amount_input = handleInput(
+      `${feeAccumulationAmount}`
+    );
+  }
 };
 
 const syncFeeAcumulation = () => {
@@ -1859,7 +1881,7 @@ const syncFeeAcumulation = () => {
             const findContactFee = newContactFee.findIndex(
               (fee) => fee.party_id == contact.party_id
             );
-            console.log("New Contact Fee", newContactFee);
+            console.log("New Contact Fee", contact);
             const {
               fee_nominal,
               fee_percent,
@@ -1867,7 +1889,11 @@ const syncFeeAcumulation = () => {
               ongkir_percent,
               profit_nominal,
               profit_percent,
-            } = calculateProfitAndFee(child, contact.value || 0, "profit");
+            } = calculateProfitAndFee(
+              child,
+              contact.value || 0,
+              "selling_price"
+            );
             contact.value = contact.value;
             contact.amount_nominal = fee_nominal;
             contact.type = child.fee_unit as FeeType;
@@ -1957,7 +1983,6 @@ function updateItemFee(
 ) {
   for (const it of items) {
     if (it.index === index && it.type === "child") {
-      console.log("masuk sini", it);
       if (contacts) {
         if (it.fee_unit == "percent") {
           it.fee_percent = contacts.reduce((sum, c) => sum + (c.value || 0), 0);
@@ -1968,7 +1993,6 @@ function updateItemFee(
         }
 
         it.contacts_fee = contacts;
-        console.log("contact", it.contacts_fee);
       } else {
         it.fee = fee ?? 0;
       }
@@ -1989,7 +2013,6 @@ function updateItemFee(
           });
 
           it.contacts_fee = [...it.contacts_fee, ...contactNotExist];
-          console.log("contact child", it.contacts_fee);
         } else {
           it.contacts_fee = contacts.map((value) => ({
             ...value,
@@ -2430,8 +2453,8 @@ const calculateProfitAndFee = (
   //   feeNominal = customMathCeil(fee || 0);
   // }
 
-  console.log("fee nominal unit percent", row.fee_unit);
-
+  console.log("row", row.catalogue_name);
+  console.log("active field", activeField);
   if (activeField == "selling_price") {
     let selisih = row.selling_price - (hargaBeli + ongkirNominal);
 
@@ -2451,6 +2474,7 @@ const calculateProfitAndFee = (
     feeNominal = customMathCeil(selisih - profitNominal) as number;
 
     console.log("tmpFee", tmpFee);
+    console.log("tmpFeeNominal", feeNominal);
     console.log("profitAndFee", profitAndFee);
     console.log("selisih", selisih);
     console.log("fee nominal selling price", profitNominal);
@@ -3273,6 +3297,29 @@ const onHandleSelectContact = async (
     );
     value.children.forEach((child) => (child.contacts_fee = data));
   });
+
+  const fee = (adjustmentTransactions.data.value?.data || []).filter(
+    (filter) => filter.name.toLocaleLowerCase() == "fee"
+  );
+  const feeExist = (references.value || []).filter(
+    (filter) =>
+      filter.adjustments_transaction?.name.toLocaleLowerCase() == "fee"
+  );
+
+  if (fee.length > 0 && feeExist.length == 0) {
+    references.value.push({
+      unique_id: "",
+      reference: ReferenceAdjustment.CANVASSING,
+      reference_id: ruleForm.unique_id || "",
+      adjustment_id: fee[0].unique_id,
+      value: 0,
+      type: FeeType.PERCENT,
+      adjustment: fee[0],
+      adjustments_transaction: fee[0],
+      amount: 0,
+      disabled: true,
+    });
+  }
 };
 const onHandleSelectVendor = async (
   record: Record<string, any>,
@@ -3825,6 +3872,7 @@ const fetchDataEdit = async () => {
     if (response.status.value === "success") {
       const canvasing: Canvassing | null = response.data.value?.data ?? null;
       setDataEdit(canvasing);
+      ruleForm.status = CanvassingStatus.RAB;
       // (canvasing?.reference_transaction || []).forEach((element) => {
       //   console.log("references", element);
       // });
@@ -4171,6 +4219,18 @@ const submitForm = async (formEl: FormInstance | undefined) => {
     if (valid) {
       loading.value = true;
       try {
+        const invalidFee = (contactsFee.value || []).some(
+          (fee) =>
+            fee.amount === null ||
+            fee.amount === undefined ||
+            Number(fee.amount) === 0
+        );
+
+        if (invalidFee) {
+          ElMessage.warning("Lengkapi Data Penerima Fee");
+          return;
+        }
+
         await submit(formEl);
       } catch (error) {
         ElMessage.error("Failed to create canvassing");
@@ -4295,7 +4355,8 @@ const submit = async (formEl: FormInstance | undefined) => {
     (parent) =>
       parent.children?.some(
         (child) =>
-          !child.expected_delivery || child.expected_delivery.trim() === ""
+          child.checked &&
+          (!child.expected_delivery || child.expected_delivery.trim() === "")
       ) ?? false
   );
 
@@ -5125,24 +5186,24 @@ const calculateSummaryaData = () => {
     });
   });
 
-  const totalFeeRecive = contactsFee.value.reduce(
-    (acc, sum) => acc + (sum.amount_nominal || 0),
-    0
-  );
+  // const totalFeeRecive = contactsFee.value.reduce(
+  //   (acc, sum) => acc + (sum.amount_nominal || 0),
+  //   0
+  // );
 
-  if (totalFeeRecive > 0) {
-    data.push({
-      label: "Total Penerima Fee",
-      max: currency(totalFeeRecive),
-      beli: `${safePercent(totalFeeRecive, totalBuyingPrice.value)} %`,
-      jual: `${safePercent(totalFeeRecive, grandTotalValue)} %`,
-      min: currency(0),
-      beliMin: ``,
-      jualMin: ``,
-    });
-  }
+  // if (totalFeeRecive > 0) {
+  //   data.push({
+  //     label: "Total Penerima Fee",
+  //     max: currency(totalFeeRecive),
+  //     beli: `${safePercent(totalFeeRecive, totalBuyingPrice.value)} %`,
+  //     jual: `${safePercent(totalFeeRecive, grandTotalValue)} %`,
+  //     min: currency(0),
+  //     beliMin: ``,
+  //     jualMin: ``,
+  //   });
+  // }
 
-  netProfit -= totalFeeRecive;
+  // netProfit -= totalFeeRecive;
 
   data.push({
     label: "Net Profit",

@@ -4550,13 +4550,16 @@ const createQuotationPrice = async (data: any) => {
 };
 
 const generateSCMMemo = async () => {
-  const doc = new jsPDF();
+  const doc = new jsPDF({
+    orientation: "landscape",
+    unit: "mm",
+    format: "a4",
+  });
   const today = new Date();
+  let pageWidth = doc.internal.pageSize.getWidth();
+  let pageHeight = doc.internal.pageSize.getHeight();
 
-  const pageWidth = doc.internal.pageSize.getWidth();
   const marginX = 10;
-
-  const pageHeight = doc.internal.pageSize.getHeight();
 
   const marginTop = 10;
   const marginBottom = 55; // sisakan ruang footer
@@ -4632,16 +4635,20 @@ const generateSCMMemo = async () => {
   // doc.text(":", colonX, 66);
   // doc.text(`${currentCompany().name ?? "-"}`, valueX, 66);
 
-  doc.text("RFQ Number", labelX, 66);
+  doc.text("Alamat Pengiriman", labelX, 66);
   doc.text(":", colonX, 66);
-  doc.text(`${canvassingData?.value?.source_document ?? "-"}`, valueX, 66);
-  doc.text("Dikirim Ke", labelX, 72);
-  doc.text(":", colonX, 72);
+  doc.text(`${canvassingData.value!.address?.street}`, valueX, 66);
+  doc.text("", labelX, 72);
+  doc.text("", colonX, 72);
   doc.text(
     `${generateAddressView(canvassingData.value!.address!) ?? "-"}`,
     valueX,
     72
   );
+
+  doc.text("RFQ Number", labelX, 80);
+  doc.text(":", colonX, 80);
+  doc.text(`${canvassingData?.value?.source_document ?? "-"}`, valueX, 80);
 
   const calculateMargin = (totalBuy: number, totalSell: number) => {
     // const totalBuy = Number(getTotalBuyingPrice(row));
@@ -4718,6 +4725,33 @@ const generateSCMMemo = async () => {
           },
           {
             content: `${item.catalogue?.name}`,
+            styles: {
+              halign: "left",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: ``,
+            styles: {
+              halign: "left",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: ``,
+            styles: {
+              halign: "left",
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
+          },
+          {
+            content: ``,
             styles: {
               halign: "left",
               lineWidth: 0.1,
@@ -4867,6 +4901,37 @@ const generateSCMMemo = async () => {
               },
             },
             {
+              content: `${vendor.pricetag_item.status_item}`,
+              styles: {
+                halign: "left",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `${vendor.pricetag_item.delivery}`,
+              styles: {
+                halign: "left",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+            {
+              content: `${vendor.expected_delivery}`,
+              styles: {
+                halign: "left",
+                textColor: [120, 120, 120],
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [245, 245, 245],
+              },
+            },
+
+            {
               content: `${vendor.quantity}`,
               styles: {
                 halign: "center",
@@ -5015,7 +5080,7 @@ const generateSCMMemo = async () => {
   rowData.push([
     {
       content: `Subtotal`,
-      colSpan: 5,
+      colSpan: 8,
       styles: {
         halign: "right",
         fontStyle: "bold",
@@ -5090,7 +5155,7 @@ const generateSCMMemo = async () => {
   rowData.push([
     {
       content: `${adjustmentTransactionOngkirTotal?.value.adjustments_transaction?.name}`,
-      colSpan: 5,
+      colSpan: 8,
       styles: {
         halign: "right",
         fontStyle: "bold",
@@ -5149,7 +5214,7 @@ const generateSCMMemo = async () => {
     rowData.push([
       {
         content: `${adjustmentTransactionFeeTotal.value.adjustments_transaction?.name}`,
-        colSpan: 5,
+        colSpan: 8,
         styles: {
           halign: "right",
           fontStyle: "bold",
@@ -5237,7 +5302,7 @@ const generateSCMMemo = async () => {
   rowData.push([
     {
       content: `Grand Total`,
-      colSpan: 5,
+      colSpan: 8,
       styles: {
         halign: "right",
         fontStyle: "bold",
@@ -5273,7 +5338,7 @@ const generateSCMMemo = async () => {
   // Table
 
   autoTable(doc, {
-    startY: 80,
+    startY: 86,
     theme: "grid",
     head: [
       [
@@ -5287,6 +5352,18 @@ const generateSCMMemo = async () => {
         },
         {
           content: "Vendor",
+          rowSpan: 2,
+        },
+        {
+          content: "Ketersediaan",
+          rowSpan: 2,
+        },
+        {
+          content: "Pengiriman",
+          rowSpan: 2,
+        },
+        {
+          content: "Est.Pengiriman",
           rowSpan: 2,
         },
         {
@@ -5396,35 +5473,28 @@ const generateSCMMemo = async () => {
       // doc.text(`\u2022 ${value ?? "-"}`, 20, yFinal);
     });
   }
+
   currentY += 8;
   const drawFooter = async () => {
     let approvedSignBase64 = "";
     let requestSignBase64 = "";
-    let checkerSignBase64 = "";
 
-    if (canvassingData.value?.approved_by) {
-      if (
-        canvassingData.value?.approved_by.files &&
-        canvassingData.value?.approved_by.files.length > 0
-      ) {
-        approvedSignBase64 = await getBase64ImageFromUrl(
-          `${imageUrl}/${
-            canvassingData.value?.approved_by.files![0].image_path
-          }/${canvassingData.value?.approved_by.files![0].filename}`
-        );
-      }
+    if (
+      canvassingData.value?.approved_by?.files &&
+      canvassingData.value.approved_by.files.length > 0
+    ) {
+      approvedSignBase64 = await getBase64ImageFromUrl(
+        `${imageUrl}/${canvassingData.value.approved_by.files[0].image_path}/${canvassingData.value.approved_by.files[0].filename}`
+      );
     }
-    if (canvassingData.value?.request_by) {
-      if (
-        canvassingData.value?.request_by.files &&
-        canvassingData.value?.request_by.files.length > 0
-      ) {
-        requestSignBase64 = await getBase64ImageFromUrl(
-          `${imageUrl}/${
-            canvassingData.value?.request_by.files![0].image_path
-          }/${canvassingData.value?.request_by.files![0].filename}`
-        );
-      }
+
+    if (
+      canvassingData.value?.request_by?.files &&
+      canvassingData.value.request_by.files.length > 0
+    ) {
+      requestSignBase64 = await getBase64ImageFromUrl(
+        `${imageUrl}/${canvassingData.value.request_by.files[0].image_path}/${canvassingData.value.request_by.files[0].filename}`
+      );
     }
 
     const lastPage = doc.getNumberOfPages();
@@ -5433,116 +5503,321 @@ const generateSCMMemo = async () => {
 
     const footerY = pageHeight - footerHeight;
 
-    doc.text(
+    // =========================
+    // Titik tengah masing-masing kolom
+    // =========================
+    const leftX = pageWidth * 0.12;
+    const middleX = pageWidth * 0.55;
+    const rightX = pageWidth * 0.84;
+
+    // =========================
+    // Layout
+    // =========================
+    const signWidth = 35;
+    const signHeight = 20;
+
+    const titleY = footerY - 30;
+    const imageY = titleY + 8;
+    const nameY = imageY + signHeight + 8;
+    const positionY = nameY + 6;
+
+    const drawSignature = (
+      centerX: number,
+      title: string,
+      name: string,
+      position: string,
+      image?: {
+        base64: string;
+        type: string;
+      }
+    ) => {
+      if (title) {
+        doc.text(title, centerX, titleY, {
+          align: "center",
+        });
+      }
+
+      if (image) {
+        doc.addImage(
+          image.base64,
+          image.type,
+          centerX - signWidth / 2,
+          imageY,
+          signWidth,
+          signHeight
+        );
+      }
+
+      doc.text(name, centerX, nameY, {
+        align: "center",
+      });
+
+      doc.text(position, centerX, positionY, {
+        align: "center",
+      });
+    };
+
+    // =========================
+    // Tanggal
+    // =========================
+
+    // doc.text(
+    //   `Jakarta, ${formatLocalDate(canvassingData.value!.created_at!)}`,
+    //   marginX,
+    //   titleY
+    // );
+
+    // =========================
+    // Operation
+    // =========================
+
+    drawSignature(
+      leftX,
       `Jakarta, ${formatLocalDate(canvassingData.value!.created_at!)}`,
-      14,
-      footerY - 30
-    );
-
-    doc.text("Diketahui Oleh,", 120, footerY - 30);
-
-    doc.text("Disetujui Oleh,", 160, footerY - 30);
-
-    doc.text(
-      canvassingData.value?.approved_by
-        ? `${capitalizeWords(canvassingData.value?.request_by?.name ?? "")}`
+      canvassingData.value?.request_by
+        ? capitalizeWords(canvassingData.value.request_by?.name ?? "")
         : "Stanislaus Adrian Pratama",
-      14,
-      footerY + 5
+      "Operation",
+      requestSignBase64
+        ? {
+            base64: requestSignBase64,
+            type: "PNG",
+          }
+        : undefined
     );
 
-    doc.text("Nina", 120, footerY + 5);
+    // =========================
+    // Finance
+    // =========================
 
-    doc.text(
+    drawSignature(middleX, "Diketahui Oleh,", "Nina", "Finance");
+
+    // =========================
+    // Direktur
+    // =========================
+
+    drawSignature(
+      rightX,
+      "Disetujui Oleh,",
       canvassingData.value?.approved_by
-        ? `${capitalizeWords(canvassingData.value?.approved_by?.name ?? "")}`
+        ? capitalizeWords(canvassingData.value.approved_by?.name ?? "")
         : "Chairil Juwono",
-      160,
-      footerY + 5
+      "Direktur",
+      approvedSignBase64
+        ? {
+            base64: approvedSignBase64,
+            type: canvassingData.value!.approved_by!.files![0].mime_type.split(
+              "/"
+            )[1],
+          }
+        : undefined
     );
-
-    doc.text("Operation", 14, footerY + 10);
-
-    doc.text("Finance", 120, footerY + 10);
-
-    doc.text("Direktur", 160, footerY + 10);
-
-    if (canvassingData.value?.approved_by) {
-      const type =
-        canvassingData.value.approved_by?.files![0].mime_type.split("/");
-      doc.addImage(approvedSignBase64, type[1], 155, footerY - 22, 35, 20);
-    }
-    if (
-      canvassingData.value?.request_by?.files &&
-      canvassingData.value?.request_by?.files.length > 0
-    ) {
-      doc.addImage(requestSignBase64, "PNG", 10, footerY - 22, 35, 20);
-    }
   };
   await drawFooter();
 
-  doc.addPage();
+  doc.addPage("a4", "portrait");
+
+  pageWidth = doc.internal.pageSize.getWidth();
+  pageHeight = doc.internal.pageSize.getHeight();
+
+  currentY = 20;
+  let vendorY = currentY;
 
   doc.setFontSize(12);
-  doc.text("Daftar Vendor", marginX, 20);
+  doc.setFont(StandardFonts.Helvetica, "bold");
+  doc.text("Pembayaran Customer", marginX, vendorY);
 
-  const vendorRows = pricetagList.value.map((vendor, index) => [
-    index + 1,
-    vendor.owner?.name ?? "-",
-    formatLocalDate(vendor.end_date),
-    vendor.note
-      ? vendor.note
-          .split("\n")
-          .map((v) => `• ${v}`)
-          .join("\n")
-      : "-",
-  ]);
+  vendorY += 8;
+
+  doc.setFont(StandardFonts.Helvetica, "normal");
+  doc.setFontSize(9);
+
+  (canvassingData.value?.payment_terms ?? []).forEach((payment) => {
+    const duration =
+      payment.term_of_payment === PaymentTerm.TEMPO
+        ? ` ${payment.duration}D`
+        : "";
+
+    const paymentText =
+      payment.name.toUpperCase() === payment.term_of_payment.toUpperCase()
+        ? `${payment.name} ${payment.value}%`
+        : `${payment.name} ${
+            payment.value
+          }% ${payment.term_of_payment.toUpperCase()}${duration}`;
+
+    doc.text(`• ${paymentText}`, marginX + 4, vendorY);
+
+    vendorY += 6;
+  });
+
+  vendorY += 20;
+
+  doc.setFontSize(12);
+  doc.setFont(StandardFonts.Helvetica, "bold");
+  doc.text("Penerima Fee", marginX, vendorY);
+
+  vendorY += 8;
 
   autoTable(doc, {
-    startY: 28,
+    startY: vendorY,
     theme: "grid",
-
-    head: [["No", "Vendor", "Berlaku S/d", "Note"]],
-
-    body: vendorRows,
-
+    head: [
+      [
+        {
+          content: "Nama",
+        },
+        {
+          content: "Nomor Telepon",
+        },
+        {
+          content: "Email",
+        },
+        {
+          content: "Fee",
+        },
+      ],
+    ],
+    body:
+      (contactsFee.value ?? []).map((item) => [
+        (item.party as Contact).name ?? "-",
+        (item.party as Contact).phone ?? "-",
+        (item.party as Contact).email ?? "-",
+        currencyWithoutSymbol(item.amount ?? 0),
+      ]) || [],
     styles: {
       fontSize: 8,
       lineWidth: 0.1,
       lineColor: [0, 0, 0],
-      valign: "top",
       cellPadding: 2,
     },
-
     headStyles: {
       fillColor: [248, 248, 248],
       textColor: [0, 0, 0],
       fontStyle: "bold",
       halign: "center",
+      valign: "middle",
+      lineWidth: 0.1,
+      lineColor: [0, 0, 0],
     },
-
+    bodyStyles: {
+      valign: "middle",
+    },
     columnStyles: {
-      0: {
-        halign: "center",
-        cellWidth: 12,
-      },
-      1: {
-        cellWidth: 55,
-      },
-      2: {
-        halign: "center",
-        cellWidth: 30,
-      },
       3: {
-        cellWidth: "auto",
+        halign: "right",
       },
     },
-
     margin: {
       left: marginX,
       right: marginX,
     },
   });
+
+  vendorY = (doc as any).lastAutoTable.finalY + 12;
+
+  doc.setFontSize(12);
+  doc.setFont(StandardFonts.Helvetica, "bold");
+  doc.text("Daftar Vendor", marginX, vendorY);
+  vendorY += 10;
+
+  for (const vendor of pricetagList.value) {
+    // Cek apakah masih muat
+    if (vendorY > 240) {
+      doc.addPage();
+      vendorY = 20;
+
+      doc.setFont(StandardFonts.Helvetica, "bold");
+      doc.setFontSize(12);
+      doc.text("Daftar Vendor", marginX, vendorY);
+
+      vendorY += 10;
+
+      doc.setFont(StandardFonts.Helvetica, "normal");
+      doc.setFontSize(9);
+    }
+
+    doc.setFontSize(9);
+    // =========================
+    // Nama Vendor
+    // =========================
+    doc.setFont(StandardFonts.Helvetica, "bold");
+    doc.text("Nama Vendor", marginX, vendorY);
+    doc.setFont(StandardFonts.Helvetica, "normal");
+    doc.text(`: ${vendor.owner?.name ?? "-"}`, marginX + 30, vendorY);
+
+    vendorY += 6;
+
+    // =========================
+    // Berlaku S/D
+    // =========================
+    doc.setFont(StandardFonts.Helvetica, "bold");
+    doc.text("Berlaku S/d", marginX, vendorY);
+    doc.setFont(StandardFonts.Helvetica, "normal");
+    doc.text(`: ${formatLocalDate(vendor.end_date)}`, marginX + 30, vendorY);
+
+    vendorY += 10;
+
+    // =========================
+    // Pembayaran
+    // =========================
+    doc.setFont(StandardFonts.Helvetica, "bold");
+    doc.text("Pembayaran", marginX, vendorY);
+
+    vendorY += 6;
+
+    doc.setFont(StandardFonts.Helvetica, "normal");
+
+    (vendor.payment_terms ?? []).forEach((payment) => {
+      const duration =
+        payment.term_of_payment === PaymentTerm.TEMPO
+          ? ` ${payment.duration}D`
+          : "";
+
+      const paymentText =
+        payment.name.toUpperCase() === payment.term_of_payment.toUpperCase()
+          ? `${payment.name} ${payment.value}%`
+          : `${payment.name} ${payment.value}% ${payment.term_of_payment}${duration}`;
+
+      doc.text(`• ${paymentText}`, marginX + 4, vendorY);
+
+      vendorY += 5;
+    });
+
+    vendorY += 4;
+
+    // =========================
+    // Catatan
+    // =========================
+    doc.setFont(StandardFonts.Helvetica, "bold");
+    doc.text("Catatan", marginX, vendorY);
+
+    vendorY += 6;
+
+    doc.setFont(StandardFonts.Helvetica, "normal");
+
+    if (vendor.note?.trim()) {
+      const notes = vendor.note.split("\n").filter((v) => v.trim() !== "");
+
+      notes.forEach((note) => {
+        const lines = doc.splitTextToSize(`• ${note}`, pageWidth - 25);
+
+        doc.text(lines, marginX + 4, vendorY);
+
+        vendorY += lines.length * 5;
+      });
+    } else {
+      doc.text("Tidak Ada Catatan", marginX + 4, vendorY);
+      vendorY += 5;
+    }
+
+    vendorY += 8;
+
+    // Garis pemisah antar vendor
+    doc.setDrawColor(180);
+    doc.line(marginX, vendorY, pageWidth - marginX, vendorY);
+
+    vendorY += 10;
+  }
 
   doc.setFontSize(8);
 
@@ -5562,7 +5837,7 @@ const generateSCMMemo = async () => {
 
     if (!hasImage) return;
 
-    doc.addPage();
+    doc.addPage("a4", "portrait");
 
     const pageWidth = doc.internal.pageSize.getWidth();
     const pageHeight = doc.internal.pageSize.getHeight();
@@ -5580,6 +5855,27 @@ const generateSCMMemo = async () => {
 
     const leftX = 10;
     const rightX = leftX + imageWidth + columnGap;
+
+    const getImageFitSize = (
+      base64: string,
+      maxWidth: number,
+      maxHeight: number
+    ): Promise<{ width: number; height: number }> => {
+      return new Promise((resolve) => {
+        const img = new Image();
+
+        img.onload = () => {
+          const ratio = Math.min(maxWidth / img.width, maxHeight / img.height);
+
+          resolve({
+            width: img.width * ratio,
+            height: img.height * ratio,
+          });
+        };
+
+        img.src = base64;
+      });
+    };
 
     for (const vendor of pricetagList.value) {
       if (!vendor.files?.length) continue;
@@ -5599,7 +5895,7 @@ const generateSCMMemo = async () => {
 
       // jika label vendor + minimal 1 baris gambar tidak muat
       if (currentY + 15 + imageHeight > pageHeight - marginBottom) {
-        doc.addPage();
+        doc.addPage("a4", "portrait");
         currentY = marginTop;
       }
 
@@ -5620,7 +5916,7 @@ const generateSCMMemo = async () => {
 
         // setiap 4 gambar pindah halaman
         if (i > 0 && i % 4 === 0) {
-          doc.addPage();
+          doc.addPage("a4", "portrait");
 
           currentY = marginTop;
 
@@ -5650,13 +5946,23 @@ const generateSCMMemo = async () => {
         const x = column === 0 ? leftX : rightX;
         const y = currentY + row * (imageHeight + rowGap);
 
+        const { width, height } = await getImageFitSize(
+          base64,
+          imageWidth,
+          imageHeight
+        );
+
+        // supaya berada di tengah kotak
+        const offsetX = (imageWidth - width) / 2;
+        const offsetY = (imageHeight - height) / 2;
+
         doc.addImage(
           base64,
           file.filename.toLowerCase().endsWith(".png") ? "PNG" : "JPEG",
-          x,
-          y,
-          imageWidth,
-          imageHeight
+          x + offsetX,
+          y + offsetY,
+          width,
+          height
         );
 
         column++;
@@ -5727,7 +6033,7 @@ const generateSCMMemo = async () => {
     }
   }
 
-  let historyPage = mergedPdf.addPage();
+  let historyPage = mergedPdf.addPage([595.28, 841.89]);
 
   const { width, height } = historyPage.getSize();
 
