@@ -1,12 +1,14 @@
 <template>
   <TrumsWrapper>
-    <el-page-header @back="goBack">
+    <el-page-header class="mb-3" @back="goBack">
       <template #content>
         <span class="text-large font-600 mr-3">
           RAB - {{ canvassingData?.unique_code || "Loading..." }}
         </span>
       </template>
     </el-page-header>
+
+    <!-- <TrumsAlertPage v-if="!loading" :text="getTextInfo" :type="'warning'" /> -->
 
     <CanvassingDetail
       v-if="canvassingData"
@@ -22,6 +24,7 @@ import type { BaseResponse } from "~/types/response";
 import type { Permission } from "~/types/menu";
 import CanvassingDetailApprove from "./components/CanvassingDetailApprove.vue";
 import CanvassingDetail from "./components/CanvassingDetail.vue";
+import { load } from "@fingerprintjs/fingerprintjs";
 
 // ========== PAGE META & ROUTING ==========
 definePageMeta({
@@ -38,11 +41,17 @@ const goBack = () => router.back();
 
 // ========== STATE MANAGEMENT ==========
 // UI State
-const loading = ref(false);
+const loading = ref(true);
 
 // Data State
 const canvassingData = ref<Canvassing | null>(null);
 const currentPrivilage = ref<Permission[]>([]);
+
+const getTextInfo = computed(() => {
+  return canvassingData.value
+    ? generateRABInfo(currentPrivilage.value || [], canvassingData.value!)
+    : "";
+});
 
 // ========== API CALLS ==========
 const fetchCanvassing = async () => {

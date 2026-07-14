@@ -280,6 +280,7 @@
           "
           :disabled="(itemRequest?.data ?? []).filter((i: ItemRequestTrail) => i.checked).length == 0"
           >Tambahkan ({{ itemRequest?.data.filter((i: ItemRequestTrail) => i.checked).length
+
           }})</el-button
         >
       </el-row>
@@ -346,6 +347,7 @@
           @click="() => addToOfferVendor((priceTagItem ?? []).filter((i: Pricetag_item) => i.checked))"
           :disabled="(priceTagItem ?? []).filter((i: Pricetag_item) => i.checked).length == 0"
           >Tambahkan ({{ priceTagItem?.filter((i: Pricetag_item) => i.checked).length
+
           }})</el-button
         >
       </el-row>
@@ -398,6 +400,7 @@
           @click="() => addVendor((contacts?.data ?? []).filter((i: Contact) => i.checked))"
           :disabled="(contacts?.data ?? []).filter((i: Contact) => i.checked).length == 0"
           >Tambahkan ({{ contacts?.data.filter((i: Contact) => i.checked).length
+
           }})</el-button
         >
       </el-row>
@@ -1686,7 +1689,7 @@ watchDebounced(
   request_search_inquiry.value,
 
   () => {
-    // invoices.value.currentPage = 1
+    // invoices.value.current_page = 1
     fetchInquiry();
   },
   { debounce: 500 }

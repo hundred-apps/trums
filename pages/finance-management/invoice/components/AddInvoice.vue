@@ -862,7 +862,7 @@
           background
           layout="prev, pager, next, sizes, total"
           :total="purchase_order?.data.value?.total_data"
-          :current-page="purchase_order?.data.value?.currentPage"
+          :current-page="purchase_order?.data.value?.current_page"
           @current-change="paginationClick"
           @size-change="handlePoSizeChange"
         />

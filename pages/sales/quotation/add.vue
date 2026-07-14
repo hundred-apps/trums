@@ -197,24 +197,12 @@
               </el-select>
             </div>
           </template>
-          <template #default="{ row }">
+          <template #default="{ row, $index }">
             <el-input
               v-model="row.tmp_amount_input"
               placeholder="Atur fee..."
               :disabled="feeState === 'plus'"
-              @input="
-                (value) => {
-                  if (unitFee == FeeType.PERCENT) {
-                    row.amount = (Number(value) * grandTotal) / 100;
-                    row.amount_nominal = (Number(value) * grandTotal) / 100;
-                    row.value = value;
-                  } else {
-                    row.amount_nominal = value;
-                    row.amount = Number(value);
-                    row.value = (Number(value) / grandTotal) * 100;
-                  }
-                }
-              "
+              @input="(value) => onInputFeeAccumulation(value, $index)"
             >
               <template #append>
                 {{ unitFee == FeeType.PERCENT ? "%" : "Rp" }}
@@ -1283,6 +1271,7 @@ const handleCheck = (checked: any, row: CanvassingItemForm) => {
   }
 
   calculateSummaryaData();
+  calculateFeeAccumulation();
 };
 
 const autoSelectSingleChild = (parentRow: any) => {
@@ -1620,6 +1609,50 @@ const totalForGrossProfitForBuyingMin = computed(() => {
 
   return gross;
 });
+
+const onInputFeeAccumulation = (amount: any, index: number) => {
+  if (unitFee.value == FeeType.PERCENT) {
+    contactsFee.value[index].amount =
+      (Number(amount) * totalBuyingPrice.value) / 100;
+    contactsFee.value[index].amount_nominal =
+      (Number(amount) * totalBuyingPrice.value) / 100;
+    contactsFee.value[index].value = amount;
+  } else {
+    contactsFee.value[index].amount_nominal = amount;
+    contactsFee.value[index].amount = Number(amount);
+    contactsFee.value[index].value =
+      (Number(amount) / totalBuyingPrice.value) * 100;
+  }
+
+  calculateFeeAccumulation();
+};
+
+const calculateFeeAccumulation = () => {
+  (contactsFee.value || []).forEach((element) => {
+    if (unitFee.value == FeeType.PERCENT) {
+      element.amount = (Number(element.value) * totalBuyingPrice.value) / 100;
+      element.amount_nominal = element.amount;
+      // element.value = amount;
+    }
+  });
+
+  const feeAccumutionExist = references.value.find(
+    (find) =>
+      find.adjustments_transaction?.name?.toLowerCase() == "acc.fee" &&
+      find.disabled
+  );
+
+  if (feeAccumutionExist) {
+    const fee = contactsFee.value.reduce(
+      (acc, row) => acc + (row.amount_nominal || 0),
+      0
+    );
+    feeAccumutionExist.amount = fee;
+    feeAccumutionExist.amount_nominal = fee;
+    feeAccumutionExist.amount_nominal_display = currencyWithoutSymbol(fee, 0);
+    feeAccumutionExist.tmp_amount_input = currencyWithoutSymbol(fee, 0);
+  }
+};
 
 const totalBuyingPrice = computed(() => {
   return selectedRowsVendors.value.reduce(
@@ -3313,9 +3346,17 @@ const onHandleSelectContact = async (
       reference_id: ruleForm.unique_id || "",
       adjustment_id: fee[0].unique_id,
       value: 0,
-      type: FeeType.PERCENT,
-      adjustment: fee[0],
-      adjustments_transaction: fee[0],
+      type: FeeType.AMOUNT,
+      adjustment: {
+        ...fee[0],
+        unique_id: "tmp_fee",
+        name: "Acc.Fee",
+      },
+      adjustments_transaction: {
+        ...fee[0],
+        unique_id: "tmp_fee",
+        name: "Acc.Fee",
+      },
       amount: 0,
       disabled: true,
     });
@@ -3876,6 +3917,39 @@ const fetchDataEdit = async () => {
       // (canvasing?.reference_transaction || []).forEach((element) => {
       //   console.log("references", element);
       // });
+
+      const fee = (adjustmentTransactions.data.value?.data || []).filter(
+        (filter) => filter.name.toLocaleLowerCase() == "fee"
+      );
+      const feeExist = (references.value || []).filter(
+        (filter) =>
+          filter.adjustments_transaction?.name.toLocaleLowerCase() == "fee"
+      );
+
+      if (fee.length > 0 && feeExist.length == 0) {
+        references.value.push({
+          unique_id: "",
+          reference: ReferenceAdjustment.CANVASSING,
+          reference_id: ruleForm.unique_id || "",
+          adjustment_id: fee[0].unique_id,
+          value: 0,
+          type: FeeType.AMOUNT,
+          adjustment: {
+            ...fee[0],
+            unique_id: "tmp_fee",
+            name: "Acc.Fee",
+          },
+          adjustments_transaction: {
+            ...fee[0],
+            unique_id: "tmp_fee",
+            name: "Acc.Fee",
+          },
+          amount: 0,
+          disabled: true,
+        });
+      }
+
+      calculateFeeAccumulation();
     }
   } catch (error: any) {
     ElMessage.error(error);
@@ -4221,6 +4295,9 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       try {
         const invalidFee = (contactsFee.value || []).some(
           (fee) =>
+            fee.party_id == null ||
+            fee.party_id == undefined ||
+            fee.party_id == "" ||
             fee.amount === null ||
             fee.amount === undefined ||
             Number(fee.amount) === 0
@@ -4368,7 +4445,9 @@ const submit = async (formEl: FormInstance | undefined) => {
   loading.value = true;
   try {
     const referenceAdjustment: ReferenceTransactionAdjustment[] = [
-      ...references.value,
+      ...references.value.filter(
+        (filter) => filter.adjustments_transaction?.unique_id !== "tmp_fee"
+      ),
       ...contactsFee.value,
       adjustmentTransactionOngkirTotal.value as ReferenceTransactionAdjustment,
     ];

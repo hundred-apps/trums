@@ -103,7 +103,7 @@
         size="small"
         layout="prev, pager, next, sizes, total"
         :total="transactionDetail.data.value?.total_data"
-        :current-page="transactionDetail.data.value?.currentPage"
+        :current-page="transactionDetail.data.value?.current_page"
         @current-change="handlePageChange"
         @size-change="handleSizeChange"
       />

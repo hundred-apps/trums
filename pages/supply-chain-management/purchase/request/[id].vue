@@ -516,7 +516,7 @@ watchDebounced(
   purchase_request_order_related.value,
 
   () => {
-    // invoices.value.currentPage = 1
+    // invoices.value.current_page = 1
     fetchRelatedData();
   },
   { debounce: 500 }

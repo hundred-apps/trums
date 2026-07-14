@@ -42,65 +42,74 @@
         </div>
       </el-col>
     </el-row>
-    <el-row :gutter="20" class="mb-3">
-      <el-col :span="4">
-        <el-input
-          v-model="request_search.keyword"
-          size="default"
-          placeholder="Cari transaksi..."
-          clearable
+    <div class="flex gap-3 mb-3">
+      <el-input
+        style="width: 20%"
+        v-model="request_search.keyword"
+        size="default"
+        placeholder="Cari transaksi..."
+        clearable
+      />
+      <NuxtLink
+        style="width: 150px"
+        class="el-button el-button--primary el-button--default"
+        @click="
+          () => {
+            const unique_id = useCookie('unique_id');
+            unique_id.value = null;
+          }
+        "
+        href="/finance-management/transaction/add"
+      >
+        Buat Transaksi
+      </NuxtLink>
+      <el-button
+        size="default"
+        style="width: 150px; margin-left: 0px"
+        :icon="Eleme"
+        :loading-icon="Eleme"
+        :loading="loading"
+        @click="refreshData"
+      >
+        Muat Ulang
+      </el-button>
+      <el-button
+        type="danger"
+        style="width: 150px; margin-left: 0px"
+        :disabled="!hasSelected"
+        @click="batchDelete"
+      >
+        Hapus yang Dipilih
+      </el-button>
+      <el-select
+        v-model="request_search.column[0].recipient_bank"
+        multiple
+        filterable
+        remote
+        reserve-keyword
+        placeholder="Cari Nama/Nomor Rekening"
+        remote-show-suffix
+        :remote-method="remoteSearchBank"
+        :loading="loading"
+        style="width: 250px"
+      >
+        <el-option
+          v-for="item in optionsBank"
+          :key="item.value"
+          :label="item.label"
+          :value="item.value"
         />
-      </el-col>
-      <el-col :span="3">
-        <NuxtLink
-          style="width: 100%"
-          class="el-button el-button--primary el-button--default"
-          @click="
-            () => {
-              const unique_id = useCookie('unique_id');
-              unique_id.value = null;
-            }
-          "
-          href="/finance-management/transaction/add"
-        >
-          Tambah Transaksi
-        </NuxtLink>
-      </el-col>
-      <el-col :span="3">
-        <el-button
-          size="default"
-          style="width: 100%"
-          :icon="Eleme"
-          :loading-icon="Eleme"
-          :loading="loading"
-          @click="refreshData"
-        >
-          Muat Ulang
-        </el-button>
-      </el-col>
-      <el-col :span="3">
-        <el-button
-          type="danger"
-          style="width: 100%"
-          :disabled="!hasSelected"
-          @click="batchDelete"
-        >
-          Hapus yang Dipilih
-        </el-button>
-      </el-col>
-      <el-col :span="6">
-        <el-date-picker
-          v-model="monthRange"
-          type="monthrange"
-          unlink-panels
-          range-separator="To"
-          start-placeholder="Start month"
-          end-placeholder="End month"
-          :shortcuts="shortcuts"
-        />
-      </el-col>
-    </el-row>
-
+      </el-select>
+      <el-date-picker
+        v-model="monthRange"
+        type="monthrange"
+        unlink-panels
+        range-separator="To"
+        start-placeholder="Start month"
+        end-placeholder="End month"
+        :shortcuts="shortcuts"
+      />
+    </div>
     <TrumsDragScrollTable>
       <CustomTable
         :columns="columns"
@@ -116,7 +125,7 @@
         background
         layout="prev, pager, next, sizes, total"
         :total="data?.total_data"
-        :current-page="data?.currentPage"
+        :current-page="data?.current_page"
         @current-change="handlePageChange"
         @size-change="handleSizeChange"
       />
@@ -152,6 +161,7 @@ import { unique } from "element-plus/es/utils/arrays.mjs";
 import { useCookie } from "#app";
 import type { ColumnTable } from "~/types/ColumnTable";
 import type { Canvassing } from "~/types/canvassing";
+import type { BankAccount } from "~/types/bank_account";
 
 const { XLSX, createWorkbook } = useSheetjs();
 
@@ -167,11 +177,19 @@ const monthRange = ref<any>([
   new Date(currentYear, 11, 1),
 ]);
 
+interface ListItem {
+  value: string;
+  label: string;
+}
+
+const optionsBank = ref<ListItem[]>([]);
+
 const request_search = ref<RequestSearch>({
   keyword: "",
   column: [
     {
       type: [],
+      recipient_bank: [],
     },
   ],
   limit: "10",
@@ -186,6 +204,18 @@ const request_search = ref<RequestSearch>({
       min: monthRange.value[0].getTime() / 1000,
       max: monthRange.value[1].getTime() / 1000,
     },
+  },
+  flag: "list",
+});
+const request_search_bank = ref<RequestSearch>({
+  keyword: "",
+  column: [],
+  limit: "10",
+  offset: "1",
+  table: "bank_accounts",
+  sort: {
+    column: "created_at",
+    order: OrderColumn.DESC,
   },
   flag: "list",
 });
@@ -211,6 +241,27 @@ const cashflow = await useAsyncData("get-cashflow", async () => {
   );
   return res.data.value;
 });
+
+const remoteSearchBank = (query: string) => {
+  request_search_bank.value.keyword = query;
+  try {
+    useFetchApi<ResponsePagination<BankAccount[]>>(
+      `/search`,
+      `search-bank-${query}`,
+      "post",
+      request_search_bank.value
+    ).then((response) => {
+      if (response.status.value === "success") {
+        optionsBank.value = (response.data.value?.data || []).map((item) => ({
+          label: `A/n ${item.account_name} ${item.account_number}`,
+          value: item.unique_id,
+        }));
+      }
+    });
+  } catch (error: any) {
+    ElMessage.error("Gagal menghambil data bank");
+  }
+};
 
 // Data state
 const { data, refresh } = await useAsyncData(

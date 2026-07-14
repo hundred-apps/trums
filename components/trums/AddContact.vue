@@ -12,7 +12,7 @@
       :disabled="loading"
     >
       <div class="flex">
-        <el-form-item class="flex-1" label="Name" prop="name">
+        <el-form-item class="flex-1" label="Nama" prop="name">
           <el-input v-model="ruleForm.name" placeholder="Nama" />
         </el-form-item>
         <el-form-item class="flex-1" label="Email" prop="email">
@@ -20,7 +20,7 @@
         </el-form-item>
       </div>
       <div class="flex">
-        <el-form-item class="flex-1" label="Phone" prop="phone">
+        <el-form-item class="flex-1" label="Telepon" prop="phone">
           <el-input v-model="ruleForm.phone" placeholder="Phone" />
         </el-form-item>
         <el-form-item class="flex-1" label="NPWP" prop="tax_id">
@@ -44,7 +44,7 @@
             border
           />
         </el-form-item>
-        <el-form-item class="flex-1" label="Ownership?">
+        <el-form-item class="flex-1" label="Tandai Sebagai Owner">
           <el-switch v-model="ruleForm.ownership" />
         </el-form-item>
       </div>
@@ -57,11 +57,11 @@
             placeholder="enter up to 3 tags"
           />
         </el-form-item>
-        <el-form-item class="flex-1" label="Parent" prop="parent_name">
+        <el-form-item class="flex-1" label="Induk" prop="parent_name">
           <el-autocomplete
             v-model="ruleForm.parent_name!"
             :fetch-suggestions="querySearchParent"
-            placeholder="Search Parent"
+            placeholder="Search Cari Induk Kontak"
             @select="onHandleSelectParent"
           >
             <template #default="{ item }">
@@ -70,6 +70,22 @@
               </div>
             </template>
           </el-autocomplete>
+        </el-form-item>
+      </div>
+      <div class="flex">
+        <el-form-item class="flex-1" label="Customer Lama">
+          <el-switch v-model="ruleForm.is_customer_new" />
+        </el-form-item>
+        <el-form-item class="flex-1" label="Vendor Lama">
+          <el-switch v-model="ruleForm.is_vendor_new" />
+        </el-form-item>
+      </div>
+      <div class="flex">
+        <el-form-item class="flex-1" label="Catatan Customer Lama">
+          <el-input v-model="ruleForm.customer_note" type="textarea" />
+        </el-form-item>
+        <el-form-item class="flex-1" label="Catatan Vendor Lama">
+          <el-input v-model="ruleForm.vendor_note" type="textarea" />
         </el-form-item>
       </div>
     </el-form>
@@ -253,6 +269,10 @@ interface RuleForm {
   parent_name: string;
   perent_version: number;
   children: Contact[];
+  is_vendor_new: boolean;
+  is_customer_new: boolean;
+  vendor_note?: string;
+  customer_note?: string;
 }
 
 interface formAddress {
@@ -293,6 +313,8 @@ const ruleForm = reactive<RuleForm>({
   parent_id: "",
   parent_name: "",
   perent_version: 0,
+  is_vendor_new: false,
+  is_customer_new: false,
   children: [
     {
       id: 0,
@@ -503,6 +525,10 @@ const submit = async (formEl: FormInstance | undefined) => {
         codepos: parseInt(`${value.codepos || 0}`),
         unique_id: value.unique_id.includes("temp-") ? null : value.unique_id,
       })),
+      is_customer_new: ruleForm.is_customer_new,
+      is_vendor_new: ruleForm.is_vendor_new,
+      vendor_note: ruleForm.vendor_note,
+      customer_note: ruleForm.customer_note,
       children: ruleForm.children,
     };
 

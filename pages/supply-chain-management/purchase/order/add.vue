@@ -534,7 +534,7 @@
           background
           layout="prev, pager, next, sizes, total"
           :total="filteredCanvassingItems?.data.value?.total_data"
-          :current-page="filteredCanvassingItems?.data.value?.currentPage"
+          :current-page="filteredCanvassingItems?.data.value?.current_page"
           @current-change="handlePageChangeCanvassing"
           @size-change="handleSizeChangeCanvassing"
         />
@@ -599,7 +599,7 @@
           background
           layout="prev, pager, next, sizes, total"
           :total="itemRequest?.data.value?.total_data"
-          :current-page="itemRequest?.data.value?.currentPage"
+          :current-page="itemRequest?.data.value?.current_page"
           @current-change="paginationClick"
           @size-change="handleSizeChange"
         />

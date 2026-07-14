@@ -375,7 +375,7 @@ const hasSelected = computed(() => {
         background
         layout="prev, pager, next, sizes, total"
         :total="data?.total_data ?? 0"
-        :current-page="data?.currentPage ?? 1"
+        :current-page="data?.current_page ?? 1"
         @current-change="handlePageChange"
         @size-change="handleSizeChange"
       />

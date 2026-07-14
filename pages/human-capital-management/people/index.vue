@@ -6,6 +6,7 @@ import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import { useRouter } from "vue-router";
 import { InfoFilled, Delete, Edit, Setting } from "@element-plus/icons-vue";
 import type { ResponsePagination } from "~/types/response_pagination";
+import { canAccess } from "#imports";
 import {
   ElAvatar,
   ElButton,
@@ -32,6 +33,8 @@ const router = useRouter();
 const token = useCookie("token");
 const config = useRuntimeConfig();
 const baseImageURL = config.public.baseImageURL;
+
+const { isMobile } = useDevice();
 
 const navigateToForm = (
   mode: string,
@@ -210,16 +213,25 @@ const request_search = ref<RequestSearch>({
   table: "people",
 });
 
-const { data } = await useFetchApi<ResponsePagination<People[]>>(
-  "/search",
-  "search-people",
-  "post",
-  request_search.value
-);
-
-watch(request_search.value, () => refreshNuxtData("search-people"), {
-  immediate: true,
+const { data, refresh } = await useAsyncData("search-people", async () => {
+  const res = await useFetchApi<ResponsePagination<People[]>>(
+    `/search`,
+    "search-people",
+    "post",
+    request_search.value
+  );
+  return res.data.value;
 });
+
+const onRefreshData = () => refresh();
+
+watch(
+  () => request_search.value,
+  () => onRefreshData(),
+  {
+    deep: true,
+  }
+);
 
 const handleDelete = async (row: People) => {
   loading.value = true;
@@ -281,11 +293,10 @@ watch(
 //   }
 // };
 const handleSizeChange = (val: number) => {
-  loading.value = true;
+  request_search.value.limit = `${val}`;
 };
-const handleCurrentChange = (val: number) => {
-  // currentPage.value = val;
-  request_search.value.offset = val.toString();
+const handlePageChange = (val: number) => {
+  request_search.value.offset = `${val}`;
 };
 
 const onSort = (sortBy: SortBy) => {
@@ -312,12 +323,12 @@ const onSort = (sortBy: SortBy) => {
       <el-col :span="6"
         ><el-input
           v-model="request_search.keyword"
-          size="large"
+          size="default"
           placeholder="Type to search"
       /></el-col>
       <el-button
         v-if="canAccess('create_people', data?.privilege ?? [])"
-        size="large"
+        size="default"
         @click="
           () => {
             navigateToForm('add');
@@ -334,11 +345,11 @@ const onSort = (sortBy: SortBy) => {
     <div class="flex justify-end mt-3">
       <el-pagination
         background
-        layout="prev, pager, next"
+        :layout="`prev, pager, next, ${isMobile ? '' : 'sizes, total'}`"
         :total="data?.total_data"
-        @next-click="handleCurrentChange"
-        @prev-click="handleCurrentChange"
-        @change="handleCurrentChange"
+        @current-change="handlePageChange"
+        @size-change="handleSizeChange"
+        size="small"
       />
     </div>
   </TrumsWrapper>

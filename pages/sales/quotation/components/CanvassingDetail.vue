@@ -83,12 +83,17 @@
         </div>
         <div v-else>
           <div class="card-header flex justify-end">
-            <el-button type="danger" :icon="Delete" @click="confirmDelete"
+            <el-button
+              type="danger"
+              v-if="canDelete"
+              :icon="Delete"
+              @click="confirmDelete"
               >Hapus</el-button
             >
             <NuxtLink
               :to="`/sales/quotation/add?id=${canvassingData?.unique_id}`"
               class="el-button el-button--default"
+              v-if="canEdit"
             >
               <el-icon class="me-2"><Edit /></el-icon> Edit
             </NuxtLink>
@@ -1519,6 +1524,11 @@ const pdfBlob = ref<Blob | null>(null);
 const { removeDuplicates } = useArray();
 
 const selectedVendors = ref<Record<string, string>>({});
+
+const canEdit = canAccess("canvassing-update", props.privilages);
+const canDelete = canAccess("canvassing-delete", props.privilages);
+const approveRAB = canAccess("approve-rab", props.privilages);
+const canChecked = canAccess("check-rab", props.privilages);
 
 // Loading animation SVG
 const svg = `
@@ -5574,8 +5584,8 @@ const generateSCMMemo = async () => {
     drawSignature(
       leftX,
       `Jakarta, ${formatLocalDate(canvassingData.value!.created_at!)}`,
-      canvassingData.value?.request_by
-        ? capitalizeWords(canvassingData.value.request_by?.name ?? "")
+      canvassingData.value?.source?.request_by
+        ? capitalizeWords(canvassingData.value.source?.request_by?.name ?? "")
         : "Stanislaus Adrian Pratama",
       "Operation",
       requestSignBase64
@@ -6447,15 +6457,15 @@ const deleteCanvassing = async () => {
   loading.value = true;
   try {
     const response = await useFetchApi<BaseResponse<any>>(
-      `/canvassing/${canvassingId.value}`,
+      `/canvassing-delete`,
       "delete-canvassing",
-      "delete",
-      null
+      "post",
+      [canvassingId.value]
     );
 
     if (response.status.value == "success") {
       ElMessage.success("Canvassing deleted");
-      router.push("/purchasing/canvassing");
+      window.location.href = "/sales/quotation";
     }
   } catch (error) {
     ElMessage.error("Failed to delete canvassing");

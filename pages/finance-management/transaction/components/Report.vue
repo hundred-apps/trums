@@ -120,7 +120,7 @@
         background
         layout="prev, pager, next, sizes, total"
         :total="data?.total_data"
-        :current-page="data?.currentPage"
+        :current-page="data?.current_page"
         @current-change="handlePageChange"
         @size-change="handleSizeChange"
       />

@@ -239,7 +239,7 @@ const handleRefresh = () => {
         layout="prev, pager, next"
         :total="data?.data.total_data || 0"
         :page-size="10"
-        :current-page="data?.data.currentPage || 1"
+        :current-page="data?.data.current_page || 1"
         @current-change="(page) => {}"
       />
     </div>

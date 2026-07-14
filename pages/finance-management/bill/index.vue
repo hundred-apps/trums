@@ -151,7 +151,7 @@
         background
         layout="prev, pager, next, sizes, total"
         :total="data?.total_data"
-        :current-page="data?.currentPage"
+        :current-page="data?.current_page"
         @current-change="handlePageChange"
         @size-change="handleSizeChange"
       />
@@ -648,7 +648,7 @@ const fetchData = async () => {
   try {
     // const response = await axios.get('/bills', {
     //   params: {
-    //     page: pagination.currentPage,
+    //     page: pagination.current_page,
     //     pageSize: pagination.pageSize,
     //     search: search.value
     //   }

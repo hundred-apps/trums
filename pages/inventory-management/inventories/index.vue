@@ -603,7 +603,7 @@ availableColumn.unshift({
     const onChange = (value: CheckboxValueType) =>
       (data.value = {
         success: true,
-        current_page: _data?.currentPage ?? 0,
+        current_page: _data?.current_page ?? 0,
         total_data: _data?.total_data ?? 0,
         total_page: _data?.total_data ?? 0,
         data: _data?.data?.map((row: any) => {

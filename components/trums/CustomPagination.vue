@@ -3,7 +3,7 @@
     background
     layout="prev, pager, next, sizes, total"
     :total="total"
-    :current-page="currentPage"
+    :current-page="current_page"
     :page-size="pageSize"
     @current-change="onCurrentChange"
     @size-change="onSizeChange"

@@ -295,7 +295,7 @@
           layout="prev, pager, next, sizes"
           :total="substitutionSource.data.value?.total_data ?? 0"
           :page-size="limit"
-          :current-page="substitutionSource.data.value?.currentPage ?? 1"
+          :current-page="substitutionSource.data.value?.current_page ?? 1"
           @current-change="handlePageChange"
           @size-change="handleSizeChange"
         />
@@ -820,7 +820,7 @@ availableColumn.unshift({
     const onChange = (value: CheckboxValueType) =>
       (inventoryData.value = {
         success: true,
-        current_page: _data?.currentPage ?? 0,
+        current_page: _data?.current_page ?? 0,
         total_data: _data?.total_data ?? 0,
         total_page: _data?.total_data ?? 0,
         data: _data?.data?.map((row: any) => {

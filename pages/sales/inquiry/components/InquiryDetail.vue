@@ -520,7 +520,7 @@ const findRelatedByRequest = (catalogue_id: string): Inventory[] => {
 watchDebounced(
   request_sugestion_item.value,
   () => {
-    // invoices.value.currentPage = 1
+    // invoices.value.current_page = 1
     fetchRelatedData();
   },
   { debounce: 500 }
