@@ -5584,8 +5584,8 @@ const generateSCMMemo = async () => {
     drawSignature(
       leftX,
       `Jakarta, ${formatLocalDate(canvassingData.value!.created_at!)}`,
-      canvassingData.value?.source?.request_by
-        ? capitalizeWords(canvassingData.value.source?.request_by?.name ?? "")
+      canvassingData.value?.request_by
+        ? capitalizeWords(canvassingData.value.request_by?.name ?? "")
         : "Stanislaus Adrian Pratama",
       "Operation",
       requestSignBase64
