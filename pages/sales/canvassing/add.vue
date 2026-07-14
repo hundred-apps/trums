@@ -1099,6 +1099,63 @@ const addToForm = async (val: Inquiry) => {
   ruleForm.source_document = val.unique_code;
   ruleForm.inquiry = val;
 
+  // addItemRequest(val.item_request);
+  // visibleModalRequest.value = false;
+
+  val.item_request.forEach(async (item, index) => {
+    const tmp: CanvassingItemForm = {
+      type_item: "request",
+      equivalent_id: null,
+      index: `${index}`,
+      canvassing_id: null,
+      canvaasing_version: null,
+      item_request_trail_version: null,
+      item_request_trail_id: null,
+      unique_id: null,
+      vendor_id: null,
+      vendor_name: "",
+      unit_id: item.unit_id,
+      unit_name: item.unit_name,
+      unit_version: 1,
+      offer_item_id: null,
+      offer_item_version: 0,
+      catalogue_id: item.catalogue_id ?? "",
+      parent_catalogue_id: "",
+      catalogue_name: item.catalogue_name ?? "",
+      sn: item.sn ?? "N/A",
+      quantity: item.request_qty ?? 1,
+      unit_price: 0,
+      total_price: 0,
+      status: CanvassingVendorStatus.SUBMITTED,
+      taxes: [],
+      editing: null,
+      type: "parent",
+      children: [],
+      selling_price: 0,
+      total_selling_price: 0,
+      profit: 0,
+      profit_unit: "percent",
+      fee: 0,
+      fee_unit: "percent",
+      ongkir: 0,
+      ongkir_unit: "percent",
+      pricetag_item_id: "",
+      pricetag_item_version: 0,
+      contacts_fee: contactsFee.value,
+    };
+
+    if ((item.catalogue?.files ?? []).length > 0) {
+      if (getFirstFileUrl(item.catalogue?.files ?? []) != "") {
+        tmp.image = getFirstFileUrl(item.catalogue?.files ?? []);
+        tmp.files = mapApiFilesToUpload(item.catalogue?.files ?? []);
+      }
+    }
+
+    item_canvassing.value.push(tmp);
+
+    nextItemVendorfield(tmp.index);
+  });
+
   visibleModalRequest.value = false;
 };
 
@@ -2391,11 +2448,11 @@ const fetchInquiryDetail = async () => {
     if (inquiry.status.value === "success") {
       if (inquiry.data.value?.data) {
         addToForm(inquiry.data.value!.data);
-        query_search_item_request.value.column = [
-          {
-            inquiry_id: [inquiry.data.value!.data.unique_id],
-          },
-        ];
+        // query_search_item_request.value.column = [
+        //   {
+        //     inquiry_id: [inquiry.data.value!.data.unique_id],
+        //   },
+        // ];
       }
     }
   } catch (error) {

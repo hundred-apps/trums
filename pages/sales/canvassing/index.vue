@@ -95,13 +95,15 @@
     </el-row>
 
     <!-- Table -->
-    <CanvassingTable
-      v-on:selection-change="(values) => handleSelectionChange(values)"
-      :refresh-trigger="refreshTrigger"
-      :request_search="request_search"
-      :fetchKey="'get-canvassing'"
-      :type="'CANVASSING'"
-    />
+    <TrumsDragScrollTable>
+      <CanvassingTable
+        v-on:selection-change="(values) => handleSelectionChange(values)"
+        :refresh-trigger="refreshTrigger"
+        :request_search="request_search"
+        :fetchKey="'get-canvassing'"
+        :type="'CANVASSING'"
+      />
+    </TrumsDragScrollTable>
   </TrumsWrapper>
 </template>
 
