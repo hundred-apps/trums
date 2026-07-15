@@ -120,14 +120,15 @@
                     'completed'
                   )
               "
-              >Tandai Sebagai Telah Di Cek</el-button
+              >Selesaikan Pengecekan</el-button
             >
             <el-button
               type="danger"
               v-if="
                 (canvassingData?.status === CanvassingStatus.PENDING_APPROVAL ||
                   canvassingData?.status == CanvassingStatus.DONE) &&
-                canvassingData?.status_cek == 'completed' &&
+                (canvassingData?.status_cek == 'progress' ||
+                  canvassingData?.status_cek == 'completed') &&
                 canCheck
               "
               @click="
@@ -149,7 +150,8 @@
               v-if="
                 (canvassingData?.status === CanvassingStatus.PENDING_APPROVAL ||
                   canvassingData?.status == CanvassingStatus.DONE) &&
-                canvassingData?.status_cek == 'pending'
+                canvassingData?.status_cek == 'pending' &&
+                canCheck
               "
               @click="
                 () =>
@@ -166,7 +168,8 @@
               v-if="
                 (canvassingData?.status === CanvassingStatus.PENDING_APPROVAL ||
                   canvassingData?.status == CanvassingStatus.DONE) &&
-                canvassingData?.status_cek == 'progress'
+                canvassingData?.status_cek == 'progress' &&
+                canCheck
               "
               @click="
                 () =>
@@ -176,14 +179,16 @@
                     'completed'
                   )
               "
-              >Tandai Sebagai Telah Di Cek</el-button
+              >Selesaikan Pengecekan</el-button
             >
             <el-button
               type="danger"
               v-if="
                 (canvassingData?.status === CanvassingStatus.PENDING_APPROVAL ||
                   canvassingData?.status == CanvassingStatus.DONE) &&
-                canvassingData?.status_cek == 'completed'
+                (canvassingData?.status_cek == 'progress' ||
+                  canvassingData?.status_cek == 'completed') &&
+                canCheck
               "
               @click="
                 () =>
@@ -197,7 +202,11 @@
             >
             <el-button
               type="danger"
-              v-if="canDelete"
+              v-if="
+                canDelete &&
+                (canvassingData?.status === CanvassingStatus.RAB ||
+                  canvassingData?.status === CanvassingStatus.DRAFT)
+              "
               :icon="Delete"
               @click="confirmDelete"
               >Hapus</el-button
@@ -205,13 +214,20 @@
             <NuxtLink
               :to="`/sales/quotation/add?id=${canvassingData?.unique_id}`"
               class="el-button el-button--default"
-              v-if="canEdit"
+              v-if="
+                canEdit &&
+                (canvassingData?.status === CanvassingStatus.RAB ||
+                  canvassingData?.status === CanvassingStatus.DRAFT)
+              "
             >
               <el-icon class="me-2"><Edit /></el-icon> Edit
             </NuxtLink>
             <el-button
               type="success"
-              v-if="canvassingData?.status === CanvassingStatus.RAB"
+              v-if="
+                canvassingData?.status === CanvassingStatus.RAB ||
+                canvassingData?.status === CanvassingStatus.DRAFT
+              "
               @click="() => submitApproveRab(CanvassingStatus.PENDING_APPROVAL)"
             >
               <el-icon class="me-2"><CircleCheck /></el-icon> Ajukan RAB
@@ -249,7 +265,8 @@
             <el-button
               type="default"
               v-if="
-                canvassingData?.status === CanvassingStatus.PENDING_APPROVAL
+                canvassingData?.status === CanvassingStatus.PENDING_APPROVAL ||
+                canvassingData?.status === CanvassingStatus.DONE
               "
               @click="dialogCancelApproval = true"
             >
@@ -1421,9 +1438,22 @@
       <span>Apakah anda yakin ingin membatalkan pengajuan?</span>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="dialogCancelApproval = false">Batal</el-button>
-          <el-button type="primary" @click="cancelSubmissionApproval">
-            Confirm
+          <el-button @click="dialogCancelApproval = false">Tutup</el-button>
+          <el-button
+            type="primary"
+            @click="
+              () => cancelSubmissionApproval(CanvassingStatus.CANCEL, false)
+            "
+          >
+            Batalkan
+          </el-button>
+          <el-button
+            type="success"
+            @click="
+              () => cancelSubmissionApproval(CanvassingStatus.CANCEL, true)
+            "
+          >
+            Batal & Buat Baru
           </el-button>
         </div>
       </template>
@@ -4103,7 +4133,10 @@ const submitApproveRab = async (status: CanvassingStatus) => {
     loading.value = false;
   }
 };
-const cancelSubmissionApproval = async () => {
+const cancelSubmissionApproval = async (
+  status: CanvassingStatus,
+  withCreate: boolean | false
+) => {
   loading.value = true;
   try {
     const referenceAdjustment: ReferenceTransactionAdjustment[] = [
@@ -4137,7 +4170,7 @@ const cancelSubmissionApproval = async () => {
 
     // Menambahkan data utama
     formData.append("unique_id", canvassingData.value?.unique_id || "");
-    formData.append("status", CanvassingStatus.RAB || "");
+    formData.append("status", status);
 
     const response = await useFetchApi<BaseResponse<Canvassing>>(
       "/canvassing-create",
@@ -4152,6 +4185,10 @@ const cancelSubmissionApproval = async () => {
       editState.value = false;
       dialogCancelApproval.value = false;
       fetchCanvassing();
+
+      if (withCreate) {
+        window.location.href = `/sales/quotation/add?id=${canvassingData.value?.unique_id}&new=true`;
+      }
     }
   } catch (error: any) {
     ElMessage.error(error.response?.message ?? error);
@@ -5449,7 +5486,52 @@ const generateSCMMemo = async () => {
     }
   });
 
+  const totalFeeRecive = (canvassingData.value?.reference_transaction || [])
+    .filter(
+      (ref) =>
+        ref.adjustments_transaction?.name.toLowerCase() == "fee" &&
+        ref.party_type == PartyType.CONTACT
+    )
+    .reduce((acc, sum) => acc + (sum.amount ?? 0), 0);
+
+  rowData.push([
+    {
+      content: `Total Fee`,
+      colSpan: 8,
+      styles: {
+        halign: "right",
+        fontStyle: "bold",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${currencyWithoutSymbol(totalFeeRecive || 0)}`,
+      colSpan: 5,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+    {
+      content: `${safePercent(totalFeeRecive, subtotalBuyTotalPrice.value)}`,
+      styles: {
+        halign: "right",
+        cellWidth: 0.0,
+        lineWidth: 0.1,
+        lineColor: [0, 0, 0],
+        fillColor: [255, 255, 255],
+      },
+    },
+  ]);
   summeryNumber++;
+  grandTotalPrint -= totalFeeRecive;
+
   rowData.push([
     {
       content: `Grand Total`,
@@ -6598,15 +6680,12 @@ const confirmCheck = (
   text: string,
   value: "progress" | "completed" | "pending"
 ) => {
-  ElMessageBox.confirm(
-    "Ketika ada mulai pengecekan, RAB ini akan di tandai bahwa sedang dilakukan pengecekan!",
-    {
-      confirmButtonText: "Mulai",
-      cancelButtonText: "Batal",
-      type: "info",
-      title: "Ingin memulai pengecekan RAB?",
-    }
-  )
+  ElMessageBox.confirm(text, {
+    confirmButtonText: "Ok",
+    cancelButtonText: "Batal",
+    type: "info",
+    title: title,
+  })
     .then(async () => {
       await statusCheck(value);
     })

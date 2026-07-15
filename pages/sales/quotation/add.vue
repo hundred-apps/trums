@@ -1159,6 +1159,7 @@ const baseImageURL = config.public.baseImageURL;
 
 const route = useRoute();
 const id = computed(() => route.query.id as string);
+const isNew = computed(() => (route.query.new as string) == "true");
 const inquiry_id = computed(() => route.query.inquiry_id as string);
 
 // Refs
@@ -3982,6 +3983,10 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
         .name,
     });
 
+    if (isNew) {
+      ruleForm.unique_id = null;
+    }
+
     if (dataCanvassing.status == CanvassingStatus.PENDING_APPROVAL_RAB) {
       ruleForm.status = CanvassingStatus.RAB;
     }
@@ -3995,6 +4000,7 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
             (grandTotal.value / (element.value ?? 0)) * 100;
           contactsFee.value.push({
             ...element,
+            reference_id: isNew.value ? "" : element.reference_id,
             amount: element.amount,
             amount_nominal: element.amount,
             tmp_amount_input: handleInput(`${element.amount}`),
@@ -4002,6 +4008,7 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
         } else {
           contactsFee.value.push({
             ...element,
+            reference_id: isNew.value ? "" : element.reference_id,
             amount: element.amount,
             amount_nominal: element.amount,
             tmp_amount_input: `${element.value}`,
@@ -4025,13 +4032,17 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
         if (
           (element.adjustments_transaction?.name ?? "").toLowerCase() != "fee"
         ) {
-          references.value.push(element);
+          references.value.push({
+            ...element,
+            reference_id: isNew.value ? "" : element.reference_id,
+          });
         } else {
           if (!element.party) {
             console.log("masuk reference", element);
 
             references.value.push({
               ...element,
+              reference_id: isNew.value ? "" : element.reference_id,
               tmp_amount_input: handleInput(`${element.amount}`),
             });
           }
@@ -4070,7 +4081,7 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
       let canvassingItemTmp = {
         type_item: value.type_item,
         index: `${value.unique_id}`,
-        canvassing_id: value.canvassing_id,
+        canvassing_id: isNew.value ? "" : value.canvassing_id,
         canvaasing_version: value.canvaasing_version,
         item_request_trail_version: null,
         item_request_trail_id: null,
@@ -4495,7 +4506,7 @@ const submit = async (formEl: FormInstance | undefined) => {
       formData.append(`canvassing_items[${i}][unique_id]`, `${item.unique_id}`);
       formData.append(
         `canvassing_items[${i}][canvassing_id]`,
-        `${ruleForm.unique_id}`
+        `${item.canvassing_id}`
       );
       formData.append(`canvassing_items[${i}][quantity]`, `${item.quantity}`);
       formData.append(
@@ -5299,6 +5310,8 @@ const calculateSummaryaData = () => {
 
 // Lifecycle
 onMounted(async () => {
+  console.log("is new", isNew.value);
+
   if (id.value) {
     await fetchDataEdit();
     fetchPriceTagWithItems();

@@ -8,7 +8,9 @@ export const wrapUniqueCode = (unique: string) => {
 
 export const generateRABInfo = (privilages: Permission[], data: Canvassing) => {
   let text = "";
-  if (data.status == CanvassingStatus.PENDING_APPROVAL) {
+  if (data.status == CanvassingStatus.PENDING_APPROVAL_RAB) {
+    text = "Canvassing telah di ajukan, sedang menunggu approval!";
+  } else if (data.status == CanvassingStatus.PENDING_APPROVAL) {
     text = "RAB telah di ajukan, sedang menunggu approval";
     if (data.status_cek == "pending") {
       text = text + " dan pengecekan!";
