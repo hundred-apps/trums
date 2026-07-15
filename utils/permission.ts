@@ -9,7 +9,7 @@ export function canAccess(
   step?: number
 ): boolean {
   const found = privilage.findLast((value) => value.slug == name);
-
+  console.log("found", found);
   if (found) {
     if (found.type == PermissionType.APPROVAL) {
       if (found.approval_type == ApprovalType.SEQUENTIAL) {

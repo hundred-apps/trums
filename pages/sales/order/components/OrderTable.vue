@@ -31,6 +31,7 @@ import {
   ElDropdownMenu,
   ElIcon,
   ElPopover,
+  ElTag,
   TableV2FixedDir,
   type CheckboxValueType,
   type Column,
@@ -140,6 +141,18 @@ const columns: ColumnTable<PurchaseOrder>[] = [
     dataKey: "vendor_name",
     fixed: true,
     sortable: true,
+  },
+  {
+    key: "status",
+    title: "Status",
+    dataKey: "status",
+    width: 100,
+    align: "center",
+    cellRenderer: ({ rowData }: { rowData: PurchaseOrder }) => (
+      <ElTag type={getStatusTagType(rowData.status)}>
+        {formatStatus(rowData.status)}
+      </ElTag>
+    ),
   },
   {
     key: "total_price",
@@ -316,6 +329,39 @@ columns[columns.length - 1].headerCellRenderer = () => {
       </ElPopover>
     </div>
   );
+};
+
+const getStatusTagType = (
+  status: string
+): "success" | "info" | "danger" | "warning" | "primary" => {
+  switch (status) {
+    case PurchaseOrderStatus.DRAFT:
+      return "primary";
+    case PurchaseOrderStatus.PENDING_APPROVAL:
+      return "warning";
+    case PurchaseOrderStatus.APPROVED:
+      return "success";
+    case PurchaseOrderStatus.CANCELLED:
+      return "danger";
+    case PurchaseOrderStatus.COMPLETED:
+      return "primary";
+    default:
+      return "success";
+  }
+};
+
+const formatStatus = (status: string | undefined) => {
+  if (!status) return "-";
+
+  const statusMap: Record<string, string> = {
+    [PurchaseOrderStatus.DRAFT]: "Baru",
+    [PurchaseOrderStatus.PENDING_APPROVAL]: "Menunggu Persetujuan",
+    [PurchaseOrderStatus.APPROVED]: "Disetujui",
+    [PurchaseOrderStatus.CANCELLED]: "Dibatalkan",
+    [PurchaseOrderStatus.COMPLETED]: "Selesai",
+  };
+
+  return statusMap[status] || status.charAt(0).toUpperCase() + status.slice(1);
 };
 
 // Computed

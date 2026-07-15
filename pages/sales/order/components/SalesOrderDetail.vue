@@ -15,7 +15,7 @@
             >Hapus</el-button
           >
           <NuxtLink
-            v-if="purchaseOrderData?.status === PurchaseOrderStatus.DONE"
+            v-if="purchaseOrderData?.status === PurchaseOrderStatus.DRAFT"
             :to="`/sales/order/add?id=${purchaseOrderData?.unique_id}`"
             class="el-button el-button--default"
           >
@@ -34,7 +34,7 @@
             "
             @click="approvePurchaseOrder"
           >
-            <el-icon class="me-2"><CircleCheck /></el-icon> Approve
+            <el-icon class="me-2"><CircleCheck /></el-icon> Setujui
           </el-button>
           <el-button
             type="danger"
@@ -43,21 +43,25 @@
             "
             @click="rejectPurchaseOrder"
           >
-            <el-icon class="me-2"><CircleClose /></el-icon> REJECT
+            <el-icon class="me-2"><CircleClose /></el-icon> Tolak
           </el-button>
           <el-button
             type="warning"
             v-if="purchaseOrderData?.status === PurchaseOrderStatus.DRAFT"
             @click="submitForApproval"
           >
-            <el-icon class="me-2"><Upload /></el-icon> Submit for Approval
+            <el-icon class="me-2"><Upload /></el-icon> Ajukan Approval
           </el-button>
           <el-button
             type="primary"
             v-if="purchaseOrderData?.status === PurchaseOrderStatus.APPROVED"
             @click="markAsCompleted"
           >
-            <el-icon class="me-2"><CircleCheck /></el-icon> Mark as Completed
+            <el-icon class="me-2"><CircleCheck /></el-icon> Tandai Sebagai
+            Selesai
+          </el-button>
+          <el-button type="default" :icon="Printer" @click="generatePDF">
+            Cetak SO
           </el-button>
         </div>
       </template>
@@ -74,10 +78,20 @@
             <el-descriptions-item label="Kontak">
               {{ purchaseOrderData?.vendor?.name || "-" }}
             </el-descriptions-item>
+            <el-descriptions-item label="PIC">
+              {{ purchaseOrderData?.pic_name || "-" }}
+            </el-descriptions-item>
           </el-descriptions>
         </div>
         <div class="flex-1">
           <el-descriptions title="" :column="1" size="large" border>
+            <el-descriptions-item label="Tanggal PO">
+              {{
+                purchaseOrderData?.date != null
+                  ? formatLocalDate(purchaseOrderData?.date)
+                  : "-"
+              }}
+            </el-descriptions-item>
             <el-descriptions-item label="Status">
               <el-tag
                 :type="
@@ -351,6 +365,25 @@
         </div>
       </template>
     </el-dialog>
+    <el-dialog
+      v-model="showPreviewPDF"
+      title="Preview PDF"
+      width="80%"
+      destroy-on-close
+    >
+      <iframe
+        v-if="pdfUrl"
+        :src="pdfUrl"
+        width="100%"
+        height="600px"
+        style="border: none"
+      ></iframe>
+
+      <template #footer>
+        <el-button @click="showPreviewPDF = false">Tutup</el-button>
+        <el-button type="success" @click="downloadPdf">Download PDF</el-button>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
@@ -362,6 +395,7 @@ import {
   Upload,
   Close,
   CircleClose,
+  Printer,
 } from "@element-plus/icons-vue";
 import type { FormProps } from "element-plus";
 import {
@@ -379,6 +413,7 @@ import { formatLocalDate, currency, formattedText } from "#imports";
 import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
 import {
   CanvassingVendorStatus,
+  type Canvassing,
   type CanvassingItem,
 } from "~/types/scm/canvasing";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
@@ -386,6 +421,9 @@ import type { ResponsePagination } from "~/types/response_pagination";
 import { currencyWithoutSymbol } from "#imports";
 import type { Permission } from "~/types/menu";
 import { extractDescription } from "#imports";
+import type { TrumDoc } from "~/types/document";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -418,6 +456,9 @@ type PurchasOrderViewTree = {
   unique_id: string;
   item_name: string;
   item_id: string;
+  quo_id: string;
+  canvassing_id: string;
+  canvassing_code: string;
   quantity: number;
   unit_name: string;
   quo_number: string;
@@ -440,6 +481,10 @@ const request_search_po_item = ref<RequestSearch>({
   flag: "list",
 });
 
+const loadingDocument = ref<boolean>(false);
+const showPreviewPDF = ref(false);
+const pdfUrl = ref<string | null>(null);
+const pdfBlob = ref<Blob | null>(null);
 const loading = ref(false);
 const purchaseOrderData = ref<PurchaseOrder | null>(props.purchaseOrder);
 
@@ -608,7 +653,7 @@ const formatStatus = (status: string | undefined) => {
   if (!status) return "-";
 
   const statusMap: Record<string, string> = {
-    [PurchaseOrderStatus.DRAFT]: "Draft",
+    [PurchaseOrderStatus.DRAFT]: "Baru",
     [PurchaseOrderStatus.PENDING_APPROVAL]: "Menunggu Persetujuan",
     [PurchaseOrderStatus.APPROVED]: "Disetujui",
     [PurchaseOrderStatus.CANCELLED]: "Dibatalkan",
@@ -636,7 +681,7 @@ const getStatusTagType = (
 ): "success" | "info" | "danger" | "warning" | "primary" => {
   switch (status) {
     case PurchaseOrderStatus.DRAFT:
-      return "info";
+      return "primary";
     case PurchaseOrderStatus.PENDING_APPROVAL:
       return "warning";
     case PurchaseOrderStatus.APPROVED:
@@ -1005,6 +1050,11 @@ watch(
                   harga_po: 0,
                   total: vendor.selling_price! * vendor.quantity,
                   quo_number: "",
+                  canvassing_code:
+                    vendor.canvassing_item?.canvassing?.unique_code ?? "",
+                  canvassing_id:
+                    vendor.canvassing_item?.canvassing?.unique_code ?? "",
+                  quo_id: "",
                   children: [],
                 }));
 
@@ -1021,6 +1071,13 @@ watch(
         harga_po: element.po_unit_price || 0,
         total: element.total_price || 0,
         quo_number: element.pricetag_item?.pricetag?.unique_code || "",
+        canvassing_code:
+          (element.pricetag_item?.pricetag?.reference_data as Canvassing)
+            .unique_code ?? "",
+        canvassing_id:
+          (element.pricetag_item?.pricetag?.reference_data as Canvassing)
+            .unique_id ?? "",
+        quo_id: element.pricetag_item?.pricetag?.unique_id ?? "",
         children: childs,
       });
     });
@@ -1029,6 +1086,311 @@ watch(
     immediate: true,
   }
 );
+
+async function getBase64ImageFromUrl(imageUrl: string): Promise<string> {
+  const res = await fetch(imageUrl);
+  const blob = await res.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
+const printDocument = async (code: string) => {
+  const doc = new jsPDF();
+
+  // ================= PAGE SETUP =================
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 10;
+  const contentWidth = pageWidth - margin * 2;
+
+  const colWidth = contentWidth / 3;
+  const col1X = margin;
+  const col2X = margin + colWidth;
+  const col3X = margin + colWidth * 2;
+
+  // ================= LOGO =================
+  const imgLogo = await getBase64ImageFromUrl("/images/trumecs-logo.png");
+  const tmsLogo = await getBase64ImageFromUrl("/images/tms-logo.png");
+
+  doc.addImage(tmsLogo, "PNG", pageWidth - 50, 15, 40, 25);
+  doc.addImage(imgLogo, "PNG", margin, 20, 40, 15);
+
+  doc.setFontSize(18);
+  doc.setFont("helvetica", "bold");
+  doc.text("Sales Order", pageWidth / 2, 50, { align: "center" });
+  doc.setFontSize(8);
+  doc.setFont("helvetica");
+  doc.text(`${purchaseOrderData.value?.unique_code}`, pageWidth / 2, 55, {
+    align: "center",
+  });
+
+  // ================= HEADER GRID =================
+  let startY = 70;
+
+  doc.setFontSize(8);
+
+  // ===== VENDOR (LEFT) =====
+  doc.setFont("helvetica", "bold");
+  doc.text("Customer", col1X, startY);
+
+  doc.setFont("helvetica", "normal");
+  doc.text(purchaseOrderData?.value?.vendor_name ?? "-", col1X, startY + 6, {
+    maxWidth: colWidth - 5,
+  });
+
+  // ===== SHIP TO (MIDDLE) =====
+  doc.setFont("helvetica", "bold");
+  doc.text("SHIP TO", col2X, startY);
+
+  doc.setFont("helvetica", "normal");
+  doc.text(
+    purchaseOrderData?.value?.address
+      ? `${purchaseOrderData.value.address.street}, ${generateAddressView(
+          purchaseOrderData?.value?.address!
+        )}`
+      : "-",
+    col2X,
+    startY + 6,
+    { maxWidth: colWidth - 5 }
+  );
+
+  // ===== INFO GRID (RIGHT) =====
+  const gridStartY = startY;
+  const gridGapY = 14;
+  const gridColGap = colWidth / 2;
+
+  const infoGrid = [
+    {
+      label1: "PO DATE",
+      value1:
+        purchaseOrderData?.value?.date != null &&
+        purchaseOrderData?.value?.date != undefined
+          ? formatLocalDate(purchaseOrderData?.value?.date)
+          : "-",
+      label2: "No Ref",
+      value2: purchaseOrderData?.value?.sourcing_document,
+    },
+    {
+      label1: "TERMS",
+      value1: `${purchaseOrderData?.value?.term_payment} ${
+        purchaseOrderData?.value?.term_payment === "tempo"
+          ? purchaseOrderData?.value?.term_payment_value + " Hari"
+          : ""
+      }`.toUpperCase(),
+      label2: "EXPECTED DATE",
+      value2:
+        purchaseOrderData?.value?.expected_arrival != null &&
+        purchaseOrderData?.value?.expected_arrival != undefined
+          ? formatLocalDate(purchaseOrderData?.value?.expected_arrival)
+          : "-",
+    },
+  ];
+
+  infoGrid.forEach((row, i) => {
+    const y = gridStartY + i * gridGapY;
+
+    // label kiri
+    doc.setFont("helvetica", "bold");
+    doc.text(row.label1, col3X, y);
+
+    // label kanan
+    doc.text(row.label2, col3X + gridColGap, y);
+
+    // value kiri
+    doc.setFont("helvetica", "normal");
+    doc.text(String(row.value1 ?? "-"), col3X, y + 6, {
+      maxWidth: gridColGap - 2,
+    });
+
+    // value kanan
+    doc.text(String(row.value2 ?? "-"), col3X + gridColGap, y + 6, {
+      maxWidth: gridColGap - 2,
+    });
+  });
+
+  // ================= ITEMS TABLE =================
+  const tableStartY = startY + 35;
+
+  // const rows = (purchaseOrderItemsView.value ?? []).map(
+  //   (item: PurchasOrderViewTree, i: number) => [
+  //     i + 1,
+  //     item.item_name,
+  //     item.catalogue?.name,
+  //     item.quantity,
+  //     item.unit_name,
+  //     currencyWithoutSymbol(item.unit_price),
+  //     currencyWithoutSymbol(item.total_price),
+  //   ]
+  // );
+
+  autoTable(doc, {
+    startY: tableStartY,
+    theme: "grid",
+    margin: { left: margin, right: margin },
+    head: [["No", "Item", "No.RAB", "Qty", "Unit", "Unit Price", "Amount"]],
+    // body: rows,
+    styles: { fontSize: 10 },
+    columnStyles: {
+      0: { halign: "center", cellWidth: 10 },
+      2: { halign: "left", cellWidth: 15 },
+      4: { halign: "right" },
+      5: { halign: "right" },
+    },
+    bodyStyles: {
+      lineWidth: 0.1, // border
+      lineColor: [0, 0, 0], // warna border
+    },
+    headStyles: {
+      fillColor: [248, 248, 248], // background
+      textColor: [0, 0, 0], // warna text
+      fontStyle: "bold", // bold
+      halign: "center", // center text
+      valign: "middle", // vertical align
+      lineWidth: 0.1, // border
+      lineColor: [0, 0, 0], // warna border
+    },
+  });
+
+  // ================= SUMMARY =================
+  let grandTotal = subtotal.value;
+  const summaryRows: any[] = [];
+
+  summaryRows.push([
+    { content: "Sub Total", colSpan: 5, styles: { halign: "right" } },
+    currencyWithoutSymbol(subtotal.value),
+  ]);
+
+  (purchaseOrderData?.value?.reference_transaction ?? []).forEach((el) => {
+    summaryRows.push([
+      {
+        content:
+          (el.adjustments_transaction?.name ?? "").toLocaleLowerCase() == "ppn"
+            ? `PPN`
+            : el.adjustments_transaction?.name ?? "",
+        colSpan: 5,
+        styles: { halign: "right" },
+      },
+      currencyWithoutSymbol(displayAmount(el, subtotal.value)),
+    ]);
+    grandTotal += Number(displayAmount(el, subtotal.value) ?? 0);
+  });
+
+  summaryRows.push([
+    {
+      content: "Total Order",
+      colSpan: 5,
+      styles: { halign: "right", fontStyle: "bold" },
+    },
+    currencyWithoutSymbol(grandTotal),
+  ]);
+
+  autoTable(doc, {
+    startY: (doc as any).lastAutoTable.finalY + 6,
+    margin: { left: margin, right: margin }, // full width
+    body: summaryRows,
+    theme: "plain",
+    styles: {
+      fontSize: 10,
+      cellPadding: 2,
+    },
+    columnStyles: {
+      5: {
+        halign: "right",
+        cellWidth: 40, // hanya amount yang di-style
+      },
+    },
+    didParseCell(data) {
+      // pastikan label (yang colSpan) rata kanan
+      if (data.column.index === 0) {
+        data.cell.styles.halign = "right";
+      }
+
+      // bold Total Order
+      if (data.row.index === summaryRows.length - 1) {
+        data.cell.styles.fontStyle = "bold";
+      }
+    },
+  });
+
+  // ================= SIGNATURE =================
+  const finalY = (doc as any).lastAutoTable.finalY + 30;
+
+  doc.text("Dibuat Oleh,", margin, finalY);
+  doc.text("Disetujui Oleh,", pageWidth - 70, finalY);
+
+  doc.text(
+    `${capitalizeWords(purchaseOrderData.value?.people?.name ?? "")}`,
+    margin,
+    finalY + 30
+  );
+  doc.line(pageWidth - 70, finalY + 30, pageWidth - margin, finalY + 30);
+
+  // ================= OUTPUT =================
+  const blob = doc.output("blob");
+  pdfBlob.value = blob;
+  pdfUrl.value = URL.createObjectURL(blob);
+
+  return { doc, blob };
+};
+
+const generatePDF = async () => {
+  loadingDocument.value = true;
+  try {
+    const req_doc = {
+      reference: "so",
+      reference_id: purchaseOrderData.value?.unique_id,
+    };
+
+    const response = await useFetchApi<BaseResponse<TrumDoc>>(
+      "/documents-create",
+      "document-create",
+      "post",
+      req_doc
+    );
+
+    console.log("generate", response.status.value);
+    if (response.status.value == "success") {
+      loadingDocument.value = false;
+      const { doc } = await printDocument(
+        response.data?.value?.data?.unique_code ?? ""
+      );
+      const blob = doc.output("blob");
+      pdfUrl.value = URL.createObjectURL(blob);
+      showPreviewPDF.value = true;
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+  } finally {
+    loadingDocument.value = false;
+  }
+};
+const downloadPdf = () => {
+  if (!pdfBlob.value) {
+    ElMessage.warning("Tidak ada PDF untuk di-download");
+    return;
+  }
+
+  const filename = `${purchaseOrderData.value?.unique_code || "document"}.pdf`;
+
+  // Buat URL object untuk blob
+  const url = URL.createObjectURL(pdfBlob.value);
+
+  // Buat anchor element untuk download
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+
+  // Cleanup
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+
+  // ElMessage.success('PDF berhasil di-download')
+};
 </script>
 
 <style scoped>

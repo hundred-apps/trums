@@ -69,6 +69,7 @@
             class="card-header flex justify-center gap-2"
           >
             <el-button
+              v-if="canAccess('canvassing-approve', privilages, 2)"
               type="success"
               class="w-full"
               :icon="Check"
@@ -76,13 +77,124 @@
             >
               Setujui
             </el-button>
-            <el-button type="danger" :icon="Close" @click="decline">
+            <el-button
+              v-if="canAccess('canvassing-approve', privilages, 2)"
+              type="danger"
+              :icon="Close"
+              @click="decline"
+            >
               Tolak
             </el-button>
+            <el-button
+              type="primary"
+              class="w-full"
+              v-if="
+                (canvassingData?.status === CanvassingStatus.PENDING_APPROVAL ||
+                  canvassingData?.status == CanvassingStatus.DONE) &&
+                canvassingData?.status_cek == 'pending' &&
+                canCheck
+              "
+              @click="
+                () =>
+                  confirmCheck(
+                    'Mulai Pengecekan?',
+                    'Ketika ada mulai pengecekan, RAB ini akan di tandai bahwa sedang dilakukan pengecekan!',
+                    'progress'
+                  )
+              "
+              >Mulai Pengecekan</el-button
+            >
+            <el-button
+              type="success"
+              v-if="
+                (canvassingData?.status === CanvassingStatus.PENDING_APPROVAL ||
+                  canvassingData?.status == CanvassingStatus.DONE) &&
+                canvassingData?.status_cek == 'progress' &&
+                canCheck
+              "
+              @click="
+                () =>
+                  confirmCheck(
+                    'Selesai Pengecekan?',
+                    'RAB ini akan di tandai bahwa telah di lakukan pengecekan!',
+                    'completed'
+                  )
+              "
+              >Tandai Sebagai Telah Di Cek</el-button
+            >
+            <el-button
+              type="danger"
+              v-if="
+                (canvassingData?.status === CanvassingStatus.PENDING_APPROVAL ||
+                  canvassingData?.status == CanvassingStatus.DONE) &&
+                canvassingData?.status_cek == 'completed' &&
+                canCheck
+              "
+              @click="
+                () =>
+                  confirmCheck(
+                    'Batalkan Pengecekan?',
+                    'RAB ini akan di tandai bahwa belum dilakukan pengecekan!',
+                    'pending'
+                  )
+              "
+              >Batalkan Pengecekan</el-button
+            >
           </div>
         </div>
         <div v-else>
           <div class="card-header flex justify-end">
+            <el-button
+              type="primary"
+              v-if="
+                (canvassingData?.status === CanvassingStatus.PENDING_APPROVAL ||
+                  canvassingData?.status == CanvassingStatus.DONE) &&
+                canvassingData?.status_cek == 'pending'
+              "
+              @click="
+                () =>
+                  confirmCheck(
+                    'Mulai Pengecekan?',
+                    'Ketika ada mulai pengecekan, RAB ini akan di tandai bahwa sedang dilakukan pengecekan!',
+                    'progress'
+                  )
+              "
+              >Mulai Check</el-button
+            >
+            <el-button
+              type="success"
+              v-if="
+                (canvassingData?.status === CanvassingStatus.PENDING_APPROVAL ||
+                  canvassingData?.status == CanvassingStatus.DONE) &&
+                canvassingData?.status_cek == 'progress'
+              "
+              @click="
+                () =>
+                  confirmCheck(
+                    'Selesai Pengecekan?',
+                    'RAB ini akan di tandai bahwa telah di lakukan pengecekan!',
+                    'completed'
+                  )
+              "
+              >Tandai Sebagai Telah Di Cek</el-button
+            >
+            <el-button
+              type="danger"
+              v-if="
+                (canvassingData?.status === CanvassingStatus.PENDING_APPROVAL ||
+                  canvassingData?.status == CanvassingStatus.DONE) &&
+                canvassingData?.status_cek == 'completed'
+              "
+              @click="
+                () =>
+                  confirmCheck(
+                    'Batalkan Pengecekan?',
+                    'RAB ini akan di tandai bahwa belum dilakukan pengecekan!',
+                    'pending'
+                  )
+              "
+              >Batalkan Pengecekan</el-button
+            >
             <el-button
               type="danger"
               v-if="canDelete"
@@ -1081,7 +1193,7 @@
     <el-dialog
       v-model="visibleApproveDialog"
       title="Approve Canvasing!"
-      width="500"
+      style="width: 100%"
     >
       <el-form :model="canvassingData!" :label-position="formApproveLabel">
         <el-form-item label="Catatan" prop="note">
@@ -1090,8 +1202,8 @@
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button @click="visibleApproveDialog = false">Cancel</el-button>
-          <el-button type="primary" @click="submitApprove"> Approve </el-button>
+          <el-button @click="visibleApproveDialog = false">Batal</el-button>
+          <el-button type="primary" @click="submitApprove"> Setujui </el-button>
         </div>
       </template>
     </el-dialog>
@@ -1528,7 +1640,7 @@ const selectedVendors = ref<Record<string, string>>({});
 const canEdit = canAccess("canvassing-update", props.privilages);
 const canDelete = canAccess("canvassing-delete", props.privilages);
 const approveRAB = canAccess("approve-rab", props.privilages);
-const canChecked = canAccess("check-rab", props.privilages);
+const canCheck = canAccess("canvassing-rab-checker", props.privilages);
 
 // Loading animation SVG
 const svg = `
@@ -4539,6 +4651,35 @@ const updateStatus = async (status: CanvassingStatus) => {
   }
 };
 
+const statusCheck = async (status: "progress" | "completed" | "pending") => {
+  if (!canvassingData.value) return;
+
+  loading.value = true;
+  try {
+    const formData = new FormData();
+    formData.append("unique_id", canvassingData.value.unique_id || "");
+    formData.append("status_cek", status);
+
+    const response = await useFetchApi<BaseResponse<Canvassing>>(
+      "/canvassing-create",
+      `update-canvassing-checked-${status}`,
+      "post",
+      formData
+    );
+
+    if (response.status.value == "success") {
+      canvassingData.value.status_cek = status;
+
+      ElMessage.success("Canvassing status updated");
+    }
+  } catch (error) {
+    ElMessage.error("Failed to update status");
+    console.error(error);
+  } finally {
+    loading.value = false;
+  }
+};
+
 const createQuotationPrice = async (data: any) => {
   loading.value = true;
   try {
@@ -6447,6 +6588,27 @@ const confirmDelete = () => {
   )
     .then(async () => {
       await deleteCanvassing();
+    })
+    .catch(() => {
+      // Cancel
+    });
+};
+const confirmCheck = (
+  title: string,
+  text: string,
+  value: "progress" | "completed" | "pending"
+) => {
+  ElMessageBox.confirm(
+    "Ketika ada mulai pengecekan, RAB ini akan di tandai bahwa sedang dilakukan pengecekan!",
+    {
+      confirmButtonText: "Mulai",
+      cancelButtonText: "Batal",
+      type: "info",
+      title: "Ingin memulai pengecekan RAB?",
+    }
+  )
+    .then(async () => {
+      await statusCheck(value);
     })
     .catch(() => {
       // Cancel

@@ -51,7 +51,8 @@
           </TrumsCustomButton>
           <TrumsCustomButton
             v-if="
-              canvassingData?.status == CanvassingStatus.PENDING_APPROVAL_RAB
+              canvassingData?.status == CanvassingStatus.PENDING_APPROVAL_RAB ||
+              canvassingData?.status == CanvassingStatus.DONE
             "
             type="default"
             :loading="loading"

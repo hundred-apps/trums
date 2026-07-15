@@ -128,7 +128,7 @@ export type Canvassing = {
   expired_price?: number;
   approved_by?: People | null;
   request_by?: People | null;
-  status_check?: "pending" | "progress" | "completed";
+  status_cek?: "pending" | "progress" | "completed";
   checked_at?: number;
   checked_by?: string;
   checked_data?: People;

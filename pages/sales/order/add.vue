@@ -2172,6 +2172,9 @@ const fetchDataEdit = async () => {
       if (request != null) {
         ruleForm.unique_id = request.unique_id;
         ruleForm.vendor_id = request.vendor_id ?? "";
+        if (request.vendor) {
+          ruleForm.vendor = request.vendor;
+        }
         ruleForm.vendor_name = request.vendor?.name ?? "";
         ruleForm.vendor_version = request.vendor_version;
         ruleForm.sourcing_document = request.sourcing_document ?? "";
@@ -2190,6 +2193,12 @@ const fetchDataEdit = async () => {
         ruleForm.total_price = request.total_price;
         ruleForm.additinal_information = request.additional_information ?? "";
         ruleForm.status = request.status;
+        if (request.pic) {
+          ruleForm.pic = request.pic;
+        }
+        ruleForm.pic_id = request.pic_id ?? "";
+        ruleForm.pic_name = request.pic_name ?? "";
+
         ruleForm.items = request.purchase_order_item.map((item) => ({
           ...item,
           display_buy_price: currencyWithoutSymbol(item.buy_price || 0),

@@ -8,7 +8,7 @@
       </template>
     </el-page-header>
 
-    <!-- <TrumsAlertPage v-if="!loading" :text="getTextInfo" :type="'warning'" /> -->
+    <TrumsAlertPage v-if="!loading" :text="getTextInfo" :type="'warning'" />
 
     <CanvassingDetail
       v-if="canvassingData"

@@ -6,6 +6,7 @@ import type { PaymentMethod } from "../finance/bill";
 import type { Invoice } from "../finance/invoice";
 import type { ItemRequestTrail } from "../item_request";
 import type { TermOfPayment } from "../payment_term";
+import type { People } from "../people";
 import type { Pricetag_item } from "../pricetag";
 import type { Tax } from "../tax";
 import type { DiscountUnit } from "./offers";
@@ -78,6 +79,7 @@ export type PurchaseOrder = {
   pic_name?: string;
   pic_version?: number;
   pic?: Contact;
+  people?: People;
 };
 
 export type StatisticOrder = {
