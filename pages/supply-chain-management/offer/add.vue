@@ -10,6 +10,7 @@
         v-if="!loading"
         @submit="onSubmit"
         :data="ruleForm"
+        :files="fileList"
       />
     </div>
   </TrumsWrapper>
@@ -111,7 +112,7 @@ const id = computed(() => route.query.id as string);
 const references = ref<ReferenceTransactionAdjustment[]>([]);
 const termOfPayments = ref<TermOfPayment[]>([]);
 
-const fileList = ref<UploadUserFile[]>([]);
+const fileList = ref<AppFile[]>([]);
 const formSize = ref<ComponentSize>("default");
 const ruleFormRef = ref<FormInstance>();
 const oneMonthLater = new Date();
@@ -1138,12 +1139,14 @@ const fetchInitialData = async () => {
 
       termOfPayments.value = pricetagEdit.payment_terms ?? [];
 
-      fileList.value = pricetagEdit.files.map((file: AppFile) => ({
-        name: file.filename_original || "",
-        url: `${baseImageURL}${file.image_path}/${file.filename}`,
-        // status: 'success', // status penting untuk menunjukkan file sudah terupload
-        // response: file, // simpan response original jika diperlukan
-      }));
+      // fileList.value = pricetagEdit.files.map((file: AppFile) => ({
+      //   name: file.filename_original || "",
+      //   url: `${baseImageURL}${file.image_path}/${file.filename}`,
+      //   // status: 'success', // status penting untuk menunjukkan file sudah terupload
+      //   // response: file, // simpan response original jika diperlukan
+      // }));
+
+      fileList.value = pricetagEdit.files ?? [];
 
       console.log("data to edit", ruleForm);
     }

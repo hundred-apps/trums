@@ -155,6 +155,25 @@
           <el-form-item label="" prop="files">
             <TrumsUploadFile v-model:file-list="fileList" />
           </el-form-item>
+          <div>
+            <div
+              class="flex items-center justify-between p-2 hover:bg-gray-50"
+              v-for="(value, key) in fileDocument"
+              :key="key"
+            >
+              <NuxtLink
+                class="text-blue-500 text-sm"
+                :target="'_blank'"
+                :href="`${baseImageURL}/${value.image_path}/${value.filename}`"
+                >{{ value.filename_original }}</NuxtLink
+              >
+              <el-icon
+                class="cursor-pointer"
+                @click="() => handleRemoveFileDocument(value)"
+                ><Close
+              /></el-icon>
+            </div>
+          </div>
         </el-form>
       </el-card>
 
@@ -672,6 +691,7 @@ import {
   Delete,
   Picture,
   User as ElUserIcon,
+  Close,
 } from "@element-plus/icons-vue";
 import {
   dayjs,
@@ -750,6 +770,7 @@ const { isMobile } = useDevice();
 const props = defineProps<{
   onSubmit: (data: Pricetag | undefined) => void;
   data?: Pricetag;
+  files?: AppFile[];
 }>();
 
 definePageMeta({
@@ -776,6 +797,7 @@ const route = useRoute();
 const canvassing_id = computed(() => route.query.canvassing_id as string);
 const id = computed(() => route.query.id as string);
 const fileList = ref<UploadUserFile[]>([]);
+const fileDocument = ref<AppFile[]>(props.files || []);
 const formSize = ref<ComponentSize>("default");
 const ruleFormRef = ref<FormInstance>();
 const ruleForm = reactive<Pricetag>(
@@ -1695,6 +1717,37 @@ const handleRemoveImageList = async (
       ElMessage.error(`${error?.response?.message ?? error}`);
     }
   }
+};
+const handleRemoveFileDocument = async (appFile: AppFile) => {
+  ElMessageBox.confirm(
+    "File akan di hapus secara permanen. Lanjutkan?",
+    "Warning",
+
+    {
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
+      type: "warning",
+      title: "Yakin ingin menghapus file?",
+    }
+  )
+    .then(async () => {
+      try {
+        const response = await useApiFetch<BaseResponse<any>>("/file-delete", {
+          method: "POST",
+          body: [appFile.unique_id],
+        });
+
+        if (response.success) {
+          fileDocument.value = fileDocument.value.filter(
+            (filter) => filter.unique_id != appFile.unique_id
+          );
+          ElMessage.success(`Image Berhasil Di Hapus!`);
+        }
+      } catch (error: any) {
+        ElMessage.error(`${error?.response?.message ?? error}`);
+      }
+    })
+    .catch(() => {});
 };
 
 const cancelImageUpload = () => {
@@ -2700,7 +2753,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
   await formEl.validate((valid, fields) => {
     if (valid) {
       if (ruleForm.type == "in") {
-        if (fileList.value.length == 0) {
+        if (fileList.value.length == 0 && fileDocument.value.length == 0) {
           ElMessage.error("Lampiran Tidak Boleh Kosong!");
         } else {
           onSubmit(formEl);

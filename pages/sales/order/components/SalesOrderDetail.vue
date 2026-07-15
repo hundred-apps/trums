@@ -488,7 +488,7 @@ const pdfBlob = ref<Blob | null>(null);
 const loading = ref(false);
 const purchaseOrderData = ref<PurchaseOrder | null>(props.purchaseOrder);
 
-const purchaseOrderItem = await useAsyncData("fetch-inquiries", async () => {
+const purchaseOrderItem = await useAsyncData("fetch-order-item", async () => {
   let res: ResponsePagination<PurchaseOrderItem[]> = {
     success: false,
     current_page: 0,

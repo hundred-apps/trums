@@ -28,10 +28,11 @@ const internalFileList = ref<UploadUserFile[]>(props.fileList);
 
 const emit = defineEmits<{
   (e: "update:fileList", value: UploadUserFile[]): void;
+  (e: "onRemove", value: UploadUserFile): void;
 }>();
 
 const handleRemove: UploadProps["onRemove"] = (file, uploadFiles) => {
-  console.log(file, uploadFiles);
+  emit("onRemove", file);
 };
 
 const handlePreview: UploadProps["onPreview"] = (uploadFile) => {
