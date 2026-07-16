@@ -1432,7 +1432,7 @@ const generateQuotationPdf = async () => {
         doc.addImage(
           tmpCAP,
           "PNG",
-          signCenterX - capWidth / 2,
+          signCenterX - capWidth / 2 - 8,
           currentY - 25,
           capWidth,
           capHeight
