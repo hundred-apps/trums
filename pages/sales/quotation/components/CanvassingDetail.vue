@@ -6266,69 +6266,104 @@ const generateSCMMemo = async () => {
     }
   }
 
-  let historyPage = mergedPdf.addPage([595.28, 841.89]);
+  if ((comments.data?.value?.data || []).length > 0) {
+    let historyPage = mergedPdf.addPage([595.28, 841.89]);
 
-  const { width, height } = historyPage.getSize();
+    const { width, height } = historyPage.getSize();
 
-  const font = await mergedPdf.embedFont(StandardFonts.Helvetica);
-  const fontBold = await mergedPdf.embedFont(StandardFonts.HelveticaBold);
+    const font = await mergedPdf.embedFont(StandardFonts.Helvetica);
+    const fontBold = await mergedPdf.embedFont(StandardFonts.HelveticaBold);
 
-  currentY = height - 40;
+    currentY = height - 40;
 
-  historyPage.drawText("Riwayat Komentar", {
-    x: 40,
-    y: currentY,
-    size: 16,
-    font: fontBold,
-  });
+    if ((comments.data.value?.data || []).length > 0) {
+      historyPage.drawText("Riwayat Komentar", {
+        x: 40,
+        y: currentY,
+        size: 16,
+        font: fontBold,
+      });
+    }
 
-  currentY -= 25;
+    currentY -= 25;
 
-  const maxWidth = width - 90;
+    const maxWidth = width - 90;
 
-  const writeWrappedComment = (
-    text: string,
-    x: number,
-    font: PDFFont,
-    size: number
-  ) => {
-    const normalizedText = (text ?? "").replace(/\r/g, "");
+    const writeWrappedComment = (
+      text: string,
+      x: number,
+      font: PDFFont,
+      size: number
+    ) => {
+      const normalizedText = (text ?? "").replace(/\r/g, "");
 
-    const paragraphs = normalizedText.split("\n");
+      const paragraphs = normalizedText.split("\n");
 
-    for (const paragraph of paragraphs) {
-      // Jika memang baris kosong, beri jarak lalu lanjut
-      if (paragraph.trim() === "") {
-        currentY -= 14;
+      for (const paragraph of paragraphs) {
+        // Jika memang baris kosong, beri jarak lalu lanjut
+        if (paragraph.trim() === "") {
+          currentY -= 14;
 
-        if (currentY < 60) {
-          historyPage = mergedPdf.addPage();
+          if (currentY < 60) {
+            historyPage = mergedPdf.addPage();
 
-          currentY = height - 40;
+            currentY = height - 40;
 
-          historyPage.drawText("Riwayat Komentar", {
-            x: 40,
-            y: currentY,
-            size: 16,
-            font: fontBold,
-          });
+            historyPage.drawText("Riwayat Komentar", {
+              x: 40,
+              y: currentY,
+              size: 16,
+              font: fontBold,
+            });
 
-          currentY -= 25;
+            currentY -= 25;
+          }
+
+          continue;
         }
 
-        continue;
-      }
+        const words = paragraph.split(" ");
 
-      const words = paragraph.split(" ");
+        let line = "";
 
-      let line = "";
+        for (const word of words) {
+          const testLine = line ? `${line} ${word}` : word;
 
-      for (const word of words) {
-        const testLine = line ? `${line} ${word}` : word;
+          const textWidth = font.widthOfTextAtSize(testLine, size);
 
-        const textWidth = font.widthOfTextAtSize(testLine, size);
+          if (textWidth > maxWidth) {
+            if (currentY < 60) {
+              historyPage = mergedPdf.addPage();
 
-        if (textWidth > maxWidth) {
+              currentY = height - 40;
+
+              historyPage.drawText("Riwayat Komentar", {
+                x: 40,
+                y: currentY,
+                size: 16,
+                font: fontBold,
+              });
+
+              currentY -= 25;
+            }
+
+            historyPage.drawText(line, {
+              x,
+              y: currentY,
+              size,
+              font,
+              color: rgb(0, 0, 0),
+            });
+
+            currentY -= 14;
+
+            line = word;
+          } else {
+            line = testLine;
+          }
+        }
+
+        if (line) {
           if (currentY < 60) {
             historyPage = mergedPdf.addPage();
 
@@ -6353,86 +6388,55 @@ const generateSCMMemo = async () => {
           });
 
           currentY -= 14;
-
-          line = word;
-        } else {
-          line = testLine;
         }
+
+        // Jarak antar paragraph
+        currentY -= 4;
       }
+    };
 
-      if (line) {
-        if (currentY < 60) {
-          historyPage = mergedPdf.addPage();
+    for (const comment of comments.data.value?.data ?? []) {
+      // kalau sudah mentok bawah, tambah halaman
+      if (currentY < 60) {
+        const page = mergedPdf.addPage();
 
-          currentY = height - 40;
+        currentY = height - 40;
 
-          historyPage.drawText("Riwayat Komentar", {
-            x: 40,
-            y: currentY,
-            size: 16,
-            font: fontBold,
-          });
-
-          currentY -= 25;
-        }
-
-        historyPage.drawText(line, {
-          x,
+        page.drawText("Riwayat Komentar", {
+          x: 40,
           y: currentY,
-          size,
-          font,
-          color: rgb(0, 0, 0),
+          size: 16,
+          font: fontBold,
         });
 
-        currentY -= 14;
+        currentY -= 25;
+
+        // ganti halaman aktif
+        historyPage = page;
       }
 
-      // Jarak antar paragraph
-      currentY -= 4;
+      historyPage.drawText(
+        `${comment.people?.name ?? "-"} ${formatLocalDateTime(
+          comment.created_at
+        )}`,
+        {
+          x: 40,
+          y: currentY,
+          size: 10,
+          color: rgb(0.45, 0.45, 0.45),
+        }
+      );
+
+      currentY -= 15;
+
+      writeWrappedComment(comment.comment ?? "-", 40, font, 10);
+
+      currentY -= 10;
+
+      const lines = Math.ceil((comment.comment?.length ?? 0) / 90);
+
+      currentY -= lines * 14 + 15;
     }
-  };
-
-  for (const comment of comments.data.value?.data ?? []) {
-    // kalau sudah mentok bawah, tambah halaman
-    if (currentY < 60) {
-      const page = mergedPdf.addPage();
-
-      currentY = height - 40;
-
-      page.drawText("Riwayat Komentar", {
-        x: 40,
-        y: currentY,
-        size: 16,
-        font: fontBold,
-      });
-
-      currentY -= 25;
-
-      // ganti halaman aktif
-      historyPage = page;
-    }
-
-    historyPage.drawText(
-      `${comment.people?.name ?? "-"} ${formatLocalDateTime(
-        comment.created_at
-      )}`,
-      {
-        x: 40,
-        y: currentY,
-        size: 10,
-        color: rgb(0.45, 0.45, 0.45),
-      }
-    );
-
-    currentY -= 15;
-
-    writeWrappedComment(comment.comment ?? "-", 40, font, 10);
-
-    currentY -= 10;
-
-    const lines = Math.ceil((comment.comment?.length ?? 0) / 90);
-
-    currentY -= lines * 14 + 15;
   }
 
   const mergedBytes = await mergedPdf.save();

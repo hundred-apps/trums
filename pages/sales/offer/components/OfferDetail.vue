@@ -1005,6 +1005,7 @@ const generateQuotationPdf = async () => {
   // ================= LOGO =================
 
   const imgLogo = await getBase64ImageFromUrl("/images/trumecs-logo.png");
+  const tmpCAP = await getBase64ImageFromUrl("/images/TMP-CAP.png");
 
   const tmsLogo = await getBase64ImageFromUrl("/images/tms-logo.png");
 
@@ -1365,9 +1366,9 @@ const generateQuotationPdf = async () => {
 
   currentY += 20;
 
-  currentY = checkPageBreak(currentY, 50);
+  // currentY = checkPageBreak(currentY, 40);
 
-  currentY = checkPageBreak(currentY, 50);
+  // currentY = checkPageBreak(currentY, 50);
 
   doc.setFontSize(9);
 
@@ -1383,7 +1384,7 @@ const generateQuotationPdf = async () => {
     align: "center",
   });
 
-  currentY += 30;
+  currentY += 20;
 
   if (props.dataInterface?.data?.type === "in") {
     doc.text(
@@ -1417,13 +1418,32 @@ const generateQuotationPdf = async () => {
           signImageWidth,
           signImageHeight
         );
+        const capImage = new Image();
+        capImage.src = tmpCAP;
+
+        await new Promise((resolve) => {
+          capImage.onload = resolve;
+        });
+
+        const capWidth = 35;
+        const capHeight =
+          (capImage.naturalHeight / capImage.naturalWidth) * capWidth;
+
+        doc.addImage(
+          tmpCAP,
+          "PNG",
+          signCenterX - capWidth / 2,
+          currentY - 25,
+          capWidth,
+          capHeight
+        );
       }
 
-      doc.text(canvassing.request_by?.name ?? "", signCenterX, currentY - 5, {
+      doc.text(canvassing.request_by?.name ?? "", signCenterX, currentY + 5, {
         align: "center",
       });
     } else {
-      doc.text("Stanislaus Adrian Pratama", signCenterX, currentY - 5, {
+      doc.text("Stanislaus Adrian Pratama", signCenterX, currentY + 20, {
         align: "center",
       });
     }
