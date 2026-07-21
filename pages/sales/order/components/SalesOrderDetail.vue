@@ -1493,13 +1493,13 @@ const printDocument = async (code: string) => {
   }
   doc.text("Dibuat Oleh,", creatorCenterX, finalY, { align: "center" });
   if (purchaseOrderData.value?.status == PurchaseOrderStatus.APPROVED) {
-    // if (
-    //   canAccess("purchase-order-approve", props.privillage || [], 1) == false
-    // ) {
-    doc.text("Disetujui Oleh,", approvalCenterX, finalY, {
-      align: "center",
-    });
-    // }
+    if (
+      canAccess("purchase-order-approve", props.privillage || [], 1) == false
+    ) {
+      doc.text("Disetujui Oleh,", approvalCenterX, finalY, {
+        align: "center",
+      });
+    }
   }
 
   if (requestSignCreator) {
@@ -1541,52 +1541,52 @@ const printDocument = async (code: string) => {
 
   if (purchaseOrderData.value?.status == PurchaseOrderStatus.APPROVED) {
     const approvalX = pageWidth - 70;
-    // if (
-    //   canAccess("purchase-order-approve", props.privillage || [], 1) == false
-    // ) {
-    doc.text(
-      purchaseOrderData?.value.approved_by?.name ?? "",
-      approvalCenterX,
-      finalY + 32,
-      { align: "center" }
-    );
-    if (requestSignApproval) {
-      doc.addImage(
-        requestSignApproval,
-        "PNG",
-        approvalCenterX - signWidth / 2,
-        finalY + 5,
-        signWidth,
-        signHeight
+    if (
+      canAccess("purchase-order-approve", props.privillage || [], 1) == false
+    ) {
+      doc.text(
+        purchaseOrderData?.value.approved_by?.name ?? "",
+        approvalCenterX,
+        finalY + 32,
+        { align: "center" }
       );
+      if (requestSignApproval) {
+        doc.addImage(
+          requestSignApproval,
+          "PNG",
+          approvalCenterX - signWidth / 2,
+          finalY + 5,
+          signWidth,
+          signHeight
+        );
+      }
+
+      // tampilkan CAP di atas tanda tangan approval
+      if (tmpCAP) {
+        const capImage = new Image();
+        capImage.src = tmpCAP;
+
+        await new Promise((resolve) => {
+          capImage.onload = resolve;
+        });
+
+        const capWidth = 35;
+        const capHeight =
+          (capImage.naturalHeight / capImage.naturalWidth) * capWidth;
+
+        // posisi CAP approval sedikit di kiri dan di atas tanda tangan approval
+        const approvalCenterX = approvalX + signWidth / 2;
+
+        doc.addImage(
+          tmpCAP,
+          "PNG",
+          approvalCenterX - capWidth / 2 + 8,
+          finalY + 2,
+          capWidth,
+          capHeight
+        );
+      }
     }
-
-    // tampilkan CAP di atas tanda tangan approval
-    if (tmpCAP) {
-      const capImage = new Image();
-      capImage.src = tmpCAP;
-
-      await new Promise((resolve) => {
-        capImage.onload = resolve;
-      });
-
-      const capWidth = 35;
-      const capHeight =
-        (capImage.naturalHeight / capImage.naturalWidth) * capWidth;
-
-      // posisi CAP approval sedikit di kiri dan di atas tanda tangan approval
-      const approvalCenterX = approvalX + signWidth / 2;
-
-      doc.addImage(
-        tmpCAP,
-        "PNG",
-        approvalCenterX - capWidth / 2 + 8,
-        finalY + 2,
-        capWidth,
-        capHeight
-      );
-    }
-    // }
   }
 
   // ================= OUTPUT =================
