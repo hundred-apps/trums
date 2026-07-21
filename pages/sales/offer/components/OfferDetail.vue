@@ -543,6 +543,7 @@ const selectedPricetagItems = ref<Pricetag_item[]>([]);
 type PricetagItemView = {
   unique_id: string;
   item_name: string;
+  item_id: string;
   price: number;
   qty: number;
   unit_id: string;
@@ -638,6 +639,7 @@ watch(
     let no = 1;
 
     (data ?? []).forEach((item) => {
+      // console.log('')
       if (item.data_reference) {
         const isExist = pricetag_item_views.value.findIndex(
           (find) => find.unique_id == item.reference_id
@@ -646,6 +648,7 @@ watch(
         if (isExist < 0) {
           pricetag_item_views.value.push({
             no: `${no}`,
+            item_id: item.catalogue_id || "",
             unique_id: item.reference_id || "",
             item_name: item.catalogue?.name || "",
             price: item.price,
@@ -664,6 +667,7 @@ watch(
 
           pricetag_item_views.value.push({
             no: ``,
+            item_id: item.catalogue_id || "",
             unique_id: item.unique_id || "",
             item_name: displayCatalogueName(item.catalogue!),
             price: item.price,
@@ -679,26 +683,35 @@ watch(
             hasChild: false,
           });
         } else {
-          pricetag_item_views.value.push({
-            no: ``,
-            unique_id: item.unique_id || "",
-            item_name: displayCatalogueName(item.catalogue!),
-            price: item.price,
-            qty: item.quantity,
-            unit_id: item.unit_id || "",
-            unit_name: item.unit_name || "",
-            garansi: item.garansi ? item.garansi + " Hari" : "N/A",
-            note: item.note || "",
-            is_equivalent: false,
-            equivalent_from_id: "",
-            delivery: item.delivery,
-            status_item: item.status_item,
-            hasChild: false,
-          });
+          const findCatalogueExist = pricetag_item_views.value.findIndex(
+            (find) => find.item_id == item.catalogue_id
+          );
+          if (findCatalogueExist >= 0) {
+            pricetag_item_views.value[findCatalogueExist].qty += item.quantity;
+          } else {
+            pricetag_item_views.value.push({
+              no: ``,
+              item_id: item.catalogue_id || "",
+              unique_id: item.unique_id || "",
+              item_name: displayCatalogueName(item.catalogue!),
+              price: item.price,
+              qty: item.quantity,
+              unit_id: item.unit_id || "",
+              unit_name: item.unit_name || "",
+              garansi: item.garansi ? item.garansi + " Hari" : "N/A",
+              note: item.note || "",
+              is_equivalent: false,
+              equivalent_from_id: "",
+              delivery: item.delivery,
+              status_item: item.status_item,
+              hasChild: false,
+            });
+          }
         }
       } else {
         pricetag_item_views.value.push({
           no: `${no}`,
+          item_id: item.catalogue_id || "",
           unique_id: item.unique_id || "",
           item_name: displayCatalogueName(item.catalogue!),
           price: item.price,

@@ -845,7 +845,13 @@
             :name="vendor.unique_id ?? ''"
           >
             <div>
-              <el-descriptions title="" :column="1" size="small" border>
+              <el-descriptions
+                title=""
+                :label-width="200"
+                :column="1"
+                size="small"
+                border
+              >
                 <el-descriptions-item label="Nomor Penawaran">
                   <NuxtLink
                     class="text-blue-600"
@@ -1623,13 +1629,7 @@ import type { ResponsePagination } from "~/types/response_pagination";
 import type { Contact, CustomerOverView } from "~/types/contact";
 import jsPDF from "jspdf";
 import autoTable, { type RowInput } from "jspdf-autotable";
-import {
-  OperationPriceTag,
-  ReferencePriceTag,
-  VariablePriceTag,
-  type Pricetag,
-  type Pricetag_item,
-} from "~/types/pricetag";
+import { type Pricetag, type Pricetag_item } from "~/types/pricetag";
 import FeeDrawer from "~/components/trums/FeeDrawer.vue";
 import type { AddressType } from "~/types/address";
 import ModalAdjustmentTransaction from "~/components/trums/ModalAdjustmentTransaction.vue";
@@ -1649,6 +1649,7 @@ import { displayCatalogueName } from "#imports";
 import { CommentReference, type CommentData } from "~/types/comment";
 import { formatLocalDateTime } from "#imports";
 import { PDFDocument, PDFFont, rgb, StandardFonts } from "pdf-lib";
+import ExcelJS from "exceljs";
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -6450,6 +6451,352 @@ const generateSCMMemo = async () => {
   return {
     blob: mergedBlob,
   };
+};
+
+const generateSCMMemoExcel = async () => {
+  const workbook = new ExcelJS.Workbook();
+  workbook.creator = "Trumecs";
+  workbook.created = new Date();
+
+  // =========================
+  // WORKSHEET : SCM MEMO
+  // =========================
+  const ws = workbook.addWorksheet("SCM MEMO", {
+    pageSetup: {
+      paperSize: 9, // A4
+      orientation: "landscape",
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+      margins: {
+        left: 0.3,
+        right: 0.3,
+        top: 0.5,
+        bottom: 0.5,
+        header: 0,
+        footer: 0,
+      },
+    },
+  });
+
+  // Lebar kolom mengikuti tabel PDF
+  ws.columns = [
+    { width: 5 }, // A No
+    { width: 32 }, // B Nama Barang
+    { width: 25 }, // C Vendor
+    { width: 15 }, // D Ketersediaan
+    { width: 15 }, // E Pengiriman
+    { width: 18 }, // F Est. Pengiriman
+    { width: 10 }, // G Qty
+    { width: 10 }, // H Unit
+    { width: 15 }, // I Harga Beli
+    { width: 18 }, // J Total Beli
+    { width: 15 }, // K Harga Jual
+    { width: 18 }, // L Total Jual
+    { width: 15 }, // M Margin
+    { width: 12 }, // N % Margin
+  ];
+
+  // =========================
+  // HEADER
+  // =========================
+  ws.mergeCells("A1:N1");
+  ws.getCell("A1").value = "SCM MEMO";
+  ws.getCell("A1").font = { bold: true, size: 18 };
+  ws.getCell("A1").alignment = {
+    horizontal: "center",
+    vertical: "middle",
+  };
+  ws.getRow(1).height = 30;
+
+  // Informasi customer
+  ws.getCell("A3").value = "Customer";
+  ws.getCell("B3").value = ":";
+  ws.getCell("C3").value =
+    canvassingData.value?.source?.request_to?.name || "-";
+
+  ws.getCell("A4").value = "Alamat Pengiriman";
+  ws.getCell("B4").value = ":";
+  ws.getCell("C4").value = generateAddressView(
+    canvassingData.value!.address! ?? "-"
+  );
+
+  ws.getCell("A5").value = "RFQ Number";
+  ws.getCell("B5").value = ":";
+  ws.getCell("C5").value = canvassingData.value?.source_document || "-";
+
+  ["A3", "A4", "A5"].forEach((c) => {
+    ws.getCell(c).font = { bold: true };
+  });
+
+  // =========================
+  // TABLE HEADER
+  // =========================
+  const headerRow = 8;
+
+  ws.mergeCells(`A${headerRow}:A${headerRow + 1}`);
+  ws.mergeCells(`B${headerRow}:B${headerRow + 1}`);
+  ws.mergeCells(`C${headerRow}:C${headerRow + 1}`);
+  ws.mergeCells(`D${headerRow}:D${headerRow + 1}`);
+  ws.mergeCells(`E${headerRow}:E${headerRow + 1}`);
+  ws.mergeCells(`F${headerRow}:F${headerRow + 1}`);
+  ws.mergeCells(`G${headerRow}:G${headerRow + 1}`);
+  ws.mergeCells(`H${headerRow}:H${headerRow + 1}`);
+  ws.mergeCells(`I${headerRow}:J${headerRow}`);
+  ws.mergeCells(`K${headerRow}:L${headerRow}`);
+  ws.mergeCells(`M${headerRow}:M${headerRow + 1}`);
+  ws.mergeCells(`N${headerRow}:N${headerRow + 1}`);
+
+  ws.getCell(`A${headerRow}`).value = "No";
+  ws.getCell(`B${headerRow}`).value = "Nama Barang";
+  ws.getCell(`C${headerRow}`).value = "Vendor";
+  ws.getCell(`D${headerRow}`).value = "Ketersediaan";
+  ws.getCell(`E${headerRow}`).value = "Pengiriman";
+  ws.getCell(`F${headerRow}`).value = "Est. Pengiriman";
+  ws.getCell(`G${headerRow}`).value = "Jml Order";
+  ws.getCell(`H${headerRow}`).value = "Kemasan";
+  ws.getCell(`I${headerRow}`).value = "Harga Beli";
+  ws.getCell(`K${headerRow}`).value = "Harga Jual";
+  ws.getCell(`M${headerRow}`).value = "Margin";
+  ws.getCell(`N${headerRow}`).value = "% Margin";
+
+  ws.getCell(`I${headerRow + 1}`).value = "Harga Beli";
+  ws.getCell(`J${headerRow + 1}`).value = "Total Harga";
+  ws.getCell(`K${headerRow + 1}`).value = "Harga Jual";
+  ws.getCell(`L${headerRow + 1}`).value = "Total Harga";
+
+  // Style header
+  for (let r = headerRow; r <= headerRow + 1; r++) {
+    ws.getRow(r).eachCell((cell) => {
+      cell.font = { bold: true };
+      cell.alignment = {
+        horizontal: "center",
+        vertical: "middle",
+        wrapText: true,
+      };
+      cell.fill = {
+        type: "pattern",
+        pattern: "solid",
+        fgColor: { argb: "F2F2F2" },
+      };
+      cell.border = {
+        top: { style: "thin" },
+        left: { style: "thin" },
+        bottom: { style: "thin" },
+        right: { style: "thin" },
+      };
+    });
+  }
+
+  // =========================
+  // DATA ITEM & VENDOR
+  // =========================
+  let currentRow = headerRow + 2;
+
+  (canvassingData.value?.canvassing_item || []).forEach((item, index) => {
+    // Parent row
+    ws.addRow([
+      index + 1,
+      item.catalogue
+        ? displayCatalogueName(item.catalogue)
+        : item.catalogue_name,
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+      "",
+    ]);
+
+    const parentRow = ws.getRow(currentRow);
+    parentRow.font = { bold: true };
+    currentRow++;
+
+    // Child/vendor rows
+    (item.canvassing_vendor || []).forEach((vendor) => {
+      let delimiter = "";
+      if (vendor.type_item === "equivalent") delimiter = "EQ - ";
+      else if (vendor.type_item === "original") delimiter = "REQ - ";
+      else if (vendor.type_item === "quotation") delimiter = "SUB - ";
+
+      const totalBuy = vendor.total_price || 0;
+      const totalSell = vendor.total_selling_price || 0;
+      const marginNominal = totalSell - totalBuy;
+      const marginPercent = totalBuy > 0 ? marginNominal / totalBuy : 0;
+
+      ws.addRow([
+        vendor.status === CanvassingVendorStatus.SELECTED ? "V" : "",
+        `${delimiter}${
+          vendor.catalogue
+            ? displayCatalogueName(vendor.catalogue)
+            : vendor.catalogue_name
+        }`,
+        vendor.vendor?.name || "-",
+        vendor.pricetag_item?.status_item || "-",
+        vendor.pricetag_item?.delivery || "-",
+        vendor.expected_delivery || "-",
+        vendor.quantity,
+        vendor.unit_name,
+        vendor.unit_price || 0,
+        totalBuy,
+        vendor.selling_price || 0,
+        totalSell,
+        marginNominal,
+        marginPercent,
+      ]);
+
+      const childRow = ws.getRow(currentRow);
+      childRow.font = {
+        italic: true,
+        color: { argb: "666666" },
+      };
+
+      currentRow++;
+    });
+  });
+
+  // =========================
+  // SUMMARY
+  // =========================
+
+  const subtotalSellingPrice = () => {
+    let total = 0;
+    canvassingData.value?.canvassing_item.forEach((element) => {
+      total += element.canvassing_vendor.reduce(
+        (sum, acc) => sum + (acc.total_selling_price || 0),
+        0
+      );
+    });
+
+    return total;
+  };
+
+  const totalFeeRecive = (canvassingData.value?.reference_transaction || [])
+    .filter(
+      (ref) =>
+        ref.adjustments_transaction?.name.toLowerCase() == "fee" &&
+        ref.party_type == PartyType.CONTACT
+    )
+    .reduce((acc, sum) => acc + (sum.amount ?? 0), 0);
+
+  const subtotalSelling = subtotalSellingPrice();
+  const subtotalBuy = subtotalBuyTotalPrice.value;
+  const grossProfit = subtotalSelling - subtotalBuy;
+  const ongkir = adjustmentTransactionOngkirTotal.value?.amount || 0;
+  const totalFee = totalFeeRecive || 0;
+  const grandTotal = grossProfit - ongkir - totalFee;
+  const netProfitPercent = subtotalBuy > 0 ? grandTotal / subtotalBuy : 0;
+
+  currentRow += 2;
+
+  const addSummary = (label: string, value: number, bold = false) => {
+    ws.mergeCells(`A${currentRow}:L${currentRow}`);
+    ws.getCell(`A${currentRow}`).value = label;
+    ws.getCell(`M${currentRow}`).value = value;
+
+    ws.getCell(`A${currentRow}`).font = { bold };
+    ws.getCell(`M${currentRow}`).font = { bold };
+
+    ws.getCell(`M${currentRow}`).numFmt = "#,##0";
+    ws.getCell(`M${currentRow}`).alignment = {
+      horizontal: "right",
+    };
+
+    currentRow++;
+  };
+
+  addSummary("Subtotal / Gross Profit", grossProfit, true);
+  addSummary("Ongkos Kirim", ongkir);
+  addSummary("Total Fee", totalFee);
+  addSummary("Grand Total / Net Profit", grandTotal, true);
+
+  ws.mergeCells(`A${currentRow}:L${currentRow}`);
+  ws.getCell(`A${currentRow}`).value = "% Net Profit";
+  ws.getCell(`M${currentRow}`).value = netProfitPercent;
+  ws.getCell(`M${currentRow}`).numFmt = "0.00%";
+  ws.getCell(`A${currentRow}`).font = { bold: true };
+  ws.getCell(`M${currentRow}`).font = { bold: true };
+
+  // =========================
+  // NOTES
+  // =========================
+  currentRow += 3;
+  ws.getCell(`A${currentRow}`).value = "Notes:";
+  ws.getCell(`A${currentRow}`).font = { bold: true };
+  currentRow++;
+
+  ws.getCell(`A${currentRow}`).value = `• Dikirim ke ${
+    generateResultSearchAddress(canvassingData.value?.address || null).name
+  }`;
+
+  // =========================
+  // TANDA TANGAN
+  // =========================
+  currentRow += 5;
+
+  ws.mergeCells(`B${currentRow}:D${currentRow}`);
+  ws.mergeCells(`F${currentRow}:H${currentRow}`);
+  ws.mergeCells(`J${currentRow}:M${currentRow}`);
+
+  ws.getCell(`B${currentRow}`).value = "Operation";
+  ws.getCell(`F${currentRow}`).value = "Finance";
+  ws.getCell(`J${currentRow}`).value = "Direktur";
+
+  ["B", "F", "J"].forEach((col) => {
+    ws.getCell(`${col}${currentRow}`).alignment = {
+      horizontal: "center",
+    };
+    ws.getCell(`${col}${currentRow}`).font = {
+      bold: true,
+    };
+  });
+
+  // =========================
+  // WORKSHEET TAMBAHAN
+  // =========================
+
+  // Pembayaran Customer
+  const paymentSheet = workbook.addWorksheet("Pembayaran Customer");
+  paymentSheet.addRow(["Tahap", "Persentase", "Keterangan"]);
+
+  (canvassingData.value?.payment_terms || []).forEach((payment) => {
+    paymentSheet.addRow([
+      payment.name,
+      `${payment.value}%`,
+      payment.term_of_payment,
+    ]);
+  });
+
+  // Penerima Fee
+  const feeSheet = workbook.addWorksheet("Penerima Fee");
+  feeSheet.addRow(["Nama", "Telepon", "Email", "Fee"]);
+
+  (contactsFee.value || []).forEach((item) => {
+    feeSheet.addRow([
+      (item.party as Contact).name || "-",
+      (item.party as Contact).phone || "-",
+      (item.party as Contact).email || "-",
+      item.amount || 0,
+    ]);
+  });
+
+  // =========================
+  // EXPORT FILE
+  // =========================
+  const buffer = await workbook.xlsx.writeBuffer();
+
+  // saveAs(
+  //   new Blob([buffer]),
+  //   `SCM-MEMO-${
+  //     canvassingData.value?.unique_code || "export"
+  //   }.xlsx`
+  // );
 };
 
 const backToRab = async () => {

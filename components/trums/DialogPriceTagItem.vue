@@ -54,7 +54,11 @@
                 <!-- Informasi produk -->
                 <div class="flex-1 min-w-0">
                   <p style="line-height: 15px" class="font-bold truncate">
-                    {{ `${item.catalogue_name} - ${item.brand_name}` }}
+                    {{
+                      `${item.catalogue_name}${
+                        item.brand_name == "-" ? "" : "-" + item.brand_name
+                      }`
+                    }}
                   </p>
                   <p class="text-sm text-gray-500 truncate">
                     PN/SN: {{ item.sn_number || "Tidak Ada" }} | Brand:
@@ -524,7 +528,8 @@ const onHandleSelectItemAutocompleteModal = async (
   } else {
     const selected: ItemSearch = record as ItemSearch;
     ruleFormDialogAddItem.item_name =
-      selected.catalogue_name! + `- ${selected.brand_name}`;
+      selected.catalogue_name! +
+      `${selected.brand_name == "-" ? "" : "-" + selected.brand_name}`;
     ruleFormDialogAddItem.catalogue_id = selected.catalogue_id!;
     // ruleFormDialogAddItem.unit_id = selected.unit_id ?? "";
     // ruleFormDialogAddItem.unit_name = selected.unit_name ?? "";

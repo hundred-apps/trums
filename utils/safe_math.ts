@@ -26,7 +26,7 @@ export function nominalToPercent(value: number, multiplier: number) {
 }
 
 export function displayPercentage(ref: any, multiplier: number): Number {
-  console.log(ref);
+  console.log("ref", ref);
   if (ref.type === "amount") {
     return ref.amount / multiplier || 0 * 100;
   } else {

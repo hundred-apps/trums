@@ -190,7 +190,11 @@
           </div>
         </template>
 
-        <el-table :data="ruleForm.items" border style="width: 100%">
+        <el-table
+          :data="ruleForm.items.filter((filter) => filter.is_deleted == false)"
+          border
+          style="width: 100%"
+        >
           <el-table-column prop="catalogue_name" label="Item" />
           <el-table-column
             prop="quantity"
@@ -471,7 +475,7 @@
 
       <el-table
         ref="pricetagTableRef"
-        :data="filteredPricetagItems.data.value?.data ?? []"
+        :data="groupedCatalogue"
         style="width: 100%"
         @selection-change="handlePricetagSelectionChange"
       >
@@ -494,10 +498,11 @@
         <el-table-column prop="pricetag.name" label="Nomor RAB">
           <template #default="scope">
             <NuxtLink
+              v-if="scope.row.pricetag?.reference_data"
               :target="'_blank'"
               class="text-blue-600"
               :href="`/sales/quotation/${ (scope.row.pricetag?.reference_data as Canvassing).unique_id }`"
-              >{{ (scope.row.pricetag?.reference_data as Canvassing).unique_code || "N/A" }}
+              >{{ (scope.row.pricetag?.reference_data as Canvassing|undefined)?.unique_code || "N/A" }}
             </NuxtLink>
           </template>
         </el-table-column>
@@ -1225,6 +1230,23 @@ const filteredPricetagItems = await useAsyncData(
     return res.data.value;
   }
 );
+
+const groupedCatalogue = computed(() => {
+  let pricetag_item: Pricetag_item[] = [];
+  (filteredPricetagItems.data.value?.data || []).forEach((element) => {
+    const catalogueExist = pricetag_item.findIndex(
+      (find) => find.catalogue_id == element.catalogue_id
+    );
+    if (catalogueExist >= 0) {
+      pricetag_item[catalogueExist].quantity += element.quantity;
+    } else {
+      pricetag_item.push(element);
+    }
+  });
+
+  return pricetag_item;
+});
+
 const adjustmentTransactions = await useFetchApi<
   ResponsePagination<AdjustmentTransaction[]>
 >(
@@ -1380,7 +1402,7 @@ const showTransactionAdjustmentValue = (
 };
 
 const totalPrice = computed(() => {
-  const total = ruleForm.items.reduce((accumulator, currentValue) => {
+  const total = getAvailableItems.value.reduce((accumulator, currentValue) => {
     return (
       accumulator + (currentValue.po_unit_price ?? 0) * currentValue.quantity
     );
@@ -1913,6 +1935,7 @@ const addSelectedPricetagItems = () => {
 
       pricetag_item_id: value.unique_id!,
       pricetag_item_version: value.version,
+      is_deleted: false,
     });
   });
 
@@ -1923,8 +1946,13 @@ const addSelectedPricetagItems = () => {
   visiblePricetagModal.value = false;
 };
 
+const getAvailableItems = computed(() => {
+  return ruleForm.items.filter((filter) => filter.is_deleted == false);
+});
+
 const removeItem = (index: number) => {
-  ruleForm.items.splice(index, 1);
+  ruleForm.items[index].is_deleted = true;
+  // ruleForm.items.splice(index, 1);
 };
 
 const submitForm = async (formEl: FormInstance | undefined) => {
@@ -2055,6 +2083,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           );
 
           formData.append(`item[${index}][version]`, `${value.version}`);
+          formData.append(`item[${index}][is_deleted]`, `${value.is_deleted}`);
           formData.append(
             `item[${index}][pricetag_item_id]`,
             `${value.pricetag_item_id}`
@@ -2218,6 +2247,16 @@ const fetchDataEdit = async () => {
         }));
 
         termOfPayments.value = request.payment_terms ?? [];
+
+        request_search_pricetag_item.value.column = [
+          {
+            pricetag: {
+              category: ["penawaran"],
+              to_id: [request.vendor_id],
+              type: ["out"],
+            },
+          },
+        ];
 
         if (request.address) {
           address.value = request.address;

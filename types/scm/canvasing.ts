@@ -311,6 +311,7 @@ export type CanvassingItemForm = {
   files?: UploadUserFile[];
   tmp_child_selected?: string;
   expected_delivery?: string;
+  quo_number?: string;
 };
 
 export type CanvassingItemVendorSummery = {

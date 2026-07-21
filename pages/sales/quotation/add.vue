@@ -3336,8 +3336,7 @@ const onHandleSelectContact = async (
     (filter) => filter.name.toLocaleLowerCase() == "fee"
   );
   const feeExist = (references.value || []).filter(
-    (filter) =>
-      filter.adjustments_transaction?.name.toLocaleLowerCase() == "fee"
+    (filter) => filter.adjustments_transaction?.unique_id == "tmp_fee"
   );
 
   if (fee.length > 0 && feeExist.length == 0) {
@@ -3928,6 +3927,7 @@ const fetchDataEdit = async () => {
       );
 
       if (fee.length > 0 && feeExist.length == 0) {
+        console.log("fee exist", feeExist);
         references.value.push({
           unique_id: "",
           reference: ReferenceAdjustment.CANVASSING,
@@ -4467,8 +4467,16 @@ const submit = async (formEl: FormInstance | undefined) => {
     item_canvassing.value.forEach((element) => {
       element.children.forEach((child) => {
         child.contacts_fee.forEach((fee) => {
-          fee.reference_id = child.unique_id ?? "";
-          referenceAdjustmentVendor.push(fee);
+          if (
+            fee.amount != null &&
+            fee.amount != 0 &&
+            fee.value != null &&
+            fee.value != 0
+          ) {
+            console.log("fee vendor", fee);
+            fee.reference_id = child.unique_id ?? "";
+            referenceAdjustmentVendor.push(fee);
+          }
         });
         referenceAdjustmentVendor.push({
           unique_id: "",
@@ -4679,42 +4687,49 @@ const submit = async (formEl: FormInstance | undefined) => {
 
         referenceCanvassingVendor.forEach(
           (ref: ReferenceTransactionAdjustment, refIndex: number) => {
-            formData.append(
-              `canvassing_items[${i}][canvassing_vendor][${j}][reference_transaction][${refIndex}][unique_id]`,
-              `${ref.unique_id}`
-            );
-            formData.append(
-              `canvassing_items[${i}][canvassing_vendor][${j}][reference_transaction][${refIndex}][adjustment_id]`,
-              `${ref.adjustment_id}`
-            );
-            formData.append(
-              `canvassing_items[${i}][canvassing_vendor][${j}][reference_transaction][${refIndex}][value]`,
-              `${ref.value}`
-            );
-            formData.append(
-              `canvassing_items[${i}][canvassing_vendor][${j}][reference_transaction][${refIndex}][amount]`,
-              `${ref.amount_nominal}`
-            );
-            formData.append(
-              `canvassing_items[${i}][canvassing_vendor][${j}][reference_transaction][${refIndex}][type]`,
-              `${ref.type}`
-            );
-            formData.append(
-              `canvassing_items[${i}][canvassing_vendor][${j}][reference_transaction][${refIndex}][party_type]`,
-              `${ref.party_type}`
-            );
-            formData.append(
-              `canvassing_items[${i}][canvassing_vendor][${j}][reference_transaction][${refIndex}][party_id]`,
-              `${ref.party_id}`
-            );
-            formData.append(
-              `canvassing_items[${i}][canvassing_vendor][${j}][reference_transaction][${refIndex}][reference]`,
-              `${ref.reference}`
-            );
-            formData.append(
-              `canvassing_items[${i}][canvassing_vendor][${j}][reference_transaction][${refIndex}][reference_id]`,
-              `${ref.reference_id}`
-            );
+            if (
+              ref.value != null &&
+              ref.value != undefined &&
+              ref.amount != null &&
+              ref.amount != undefined
+            ) {
+              formData.append(
+                `canvassing_items[${i}][canvassing_vendor][${j}][reference_transaction][${refIndex}][unique_id]`,
+                `${ref.unique_id}`
+              );
+              formData.append(
+                `canvassing_items[${i}][canvassing_vendor][${j}][reference_transaction][${refIndex}][adjustment_id]`,
+                `${ref.adjustment_id}`
+              );
+              formData.append(
+                `canvassing_items[${i}][canvassing_vendor][${j}][reference_transaction][${refIndex}][value]`,
+                `${ref.value}`
+              );
+              formData.append(
+                `canvassing_items[${i}][canvassing_vendor][${j}][reference_transaction][${refIndex}][amount]`,
+                `${ref.amount_nominal}`
+              );
+              formData.append(
+                `canvassing_items[${i}][canvassing_vendor][${j}][reference_transaction][${refIndex}][type]`,
+                `${ref.type}`
+              );
+              formData.append(
+                `canvassing_items[${i}][canvassing_vendor][${j}][reference_transaction][${refIndex}][party_type]`,
+                `${ref.party_type}`
+              );
+              formData.append(
+                `canvassing_items[${i}][canvassing_vendor][${j}][reference_transaction][${refIndex}][party_id]`,
+                `${ref.party_id}`
+              );
+              formData.append(
+                `canvassing_items[${i}][canvassing_vendor][${j}][reference_transaction][${refIndex}][reference]`,
+                `${ref.reference}`
+              );
+              formData.append(
+                `canvassing_items[${i}][canvassing_vendor][${j}][reference_transaction][${refIndex}][reference_id]`,
+                `${ref.reference_id}`
+              );
+            }
           }
         );
       });

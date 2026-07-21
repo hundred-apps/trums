@@ -80,6 +80,7 @@ export type PurchaseOrder = {
   pic_version?: number;
   pic?: Contact;
   people?: People;
+  approved_by?: People;
 };
 
 export type StatisticOrder = {
@@ -136,6 +137,7 @@ export type PurchaseOrderItem = {
   pricetag_item_version?: number;
   pricetag_item?: Pricetag_item;
   delivery?: string;
+  is_deleted?: boolean;
 };
 
 export type PurchaseOrderItemTax = {

@@ -60,6 +60,12 @@
             <el-icon class="me-2"><CircleCheck /></el-icon> Tandai Sebagai
             Selesai
           </el-button>
+          <NuxtLink
+            class="el-button el-button--success el-button--default"
+            :href="`/sales/order/memo/add?id=${purchaseOrderData?.unique_id}`"
+          >
+            Buat Memo Transaksi
+          </NuxtLink>
           <el-button type="default" :icon="Printer" @click="generatePDF">
             Cetak SO
           </el-button>
@@ -415,6 +421,7 @@ import {
   CanvassingVendorStatus,
   type Canvassing,
   type CanvassingItem,
+  type CanvassingItemForm,
 } from "~/types/scm/canvasing";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
@@ -424,6 +431,10 @@ import { extractDescription } from "#imports";
 import type { TrumDoc } from "~/types/document";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
+import { AppFileType } from "~/types/file";
+
+const config = useRuntimeConfig();
+const baseImageURL = config.public.baseImageURL;
 
 definePageMeta({
   middleware: ["auth", "app"],
@@ -543,6 +554,7 @@ const handleSizeChange = (size: number) => {
 };
 
 const purchaseOrderItemsView = ref<PurchasOrderViewTree[]>([]);
+
 const relatedDocuments = ref<any[]>([]);
 const approveForm = reactive({
   note: "",
@@ -1072,11 +1084,15 @@ watch(
         total: element.total_price || 0,
         quo_number: element.pricetag_item?.pricetag?.unique_code || "",
         canvassing_code:
-          (element.pricetag_item?.pricetag?.reference_data as Canvassing)
-            .unique_code ?? "",
+          (
+            (element.pricetag_item?.pricetag?.reference_data as Canvassing) ||
+            undefined
+          )?.unique_code ?? "",
         canvassing_id:
-          (element.pricetag_item?.pricetag?.reference_data as Canvassing)
-            .unique_id ?? "",
+          (
+            (element.pricetag_item?.pricetag?.reference_data as Canvassing) ||
+            undefined
+          )?.unique_id ?? "",
         quo_id: element.pricetag_item?.pricetag?.unique_id ?? "",
         children: childs,
       });
@@ -1114,9 +1130,33 @@ const printDocument = async (code: string) => {
   // ================= LOGO =================
   const imgLogo = await getBase64ImageFromUrl("/images/trumecs-logo.png");
   const tmsLogo = await getBase64ImageFromUrl("/images/tms-logo.png");
+  const tmpCAP = await getBase64ImageFromUrl("/images/TMP-CAP.png");
+  const marginX = 10;
+  const headerTop = 10;
+  const headerHeight = 25;
+  const headerCenterY = headerTop + headerHeight / 2;
 
-  doc.addImage(tmsLogo, "PNG", pageWidth - 50, 15, 40, 25);
-  doc.addImage(imgLogo, "PNG", margin, 20, 40, 15);
+  const leftLogoWidth = 40;
+  const leftLogoHeight = 35;
+
+  const rightLogoWidth = 40;
+  const rightLogoHeight = 15;
+
+  doc.addImage(
+    tmsLogo,
+    marginX,
+    headerCenterY - leftLogoHeight / 2,
+    leftLogoWidth,
+    leftLogoHeight
+  );
+  doc.addImage(
+    imgLogo,
+    "PNG",
+    pageWidth - marginX - rightLogoWidth,
+    headerCenterY - rightLogoHeight / 3,
+    rightLogoWidth,
+    rightLogoHeight
+  );
 
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
@@ -1214,28 +1254,72 @@ const printDocument = async (code: string) => {
   // ================= ITEMS TABLE =================
   const tableStartY = startY + 35;
 
-  // const rows = (purchaseOrderItemsView.value ?? []).map(
-  //   (item: PurchasOrderViewTree, i: number) => [
-  //     i + 1,
-  //     item.item_name,
-  //     item.catalogue?.name,
-  //     item.quantity,
-  //     item.unit_name,
-  //     currencyWithoutSymbol(item.unit_price),
-  //     currencyWithoutSymbol(item.total_price),
-  //   ]
-  // );
+  const rows: any[][] = (purchaseOrderItemsView.value ?? []).map(
+    (item: PurchasOrderViewTree, i: number) => [
+      i + 1,
+      item.item_name,
+      // item.item_name,
+      item.quantity,
+      item.unit_name,
+      currencyWithoutSymbol(item.harga_po),
+      currencyWithoutSymbol(item.quantity * item.harga_po),
+    ]
+  );
+
+  rows.push([
+    {
+      content: "Sub Total",
+      colSpan: 5,
+      styles: { halign: "right", fontStyle: "bold" },
+    },
+    currencyWithoutSymbol(subtotal.value),
+  ]);
+
+  let grandTotal = subtotal.value;
+  (purchaseOrderData?.value?.reference_transaction ?? []).forEach((el) => {
+    rows.push([
+      {
+        content:
+          (el.adjustments_transaction?.name ?? "").toLowerCase() === "ppn"
+            ? "PPN"
+            : el.adjustments_transaction?.name ?? "",
+        colSpan: 5,
+        styles: { halign: "right", fontStyle: "bold" },
+      },
+      currencyWithoutSymbol(displayAmount(el, subtotal.value)),
+    ]);
+    grandTotal += Number(displayAmount(el, subtotal.value) ?? 0);
+  });
+
+  rows.push([
+    {
+      content: "Total Order",
+      colSpan: 5,
+      styles: { halign: "right", fontStyle: "bold" },
+    },
+    currencyWithoutSymbol(grandTotal),
+  ]);
+
+  // summaryRows.push([
+  //   {
+  //     content: "Total Order",
+  //     colSpan: 5,
+  //     styles: { halign: "right", fontStyle: "bold" },
+  //   },
+  //   currencyWithoutSymbol(grandTotal),
+  // ]);
 
   autoTable(doc, {
     startY: tableStartY,
     theme: "grid",
     margin: { left: margin, right: margin },
-    head: [["No", "Item", "No.RAB", "Qty", "Unit", "Unit Price", "Amount"]],
-    // body: rows,
+    head: [["No", "Item", "Qty", "Unit", "Unit Price", "Amount"]],
+    body: rows,
     styles: { fontSize: 10 },
     columnStyles: {
       0: { halign: "center", cellWidth: 10 },
-      2: { halign: "left", cellWidth: 15 },
+      2: { halign: "center", cellWidth: 15 },
+      3: { halign: "center" },
       4: { halign: "right" },
       5: { halign: "right" },
     },
@@ -1252,81 +1336,258 @@ const printDocument = async (code: string) => {
       lineWidth: 0.1, // border
       lineColor: [0, 0, 0], // warna border
     },
-  });
-
-  // ================= SUMMARY =================
-  let grandTotal = subtotal.value;
-  const summaryRows: any[] = [];
-
-  summaryRows.push([
-    { content: "Sub Total", colSpan: 5, styles: { halign: "right" } },
-    currencyWithoutSymbol(subtotal.value),
-  ]);
-
-  (purchaseOrderData?.value?.reference_transaction ?? []).forEach((el) => {
-    summaryRows.push([
-      {
-        content:
-          (el.adjustments_transaction?.name ?? "").toLocaleLowerCase() == "ppn"
-            ? `PPN`
-            : el.adjustments_transaction?.name ?? "",
-        colSpan: 5,
-        styles: { halign: "right" },
-      },
-      currencyWithoutSymbol(displayAmount(el, subtotal.value)),
-    ]);
-    grandTotal += Number(displayAmount(el, subtotal.value) ?? 0);
-  });
-
-  summaryRows.push([
-    {
-      content: "Total Order",
-      colSpan: 5,
-      styles: { halign: "right", fontStyle: "bold" },
-    },
-    currencyWithoutSymbol(grandTotal),
-  ]);
-
-  autoTable(doc, {
-    startY: (doc as any).lastAutoTable.finalY + 6,
-    margin: { left: margin, right: margin }, // full width
-    body: summaryRows,
-    theme: "plain",
-    styles: {
-      fontSize: 10,
-      cellPadding: 2,
-    },
-    columnStyles: {
-      5: {
-        halign: "right",
-        cellWidth: 40, // hanya amount yang di-style
-      },
-    },
     didParseCell(data) {
-      // pastikan label (yang colSpan) rata kanan
-      if (data.column.index === 0) {
-        data.cell.styles.halign = "right";
-      }
+      const summaryStartIndex =
+        rows.length -
+        ((purchaseOrderData?.value?.reference_transaction?.length ?? 0) + 2);
 
-      // bold Total Order
-      if (data.row.index === summaryRows.length - 1) {
+      // rata kanan untuk label summary
+      if (data.row.index >= summaryStartIndex && data.column.index === 4) {
+        data.cell.styles.halign = "right";
         data.cell.styles.fontStyle = "bold";
       }
+
+      // bold dan rata kanan untuk nominal Total Order
+      if (data.row.index === rows.length - 1 && data.column.index === 5) {
+        data.cell.styles.fontStyle = "bold";
+        data.cell.styles.halign = "right";
+      }
     },
   });
 
-  // ================= SIGNATURE =================
-  const finalY = (doc as any).lastAutoTable.finalY + 30;
+  // // ================= SUMMARY =================
+  // let grandTotal = subtotal.value;
+  // const summaryRows: any[] = [];
 
-  doc.text("Dibuat Oleh,", margin, finalY);
-  doc.text("Disetujui Oleh,", pageWidth - 70, finalY);
+  // summaryRows.push([
+  //   { content: "Sub Total", colSpan: 5, styles: { halign: "right" } },
+  //   currencyWithoutSymbol(subtotal.value),
+  // ]);
+
+  // (purchaseOrderData?.value?.reference_transaction ?? []).forEach((el) => {
+  //   summaryRows.push([
+  //     {
+  //       content:
+  //         (el.adjustments_transaction?.name ?? "").toLocaleLowerCase() == "ppn"
+  //           ? `PPN`
+  //           : el.adjustments_transaction?.name ?? "",
+  //       colSpan: 5,
+  //       styles: { halign: "right" },
+  //     },
+  //     currencyWithoutSymbol(displayAmount(el, subtotal.value)),
+  //   ]);
+  //   grandTotal += Number(displayAmount(el, subtotal.value) ?? 0);
+  // });
+
+  // summaryRows.push([
+  //   {
+  //     content: "Total Order",
+  //     colSpan: 5,
+  //     styles: { halign: "right", fontStyle: "bold" },
+  //   },
+  //   currencyWithoutSymbol(grandTotal),
+  // ]);
+
+  let currentY = (doc as any).lastAutoTable.finalY + 12;
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const bottomMargin = 45; // ruang aman untuk tanda tangan
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "bold");
+  doc.text("Notes:", margin, currentY);
+
+  currentY += 8;
+
+  doc.setFont("helvetica", "normal");
+
+  const bulletX = margin + 5;
+  const textX = margin + 10;
+  const maxWidth = pageWidth - textX - margin;
+  const lineHeight = 5;
+
+  const notes = (purchaseOrderData.value?.additional_information ?? "")
+    .split("\n")
+    .filter((n) => n.trim() !== "");
+
+  notes.forEach((note) => {
+    const lines = doc.splitTextToSize(note, maxWidth);
+    const textHeight = lines.length * lineHeight;
+
+    // pindah halaman jika notes melebihi batas
+    if (currentY + textHeight > pageHeight - bottomMargin) {
+      doc.addPage();
+      currentY = 20;
+    }
+
+    // bullet
+    doc.text("•", bulletX, currentY);
+
+    // teks note dengan indentasi rapi
+    doc.text(lines, textX, currentY);
+
+    currentY += textHeight + 2;
+  });
+
+  // autoTable(doc, {
+  //   startY: currentY + 4,
+  //   margin: { left: margin, right: margin }, // full width
+  //   body: summaryRows,
+  //   theme: "plain",
+  //   styles: {
+  //     fontSize: 9,
+  //     cellPadding: 2,
+  //   },
+  //   columnStyles: {
+  //     5: {
+  //       halign: "right",
+  //       cellWidth: 40, // hanya amount yang di-style
+  //     },
+  //   },
+  //   didParseCell(data) {
+  //     // pastikan label (yang colSpan) rata kanan
+  //     if (data.column.index === 0) {
+  //       data.cell.styles.halign = "right";
+  //     }
+
+  //     // bold Total Order
+  //     if (data.row.index === summaryRows.length - 1) {
+  //       data.cell.styles.fontStyle = "bold";
+  //     }
+  //   },
+  // });
+
+  // ================= SIGNATURE =================
+  let finalY = currentY + 15;
+
+  // tinggi area tanda tangan sekitar 40
+  if (finalY + 40 > pageHeight - margin) {
+    doc.addPage();
+    finalY = 30;
+  }
+
+  const signWidth = 35;
+  const signHeight = 20;
+
+  const creatorCenterX = margin + 25;
+  const approvalCenterX = pageWidth - margin - 25;
+
+  let requestSignCreator = "";
+  let requestSignApproval = "";
+
+  const sourceSignCreator = purchaseOrderData.value?.people?.files?.findLast(
+    (value) => value.type == AppFileType.TANDA_TANGAN
+  );
+  const sourceSignApprove =
+    purchaseOrderData.value?.approved_by?.files?.findLast(
+      (value) => value.type == AppFileType.TANDA_TANGAN
+    );
+  if (sourceSignCreator) {
+    requestSignCreator = await getBase64ImageFromUrl(
+      `${baseImageURL}/${sourceSignCreator.image_path}/${sourceSignCreator.filename}`
+    );
+  }
+  if (sourceSignApprove) {
+    requestSignApproval = await getBase64ImageFromUrl(
+      `${baseImageURL}/${sourceSignApprove.image_path}/${sourceSignApprove.filename}`
+    );
+  }
+  doc.text("Dibuat Oleh,", creatorCenterX, finalY, { align: "center" });
+  if (purchaseOrderData.value?.status == PurchaseOrderStatus.APPROVED) {
+    // if (
+    //   canAccess("purchase-order-approve", props.privillage || [], 1) == false
+    // ) {
+    doc.text("Disetujui Oleh,", approvalCenterX, finalY, {
+      align: "center",
+    });
+    // }
+  }
+
+  if (requestSignCreator) {
+    doc.addImage(
+      requestSignCreator,
+      "PNG",
+      creatorCenterX - signWidth / 2,
+      finalY + 5,
+      signWidth,
+      signHeight
+    );
+    const capImage = new Image();
+    capImage.src = tmpCAP;
+
+    const capWidth = 35;
+    const capHeight =
+      (capImage.naturalHeight / capImage.naturalWidth) * capWidth;
+
+    if (tmpCAP) {
+      if (tmpCAP) {
+        doc.addImage(
+          tmpCAP,
+          "PNG",
+          creatorCenterX - capWidth / 2 - 8,
+          finalY + 2,
+          capWidth,
+          capHeight
+        );
+      }
+    }
+  }
 
   doc.text(
     `${capitalizeWords(purchaseOrderData.value?.people?.name ?? "")}`,
-    margin,
-    finalY + 30
+    creatorCenterX,
+    finalY + 32,
+    { align: "center" }
   );
-  doc.line(pageWidth - 70, finalY + 30, pageWidth - margin, finalY + 30);
+
+  if (purchaseOrderData.value?.status == PurchaseOrderStatus.APPROVED) {
+    const approvalX = pageWidth - 70;
+    // if (
+    //   canAccess("purchase-order-approve", props.privillage || [], 1) == false
+    // ) {
+    doc.text(
+      purchaseOrderData?.value.approved_by?.name ?? "",
+      approvalCenterX,
+      finalY + 32,
+      { align: "center" }
+    );
+    if (requestSignApproval) {
+      doc.addImage(
+        requestSignApproval,
+        "PNG",
+        approvalCenterX - signWidth / 2,
+        finalY + 5,
+        signWidth,
+        signHeight
+      );
+    }
+
+    // tampilkan CAP di atas tanda tangan approval
+    if (tmpCAP) {
+      const capImage = new Image();
+      capImage.src = tmpCAP;
+
+      await new Promise((resolve) => {
+        capImage.onload = resolve;
+      });
+
+      const capWidth = 35;
+      const capHeight =
+        (capImage.naturalHeight / capImage.naturalWidth) * capWidth;
+
+      // posisi CAP approval sedikit di kiri dan di atas tanda tangan approval
+      const approvalCenterX = approvalX + signWidth / 2;
+
+      doc.addImage(
+        tmpCAP,
+        "PNG",
+        approvalCenterX - capWidth / 2 + 8,
+        finalY + 2,
+        capWidth,
+        capHeight
+      );
+    }
+    // }
+  }
 
   // ================= OUTPUT =================
   const blob = doc.output("blob");
