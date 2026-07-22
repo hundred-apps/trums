@@ -451,9 +451,13 @@ const add = (typecheck: string) => {
   router.push("checkin/add");
 };
 
-watch(request_search, () => refreshNuxtData("inventory_movement"), {
-  immediate: true,
-});
+watch(
+  () => request_search.value,
+  () => onRefresh(),
+  {
+    deep: true,
+  }
+);
 
 watch(
   ruleFormFilter,

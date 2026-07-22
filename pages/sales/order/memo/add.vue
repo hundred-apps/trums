@@ -95,7 +95,15 @@
             label="QTY"
             align="right"
             :width="70"
-          />
+          >
+            <template #default="{ row, $index }">
+              <el-input-number
+                v-model="row.quantity"
+                :min="1"
+                @blur="() => onChangeQuantity(row, $index)"
+              />
+            </template>
+          </el-table-column>
           <el-table-column
             prop="unit_name"
             label="UOM"
@@ -250,6 +258,8 @@
             <template #default="{ row }">
               <span
                 >{{ customMathCeil(calculateMargin((row as CanvassingItemMemoForm).unit_price, (row as CanvassingItemMemoForm).unit_po_price))
+
+
 
 
 
@@ -1375,6 +1385,14 @@ const calculateReferences = () => {
   });
 
   calculateSummaryaData();
+};
+
+const onChangeQuantity = (row: CanvassingItemMemoForm, index: number) => {
+  if (row.type == "child") {
+    const parentIndex = row.parent_index!;
+    item_memo.value[parentIndex].children[index].total_price =
+      row.quantity * item_memo.value[parentIndex].children[index].unit_price;
+  }
 };
 
 onMounted(() => {

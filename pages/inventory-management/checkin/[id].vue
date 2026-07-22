@@ -29,7 +29,7 @@
             </el-form-item>
           </div>
           <NuxtLink
-            v-if="canAccess('inventory-movement-update', privilages)"
+            v-if="canAccess('inventory_movement-update', privilages)"
             :href="`/inventory-management/checkin/add?id=${checkData?.unique_id}`"
             class="el-button el-button--defult"
           >
@@ -102,19 +102,42 @@
         </div>
       </div>
       <div class="mb-5">
+        <h1 class="text-lg font-bold">Alamat Pengiriman</h1>
+        <div class="text-sm mt-2" v-if="checkData?.address">
+          <span class="font-bold"
+            >({{ checkData?.address?.address_name }}) |
+            {{ checkData?.pic?.name }}
+            {{
+              checkData?.pic?.phone ? `(${checkData?.pic?.phone})` : ""
+            }}</span
+          >
+          <div class="flex flex-col">
+            <span>{{ checkData?.address?.street }}</span>
+            <span>{{ generateAddressViewName(checkData?.address!) }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="mb-5">
         <h1 class="text-lg font-bold">Lampiran</h1>
-        <div class="flex gap-3 items-center" v-for="file in checkData?.files">
+        <div
+          class="flex gap-3 items-center"
+          v-if="(checkData?.files || []).length > 0"
+          v-for="file in checkData?.files"
+        >
           <p>{{ file.filename }}</p>
           <el-button @click="() => {}"
             ><el-icon><Download /></el-icon> Download</el-button
           >
         </div>
+        <div v-else class="text-sm">Tidak Ada Lampiran</div>
       </div>
-      <el-descriptions title="Note">
-        <el-descriptions-item label="">{{
-          `Tidak Ada Catatan`
-        }}</el-descriptions-item>
-      </el-descriptions>
+      <div class="mb-5">
+        <h1 class="text-lg font-bold">Catatan</h1>
+        <div class="flex gap-3 items-center" v-if="checkData?.note">
+          <span v-html="`${extractDescription(checkData?.note ?? '')}`"></span>
+        </div>
+        <div v-else class="text-sm">Tidak Ada Catatan</div>
+      </div>
     </el-card>
     <el-card>
       <h1 class="mb-4">Item Permintaan</h1>
@@ -136,6 +159,14 @@
         <el-table-column prop="quantity" label="QTY" width="100" />
 
         <el-table-column prop="unit_name" label="UOM" width="100" />
+        <el-table-column prop="" label="Keterangan" width="100">
+          <template #default="{ row }">
+            <div
+              class="text-sm"
+              v-html="extractDescription(row?.note ?? '')"
+            ></div>
+          </template>
+        </el-table-column>
       </el-table>
     </el-card>
 
@@ -155,7 +186,9 @@
 
       <template #footer>
         <el-button @click="showPreviewPDF = false">Tutup</el-button>
-        <el-button type="success" @click="downloadPdf">Download PDF</el-button>
+        <el-button type="success" @click="() => downloadPdf('DO')"
+          >Download PDF</el-button
+        >
       </template>
     </el-dialog>
   </TrumsWrapper>
@@ -175,6 +208,8 @@ import autoTable from "jspdf-autotable";
 import { ElLoading } from "element-plus";
 import type { PurchaseOrder } from "~/types/scm/purchase_order";
 import { load } from "@fingerprintjs/fingerprintjs";
+import { extractDescription, generateAddressViewName } from "#imports";
+import type { TrumDoc } from "~/types/document";
 
 const showPreviewPDF = ref(false);
 const loading = ref(false);
@@ -307,7 +342,7 @@ async function getBase64ImageFromUrl(imageUrl: string): Promise<string> {
   });
 }
 
-const generateDeliveryOrderPdf = async () => {
+const generateDeliveryOrderPdf = async (unique_code: string) => {
   const doc = new jsPDF("p", "mm", "a4");
 
   const pageWidth = doc.internal.pageSize.getWidth();
@@ -357,9 +392,9 @@ const generateDeliveryOrderPdf = async () => {
 
   // ================= INFO SECTION =================
   const leftX = margin;
-  const rightX = pageWidth / 2 + 5;
+  const rightX = pageWidth / 2 + 10;
 
-  doc.setFontSize(9);
+  doc.setFontSize(8);
   doc.setFont("helvetica", "bold");
   doc.text("To", leftX, y);
   doc.text(":", leftX + 20, y);
@@ -371,7 +406,7 @@ const generateDeliveryOrderPdf = async () => {
   doc.text("PIC", leftX, y);
   doc.text(":", leftX + 20, y);
   doc.setFont("helvetica", "normal");
-  doc.text(inquiryData.value?.request_by?.name ?? "-", leftX + 25, y);
+  doc.text(checkData?.pic?.name ?? "-", leftX + 25, y);
 
   y += 5;
   doc.setFont("helvetica", "bold");
@@ -379,10 +414,12 @@ const generateDeliveryOrderPdf = async () => {
   doc.text(":", leftX + 20, y);
   doc.setFont("helvetica", "normal");
   doc.text(
-    `${inquiryData.value?.address?.street}, ${inquiryData.value?.address?.village}, ${inquiryData.value?.address?.city}, ${inquiryData.value?.address?.regency}, ${inquiryData.value?.address?.codepos}`,
+    `${checkData?.address?.street} ${generateAddressView(checkData!.address!)}`,
     leftX + 25,
     y,
-    { maxWidth: 70 }
+    {
+      maxWidth: 70,
+    }
   );
 
   // Right info (grid 2x2)
@@ -393,7 +430,7 @@ const generateDeliveryOrderPdf = async () => {
       "No Invoice",
       `${purchaseOrderData?.value?.reference_data[0]?.unique_code ?? ""}`,
     ],
-    ["No. DO", ""],
+    ["No. DO", unique_code],
     [
       "Tanggal",
       `${
@@ -417,20 +454,41 @@ const generateDeliveryOrderPdf = async () => {
 
   y += 18;
 
+  const noteText = checkData?.note
+    ? `${checkData.note}`
+        .split("\n")
+        .filter((v) => v.trim() !== "")
+        .map((v) => `• ${v}`)
+        .join("\n")
+    : "-";
   // ================= ITEMS TABLE =================
   autoTable(doc, {
     startY: y,
     margin: { left: margin, right: margin },
     head: [["No", "Nama Barang", "Qty", "UoM", "Keterangan"]],
-    body: (checkData?.inventory_movement_item ?? []).map(
-      (item: InventoryMovementItem, i: number) => [
-        i + 1,
-        item.inventory?.catalogue?.name ?? "-",
-        item.quantity,
-        item.unit_name,
-        "",
-      ]
-    ),
+    body: [
+      ...(checkData?.inventory_movement_item ?? []).map(
+        (item: InventoryMovementItem, i: number) => [
+          i + 1,
+          item.inventory?.catalogue?.name ?? "-",
+          item.quantity,
+          item.unit_name,
+          item.note ?? "",
+        ]
+      ),
+
+      [
+        {
+          content: `Notes:\n${noteText}`,
+          colSpan: 5,
+          styles: {
+            halign: "left",
+            valign: "top",
+            minCellHeight: 30,
+          },
+        },
+      ],
+    ],
     styles: {
       fontSize: 9,
       cellPadding: 2,
@@ -450,45 +508,73 @@ const generateDeliveryOrderPdf = async () => {
       0: { cellWidth: 10, halign: "center" },
       2: { cellWidth: 12, halign: "center" },
       3: { cellWidth: 15, halign: "center" },
-      4: { cellWidth: 20, halign: "right" },
+      4: { cellWidth: 70, halign: "left" },
     },
   });
 
-  y = (doc as any).lastAutoTable.finalY + 5;
+  y = (doc as any).lastAutoTable.finalY + 10;
 
-  // ================= NOTES =================
-  autoTable(doc, {
-    startY: y,
-    margin: { left: margin, right: margin },
-    body: [
-      ["1. Surat Jalan ini merupakan bukti resmi penerimaan barang"],
-      ["2. Surat jalan ini bukan bukti penjualan"],
-      [
-        "3. Surat jalan ini akan dilengkapi dengan invoice sebagai bukti penjualan",
-      ],
-    ],
-    theme: "plain",
-    styles: { fontSize: 8 },
-  });
+  // doc.setFontSize(8);
+  // doc.text("Notes:", margin, y);
 
-  y = (doc as any).lastAutoTable.finalY + 15;
+  // y += 8;
+
+  // doc.setFontSize(8);
+  // const writeWrappedText = (text: string, x = 20, lineHeight = 5) => {
+  //   const lines = doc.splitTextToSize(text, pageWidth - 30);
+
+  //   // ensureSpace(lines.length * lineHeight);
+
+  //   doc.text(lines, x, y);
+
+  //   y += lines.length * lineHeight;
+  // };
+
+  // if (checkData?.note) {
+  //   const splits = `${checkData?.note}`.split("\n");
+
+  //   console.log("note lines", splits);
+  //   splits.forEach((value) => {
+  //     if (value !== "\r") {
+  //       writeWrappedText(`\u2022 ${value ?? "-"}`);
+  //     }
+  //     // yFinal = yFinal + Number(5);
+  //     // console.log("final Y", yFinal);
+  //     // doc.text(`\u2022 ${value ?? "-"}`, 20, yFinal);
+  //   });
+  // }
+
+  y += 20;
 
   // ================= SIGNATURE =================
-  autoTable(doc, {
-    startY: y,
-    margin: { left: margin, right: margin },
-    body: [
-      ["Penerima / Pembeli", "Bagian Pengiriman", "Petugas Gudang"],
-      ["\n\n\n", "\n\n\n", "\n\n\n"],
-    ],
-    styles: {
-      halign: "center",
-      fontSize: 9,
-      lineWidth: 0.3,
-      lineColor: 0,
-    },
-  });
+  const signY = y;
+  const colWidth = (pageWidth - margin * 2) / 3;
 
+  const col1X = margin;
+  const col2X = margin + colWidth;
+  const col3X = margin + colWidth * 2;
+
+  // Judul tanda tangan
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+
+  doc.text("Penerima / Pembeli", col1X + colWidth / 2, signY, {
+    align: "center",
+  });
+  doc.text("Bagian Pengiriman", col2X + colWidth / 2, signY, {
+    align: "center",
+  });
+  doc.text("Petugas Gudang", col3X + colWidth / 2, signY, { align: "center" });
+
+  // Garis tanda tangan
+  const lineY = signY + 35;
+
+  doc.line(col1X + 10, lineY, col1X + colWidth - 10, lineY);
+  doc.line(col2X + 10, lineY, col2X + colWidth - 10, lineY);
+  doc.line(col3X + 10, lineY, col3X + colWidth - 10, lineY);
+
+  // Update posisi y setelah tanda tangan
+  y = lineY + 10;
   // ================= FOOTER =================
   doc.setFontSize(8);
   doc.text(
@@ -506,10 +592,35 @@ const generateDeliveryOrderPdf = async () => {
 };
 
 const generatePDF = async () => {
-  const { doc } = await generateDeliveryOrderPdf();
-  const blob = doc.output("blob");
-  pdfUrl.value = URL.createObjectURL(blob);
-  showPreviewPDF.value = true;
+  loading.value = true;
+  try {
+    const req_doc = {
+      reference: "do",
+      reference_id: checkData?.unique_id,
+    };
+
+    const response = await useFetchApi<BaseResponse<TrumDoc>>(
+      "/documents-create",
+      "document-create",
+      "post",
+      req_doc
+    );
+
+    console.log("generate", response.status.value);
+    if (response.status.value == "success") {
+      loading.value = false;
+      const { doc } = await generateDeliveryOrderPdf(
+        response.data?.value?.data?.unique_code ?? ""
+      );
+      const blob = doc.output("blob");
+      pdfUrl.value = URL.createObjectURL(blob);
+      showPreviewPDF.value = true;
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+  } finally {
+    loading.value = false;
+  }
 };
 
 const handleDelete = () => {
@@ -551,13 +662,13 @@ const handleSubmitDelete = async (data: string[]) => {
   }
 };
 
-const downloadPdf = () => {
+const downloadPdf = (type: "DO") => {
   if (!pdfBlob.value) {
     ElMessage.warning("Tidak ada PDF untuk di-download");
     return;
   }
 
-  const filename = `PO-${checkData?.unique_code || "document"}.pdf`;
+  const filename = `DO-${checkData?.to_name || "document"}.pdf`;
 
   // Buat URL object untuk blob
   const url = URL.createObjectURL(pdfBlob.value);

@@ -1,6 +1,7 @@
 import type { UploadUserFile } from "element-plus";
 import type { Brands } from "./brand";
 import type { AppFile } from "./file";
+import type { Inventory } from "./inventory";
 
 export type Catalogue = {
   id: number | null;
@@ -28,6 +29,7 @@ export type Catalogue = {
   files?: AppFile[];
   checked?: boolean;
   brand?: Brands;
+  inventories_location?: Inventory[];
 };
 
 export type ItemInterface = {

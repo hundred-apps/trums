@@ -60,7 +60,7 @@
               <el-radio-button value="out">Check Out</el-radio-button>
             </el-radio-group>
           </el-form-item>
-          <el-form-item label="Nomor Reference" prop="reference_id">
+          <el-form-item label="Nomor Referensi" prop="reference_id">
             <div class="flex gap-2">
               <el-input
                 v-model="formInline.reference_view"
@@ -99,23 +99,55 @@
               </template>
             </el-input>
           </el-form-item>
+          <el-form-item label="Note">
+            <el-input v-model="formInline.note" type="textarea" />
+          </el-form-item>
         </div>
         <div class="flex flex-col flex-1 justify-start">
-          <el-form-item label="Alamat" prop="address_name">
+          <el-form-item label="PIC" prop="pic_name">
+            <AutocompleteContact
+              v-model="formInline.pic_name"
+              :contact="formInline.pic"
+              :fetch-suggestions="(queryString: string, cb: (arg: any) => void) => querySearchContact(queryString, cb)"
+              @save-contact="(data: Contact) => onHandleSelectPIC(data)"
+            />
+          </el-form-item>
+          <el-form-item label="Alamat Pengiriman" prop="address_name">
             <el-autocomplete
-              v-model="formInline.address_name"
+              v-model="formInline.address_view"
               :fetch-suggestions="querySearchAddress"
               :trigger-on-focus="false"
               clearable
               class="inline-input w-50"
               placeholder="Cari Alamat/Buat Baru"
-              @select="(record) => handleSelectAddress(record)"
+              @select="(record: any) => handleSelectAddress(record)"
             >
               <template #default="{ item }">
-                <div class="name">{{ item.name }}</div>
-                <span class="street text-sm">{{ item.street }}</span>
+                <div v-if="!item.new">
+                  <div class="name">{{ item.name }}</div>
+                  <span class="street text-sm">{{ item.street }}</span>
+                </div>
+                <div v-else>
+                  <div class="text-blue-600">{{ item.name }}</div>
+                </div>
               </template>
             </el-autocomplete>
+          </el-form-item>
+          <el-form-item v-if="formInline.address" label=" ">
+            <div>
+              <div class="flex items-center gap-2">
+                <p>{{ formInline.address.address_name }}</p>
+                <el-icon
+                  class="cursor-pointer text-read-500 hover:text-read-600"
+                  @click="handleDeleteAddress"
+                  ><Delete
+                /></el-icon>
+              </div>
+              <div>
+                {{ formInline.address.street }},
+                {{ generateResultSearchAddress(formInline.address).name }}
+              </div>
+            </div>
           </el-form-item>
           <el-form-item label="Nomor Dokumen" prop="source_document">
             <el-input
@@ -215,6 +247,16 @@
               </el-tag>
             </template>
           </el-table-column>
+          <el-table-column label="Keterangan" width="150" align="center">
+            <template #default="scope">
+              <el-input
+                v-model="scope.row.note"
+                clearable
+                placeholder="Masukan Keterangan"
+                type="textarea"
+              />
+            </template>
+          </el-table-column>
           <el-table-column label="Aksi" width="150" align="center">
             <template #default="scope">
               <el-button
@@ -231,7 +273,7 @@
   </el-form>
 
   <!-- Modal -->
-  <el-dialog v-model="dialog" title="Cari" width="800">
+  <el-dialog v-model="dialog" title="Cari Lokasi Awal Barang" width="800">
     <el-tabs type="border-card">
       <el-tab-pane label="Gudang">
         <el-input
@@ -246,6 +288,8 @@
           :columns="columnLocation"
           :data="locations?.data.value?.data ?? []"
           @sort-change="onSort"
+          :row-click="(row: any) => selectedModal('catalogue', row, fromOrTo == 0 ? setFrom : setTo)"
+          class="table-source-location"
         />
         <div class="flex justify-end mt-3">
           <el-pagination
@@ -340,10 +384,9 @@
       <el-pagination
         background
         layout="prev, pager, next"
-        :total="sales_order?.data.value?.total_data"
-        @next-click="(val: number) => paginationClick(val, 'sales_order')"
-        @prev-click="(val: number) => paginationClick(val, 'sales_order')"
-        @change="(val: number) => handleSizeChange(val, 'sales_order')"
+        :total="inquiries?.data.value?.total_data"
+        @current-change="(val: number) => handleSizeChange(val, 'inquiry')"
+        @size-change="(val: number) => paginationClick(val, 'inquiry')"
       />
     </div>
   </el-dialog>
@@ -397,6 +440,8 @@ import {
   type ItemRequestTrail,
 } from "~/types/item_request";
 import type { ColumnTable } from "~/types/ColumnTable";
+import AutocompleteContact from "~/components/trums/AutocompleteContact.vue";
+
 interface formCheckInOut {
   unique_id: string | null;
   type: string;
@@ -414,9 +459,16 @@ interface formCheckInOut {
   address_id: string;
   address_version: number | null;
   address_name: string;
+  address_view: string;
   schedule_date: string | null;
   source_document: string | null;
   status: string;
+  address?: AddressType;
+  note: string;
+  pic_id: string;
+  pic_version: number;
+  pic_name: string;
+  pic?: Contact;
 }
 
 const loading = ref<boolean>(false);
@@ -454,12 +506,21 @@ let formInline = reactive<formCheckInOut>({
   source_document: null,
   status: "draft",
   reference_id: null,
+  address_view: "",
+  note: "",
+  pic_id: "",
+  pic_name: "",
+  pic_version: 0,
 });
 
 const requestSearchLocation = ref<RequestSearch>({
   keyword: "",
   table: "catalogues",
-  column: [],
+  column: [
+    {
+      type: ["place"],
+    },
+  ],
   sort: null,
   limit: "10",
   offset: "1",
@@ -477,7 +538,10 @@ const requestSearchInquiry = ref<RequestSearch>({
   keyword: "",
   table: "inquiries",
   column: [{ reference: type.value == "in" ? ["po"] : ["so"] }],
-  sort: null,
+  sort: {
+    column: "created_at",
+    order: OrderColumn.DESC,
+  },
   limit: "10",
   offset: "1",
 });
@@ -521,16 +585,25 @@ watch(
   }
 );
 
-const contacts = await useFetchApi<ResponsePagination<Contact[]>>(
-  "/search",
-  "fetch-contacts",
-  "post",
-  requestSearchContact.value
-);
-// watcher
-watch(requestSearchContact.value, () => refreshNuxtData("fetch-contacts"), {
-  immediate: true,
+const contacts = await useAsyncData("fetch-contacts", async () => {
+  const res = await useFetchApi<ResponsePagination<Inquiry[]>>(
+    `/search`,
+    "fetch-contacts",
+    "post",
+    requestSearchContact.value
+  );
+  return res.data.value;
 });
+
+// watcher
+watch(
+  () => requestSearchContact.value,
+  () => contacts.refresh(),
+  {
+    immediate: true,
+    deep: true,
+  }
+);
 
 const requestSearch = ref<RequestSearch>({
   keyword: "",
@@ -657,34 +730,42 @@ const showModal = (arg: number) => {
 
 const columnLocation: ColumnTable<Catalogue>[] = [
   {
-    title: "Item",
+    title: "Nama Lokasi",
     dataKey: "name",
     key: "name",
   },
   {
-    title: "Operasi",
-    dataKey: "",
-    key: "",
-    width: 80,
-    align: "center",
-    cellRenderer: ({ rowData: row }) => (
-      <>
-        <ElButton
-          type="primary"
-          size="small"
-          onClick={() =>
-            selectedModal(
-              "catalogue",
-              row,
-              fromOrTo.value == 0 ? setFrom : setTo
-            )
-          }
-        >
-          Pilih
-        </ElButton>
-      </>
+    title: "Jumlah Barang di Gudang",
+    dataKey: "jumlah",
+    key: "jumlah",
+    cellRenderer: ({ rowData }: { rowData: Catalogue }) => (
+      <>{rowData.inventories_location?.length}</>
     ),
   },
+  // {
+  //   title: "Jumlah Barang",
+  //   dataKey: "",
+  //   key: "",
+  //   width: 80,
+  //   align: "center",
+  //   cellRenderer: ({ rowData: row }) => (
+  //     <>
+  //       <ElButton
+  //         type="primary"
+  //         size="small"
+  //         onClick={() =>
+  // selectedModal(
+  //   "catalogue",
+  //   row,
+  //   fromOrTo.value == 0 ? setFrom : setTo
+  // )
+  //         }
+  //       >
+  //         Pilih
+  //       </ElButton>
+  //     </>
+  //   ),
+  // },
 ];
 
 // Method untuk menentukan class stok
@@ -806,7 +887,13 @@ const querySearchAddress = (queryString: string, cb: (arg: any) => void) => {
     }
   });
 };
-
+const handleDeleteAddress = () => {
+  formInline.address = undefined;
+  formInline.address_id = "";
+  formInline.address_name = "";
+  formInline.address_version = 0;
+  formInline.address_view = "";
+};
 const generateResultSearchAddress = (address: AddressType) => {
   const name = `(${address.contact_name}) - ${address.village}, ${address.city}, ${address.regency}, ${address.province}`;
   const street = `${address.street}`;
@@ -818,6 +905,7 @@ const generateResultSearchAddress = (address: AddressType) => {
     street: street,
     address_id: address_id,
     address_version: address.version,
+    address: address,
   };
 };
 
@@ -851,11 +939,14 @@ const handleSelectAddress = (record: Record<string, any>) => {
   if (record.new) {
     dialogNewAddress.value = true;
   } else {
-    console.log(record);
     // const address: AddressType = record as AddressType;
     formInline.address_id = record.address_id;
     formInline.address_version = record.address_version;
     formInline.address_name = record.name;
+
+    if (record.address) {
+      formInline.address = record.address;
+    }
   }
 };
 
@@ -933,9 +1024,14 @@ const onSelectReference_id = async (data: Inquiry) => {
     });
   });
 
-  console.log("table item", tableItem.value);
-
   dialogInquiry.value = false;
+  if (data.address) {
+    formInline.address = data.address;
+    formInline.address_id = data.address_id || "";
+    formInline.address_version = data.address_version || 0;
+    formInline.address_view = generateAddressViewName(data.address);
+  }
+  showModal(0);
 };
 
 const setFrom = (reference_from: string, value: any) => {
@@ -1014,7 +1110,7 @@ const setTo = (reference_to: string, value: any) => {
   formInline.reference_to = reference_to;
 };
 
-const rules = reactive<FormRules<formCheckInOut>>({
+const rules = reactive<FormRules>({
   location: [
     {
       required: true,
@@ -1033,6 +1129,13 @@ const rules = reactive<FormRules<formCheckInOut>>({
     {
       required: true,
       message: "Masukan Customer",
+      trigger: "change",
+    },
+  ],
+  pic_name: [
+    {
+      required: true,
+      message: "Masukan PIC",
       trigger: "change",
     },
   ],
@@ -1073,6 +1176,7 @@ interface inititalTable {
   stok?: number;
   item_request_trail?: ItemRequestTrail;
   pending_qty?: number;
+  note?: string;
 }
 
 const handleRemove: UploadProps["onRemove"] = (file, uploadFiles) => {
@@ -1168,7 +1272,10 @@ const onSubmit = async () => {
       (formInline.address_version ?? 0).toString()
     );
     formData.append("source_document", formInline.source_document ?? "");
+    formData.append("pic_id", formInline.pic_id ?? "");
+    formData.append("pic_version", `${formInline.pic_version}`);
     formData.append("status", formInline.status);
+    formData.append("note", formInline.note);
 
     tableItem.value.forEach((element, index) => {
       if (element.catalogue_id != null) {
@@ -1194,6 +1301,7 @@ const onSubmit = async () => {
       formData.append(`movement_item[${index}][unit_name]`, element.unit_name);
       formData.append(`movement_item[${index}][name]`, element.item_name);
       formData.append(`movement_item[${index}][unit_id]`, element.unit_id);
+      formData.append(`movement_item[${index}][note]`, `${element.note}`);
 
       if (element.inventory_id != "") {
         formData.append(
@@ -1302,33 +1410,39 @@ const onSubmit = async () => {
 
 const paginationClick = (
   val: number,
-  type: "contact" | "location" | "sales_order"
+  type: "contact" | "location" | "sales_order" | "inquiry"
 ) => {
   if (type === "contact") {
     const data: RequestSearch = { ...requestSearchContact.value };
-    data.offset = val.toString();
+    data.limit = val.toString();
     requestSearchContact.value = data;
   } else if (type === "location") {
     const data: RequestSearch = { ...requestSearchLocation.value };
-    data.offset = val.toString();
+    data.limit = val.toString();
     requestSearchLocation.value = data;
   } else if (type == "sales_order") {
     const data: RequestSearch = { ...requestSearchSalesOrder.value };
-    data.offset = val.toString();
+    data.limit = val.toString();
     requestSearchSalesOrder.value = data;
+  } else if (type == "inquiry") {
+    const data: RequestSearch = { ...requestSearchInquiry.value };
+    data.limit = val.toString();
+    requestSearchInquiry.value = data;
   }
 };
 
 const handleSizeChange = (
   size: number,
-  type: "contact" | "location" | "sales_order"
+  type: "contact" | "location" | "sales_order" | "inquiry"
 ) => {
   if (type === "contact") {
-    requestSearchContact.value.limit = `${size}`;
+    requestSearchContact.value.offset = `${size}`;
   } else if (type === "location") {
-    requestSearchLocation.value.limit = `${size}`;
+    requestSearchLocation.value.offset = `${size}`;
   } else if (type == "sales_order") {
-    requestSearchSalesOrder.value.limit = `${size}`;
+    requestSearchSalesOrder.value.offset = `${size}`;
+  } else if (type == "inquiry") {
+    requestSearchInquiry.value.offset = `${size}`;
   }
 };
 
@@ -1398,6 +1512,19 @@ const fetchDataEdit = async () => {
       formInline.reference_id = movement.reference_id;
       formInline.source_document = movement.source_document;
       formInline.status = movement.status;
+      formInline.type = movement.type;
+      formInline.pic = movement.pic;
+      formInline.pic_id = movement.pic_id || "";
+      formInline.pic_name = movement.pic?.name || "";
+      formInline.pic_version = movement.pic_version || 0;
+      if (movement.address) {
+        formInline.address = movement.address;
+        formInline.address_view = movement.address.address_name;
+      }
+      formInline.address_id = movement.address_id || "";
+      formInline.address_name = movement.address?.address_name || "";
+      formInline.address_version = movement.address_version;
+      formInline.note = movement.note || "";
 
       tableItem.value = movement.inventory_movement_item.map((item) => ({
         catalogue_id: item.inventory?.catalogue_id ?? "",
@@ -1438,6 +1565,64 @@ const fetchDataEdit = async () => {
   }
 };
 
+const querySearchContact = (queryString: string, cb: (arg: any) => void) => {
+  const request_search: RequestSearch = {
+    keyword: queryString,
+    table: "contacts",
+    column: [],
+    sort: {
+      column: "name",
+      order: OrderColumn.ASC,
+    },
+    offset: "1",
+    limit: "100",
+  };
+
+  useFetchApi<ResponsePagination<Contact[]>>(
+    "/search",
+    `search-pic-${queryString}`,
+    "post",
+    request_search
+  ).then((response) => {
+    if (response.status.value == "success") {
+      const resultApi: Contact[] = response.data.value?.data || [];
+      if (resultApi.length > 0) {
+        const results = resultApi.map((data: Contact) => {
+          return { data: data, value: `${data.name}` };
+        });
+
+        const options = [
+          ...results,
+          {
+            value: `${queryString}`,
+            isNew: true,
+            query: queryString,
+            label: `${queryString}`,
+          },
+        ];
+
+        cb(options);
+      } else {
+        cb([
+          {
+            value: `${queryString}`,
+            isNew: true,
+            query: queryString,
+            label: `${queryString}`,
+          },
+        ]);
+      }
+    }
+  });
+};
+
+const onHandleSelectPIC = (data: Contact) => {
+  formInline.pic = data;
+  formInline.pic_id = data.unique_id;
+  formInline.pic_name = data.name;
+  formInline.pic_version = data.version;
+};
+
 onMounted(() => {
   if (inquiry_id.value) {
     fetchInquiry();
@@ -1448,3 +1633,9 @@ onMounted(() => {
   }
 });
 </script>
+
+<style scoped>
+:deep(.table-source-location .el-table__cell) {
+  padding: 2px !important;
+}
+</style>

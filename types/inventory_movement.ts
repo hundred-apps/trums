@@ -44,6 +44,7 @@ export interface InventoryMovementItem {
   reference_data?: ItemRequest;
   item_request_trail?: ItemRequestTrail;
   inventory_movement?: InventoryMovement;
+  note?: string;
 }
 
 export interface InventoryMovement {
@@ -85,4 +86,8 @@ export interface InventoryMovement {
   contact?: Contact;
   files: FileDocument[];
   data_reference?: any;
+  note?: string;
+  pic?: Contact;
+  pic_id?: string;
+  pic_version?: number;
 }
