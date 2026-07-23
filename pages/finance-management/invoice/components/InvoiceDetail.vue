@@ -138,15 +138,20 @@
                   : "-"
               }}
             </el-descriptions-item> -->
-            <el-descriptions-item label="Reference">
-              {{ data?.data?.data_reference?.unique_code ?? "-" }}
+            <el-descriptions-item label="No.Ref">
+              <NuxtLink
+                :href="`/sales/order/${data?.data?.data_reference?.unique_id}`"
+                target="_blank"
+                class="text-blue-600"
+                >{{ data?.data?.data_reference?.unique_code ?? "-" }}</NuxtLink
+              >
             </el-descriptions-item>
           </el-descriptions>
         </div>
         <div class="flex-1">
           <el-descriptions title="" :column="1" size="large" border>
-            <el-descriptions-item label="Penerbit">
-              {{ data?.data?.vendor?.name ?? "" }}
+            <el-descriptions-item label="PIC">
+              {{ data?.data?.pic_name ?? "" }}
             </el-descriptions-item>
             <!-- <el-descriptions-item label="Status">
               <el-tag
@@ -208,19 +213,36 @@
       </el-descriptions> -->
 
       <h5 class="font-bold text-black text-1xl mt-6">Alamat Penagihan</h5>
-      <span class="text-sm text-gray-500 pl-5">{{
-        data?.data?.billing_address
-          ? generateAddressView(data?.data?.billing_address) +
-            `, ${data.data.billing_address?.codepos}`
-          : "-"
-      }}</span>
+      <div
+        class="text-sm text-gray-500 mt-2 p-2"
+        v-if="data?.data?.billing_address"
+      >
+        ({{ data?.data?.billing_address?.address_name }})
+        <div class="flex flex-col">
+          <span>{{ data?.data?.billing_address.street }}</span>
+          <span
+            >{{ generateAddressViewName(data?.data?.billing_address!) }}</span
+          >
+        </div>
+      </div>
+
       <h5 class="font-bold text-black text-1xl mt-6">Catatan</h5>
       <span
+        v-if="data?.data?.notes"
         class="text-sm text-gray-500 flex flex-col p-2"
         v-html="`${formattedText(data?.data?.notes ?? '')}`"
       ></span>
+      <span v-else class="text-sm text-gray-500 flex flex-col p-2"
+        >Tidak ada catatan</span
+      >
       <h5 class="font-bold text-black text-1xl mt-6">Lampiran</h5>
-      <el-descriptions title="" :column="1" size="small" border>
+      <el-descriptions
+        v-if="(data?.data?.files || []).length > 0"
+        title=""
+        :column="1"
+        size="small"
+        border
+      >
         <el-descriptions-item
           :label="`[${getDisplayFileType(file.type)}]`"
           v-for="(file, key) in data?.data?.files"
@@ -234,6 +256,9 @@
           >
         </el-descriptions-item>
       </el-descriptions>
+      <span v-else class="text-sm text-gray-500 flex flex-col p-2"
+        >Belum ada lampiran</span
+      >
     </el-card>
 
     <el-card class="mb-3">
@@ -433,7 +458,7 @@
             {{ formatPaymentMethod(scope.row.method) }}
           </template>
         </el-table-column>
-        <el-table-column prop="reference" label="Reference">
+        <el-table-column prop="reference" label="Referensi">
           <template #default="scope">
             <NuxtLink
               :href="`/finance-management/transaction/${scope.row.transaction.unique_id}`"
@@ -550,6 +575,7 @@ import {
 } from "~/types/file";
 import { formattedText } from "#imports";
 import checkAccess from "~/middleware/checkAccess";
+import { generateAddressViewName } from "#imports";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -1606,6 +1632,19 @@ const generatePDF = async () => {
 
   // let signY = finalY + 50;
   // signY = checkPageBreak(doc, signY);
+
+  let signCreatorBase64 = "";
+
+  console.log("creator", data.value?.data?.people);
+
+  // if (
+  //     data.value?.data?.people?.files &&
+  //     data.value?.data?.people?.files.length > 0
+  //   ) {
+  //     approvedSignBase64 = await getBase64ImageFromUrl(
+  //       `${imageUrl}/${data.value?.data?.people?.files[0].image_path}/${canvassingData.value.approved_by.files[0].filename}`
+  //     );
+  //   }
 
   doc.setFont("helvetica", "bold");
   doc.text(`Dibuat Oleh`.toUpperCase(), rightX, signY, {

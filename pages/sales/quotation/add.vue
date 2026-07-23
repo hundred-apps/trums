@@ -953,6 +953,7 @@
             :data="inquiry.data.value?.data ?? []"
             :search-params="request_search_inquiry"
             :total-data="inquiry.data.value?.total_data ?? 0"
+            @on-search="onSearchRFQ"
             @select-request="addToForm"
           />
         </el-tab-pane>
@@ -1335,6 +1336,11 @@ const request_search_inquiry = ref<RequestSearch>({
   flag: "form",
 });
 
+const onSearchRFQ = (keyword: string) => {
+  console.log("on search", keyword);
+  request_search_inquiry.value.keyword = keyword;
+};
+
 const refreshTriggerCanvassing = ref<number>(0);
 const request_search_canvassing = ref<RequestSearch>({
   column: [
@@ -1401,12 +1407,16 @@ const priceTagItem = await useAsyncData("pricetag-search-items", async () => {
   return res.data.value;
 });
 
-const inquiry = await useFetchApi<ResponsePagination<Inquiry[]>>(
-  "/search",
-  "search-request-inquiry",
-  "post",
-  request_search_inquiry.value
-);
+const inquiry = await useAsyncData("fetch-inquiries", async () => {
+  const res = await useFetchApi<ResponsePagination<Inquiry[]>>(
+    "/search",
+    "search-request-inquiry",
+    "post",
+    request_search_inquiry.value
+  );
+  return res.data.value;
+});
+
 const canvassing = ref<ResponsePagination<Canvassing[]>>();
 
 const querySearchAdjustmentTransaction = ref<RequestSearch>({
@@ -4866,11 +4876,11 @@ const rules: FormRules = {
   canvassing_item: [{ validator: validateChildren, trigger: "change" }],
 };
 
-watchDebounced(
+watch(
   () => request_search_inquiry.value,
-  () => refreshNuxtData("request-search-inquiry"),
+  () => inquiry.refresh(),
   {
-    debounce: 500,
+    deep: true,
   }
 );
 

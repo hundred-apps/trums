@@ -13,7 +13,7 @@
         status-icon
       >
         <!-- Invoice Header Information -->
-        <el-form-item label="Referensi" prop="source_document" v-if="!id">
+        <el-form-item label="Referensi" prop="reference" v-if="!id">
           <el-select v-model="ruleForm.reference!">
             <el-option label="Lainya" :value="FinanceReference.OTHER" />
             <el-option label="Sales Order" :value="FinanceReference.SALES" />
@@ -68,7 +68,11 @@
         <el-form-item label="Subject" prop="subject">
           <el-input v-model="ruleForm.subject" />
         </el-form-item>
-        <el-form-item label="TOP" prop="" v-if="paymentTerms.length > 0">
+        <el-form-item
+          label="TOP"
+          prop="payment_term_view"
+          v-if="paymentTerms.length > 0"
+        >
           <el-select
             v-model="ruleForm.payment_term_view"
             value-key="id"
@@ -454,7 +458,7 @@
               :icon="Delete"
               circle
               @click="removeItem(scope.$index)"
-              :disabled="ruleForm.invoice_item.length <= 1 || loading"
+              :disabled="loading"
             />
           </template>
         </el-table-column>
@@ -935,7 +939,7 @@
       <CatalogueAdd :catalogue_form="tmpCatalogue!" :loading="loading" />
     </el-dialog>
 
-    <el-dialog v-model="dialogDO" title="Deliver Order" width="1000">
+    <el-dialog v-model="dialogDO" title="Delivery Order" width="1000">
       <InventoryMovementTable
         :data="deliveryOrders.data.value!"
         :loading="deliveryOrders.status.value === 'pending'"
@@ -1035,10 +1039,11 @@ const router = useRouter();
 const route = useRoute();
 const id = computed(() => route.query.id as string);
 const is_termin = computed(() => route.query.is_termin as string);
+const movement_id = computed(() => route.query.movement_id as string);
 
 const ruleFormRef = ref<FormInstance>();
 const dialogNewAddress = ref(false);
-const loading = ref(false);
+const loading = ref(true);
 const visibleModalPurchaseOrder = ref(false);
 const drawerVisibleCreateNewBank = ref(false);
 const drawerVisibleCreateAccount = ref(false);
@@ -1117,7 +1122,7 @@ const ruleForm = reactive<Invoice>({
   pic_name: "",
   pic_version: 0,
   type: "out",
-  status: PaymentStatus.DRAFT,
+  status: PaymentStatus.WAITING,
 
   invoice_item: [
     {
@@ -1394,11 +1399,13 @@ const handleDeleteAddress = (state: "customer" | "vendor") => {
 
 const onHandleSelectDO = (values: InventoryMovement[]) => {
   ruleForm.invoice_item = [];
+  console.log("order item", values);
   values.forEach((element) => {
     element.inventory_movement_item.forEach((moveItem) => {
       const orderItem = tmp_purchase_order.value?.purchase_order_item.find(
         (find) => find.catalogue_id == moveItem.inventory?.catalogue_id
       );
+
       if (orderItem) {
         ruleForm.invoice_item.push({
           unique_id: "",
@@ -1843,14 +1850,23 @@ const handlePaymentMethodChange = (method: PaymentMethod) => {
 
 const querySearchBanks = (query: string, cb: (arg: any) => void) => {
   try {
-    useFetchApi<DefaultResponsePagination<BankAccount[]>>(
-      "/bank-accounts-read?flag=form",
+    const request_search_bank_accounts: RequestSearch = {
+      keyword: query,
+      table: "bank_accounts",
+      column: [],
+      sort: null,
+      offset: "1",
+      flag: "form",
+      limit: "100",
+    };
+    useFetchApi<ResponsePagination<BankAccount[]>>(
+      "/search",
       "get-bank-accounts",
-      "get",
-      null
+      "post",
+      request_search_bank_accounts
     ).then((response) => {
       if (response.status.value == "success") {
-        const banks = (response.data.value?.data.query ?? []) as BankAccount[];
+        const banks = (response.data.value?.data ?? []) as BankAccount[];
         if (banks.length > 0) {
           let lists = banks.map((value) => ({
             value: `${value.account_name} (${value.account_number})`,
@@ -3325,6 +3341,150 @@ const initialForm = async () => {
   loading.value = false;
 };
 
+const fetchDataMovement = async () => {
+  loading.value = true;
+  try {
+    const response = await useFetchApi<BaseResponse<InventoryMovement>>(
+      `/inventory-movement-read/${movement_id.value}`,
+      "movement",
+      "get",
+      null
+    );
+
+    if (response.status.value == "success") {
+      const movement = response.data.value?.data;
+
+      tmp_purchase_order.value = {
+        id: 0,
+        unique_id:
+          response.data.value?.data?.data_reference?.reference_id || "",
+        unique_code: "",
+        vendor_id: "",
+        vendor_name: "",
+        vendor_version: 0,
+        total_price: 0,
+        delivery_address_id: "",
+        delivery_address_version: 0,
+        delivery_address_view: "",
+        is_discount: false,
+        discount: 0,
+        delivery_cost: 0,
+        status: PurchaseOrderStatus.DRAFT,
+        is_tempo: false,
+        term_payment: null,
+        term_payment_value: null,
+        term_payment_unit: "day",
+        method_payment: PaymentMethod.BankTransfer,
+        version: 0,
+        created_at: 0,
+        created_by: 0,
+        updated_at: 0,
+        purchase_order_item: [],
+        type: "so",
+        reference_transaction: [],
+        reference_data: [],
+      };
+
+      await fetchPurchaseOrder();
+
+      await getPaymentTerms([
+        {
+          reference: ["po"],
+          reference_id: [tmp_purchase_order.value.unique_id],
+        },
+      ]);
+
+      references.value = tmp_purchase_order.value.reference_transaction.map(
+        (value) => ({
+          ...value,
+          reference: ReferenceAdjustment.INVOICE,
+          reference_id: "",
+        })
+      );
+
+      if (paymentTerms.value.length == 1) {
+        if (paymentTerms.value[0].unit == "nominal") {
+          ruleForm.paid_amount = paymentTerms.value[0].value;
+        } else {
+          ruleForm.paid_amount =
+            (Number(ruleForm.subtotal) * Number(paymentTerms.value[0].value)) /
+            100;
+        }
+
+        ruleForm.payment_term_view = paymentTerms.value[0].name;
+        ruleForm.payment_term_id = paymentTerms.value[0].unique_id;
+        ruleForm.payment_terms = paymentTerms.value[0];
+      }
+
+      ruleForm.reference = FinanceReference.SALES;
+      ruleForm.reference_id = tmp_purchase_order.value.unique_id;
+      ruleForm.reference_number = tmp_purchase_order.value.unique_code;
+
+      ruleForm.customer_id = tmp_purchase_order.value.vendor_id;
+      ruleForm.customer_name = tmp_purchase_order.value.vendor_name;
+      ruleForm.customer_version = 1;
+      ruleForm.billing_address_id =
+        tmp_purchase_order.value.delivery_address_id;
+      ruleForm.billing_address_version =
+        tmp_purchase_order.value.delivery_address_version;
+      ruleForm.billing_address_view =
+        tmp_purchase_order.value.address?.address_name ?? "";
+
+      if (tmp_purchase_order.value.address) {
+        billing_address.value = tmp_purchase_order.value.address;
+      }
+
+      ruleForm.pic_id = tmp_purchase_order.value.pic_id;
+      ruleForm.pic_name = tmp_purchase_order.value.pic_name;
+      ruleForm.pic_version = 0;
+
+      if (movement) {
+        ruleForm.invoice_item = [];
+        (movement.inventory_movement_item || []).forEach((item) => {
+          const orderItem =
+            tmp_purchase_order.value?.purchase_order_item.findLast(
+              (last) => last.catalogue_id == item.inventory?.catalogue_id
+            );
+
+          if (orderItem) {
+            ruleForm.invoice_item.push({
+              unique_id: "",
+              unique_code: "",
+              invoice_id: null,
+              item_id: item.inventory?.catalogue?.unique_id || "",
+              item_version: item.inventory?.catalogue?.version || 0,
+              item_name: item.inventory?.catalogue?.name || "",
+              unit_id: item.unit_id,
+              unit_name: item.unit_name,
+              quantity: item.quantity,
+              price: orderItem.unit_price,
+              total_amount:
+                Number(orderItem.unit_price) * Number(item.quantity),
+              display_total_amount: formatCurrencyID(
+                Number(orderItem.unit_price) * Number(item.quantity)
+              ),
+              display_price: formatCurrencyID(orderItem.unit_price),
+              inventory_movement_id: item.unique_id,
+              inventory_movement_version: item.version,
+              version: 0,
+              invoice_version: 0,
+              created_at: 0,
+              created_by: 0,
+              updated_at: 0,
+            });
+          }
+        });
+      }
+
+      console.log("payment terms", ruleForm);
+    }
+  } catch (error: any) {
+    ElMessage.error("Gagal Memuat Data");
+  } finally {
+    // loading.value = false;
+  }
+};
+
 onMounted(() => {
   initialForm();
 
@@ -3332,6 +3492,10 @@ onMounted(() => {
     fetchDataEdit();
   } else {
     initialSetting();
+  }
+
+  if (movement_id.value) {
+    fetchDataMovement();
   }
 });
 </script>

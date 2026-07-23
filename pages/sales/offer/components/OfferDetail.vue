@@ -669,7 +669,9 @@ watch(
             no: ``,
             item_id: item.catalogue_id || "",
             unique_id: item.unique_id || "",
-            item_name: displayCatalogueName(item.catalogue!),
+            item_name: item.catalogue
+              ? displayCatalogueName(item.catalogue!)
+              : "",
             price: item.price,
             qty: item.quantity,
             unit_id: item.unit_id || "",
@@ -693,7 +695,9 @@ watch(
               no: ``,
               item_id: item.catalogue_id || "",
               unique_id: item.unique_id || "",
-              item_name: displayCatalogueName(item.catalogue!),
+              item_name: item.catalogue
+                ? displayCatalogueName(item.catalogue!)
+                : "",
               price: item.price,
               qty: item.quantity,
               unit_id: item.unit_id || "",
@@ -713,7 +717,9 @@ watch(
           no: `${no}`,
           item_id: item.catalogue_id || "",
           unique_id: item.unique_id || "",
-          item_name: displayCatalogueName(item.catalogue!),
+          item_name: item.catalogue
+            ? displayCatalogueName(item.catalogue!)
+            : "",
           price: item.price,
           qty: item.quantity,
           unit_id: item.unit_id || "",

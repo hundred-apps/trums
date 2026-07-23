@@ -309,21 +309,27 @@ const handleSelected = () => {
     const find = realData.value.find(
       (find) => find.unique_id == element.movement_id
     );
-    if (find) {
-      const idsChecked = (element.children || [])
-        .filter((filter) => filter.checked)
-        .map((map) => map.unique_id);
 
-      const movementSelected: InventoryMovementItem[] =
-        find.inventory_movement_item.filter((filter) =>
-          idsChecked.includes(filter.unique_id)
-        );
-
-      selectedData.value.push({
-        ...find,
-        inventory_movement_item: movementSelected,
-      });
+    if (element.checked && find) {
+      selectedData.value.push(find!);
+      // console.log("find", find);
     }
+
+    // if (find) {
+    //   const idsChecked = (element.children || [])
+    //     .filter((filter) => filter.checked)
+    //     .map((map) => map.unique_id);
+
+    //   const movementSelected: InventoryMovementItem[] =
+    //     find.inventory_movement_item.filter((filter) =>
+    //       idsChecked.includes(filter.unique_id)
+    //     );
+
+    //   selectedData.value.push({
+    //     ...find,
+    //     inventory_movement_item: movementSelected,
+    //   });
+    // }
   });
 
   emit("onSubmit", selectedData.value);

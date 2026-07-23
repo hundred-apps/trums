@@ -43,6 +43,11 @@
           >
             Cetak DO
           </el-button>
+          <NuxtLink
+            class="el-button el-button--success"
+            :href="`/finance-management/invoice/add?movement_id=${checkData?.unique_id}`"
+            ><el-icon class="mr-2"><Tickets /></el-icon> Buat Faktur</NuxtLink
+          >
           <el-button
             type="danger"
             :loading="loading || loadingPO"
@@ -195,8 +200,8 @@
 </template>
 
 <script lang="tsx" setup>
-import { Download, Eleme } from "@element-plus/icons-vue";
-import type { Inquiry } from "~/types/inquiry";
+import { Download, Eleme, Tickets } from "@element-plus/icons-vue";
+import { InquiryReference, TypeInquiry, type Inquiry } from "~/types/inquiry";
 import type {
   InventoryMovement,
   InventoryMovementItem,
@@ -426,22 +431,34 @@ const generateDeliveryOrderPdf = async (unique_code: string) => {
   let ry = y - 10;
 
   const rightInfo = [
-    [
-      "No Invoice",
-      `${purchaseOrderData?.value?.reference_data[0]?.unique_code ?? ""}`,
-    ],
+    // [
+    //   "No Invoice",
+    //   `${purchaseOrderData?.value?.reference_data[0]?.unique_code ?? ""}`,
+    // ],
     ["No. DO", unique_code],
-    [
-      "Tanggal",
-      `${
-        data.value?.data?.created_at != null &&
-        data.value?.data?.created_at != undefined
-          ? formatLocalDate(data.value?.data?.created_at)
-          : ""
-      }`,
-    ],
-    ["Expedisi", ""],
   ];
+
+  if (
+    inquiryData?.value?.type == TypeInquiry.INTERNAL &&
+    inquiryData?.value?.reference == InquiryReference.SALES_ORDER
+  ) {
+    const salesOrder = inquiryData?.value?.reference_data as
+      | PurchaseOrder
+      | undefined;
+    if (salesOrder) {
+      rightInfo.push(["No. PO", salesOrder.sourcing_document || "-"]);
+    }
+  }
+
+  rightInfo.push([
+    "Tanggal",
+    `${
+      data.value?.data?.created_at != null &&
+      data.value?.data?.created_at != undefined
+        ? formatLocalDate(data.value?.data?.created_at)
+        : ""
+    }`,
+  ]);
 
   rightInfo.forEach(([label, value]) => {
     doc.setFont("helvetica", "bold");

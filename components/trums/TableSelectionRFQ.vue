@@ -2,7 +2,7 @@
   <el-row :gutter="20" class="mb-3">
     <el-col :span="6">
       <el-input
-        v-model="searchParams.keyword"
+        v-model="keywordSearch"
         size="default"
         placeholder="Type to search"
       />
@@ -66,7 +66,18 @@ interface Emits {
   (e: "update:visible", value: boolean): void;
   (e: "select-request", item: Inquiry): void;
   (e: "pagination-change", page: number): void;
+  (e: "onSearch", keyword: string): void;
 }
+
+const keywordSearch = ref<string>("");
+
+watch(
+  () => keywordSearch.value,
+  (newValue) => {
+    emit("onSearch", newValue);
+  },
+  { deep: true }
+);
 
 const props = defineProps<Props>();
 const emit = defineEmits<Emits>();
