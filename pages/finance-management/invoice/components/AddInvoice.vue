@@ -3405,13 +3405,14 @@ const fetchDataMovement = async () => {
         },
       ]);
 
-      references.value = tmp_purchase_order.value.reference_transaction.map(
-        (value) => ({
+      references.value = [
+        ...references.value,
+        ...tmp_purchase_order.value.reference_transaction.map((value) => ({
           ...value,
           reference: ReferenceAdjustment.INVOICE,
           reference_id: "",
-        })
-      );
+        })),
+      ];
 
       if (paymentTerms.value.length == 1) {
         if (paymentTerms.value[0].unit == "nominal") {
