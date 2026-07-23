@@ -1542,6 +1542,8 @@ const showTransactionAdjustmentValue = (
       if (ref.type == "amount") {
         return ref.amount;
       } else {
+        console.log("ref", ref);
+
         // if (ref.amount == 11) {
         //   return subtotal.value * ref.amount;
         // } else if (ref.amount == 12) {
@@ -3405,19 +3407,40 @@ const fetchDataMovement = async () => {
         },
       ]);
 
-      references.value = [
-        ...references.value,
-        ...tmp_purchase_order.value.reference_transaction
-          .filter(
-            (filter) =>
-              filter.adjustments_transaction?.name?.toLowerCase() != "ppn"
-          )
-          .map((value) => ({
-            ...value,
-            reference: ReferenceAdjustment.INVOICE,
-            reference_id: "",
-          })),
-      ];
+      tmp_purchase_order.value.reference_transaction.forEach((element) => {
+        const isExist = references.value.findIndex(
+          (find) => find.adjustment_id == element.adjustment_id
+        );
+        if (isExist >= 0) {
+          references.value[isExist].reference_id = "";
+          references.value[isExist].reference = ReferenceAdjustment.INVOICE;
+          references.value[isExist].type = element.type;
+          references.value[isExist].amount = element.amount;
+          references.value[isExist].value = element.value;
+        } else {
+          if (element.adjustments_transaction?.name?.toLowerCase() != "ppn") {
+            references.value.push({
+              ...element,
+              reference: ReferenceAdjustment.INVOICE,
+              reference_id: "",
+            });
+          }
+        }
+      });
+
+      // references.value = [
+      //   ...references.value,
+      //   ...tmp_purchase_order.value.reference_transaction
+      //     .filter(
+      //       (filter) =>
+      //         filter.adjustments_transaction?.name?.toLowerCase() != "ppn"
+      //     )
+      //     .map((value) => ({
+      //       ...value,
+      //       reference: ReferenceAdjustment.INVOICE,
+      //       reference_id: "",
+      //     })),
+      // ];
 
       if (paymentTerms.value.length == 1) {
         if (paymentTerms.value[0].unit == "nominal") {
@@ -3497,6 +3520,8 @@ const fetchDataMovement = async () => {
           }
         });
       }
+
+      updateTotalAmount();
 
       console.log("payment terms", ruleForm);
     }
