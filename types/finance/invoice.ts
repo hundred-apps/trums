@@ -142,4 +142,5 @@ export type InvoiceItem = {
   inventory_movement_id?: string;
   inventory_movement_version?: number;
   catalogue?: Catalogue;
+  invoice?: Invoice;
 };

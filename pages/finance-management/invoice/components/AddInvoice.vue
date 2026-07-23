@@ -83,7 +83,11 @@
             <el-option
               v-for="item in paymentTerms"
               :key="item.unique_id"
-              :label="item.name"
+              :label="`${
+                item.term_of_payment == PaymentTerm.TEMPO
+                  ? `TEMPO ${item.duration}D`
+                  : item.name
+              }`"
               :value="item"
             />
           </el-select>
@@ -221,6 +225,13 @@
             v-model="ruleForm.invoice_date!"
             type="date"
             placeholder="Pilih Tanggal Invoice"
+          />
+        </el-form-item>
+        <el-form-item label="Tgl Jatuh Tempo" prop="due_date">
+          <el-date-picker
+            v-model="ruleForm.due_date!"
+            type="date"
+            placeholder="Pilih Tanggal Jatuh Tempo"
           />
         </el-form-item>
 
@@ -470,7 +481,7 @@
         <div class="flex gap-2 mt-5">
           <div>
             <div class="flex justify-between items-center">
-              <p>Total Price</p>
+              <p class="text-gray-400">Total Price</p>
               <p>{{ currencyWithoutSymbol(totalAmount || 0, 0) }}</p>
             </div>
             <el-divider />
@@ -632,7 +643,7 @@
 
             <el-divider />
             <div class="flex justify-between items-center">
-              <p>Subtotal</p>
+              <p class="text-gray-400">Subtotal</p>
               <p>{{ currencyWithoutSymbol(subtotal) }}</p>
             </div>
 
@@ -645,7 +656,7 @@
           )"
               :key="ref.adjustment_id"
             >
-              <p>
+              <p class="text-gray-400">
                 {{
                   (ref.adjustment || ref.adjustments_transaction!).name ?? ""
                 }}
@@ -657,8 +668,8 @@
               </p>
             </div>
             <el-divider />
-            <div class="flex justify-between items-center">
-              <p>Grand Total</p>
+            <div class="flex justify-between items-center gap-2">
+              <p class="text-gray-400">Grand Total</p>
               <p>{{ currencyWithoutSymbol(paidAmount || 0, 0) }}</p>
             </div>
             <!-- <el-descriptions :column="1" border size="small">
@@ -2709,7 +2720,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         // }
 
         const invoiceDate = new Date(ruleForm.invoice_date!);
-        const billDate = new Date(ruleForm.due_date!);
+        const due_date = new Date(ruleForm.due_date!);
         const receivedDate = new Date(ruleForm.received_date!);
 
         const formData = new FormData();
@@ -2739,7 +2750,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           ruleForm.vendor_address_version!.toString()
         );
         formData.append("invoice_date", String(invoiceDate.getTime() / 1000));
-        formData.append("due_date", String(billDate.getTime() / 1000));
+        formData.append("due_date", String(due_date.getTime() / 1000));
         formData.append(
           "is_tempo",
           ruleForm.is_tempo == true ? "true" : "false"
@@ -3411,7 +3422,12 @@ const fetchDataMovement = async () => {
             100;
         }
 
-        ruleForm.payment_term_view = paymentTerms.value[0].name;
+        if (paymentTerms.value[0].term_of_payment == PaymentTerm.TEMPO) {
+          ruleForm.payment_term_view = `TEMPO ${paymentTerms.value[0].duration}`;
+        } else {
+          ruleForm.payment_term_view = paymentTerms.value[0].name;
+        }
+
         ruleForm.payment_term_id = paymentTerms.value[0].unique_id;
         ruleForm.payment_terms = paymentTerms.value[0];
       }

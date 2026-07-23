@@ -31,6 +31,8 @@ import { NuxtLink } from "#components";
 import type { InventoryMovement } from "~/types/inventory_movement";
 import { Filter } from "@element-plus/icons-vue";
 import type { ColumnTable } from "~/types/ColumnTable";
+import type { Invoice } from "~/types/finance/invoice";
+import type { BaseResponse } from "~/types/response";
 
 interface FormFilter {
   date_range: string[];
@@ -41,6 +43,7 @@ const ruleFormFilter = reactive<FormFilter>({
 });
 
 const loading = ref<boolean>(false);
+const filterNotInvoice = ref<boolean>(false);
 const column_selected = ref<string[]>([
   "selection",
   "unique_code",
@@ -48,6 +51,7 @@ const column_selected = ref<string[]>([
   "from_name",
   "to_name",
   "status",
+  "status_invoice",
   "created_at",
   "operation",
   "setup",
@@ -140,9 +144,9 @@ const availableColumn: ColumnTable<InventoryMovement>[] = [
     cellRenderer: ({ rowData }: { rowData: InventoryMovement }) => (
       <>
         {rowData.type == "in" ? (
-          <el-tag type="danger">Barang Masuk</el-tag>
+          <ElTag type="danger">Barang Masuk</ElTag>
         ) : (
-          <el-tag type="success">Barang Keluar</el-tag>
+          <ElTag type="success">Barang Keluar</ElTag>
         )}
       </>
     ),
@@ -158,10 +162,32 @@ const availableColumn: ColumnTable<InventoryMovement>[] = [
     key: "to_name",
   },
   {
+    title: "Status Invoice",
+    dataKey: "status_invoice",
+    key: "status_invoice",
+    width: 200,
+    align: "center",
+    cellRenderer: ({ rowData }: { rowData: InventoryMovement }) => {
+      const invoice = getInvoice(rowData);
+      if (invoice) {
+        return (
+          <NuxtLink
+            class={"text-blue-600"}
+            href={`/finance-management/invoice/${invoice.unique_id}`}
+          >
+            {invoice.unique_code}
+          </NuxtLink>
+        );
+      } else {
+        return <>Belum ada invoice</>;
+      }
+    },
+  },
+  {
     title: "Status",
     dataKey: "status",
     key: "status",
-    width: 100,
+    width: 130,
     align: "center",
     cellRenderer: ({ rowData: row }) => getStatus(row),
     headerCellRenderer: () => (
@@ -328,6 +354,15 @@ const { data, status, refresh } = await useAsyncData(
       "post",
       request_search.value
     );
+    // let movements: InventoryMovement[] = [];
+    // if (res.status.value == "success") {
+    //   movements = res.data.value?.data || [];
+    //   for (const movement of movements) {
+    //     const invoice = await getInvoice(movement);
+    //     movement.invoice_data = invoice;
+    //   }
+    // }
+
     return res.data.value;
   }
 );
@@ -350,6 +385,33 @@ const getStatus = (data: InventoryMovement) => {
     return <ElTag type="danger">{(data?.status ?? "").toUpperCase()}</ElTag>;
   } else {
     return <ElTag type="info">{(data?.status ?? "").toUpperCase()}</ElTag>;
+  }
+};
+
+const getInvoiceData = async (
+  invoice_id: string
+): Promise<Invoice | undefined> => {
+  try {
+    const res = await useFetchApi<BaseResponse<Invoice>>(
+      `/invoice-read/${invoice_id}`,
+      "detail-invoice",
+      "get",
+      null
+    );
+
+    if (res.status.value === "success") {
+      return res.data.value?.data;
+    }
+  } catch (error: any) {
+    ElMessage.error("Beberapa Invoice Tidak Ditemukan!");
+  }
+};
+
+const getInvoice = (data: InventoryMovement): Invoice | undefined => {
+  if ((data.inventory_movement_item || []).length > 0) {
+    if ((data.inventory_movement_item[0].invoice_items || []).length > 0) {
+      return (data.inventory_movement_item[0].invoice_items || [])[0].invoice;
+    }
   }
 };
 
@@ -533,6 +595,28 @@ const consigment = () => {
   router.push("consigment");
 };
 
+watch(
+  () => filterNotInvoice.value,
+  (value) => {
+    if (value) {
+      request_search.value.column[0] = {
+        ...request_search.value.column[0],
+        inventory_movement_item: {
+          invoice_items: ["null"],
+        },
+      };
+    } else {
+      request_search.value.column[0] = {
+        ...request_search.value.column[0],
+        inventory_movement_item: {
+          invoice_items: ["not null", "null"],
+        },
+      };
+    }
+  },
+  { deep: true }
+);
+
 const onRefresh = () => refresh();
 
 onMounted(() => {
@@ -545,7 +629,7 @@ onMounted(() => {
 </script>
 <template>
   <TrumsWrapper>
-    <el-row :gutter="20" class="mb-3">
+    <el-row :gutter="20">
       <el-col :span="6"
         ><el-input
           v-model="request_search.keyword"
@@ -611,7 +695,14 @@ onMounted(() => {
           </el-button>
         </template>
       </el-popconfirm>
+      <el-col :span="6"
+        ><el-checkbox
+          v-model="filterNotInvoice"
+          label="Belum ada invoice"
+          size="default"
+      /></el-col>
     </el-row>
+
     <CustomTable
       @sort-change="onSort"
       :columns="filteredColumn"

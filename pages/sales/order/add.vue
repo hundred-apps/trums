@@ -1235,7 +1235,9 @@ const groupedCatalogue = computed(() => {
   let pricetag_item: Pricetag_item[] = [];
   (filteredPricetagItems.data.value?.data || []).forEach((element) => {
     const catalogueExist = pricetag_item.findIndex(
-      (find) => find.catalogue_id == element.catalogue_id
+      (find) =>
+        find.catalogue_id == element.catalogue_id &&
+        find.tag_id == element.tag_id
     );
     if (catalogueExist >= 0) {
       pricetag_item[catalogueExist].quantity += element.quantity;

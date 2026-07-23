@@ -1,5 +1,6 @@
 import type { AddressType } from "./address";
 import type { Contact } from "./contact";
+import type { Invoice, InvoiceItem } from "./finance/invoice";
 import type { Inventory } from "./inventory";
 import type { ItemRequest, ItemRequestTrail } from "./item_request";
 
@@ -45,6 +46,7 @@ export interface InventoryMovementItem {
   item_request_trail?: ItemRequestTrail;
   inventory_movement?: InventoryMovement;
   note?: string;
+  invoice_items?: InvoiceItem[];
 }
 
 export interface InventoryMovement {
@@ -90,4 +92,6 @@ export interface InventoryMovement {
   pic?: Contact;
   pic_id?: string;
   pic_version?: number;
+  status_invoice?: string;
+  invoice_data?: Invoice;
 }
