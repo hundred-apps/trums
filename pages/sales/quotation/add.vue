@@ -4003,8 +4003,8 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
 
     contactsFee.value = [];
     (dataCanvassing.reference_transaction ?? []).forEach((element) => {
+      console.log("reference transaction", element);
       if (element.party_type == PartyType.CONTACT) {
-        console.log("reference transaction", element);
         if (element.type == FeeType.AMOUNT) {
           const amount_nominal =
             (grandTotal.value / (element.value ?? 0)) * 100;
@@ -4042,14 +4042,26 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
         if (
           (element.adjustments_transaction?.name ?? "").toLowerCase() != "fee"
         ) {
-          references.value.push({
+          const amountNominal =
+            element.type == FeeType.PERCENT
+              ? (grandTotal.value * Number(element.value)) / 100
+              : element.amount;
+
+          const dataReference = {
             ...element,
             reference_id: isNew.value ? "" : element.reference_id,
-          });
+            amount: amountNominal,
+            amount_nominal: amountNominal,
+            tmp_amount_input:
+              element.type == FeeType.PERCENT
+                ? `${element.value}`
+                : handleInput(`${amountNominal}`),
+            value: element.value,
+          };
+          console.log("masuk ", handleInput(`${amountNominal}`));
+          references.value.push(dataReference);
         } else {
           if (!element.party) {
-            console.log("masuk reference", element);
-
             references.value.push({
               ...element,
               reference_id: isNew.value ? "" : element.reference_id,
@@ -5285,16 +5297,25 @@ const calculateSummaryaData = () => {
   ];
 
   references.value.forEach((element) => {
-    console.log("ref", element.adjustments_transaction?.name);
-    console.log("ref type", element.type);
-    console.log("value", safePercent(element.amount, totalBuyingPrice.value));
+    const amount = element.amount_nominal;
+    console.log("amount", amount);
     data.push({
       label: element.adjustment?.name
         ? element.adjustment?.name
         : element.adjustments_transaction?.name ?? "-",
       max: currency(displayAmount(element, grandTotalValue)),
-      beli: `${safePercent(element.amount, totalBuyingPrice.value)} %`,
-      jual: `${safePercent(element.amount, grandTotalValue)} %`,
+      beli: `${safePercent(
+        element.type == FeeType.PERCENT
+          ? displayAmount(element, grandTotalValue)
+          : element.amount,
+        totalBuyingPrice.value
+      )} %`,
+      jual: `${safePercent(
+        element.type == FeeType.PERCENT
+          ? displayAmount(element, grandTotalValue)
+          : element.amount,
+        grandTotalValue
+      )} %`,
       min: currency(0),
       beliMin: `${safePercent(0, 1)}`,
       jualMin: `${safePercent(displayPercentage(element, grandTotalValue), 1)}`,

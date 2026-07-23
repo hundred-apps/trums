@@ -12,7 +12,7 @@ export function safePercent(a: any, b: any): string {
 
 export function displayAmount(ref: any, multiplier: number) {
   if (ref.type === "percent") {
-    return (multiplier || 0) * (ref.amount / 100);
+    return (multiplier || 0) * (ref.value / 100);
   } else {
     return ref.amount;
   }
@@ -26,7 +26,6 @@ export function nominalToPercent(value: number, multiplier: number) {
 }
 
 export function displayPercentage(ref: any, multiplier: number): Number {
-  console.log("ref", ref);
   if (ref.type === "amount") {
     return ref.amount / multiplier || 0 * 100;
   } else {

@@ -3021,6 +3021,7 @@ const setProfit = (row: CanvassingItemForm) => {
 };
 
 const summeryData = computed(() => {
+  let netProfit = grossProfit.value;
   const tableData: any[] = [
     {
       label: "Total Harga Jual",
@@ -3072,6 +3073,7 @@ const summeryData = computed(() => {
   ];
 
   if (adjustmentTransactionOngkirTotal.value.adjustment_id != "") {
+    netProfit -= adjustmentTransactionOngkirTotal.value?.amount;
     tableData.push({
       label: "Ongkos Kirim",
       max: currency(adjustmentTransactionOngkirTotal.value?.amount ?? 0),
@@ -3104,8 +3106,6 @@ const summeryData = computed(() => {
     });
   }
 
-  console.log("adjustment fee", adjustmentTransactionFeeTotal.value.amount);
-
   let fee = 0;
   if (
     adjustmentTransactionFeeTotal.value.type == FeeType.AMOUNT &&
@@ -3120,7 +3120,7 @@ const summeryData = computed(() => {
   }
 
   if (adjustmentTransactionFeeTotal.value.reference_id != "") {
-    console.log("masuk fee total");
+    netProfit -= fee;
     tableData.push({
       label: adjustmentTransactionFeeTotal.value.adjustments_transaction?.name,
       max: currency(fee),
@@ -3137,13 +3137,23 @@ const summeryData = computed(() => {
       selectedJual: `${safePercent(fee ?? 0, grandTotal.value)} %`,
     });
   }
-
+  console.log("gross profit", netProfit);
   references.value.forEach((element) => {
     if (
       element.adjustments_transaction?.name.toLowerCase() != "fee" &&
       element.party_type != PartyType.CONTACT
     ) {
-      console.log("detail reference", element);
+      console.log(
+        "reference name",
+        element.adjustments_transaction?.name
+          ? element.adjustments_transaction?.name
+          : element.adjustment?.name
+          ? element.adjustment?.name
+          : "-"
+      );
+
+      netProfit -= displayAmount(element, grandTotal.value);
+
       tableData.push({
         label: element.adjustments_transaction?.name
           ? element.adjustments_transaction?.name
@@ -3152,13 +3162,21 @@ const summeryData = computed(() => {
           : "-",
         max: currency(displayAmount(element, grandTotal.value)),
         beli: `${safePercent(
-          displayAmount(element, grandTotal.value),
+          displayAmount(element, grandTotal.value) ?? 0,
           totalBuyingPrice.value
-        )}  %`,
+        )} %`,
         jual: `${safePercent(
-          displayAmount(element, grandTotal.value),
+          displayAmount(element, grandTotal.value) ?? 0,
           grandTotal.value
-        )}  %`,
+        )} %`,
+        // beli: `${safePercent(
+        //   displayAmount(element, totalBuyingPrice.value),
+        //   totalBuyingPrice.value
+        // )}  %`,
+        // jual: `${safePercent(
+        //   displayAmount(element, grandTotal.value),
+        //   grandTotal.value
+        // )}  %`,
         min: currency(displayAmount(element, totalBuyingPriceMin.value)),
         beliMin: `${safePercent(
           displayAmount(element, grandTotal.value),
@@ -3200,8 +3218,8 @@ const summeryData = computed(() => {
       jualMin: ``,
     });
   }
-
-  const netProfit = netProfitForBuying.value - totalFeeRecive;
+  console.log("gross profit", totalFeeRecive);
+  netProfit -= totalFeeRecive;
   const netProfitSelected = netProfitForBuyingSelected.value - totalFeeRecive;
 
   tableData.push({
