@@ -3407,11 +3407,16 @@ const fetchDataMovement = async () => {
 
       references.value = [
         ...references.value,
-        ...tmp_purchase_order.value.reference_transaction.map((value) => ({
-          ...value,
-          reference: ReferenceAdjustment.INVOICE,
-          reference_id: "",
-        })),
+        ...tmp_purchase_order.value.reference_transaction
+          .filter(
+            (filter) =>
+              filter.adjustments_transaction?.name?.toLowerCase() != "ppn"
+          )
+          .map((value) => ({
+            ...value,
+            reference: ReferenceAdjustment.INVOICE,
+            reference_id: "",
+          })),
       ];
 
       if (paymentTerms.value.length == 1) {
