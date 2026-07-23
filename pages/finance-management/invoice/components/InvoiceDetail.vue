@@ -576,6 +576,7 @@ import {
 import { formattedText } from "#imports";
 import checkAccess from "~/middleware/checkAccess";
 import { generateAddressViewName } from "#imports";
+import { PDFDocument } from "pdf-lib";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -1204,10 +1205,13 @@ const generatePDF = async () => {
   doc.text(`${data?.value?.data?.pic_name ?? "-"}`, valueX, 93);
   doc.text("Address", labelX, 99);
   doc.text(":", colonX, 99);
+  doc.text(`${data?.value?.data?.billing_address?.street}`, valueX, 99);
+  doc.text("", labelX, 105);
+  doc.text("", colonX, 105);
   doc.text(
     `${generateAddressView(data?.value?.data?.billing_address!)}`,
     valueX,
-    99
+    105
   );
 
   let rowData: RowInput[] = (data?.value?.data?.invoice_item ?? []).map(
@@ -1528,7 +1532,7 @@ const generatePDF = async () => {
 
   // Table
   autoTable(doc, {
-    startY: 110,
+    startY: 120,
     head: [["No", "Item", "Qty", "UoM", "Price", "Total Price"]],
     body: rowData,
     styles: {
@@ -1679,10 +1683,67 @@ const generatePDF = async () => {
   );
 
   const blob = doc.output("blob");
-  pdfBlob.value = blob;
-  pdfUrl.value = URL.createObjectURL(blob);
 
-  return { doc, blob };
+  const mergedPdf = await PDFDocument.create();
+
+  const memoBytes = await blob.arrayBuffer();
+
+  const invoicePDF = await PDFDocument.load(memoBytes);
+
+  const invoice = await mergedPdf.copyPages(
+    invoicePDF,
+    invoicePDF.getPageIndices()
+  );
+
+  invoice.forEach((page) => {
+    mergedPdf.addPage(page);
+  });
+  console.log("data files", data.value?.data?.files);
+  for (const file of data.value?.data?.files || []) {
+    try {
+      const response = await fetch(
+        `${imageUrl}/${file.image_path}/${file.filename}`
+      );
+
+      if (!response.ok) continue;
+
+      // Cek apakah benar PDF
+      const contentType = response.headers.get("content-type") ?? "";
+
+      if (!contentType.includes("application/pdf")) {
+        continue;
+      }
+
+      const bytes = await response.arrayBuffer();
+
+      const fileFaktur = await PDFDocument.load(bytes);
+
+      const fakturPage = await mergedPdf.copyPages(
+        fileFaktur,
+        fileFaktur.getPageIndices()
+      );
+
+      fakturPage.forEach((page) => {
+        mergedPdf.addPage(page);
+      });
+    } catch (err) {
+      console.error("Gagal membaca file vendor", err);
+    }
+  }
+
+  console.log("Jumlah halaman merged:", mergedPdf.getPageCount());
+
+  console.log("Jumlah halaman invoice asli:", invoicePDF.getPageCount());
+
+  const mergedBytes = await mergedPdf.save();
+  const mergedBlob = new Blob([new Uint8Array(mergedBytes)], {
+    type: "application/pdf",
+  });
+
+  pdfBlob.value = mergedBlob;
+  pdfUrl.value = URL.createObjectURL(mergedBlob);
+
+  return { doc, mergedBlob };
 };
 
 const downloadPdf = () => {
@@ -1711,9 +1772,9 @@ const downloadPdf = () => {
 };
 
 const generateInvoicePDF = async () => {
-  const { doc } = await generatePDF();
-  const blob = doc.output("blob");
-  pdfUrl.value = URL.createObjectURL(blob);
+  const { doc, mergedBlob } = await generatePDF();
+  pdfUrl.value = URL.createObjectURL(mergedBlob);
+  showPrevInvoice.value = true;
   showPrevInvoice.value = true;
 };
 
