@@ -611,7 +611,7 @@ const columns: ColumnTable<Invoice>[] = [
     sortable: true,
     cellRenderer: ({ rowData }: { rowData: Invoice }) => {
       // const total = row.items?.reduce((sum: any, item: { total_amount: any }) => sum + (item.total_amount || 0), 0) || 0
-      return <span>{currency(rowData.total_amount)}</span>;
+      return <span>{currency(rowData.paid_amount || 0)}</span>;
     },
   },
   {

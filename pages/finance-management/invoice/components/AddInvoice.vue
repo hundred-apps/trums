@@ -2788,9 +2788,9 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         );
         formData.append("status", ruleForm.status);
         formData.append("received_date", String(receivedDate.getTime() / 1000));
-        formData.append("subtotal", (ruleForm.subtotal || 0).toString());
-        formData.append("total_amount", ruleForm.total_amount.toString());
-        formData.append("paid_amount", ruleForm.total_amount.toString());
+        formData.append("subtotal", (subtotal.value || 0).toString());
+        formData.append("total_amount", totalAmount.value.toString());
+        formData.append("paid_amount", paidAmount.value.toString());
         formData.append("payment_term_id", `${ruleForm.payment_term_id}`);
         formData.append("is_performa", `${ruleForm.is_performa}`);
         formData.append("is_termin", `${ruleForm.is_termin}`);

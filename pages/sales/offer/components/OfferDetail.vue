@@ -644,7 +644,8 @@ watch(
         const isExist = pricetag_item_views.value.findIndex(
           (find) => find.unique_id == item.reference_id
         );
-
+        console.log("exist data", isExist);
+        console.log("exist data", item.catalogue?.name);
         if (isExist < 0) {
           pricetag_item_views.value.push({
             no: `${no}`,
@@ -664,7 +665,6 @@ watch(
             hasChild: true,
           });
           no += 1;
-
           pricetag_item_views.value.push({
             no: ``,
             item_id: item.catalogue_id || "",
@@ -685,13 +685,14 @@ watch(
             hasChild: false,
           });
         } else {
+          console.log("item reference id", item.reference_id);
           const findCatalogueExist = pricetag_item_views.value.findIndex(
             (find) => find.item_id == item.catalogue_id
           );
           if (findCatalogueExist >= 0) {
             pricetag_item_views.value[findCatalogueExist].qty += item.quantity;
           } else {
-            pricetag_item_views.value.push({
+            const data = {
               no: ``,
               item_id: item.catalogue_id || "",
               unique_id: item.unique_id || "",
@@ -709,7 +710,9 @@ watch(
               delivery: item.delivery,
               status_item: item.status_item,
               hasChild: false,
-            });
+            };
+            pricetag_item_views.value.splice(isExist + 1, 0, data);
+            // pricetag_item_views.value.push(data);
           }
         }
       } else {

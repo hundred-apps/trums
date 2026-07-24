@@ -33,6 +33,8 @@ import { Filter } from "@element-plus/icons-vue";
 import type { ColumnTable } from "~/types/ColumnTable";
 import type { Invoice } from "~/types/finance/invoice";
 import type { BaseResponse } from "~/types/response";
+import type { PurchaseOrder } from "~/types/scm/purchase_order";
+import { TypeInquiry, type Inquiry } from "~/types/inquiry";
 
 interface FormFilter {
   date_range: string[];
@@ -50,6 +52,7 @@ const column_selected = ref<string[]>([
   "type",
   "from_name",
   "to_name",
+  "reference_data",
   "status",
   "status_invoice",
   "created_at",
@@ -161,6 +164,13 @@ const availableColumn: ColumnTable<InventoryMovement>[] = [
     dataKey: "to_name",
     key: "to_name",
   },
+  // {
+  //   title: "Referensi",
+  //   dataKey: "reference_data",
+  //   key: "reference_data",
+  //   cellRenderer: ({ rowData }: { rowData: InventoryMovement }) =>
+  //     renderReferenceData(rowData),
+  // },
   {
     title: "Status Invoice",
     dataKey: "status_invoice",
@@ -404,6 +414,42 @@ const getInvoiceData = async (
     }
   } catch (error: any) {
     ElMessage.error("Beberapa Invoice Tidak Ditemukan!");
+  }
+};
+
+const renderReferenceData = (data: InventoryMovement) => {
+  if (data.reference_data) {
+    const inquiry = data.reference_data.reference_data as Inquiry | undefined;
+    const purchaseOrder = data.reference_data.reference_data as
+      | PurchaseOrder
+      | undefined;
+    if (inquiry && inquiry.type == TypeInquiry.SALES_INQUIRY) {
+      return purchaseOrder ? (
+        <NuxtLink
+          class={`text-blue-600`}
+          href={`/sales/order/${purchaseOrder?.unique_id}`}
+        >
+          {purchaseOrder?.unique_code}
+        </NuxtLink>
+      ) : (
+        <></>
+      );
+    } else if (inquiry && inquiry.type == TypeInquiry.INTERNAL) {
+      return purchaseOrder ? (
+        <NuxtLink
+          class={`text-blue-600`}
+          href={`/supply-chain-management/purchase/order/${purchaseOrder?.unique_id}`}
+        >
+          {purchaseOrder?.unique_code}
+        </NuxtLink>
+      ) : (
+        <></>
+      );
+    } else {
+      return <></>;
+    }
+  } else {
+    return <></>;
   }
 };
 
