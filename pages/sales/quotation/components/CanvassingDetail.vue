@@ -5465,7 +5465,7 @@ const generateSCMMemo = async () => {
       rowData.push([
         {
           content: `${element.adjustments_transaction?.name}`,
-          colSpan: 5,
+          colSpan: 8,
           styles: {
             halign: "right",
             fontStyle: "bold",
@@ -5479,7 +5479,7 @@ const generateSCMMemo = async () => {
           content: `${currencyWithoutSymbol(
             showTransactionAdjustmentValue(element)
           )}`,
-          colSpan: 4,
+          colSpan: 5,
           styles: {
             halign: "right",
             cellWidth: 0.0,
