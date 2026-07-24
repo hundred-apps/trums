@@ -577,6 +577,7 @@ import { formattedText } from "#imports";
 import checkAccess from "~/middleware/checkAccess";
 import { generateAddressViewName } from "#imports";
 import { PDFDocument } from "pdf-lib";
+import type { TrumDoc } from "~/types/document";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -1772,10 +1773,39 @@ const downloadPdf = () => {
 };
 
 const generateInvoicePDF = async () => {
-  const { doc, mergedBlob } = await generatePDF();
-  pdfUrl.value = URL.createObjectURL(mergedBlob);
-  showPrevInvoice.value = true;
-  showPrevInvoice.value = true;
+  loading.value = true;
+  try {
+    const req_doc = {
+      reference: "invoice",
+      reference_id: data.value?.data?.unique_id,
+    };
+
+    const response = await useFetchApi<BaseResponse<TrumDoc>>(
+      "/documents-create",
+      "document-create",
+      "post",
+      req_doc
+    );
+
+    console.log("generate", response.status.value);
+    if (response.status.value == "success") {
+      loading.value = false;
+      // const { doc } = await printDocument(
+      //   response.data?.value?.data?.unique_code ?? ""
+      // );
+      // const blob = doc.output("blob");
+      // pdfUrl.value = URL.createObjectURL(blob);
+      // showPreviewPDF.value = true;
+      const { doc, mergedBlob } = await generatePDF();
+      pdfUrl.value = URL.createObjectURL(mergedBlob);
+      showPrevInvoice.value = true;
+      showPrevInvoice.value = true;
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
+  } finally {
+    loading.value = false;
+  }
 };
 
 const showTransactionAdjustmentValue = (

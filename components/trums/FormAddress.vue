@@ -43,8 +43,33 @@
           />
         </el-form-item>
       </div>
-      <el-form-item label="" props="address_view">
-        <!-- <el-select
+      <div class="flex gap-3">
+        <el-form label="Tipe" class="flex-1" style="width: 50%">
+          <el-select
+            v-model="ruleFormAddress.type"
+            placeholder="Select"
+            size="default"
+            class="inline-input w-50"
+          >
+            <el-option
+              v-for="item in [
+                {
+                  value: AddressLabel.DELIVERY,
+                  label: 'Pengiriman',
+                },
+                {
+                  value: AddressLabel.INVOICE,
+                  label: 'Invoice',
+                },
+              ]"
+              :key="item.value"
+              :label="item.label"
+              :value="item.value"
+            />
+          </el-select>
+        </el-form>
+        <el-form-item label="" props="address_view" class="flex-1">
+          <!-- <el-select
           v-model="ruleFormAddress.address_view"
           placeholder="Select"
           style="width: 240px"
@@ -76,22 +101,23 @@
             </span>
           </el-option>
         </el-select> -->
-        <el-autocomplete
-          v-model="ruleFormAddress.address_view"
-          :fetch-suggestions="querySearchGeolocation"
-          :trigger-on-focus="false"
-          clearable
-          class="inline-input w-50"
-          placeholder="Kelurahan/Desa, Kecamatan, Kabupaten/Kota atau provinsi"
-          @select="handleSelectGeoLocation"
-        >
-          <template #suffix>
-            <el-icon class="el-input__icon">
-              <ArrowDown />
-            </el-icon>
-          </template>
-        </el-autocomplete>
-        <!-- <el-select
+
+          <el-autocomplete
+            v-model="ruleFormAddress.address_view"
+            :fetch-suggestions="querySearchGeolocation"
+            :trigger-on-focus="false"
+            clearable
+            class="inline-input w-50"
+            placeholder="Kelurahan/Desa, Kecamatan, Kabupaten/Kota atau provinsi"
+            @select="handleSelectGeoLocation"
+          >
+            <template #suffix>
+              <el-icon class="el-input__icon">
+                <ArrowDown />
+              </el-icon>
+            </template>
+          </el-autocomplete>
+          <!-- <el-select
           v-model="ruleFormAddress.address_view"
           placeholder="Kelurahan/Desa, Kecamatan, Kabupaten/Kota atau provinsi"
           :clo
@@ -107,7 +133,8 @@
             </el-tabs>
           </el-option>
         </el-select> -->
-      </el-form-item>
+        </el-form-item>
+      </div>
       <el-form-item label="" prop="street">
         <el-input
           v-model="ruleFormAddress.street"
@@ -147,7 +174,11 @@
 <script lang="tsx" setup>
 import { ArrowDown } from "@element-plus/icons-vue";
 import type { FormInstance, FormRules } from "element-plus";
-import type { AddressSearch, AddressType } from "~/types/address";
+import {
+  AddressLabel,
+  type AddressSearch,
+  type AddressType,
+} from "~/types/address";
 import type { Contact } from "~/types/contact";
 import type { RequestSearch } from "~/types/request_search";
 import type { BaseResponse } from "~/types/response";
@@ -178,6 +209,7 @@ interface formAddress {
   codepos?: string;
   lat?: string;
   lng?: string;
+  type: AddressLabel;
   address_view?: string;
 }
 
@@ -199,6 +231,7 @@ const getDefaultForm = (): formAddress => ({
   lat: undefined,
   lng: undefined,
   address_view: undefined,
+  type: AddressLabel.DELIVERY,
   phone: "",
 });
 
@@ -377,6 +410,7 @@ const onSubmitAddress = async () => {
     village_id: ruleFormAddress.village_id,
     village: ruleFormAddress.village,
     city: ruleFormAddress.city,
+    type: ruleFormAddress.type,
     regency: ruleFormAddress.regency,
     province: ruleFormAddress.province,
     codepos: parseInt(ruleFormAddress.codepos ?? "0"),

@@ -1237,41 +1237,43 @@ const fetchSalesOrder = async () => {
   }
 };
 
-const handleSubmitContact = async (formData: Contact) => {
-  try {
-    console.log("contact active", typeContactActive.value);
-    console.log("form data", formData);
-    const contact: Contact | null = await createNewContact({
-      parent_id: formData.parent_id,
-      parent_version: formData.parent_version,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      tax_id: formData.tax_id,
-      website: formData.website,
-      title: formData.title,
-      is_personal: formData.is_personal,
-      is_company: formData.is_company,
-      tags: formData.tags?.toString(),
-      unique_id: formData.unique_id,
-      ownership: formData.ownership,
-    });
-    if (contact !== null) {
-      if (typeContactActive.value == "to") {
-        toContact.value = contact;
-        ruleForm.to_unique_id = contact.unique_id;
-        ruleForm.to_version = contact.version;
-        ruleForm.to_name = contact.name ?? "";
-      } else {
-        picContact.value = contact;
-        ruleForm.request_by = contact.unique_id;
-        ruleForm.request_by_version = contact.version;
-        ruleForm.request_by_name = contact.name ?? "";
+const handleSubmitContact = async (formData: Contact | undefined) => {
+  if (formData) {
+    try {
+      console.log("contact active", typeContactActive.value);
+      console.log("form data", formData);
+      const contact: Contact | null = await createNewContact({
+        parent_id: formData.parent_id,
+        parent_version: formData.parent_version,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        tax_id: formData.tax_id,
+        website: formData.website,
+        title: formData.title,
+        is_personal: formData.is_personal,
+        is_company: formData.is_company,
+        tags: formData.tags?.toString(),
+        unique_id: formData.unique_id,
+        ownership: formData.ownership,
+      });
+      if (contact !== null) {
+        if (typeContactActive.value == "to") {
+          toContact.value = contact;
+          ruleForm.to_unique_id = contact.unique_id;
+          ruleForm.to_version = contact.version;
+          ruleForm.to_name = contact.name ?? "";
+        } else {
+          picContact.value = contact;
+          ruleForm.request_by = contact.unique_id;
+          ruleForm.request_by_version = contact.version;
+          ruleForm.request_by_name = contact.name ?? "";
+        }
       }
+      dialogContact.value = false;
+    } catch (error) {
+      console.log("eror", error);
     }
-    dialogContact.value = false;
-  } catch (error) {
-    console.log("eror", error);
   }
 };
 
@@ -1694,7 +1696,7 @@ onMounted(() => {
     <el-dialog v-model="dialogContact" title="Detail Kontak">
       <AddContact
         ref="formFieldsRefContact"
-        :contact-data="typeContactActive == 'to' ? toContact! : picContact!"
+        :data="typeContactActive == 'to' ? toContact! : picContact!"
         :loading="loading"
         @submit="handleSubmitContact"
         @reset="handleResetContact"

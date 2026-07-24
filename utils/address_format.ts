@@ -53,7 +53,5 @@ export const generateAddressView = (address: AddressType) => {
   return addressView;
 };
 export const generateAddressViewName = (address: AddressType): string => {
-  return `${address.village}, ${address.city}, ${
-    address.regency || address.province
-  }`;
+  return `${address.village}, ${address.city}, ${address.regency}, ${address.province} ${address.codepos}`;
 };

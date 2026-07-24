@@ -19,8 +19,14 @@ export type AddressType = {
   version: number;
   checked?: boolean;
   villages?: Village;
+  type?: AddressLabel;
   tmp_address_view?: string;
 };
+
+export enum AddressLabel {
+  DELIVERY = "delivery",
+  INVOICE = "invoice",
+}
 
 export type Village = {
   id: string;
