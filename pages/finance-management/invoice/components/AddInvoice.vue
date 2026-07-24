@@ -989,7 +989,7 @@ import {
   type Invoice,
   type InvoiceItem,
 } from "~/types/finance/invoice";
-import type { AddressType } from "~/types/address";
+import { AddressLabel, type AddressType } from "~/types/address";
 import type { Catalogue } from "~/types/catalogue";
 import type { Contact } from "~/types/contact";
 import {
@@ -3407,6 +3407,8 @@ const fetchDataMovement = async () => {
         },
       ]);
 
+      // console.log('te')
+
       tmp_purchase_order.value.reference_transaction.forEach((element) => {
         const isExist = references.value.findIndex(
           (find) => find.adjustment_id == element.adjustment_id
@@ -3427,20 +3429,6 @@ const fetchDataMovement = async () => {
           }
         }
       });
-
-      // references.value = [
-      //   ...references.value,
-      //   ...tmp_purchase_order.value.reference_transaction
-      //     .filter(
-      //       (filter) =>
-      //         filter.adjustments_transaction?.name?.toLowerCase() != "ppn"
-      //     )
-      //     .map((value) => ({
-      //       ...value,
-      //       reference: ReferenceAdjustment.INVOICE,
-      //       reference_id: "",
-      //     })),
-      // ];
 
       if (paymentTerms.value.length == 1) {
         if (paymentTerms.value[0].unit == "nominal") {
@@ -3468,15 +3456,20 @@ const fetchDataMovement = async () => {
       ruleForm.customer_id = tmp_purchase_order.value.vendor_id;
       ruleForm.customer_name = tmp_purchase_order.value.vendor_name;
       ruleForm.customer_version = 1;
-      ruleForm.billing_address_id =
-        tmp_purchase_order.value.delivery_address_id;
-      ruleForm.billing_address_version =
-        tmp_purchase_order.value.delivery_address_version;
-      ruleForm.billing_address_view =
-        tmp_purchase_order.value.address?.address_name ?? "";
 
-      if (tmp_purchase_order.value.address) {
-        billing_address.value = tmp_purchase_order.value.address;
+      const addresInvoice: AddressType | undefined =
+        tmp_purchase_order.value.vendor?.address?.findLast(
+          (address) => address.type == AddressLabel.INVOICE
+        );
+
+      if (addresInvoice) {
+        ruleForm.billing_address_id = addresInvoice.unique_id;
+        ruleForm.billing_address_version = addresInvoice.version;
+        ruleForm.billing_address_view = addresInvoice?.address_name ?? "";
+
+        if (addresInvoice) {
+          billing_address.value = addresInvoice;
+        }
       }
 
       ruleForm.pic_id = tmp_purchase_order.value.pic_id;
