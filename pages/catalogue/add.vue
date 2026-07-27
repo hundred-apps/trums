@@ -81,6 +81,7 @@
           <el-select v-model="ruleForm.type" placeholder="Pilih Jenis Item">
             <el-option label="Item" value="item" />
             <el-option label="Place" value="place" />
+            <el-option label="Document" value="document" />
           </el-select>
         </el-form-item>
 

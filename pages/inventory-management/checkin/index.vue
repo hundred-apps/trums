@@ -34,7 +34,7 @@ import type { ColumnTable } from "~/types/ColumnTable";
 import type { Invoice } from "~/types/finance/invoice";
 import type { BaseResponse } from "~/types/response";
 import type { PurchaseOrder } from "~/types/scm/purchase_order";
-import { TypeInquiry, type Inquiry } from "~/types/inquiry";
+import { InquiryReference, TypeInquiry, type Inquiry } from "~/types/inquiry";
 
 interface FormFilter {
   date_range: string[];
@@ -52,7 +52,7 @@ const column_selected = ref<string[]>([
   "type",
   "from_name",
   "to_name",
-  "reference_data",
+  "reference_number",
   "status",
   "status_invoice",
   "created_at",
@@ -158,19 +158,22 @@ const availableColumn: ColumnTable<InventoryMovement>[] = [
     title: "Sumber",
     dataKey: "from_name",
     key: "from_name",
+    width: 200,
   },
   {
     title: "Tujuan",
     dataKey: "to_name",
     key: "to_name",
+    width: 200,
   },
-  // {
-  //   title: "Referensi",
-  //   dataKey: "reference_data",
-  //   key: "reference_data",
-  //   cellRenderer: ({ rowData }: { rowData: InventoryMovement }) =>
-  //     renderReferenceData(rowData),
-  // },
+  {
+    title: "Referensi",
+    dataKey: "reference_number",
+    width: 200,
+    key: "reference_number",
+    cellRenderer: ({ rowData }: { rowData: InventoryMovement }) =>
+      renderReferenceData(rowData),
+  },
   {
     title: "Status Invoice",
     dataKey: "status_invoice",
@@ -298,7 +301,7 @@ const availableColumn: ColumnTable<InventoryMovement>[] = [
   },
 ];
 
-availableColumn[8].headerCellRenderer = () => {
+availableColumn[10].headerCellRenderer = () => {
   return (
     <div class="flex items-center justify-center">
       <span class="mr-2 text-xs"></span>
@@ -419,13 +422,15 @@ const getInvoiceData = async (
 
 const renderReferenceData = (data: InventoryMovement) => {
   if (data.reference_data) {
-    const inquiry = data.reference_data.reference_data as Inquiry | undefined;
+    const inquiry = data.reference_data as Inquiry | undefined;
     const purchaseOrder = data.reference_data.reference_data as
       | PurchaseOrder
       | undefined;
-    if (inquiry && inquiry.type == TypeInquiry.SALES_INQUIRY) {
+
+    if (inquiry && inquiry.reference == InquiryReference.SALES_ORDER) {
       return purchaseOrder ? (
         <NuxtLink
+          target={"_blank"}
           class={`text-blue-600`}
           href={`/sales/order/${purchaseOrder?.unique_id}`}
         >
@@ -434,9 +439,13 @@ const renderReferenceData = (data: InventoryMovement) => {
       ) : (
         <></>
       );
-    } else if (inquiry && inquiry.type == TypeInquiry.INTERNAL) {
+    } else if (
+      inquiry &&
+      inquiry.reference == InquiryReference.PURCHASE_ORDER
+    ) {
       return purchaseOrder ? (
         <NuxtLink
+          target={"_blank"}
           class={`text-blue-600`}
           href={`/supply-chain-management/purchase/order/${purchaseOrder?.unique_id}`}
         >
@@ -749,12 +758,14 @@ onMounted(() => {
       /></el-col>
     </el-row>
 
-    <CustomTable
-      @sort-change="onSort"
-      :columns="filteredColumn"
-      :data="data?.data ?? []"
-      :loading="status === 'pending'"
-    />
+    <TrumsDragScrollTable>
+      <CustomTable
+        @sort-change="onSort"
+        :columns="filteredColumn"
+        :data="data?.data ?? []"
+        :loading="status === 'pending'"
+      />
+    </TrumsDragScrollTable>
     <div class="flex justify-end mt-3">
       <el-pagination
         background

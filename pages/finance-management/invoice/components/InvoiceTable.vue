@@ -541,6 +541,7 @@ const columnsSelected = ref<string[]>([
   "selection",
   "unique_code",
   "invoice_date",
+  "due_date",
   "customer_id",
   "total_amount",
   "status",
@@ -586,22 +587,26 @@ const columns: ColumnTable<Invoice>[] = [
     sortable: true,
     cellRenderer: ({ rowData }: { rowData: Invoice }) => (
       <span>
-        {rowData.invoice_date ? formatLocalDate(rowData.invoice_date) : "-"}
+        {rowData.invoice_date == 0
+          ? "-"
+          : formatLocalDate(rowData.invoice_date!)}
       </span>
     ),
   },
-  // {
-  //   key: "due_date",
-  //   title: "Tenggat Waktu",
-  //   dataKey: "due_date",
-  //   width: 170,
-  //   sortable: true,
-  //   cellRenderer: ({ rowData }: { rowData: Invoice }) => (
-  //     <span>
-  //       {rowData.invoice_date ? formatLocalDate(rowData.due_date!) : "-"}
-  //     </span>
-  //   ),
-  // },
+  {
+    key: "due_date",
+    title: "Jatuh Tempo",
+    dataKey: "due_date",
+    width: 170,
+    sortable: true,
+    cellRenderer: ({ rowData }: { rowData: Invoice }) => (
+      <span>
+        {rowData.due_date == 0 || rowData.due_date == null
+          ? "-"
+          : formatLocalDate(rowData.due_date!)}
+      </span>
+    ),
+  },
 
   {
     key: "total_amount",

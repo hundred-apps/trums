@@ -91,7 +91,7 @@ const dataAddress = ref<AddressType>({
   contact_name: "",
   address_name: "",
   street: "",
-  village_id: 0,
+  village_id: "",
   village: "",
   city: "",
   regency: "",

@@ -49,6 +49,7 @@ export type ItemRequest = {
   item_request_trail: ItemRequestTrail[];
   stok?: number;
   total_canvassing_vendor?: number;
+  note?: string;
 };
 
 export type ItemRequestTrail = {

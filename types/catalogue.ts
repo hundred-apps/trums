@@ -3,6 +3,12 @@ import type { Brands } from "./brand";
 import type { AppFile } from "./file";
 import type { Inventory } from "./inventory";
 
+export enum CatalogueType {
+  ITEM = "item",
+  PLACE = "place",
+  DOCUMENT = "document",
+}
+
 export type Catalogue = {
   id: number | null;
   unique_id: string | null;
@@ -21,7 +27,7 @@ export type Catalogue = {
   is_asset: boolean | null;
   tmp_asset: string | null;
   version: number | null;
-  type: string;
+  type: CatalogueType;
   created_at: number | null;
   created_by: string | null;
   updated_at: number | null;

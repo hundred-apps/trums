@@ -59,10 +59,11 @@ import {
   User,
   Delete,
   Eleme,
+  Edit,
 } from "@element-plus/icons-vue";
 import type { Maintenance } from "~/types/maintenance";
 import type { Contact } from "~/types/contact";
-import type { Catalogue } from "~/types/catalogue";
+import { CatalogueType, type Catalogue } from "~/types/catalogue";
 import type { Unit } from "~/types/unit";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
@@ -78,6 +79,8 @@ import AddContact from "~/components/trums/AddContact.vue";
 import type { AddressType } from "~/types/address";
 import FormAddress from "~/components/trums/FormAddress.vue";
 import { currency, formatLocalDate } from "#imports";
+import CatalogueSelect from "~/components/trums/CatalogueSelect.vue";
+import type { People } from "~/types/people";
 
 const fileList = ref<UploadUserFile[]>([]);
 
@@ -95,17 +98,26 @@ const dialogRepair = ref<boolean>(false);
 const dialogSalesOrder = ref<boolean>(false);
 const dialogContact = ref<boolean>(false);
 const dialogNewAddress = ref<boolean>(false);
+const dialogSelectCatalogue = ref<boolean>(false);
 
 const formFieldsRefContact = ref();
 const picContact = ref<Contact>();
 const toContact = ref<Contact>();
 
 const typeContactActive = ref<"to" | "pic">("to");
-const address = ref<AddressType>();
+const address = ref<AddressType | undefined>();
+const addressStateForm = ref<"new" | "edit">("new");
 
 const formSize = ref<ComponentSize>("default");
 const ruleFormRef = ref<FormInstance>();
 const contacts = ref<Pagination<Contact[]>>();
+
+const userData = localStorage.getItem("user_data");
+const userLoggedIn = ref<People | null>(null);
+
+const catalogueSelectedItem = ref<Catalogue[]>([]);
+const catalogueSelectedDocument = ref<Catalogue[]>([]);
+
 const request_search = ref<RequestSearch>({
   keyword: "",
   table: "",
@@ -170,6 +182,9 @@ const dataTable = ref<
     inventory_id: string;
     inventory_version: number;
     catalogue_version: number;
+    type: CatalogueType;
+    type_doc: string;
+    note?: string;
   }[]
 >([]);
 
@@ -220,7 +235,8 @@ const rules = reactive<FormRules<RuleForm>>({
   ],
   to_name: [
     {
-      required: true,
+      required:
+        ruleForm.reference == InquiryReference.NON_MAINTENANCE ? false : true,
       message: "Field ini tidak boleh kosong!",
       trigger: "change",
     },
@@ -422,6 +438,8 @@ const addNewLine = () => {
     catalogue_version: 0,
     inventory_id: "",
     inventory_version: 0,
+    type: CatalogueType.ITEM,
+    type_doc: "",
   });
 };
 
@@ -455,6 +473,7 @@ const onSubmit = async () => {
           checked: false,
           item_request_trail: [],
           quantity: 0,
+          note: element.note,
         });
       }
     });
@@ -514,6 +533,7 @@ const onSubmit = async () => {
         `item_request[${index}][request_qty]`,
         `${item.request_qty}`
       );
+      formData.append(`item_request[${index}][note]`, `${item.note}`);
       formData.append(
         `item_request[${index}][approved_qty]`,
         `${item.approved_qty ?? 0}`
@@ -653,6 +673,8 @@ const onSelectReference_id = async (data: any) => {
       catalogue_version: value.catalogue_version,
       inventory_id: "",
       inventory_version: 0,
+      type: CatalogueType.ITEM,
+      type_doc: "",
     }));
   } else if (ruleForm.reference == "so") {
     const sales_order = data as PurchaseOrder;
@@ -687,6 +709,8 @@ const onSelectReference_id = async (data: any) => {
       catalogue_version: value.catalogue_version,
       inventory_id: "",
       inventory_version: 0,
+      type: CatalogueType.ITEM,
+      type_doc: "",
     }));
   } else if (ruleForm.reference == "maintenance") {
     const maintenance = data as Maintenance;
@@ -710,6 +734,8 @@ const onSelectReference_id = async (data: any) => {
       catalogue_version: value.catalogue_version,
       inventory_id: value.inventory_id ?? "",
       inventory_version: value.inventory_version,
+      type: value.catalogue?.type ?? CatalogueType.ITEM,
+      type_doc: "",
     }));
   }
 
@@ -941,7 +967,7 @@ const onHandleSelectItemAutocomplete = async (
       is_asset: null,
       tmp_asset: null,
       version: null,
-      type: "item",
+      type: CatalogueType.ITEM,
       created_at: null,
       created_by: null,
       updated_at: null,
@@ -1205,6 +1231,11 @@ const fetchInquiry = async () => {
           inventory_id: element.inventory_id ?? "",
           inventory_version: element.inventory?.version ?? 0,
           catalogue_version: element.catalogue_version,
+          type: element.catalogue?.type ?? CatalogueType.ITEM,
+          type_doc:
+            element.catalogue?.type == CatalogueType.ITEM
+              ? "Barang"
+              : "Document",
         });
       });
     }
@@ -1313,6 +1344,7 @@ const generateResultSearchAddress = (address: AddressType | null) => {
       street: street,
       address_id: address_id,
       address_version: address.version,
+      data: address,
     };
   } else {
     return {
@@ -1321,6 +1353,7 @@ const generateResultSearchAddress = (address: AddressType | null) => {
       street: "",
       address_id: "",
       address_version: 0,
+      data: null,
     };
   }
 };
@@ -1367,11 +1400,14 @@ const handleSelectAddress = (record: Record<string, any>) => {
   if (record.new) {
     dialogNewAddress.value = true;
   } else {
-    console.log(record);
-    // const address: AddressType = record as AddressType;
+    const addressData: AddressType = record.data as AddressType;
     ruleForm.address_id = record.address_id;
     ruleForm.address_version = record.address_version;
-    ruleForm.address_view = record.name;
+    ruleForm.address_view = addressData.address_name;
+
+    if (record.data) {
+      address.value = record.data as AddressType;
+    }
   }
 };
 
@@ -1421,6 +1457,74 @@ const removeItem = async (index: number) => {
   }
 };
 
+const openDialogCatalogueSelect = () => {
+  dialogSelectCatalogue.value = true;
+};
+
+// const onSelection = (rows: Catalogue[], type: "item" | "document") => {
+
+// }
+
+const submitSelectItem = () => {
+  // dataTable.value.push()
+
+  [...catalogueSelectedItem.value, ...catalogueSelectedDocument.value].forEach(
+    (element) => {
+      dataTable.value.push({
+        unique_id: null,
+        id: null,
+        item: element.name || "",
+        item_id: element.unique_id,
+        quantity: 1,
+        sn: null,
+        unit_id: "",
+        unit_name: "",
+        is_traceable: false,
+        catalogue_name: element.name || "",
+        inventory_id: "",
+        inventory_version: 0,
+        catalogue_version: element.version || 0,
+        type: element.type,
+        type_doc:
+          element.type == CatalogueType.ITEM
+            ? "Barang"
+            : element.type == CatalogueType.DOCUMENT
+            ? "Document"
+            : "",
+      });
+    }
+  );
+
+  dialogSelectCatalogue.value = false;
+
+  // .value.forEach(element => {
+  //   dataTable.value.push({
+  //     unique_id: null,
+  //     id: null,
+  //     item: element.name || '',
+  //     item_id: element.unique_id,
+  //     quantity: 1,
+  //     sn: null,
+  //     unit_id: "",
+  //     unit_name: "",
+  //     is_traceable: false,
+  //     catalogue_name: element.name || '',
+  //     inventory_id: "",
+  //     inventory_version: 0,
+  //     catalogue_version: element.version || 0
+  //   });
+  // });
+};
+const handleEditAddress = (addressEdit: AddressType) => {
+  address.value = addressEdit;
+  addressStateForm.value = "edit";
+  dialogNewAddress.value = true;
+};
+
+const handleDeleteAddress = () => {
+  address.value = undefined;
+  ruleForm.address_id = "";
+};
 onMounted(() => {
   // getContacts();
   // getMaintenance();
@@ -1430,6 +1534,16 @@ onMounted(() => {
   }
   if (sales_order_id.value) {
     fetchSalesOrder();
+  }
+
+  if (!id.value && !sales_order_id.value) {
+    if (userData) {
+      userLoggedIn.value = JSON.parse(localStorage.getItem("user_data") ?? "");
+      // ruleForm.to_name = userLoggedIn.value?.name || '';
+      // ruleForm.to_unique_id = userLoggedIn.value?.unique_id || '';
+      // ruleForm.to_version = userLoggedIn.value?.version || 0;
+      // toContact =
+    }
   }
 });
 </script>
@@ -1520,7 +1634,11 @@ onMounted(() => {
           </div>
         </el-form-item>
 
-        <el-form-item label="Diminta oleh?" prop="to_name">
+        <el-form-item
+          v-if="ruleForm.reference != InquiryReference.NON_MAINTENANCE"
+          label="Diminta oleh?"
+          prop="to_name"
+        >
           <div class="flex items-center gap-3">
             <el-autocomplete
               :fetch-suggestions="querySearchContact"
@@ -1578,9 +1696,21 @@ onMounted(() => {
           </el-autocomplete>
         </el-form-item>
 
-        <el-form-item v-if="address" label="Dikirim ke">
+        <el-form-item v-if="address" label=" ">
           <div>
-            <div>{{ address.address_name }}</div>
+            <div class="flex items-center gap-2">
+              <p>{{ address.address_name }}</p>
+              <el-icon
+                class="cursor-pointer text-blue-500 hover:text-blue-600"
+                @click="handleEditAddress(address)"
+                ><Edit
+              /></el-icon>
+              <el-icon
+                class="cursor-pointer text-read-500 hover:text-read-600"
+                @click="handleDeleteAddress"
+                ><Delete
+              /></el-icon>
+            </div>
             <div>
               {{ address.street }},
               {{ generateResultSearchAddress(address).name }}
@@ -1620,41 +1750,22 @@ onMounted(() => {
       <el-card class="mb-3">
         <el-table :data="dataTable" border>
           <el-table-column prop="item" label="item">
-            <template #default="scope">
-              <el-autocomplete
-                :fetch-suggestions="querySearchAsync"
-                v-model="scope.row.item"
-                placeholder="Please input"
-                @select="(item: Record<string, any>) => onHandleSelectItemAutocomplete(item, scope)"
-              >
-                <template #default="{ item }">
-                  <div
-                    v-if="item.isNew"
-                    class="flex items-center text-blue-500"
-                  >
-                    <el-icon><Plus /></el-icon>
-                    <span class="ml-2">Tambahkan "{{ item.value }}"</span>
-                  </div>
-                  <div v-else>
-                    <p style="line-height: 15px" class="font-bold">
-                      {{ item.value }}
-                    </p>
-                    <p v-if="item.type === 'inventory'">
-                      PN/SN: {{ item.sn_number ?? "Tidak Ada" }} | Lokasi:
-                      {{ item.location_name ?? "Tidak Ada" }} | Available Stok:
-                      {{ item.available }}
-                    </p>
-                    <p v-if="item.type === 'catalogue'">
-                      PN/SN: {{ item.sn_number ?? "Tidak Ada" }}
-                    </p>
-                  </div>
-                </template>
-              </el-autocomplete>
+            <template #default="{ row }">
+              <span>{{ row.item }}</span>
+            </template>
+          </el-table-column>
+          <el-table-column prop="" label="Tipe">
+            <template #default="{ row }">
+              <span>{{ row.type_doc }}</span>
             </template>
           </el-table-column>
           <el-table-column prop="sn" label="Serial Number" width="200">
             <template #default="scope">
-              <el-input v-model="scope.row.sn" placeholder="Serial Number" />
+              <el-input
+                :disabled="scope.row.type != CatalogueType.ITEM"
+                v-model="scope.row.sn"
+                placeholder="Serial Number"
+              />
             </template>
           </el-table-column>
           <el-table-column prop="quantity" label="Quantity" width="200">
@@ -1672,8 +1783,14 @@ onMounted(() => {
                 :fetch-suggestions="querySearchUnit"
                 v-model="scope.row.unit_name"
                 placeholder="Input Units"
+                :disabled="scope.row.type != CatalogueType.ITEM"
                 @select="(item: Record<string, any>) => onHandleSelectItemAutocompleteUnit(item, scope)"
               />
+            </template>
+          </el-table-column>
+          <el-table-column prop="note" label="Catatan" width="100">
+            <template #default="scope">
+              <el-input v-model="scope.row.note" placeholder="Catatan" />
             </template>
           </el-table-column>
           <el-table-column label="Aksi" width="60" fixed="right">
@@ -1687,7 +1804,11 @@ onMounted(() => {
             </template>
           </el-table-column>
         </el-table>
-        <el-button class="mt-4" style="width: 100%" @click="addNewLine">
+        <el-button
+          class="mt-4"
+          style="width: 100%"
+          @click="openDialogCatalogueSelect"
+        >
           Tambahkan Baris Baru
         </el-button>
       </el-card>
@@ -1778,6 +1899,33 @@ onMounted(() => {
           @change="paginationClickSalesOrderClick"
         />
       </div>
+    </el-dialog>
+
+    <el-dialog
+      v-model="dialogSelectCatalogue"
+      title="Pilih Item INQ"
+      style="width: 80%"
+    >
+      <el-tabs type="border-card">
+        <el-tab-pane label="Barang"
+          ><CatalogueSelect
+            type="item"
+            @selection-change="(rows: Catalogue[]) => catalogueSelectedItem = rows"
+        /></el-tab-pane>
+        <el-tab-pane label="Dokumen"
+          ><CatalogueSelect
+            :type="'document'"
+            @selection-change="(rows: Catalogue[]) => catalogueSelectedDocument = rows"
+        /></el-tab-pane>
+      </el-tabs>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="dialogSelectCatalogue = false">Cancel</el-button>
+          <el-button type="primary" @click="submitSelectItem">
+            Confirm
+          </el-button>
+        </div>
+      </template>
     </el-dialog>
   </TrumsWrapper>
 </template>

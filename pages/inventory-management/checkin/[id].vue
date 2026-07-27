@@ -411,7 +411,7 @@ const generateDeliveryOrderPdf = async (unique_code: string) => {
   doc.text("PIC", leftX, y);
   doc.text(":", leftX + 20, y);
   doc.setFont("helvetica", "normal");
-  doc.text(checkData?.pic?.name ?? "-", leftX + 25, y);
+  doc.text(`${checkData?.pic?.name} (${checkData?.pic?.phone})`, leftX + 25, y);
 
   y += 5;
   doc.setFont("helvetica", "bold");

@@ -1130,7 +1130,7 @@ import type { BaseResponse } from "~/types/response";
 import FeeDrawer from "~/components/trums/FeeDrawer.vue";
 import type { ItemSearch } from "~/types/item_search";
 import type { Pagination } from "~/types/pagination";
-import type { Catalogue } from "~/types/catalogue";
+import { CatalogueType, type Catalogue } from "~/types/catalogue";
 import type { Unit } from "~/types/unit";
 import FormAddress from "~/components/trums/FormAddress.vue";
 import type { AddressType } from "~/types/address";
@@ -3741,7 +3741,7 @@ const onHandleSelectItemAutocompleteItemEquivalent = async (
       is_asset: null,
       tmp_asset: null,
       version: null,
-      type: "item",
+      type: CatalogueType.ITEM,
       created_at: null,
       created_by: null,
       updated_at: null,
@@ -3993,7 +3993,7 @@ const setDataEdit = (dataCanvassing: Canvassing | null) => {
         .name,
     });
 
-    if (isNew) {
+    if (isNew.value) {
       ruleForm.unique_id = null;
     }
 

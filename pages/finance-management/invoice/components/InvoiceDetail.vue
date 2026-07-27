@@ -1,6 +1,6 @@
 <template>
   <div>
-    <el-page-header @back="goBack">
+    <el-page-header @back="goBack" class="mb-3">
       <template #content>
         <span class="text-large font-600 mr-3">
           Invoice - {{ data?.data?.unique_code }}
@@ -114,7 +114,13 @@
           </div>
         </div>
       </template>
-
+      <el-alert
+        class="my-3"
+        v-if="data?.data?.due_date && status != 'pending'"
+        :title="alertMessage"
+        :closable="false"
+        :type="alertType()"
+      />
       <div class="flex gap-3 my-3">
         <div class="flex-1">
           <el-descriptions title="" :column="1" size="large" border>
@@ -1953,6 +1959,47 @@ const totalPlus = computed(() => {
 });
 const totalMinus = computed(() => {
   return Number(totalPlus.value) - Number(getMinus.value);
+});
+
+const alertType = () => {
+  if (!data.value?.data?.due_date) {
+    return "info";
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const diffDay = (data.value?.data?.due_date - now) / (60 * 60 * 24);
+
+  if (diffDay < 0) {
+    return "error";
+  }
+
+  if (diffDay <= 7) {
+    return "warning";
+  }
+
+  return "info";
+};
+
+const alertMessage = computed(() => {
+  if (!data.value?.data?.due_date) {
+    return "";
+  }
+
+  const now = Math.floor(Date.now() / 1000);
+  const diffDay = Math.ceil(
+    (data.value?.data?.due_date - now) / (60 * 60 * 24)
+  );
+  const expiredAt = formatLocalDate(data.value?.data?.due_date);
+
+  if (diffDay < 0) {
+    return `Invoice akan jatuh tempo pada ${expiredAt}.`;
+  }
+
+  if (diffDay <= 7) {
+    return `Invoice akan jatuh tempo pada ${expiredAt} (${diffDay} hari lagi).`;
+  }
+
+  return `Invoice akan jatuh tempo pada ${expiredAt} (${diffDay} hari lagi).`;
 });
 
 const onRefresh = () => {

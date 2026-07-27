@@ -990,7 +990,7 @@ import {
   type InvoiceItem,
 } from "~/types/finance/invoice";
 import { AddressLabel, type AddressType } from "~/types/address";
-import type { Catalogue } from "~/types/catalogue";
+import { CatalogueType, type Catalogue } from "~/types/catalogue";
 import type { Contact } from "~/types/contact";
 import {
   PurchaseOrderItemStatus,
@@ -2668,7 +2668,7 @@ const onHandleSelectCatalogue = async (item: any, index: number) => {
       is_asset: null,
       tmp_asset: null,
       version: null,
-      type: "item",
+      type: CatalogueType.ITEM,
       created_at: null,
       created_by: null,
       updated_at: null,
@@ -3441,6 +3441,10 @@ const fetchDataMovement = async () => {
 
         if (paymentTerms.value[0].term_of_payment == PaymentTerm.TEMPO) {
           ruleForm.payment_term_view = `TEMPO ${paymentTerms.value[0].duration}`;
+          const now = new Date();
+
+          now.setDate(now.getDate() + paymentTerms.value[0].duration);
+          ruleForm.due_date = Math.floor(now.getTime());
         } else {
           ruleForm.payment_term_view = paymentTerms.value[0].name;
         }

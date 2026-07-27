@@ -96,15 +96,6 @@
           <el-table-column label="Nama" prop="name" />
           <el-table-column label="Telepon" prop="phone" />
           <el-table-column label="Email" prop="email" />
-          <el-table-column label="Aksi" width="75">
-            <template #default="scope">
-              <el-button
-                :icon="Delete"
-                type="danger"
-                @click="() => handleDeletePIC(scope.$index)"
-              ></el-button>
-            </template>
-          </el-table-column>
         </el-table>
       </el-card>
 
@@ -136,6 +127,10 @@ import type { ResponsePagination } from "~/types/response_pagination";
 import type { PurchaseOrder } from "~/types/scm/purchase_order";
 import { formatLocalDate } from "#imports";
 
+const props = defineProps<{
+  contactData: Contact;
+}>();
+
 definePageMeta({
   middleware: ["auth", "app"],
   name: "Contact Detail",
@@ -144,7 +139,7 @@ definePageMeta({
 const router = useRouter();
 const route = useRoute();
 const loading = ref(false);
-const contactData = ref<Contact | null>(null);
+// const contactData = ref<Contact | null>(null);
 
 // Loading animation SVG
 const svg = `
@@ -159,27 +154,6 @@ const svg = `
 `;
 
 const goBack = () => router.back();
-
-// Fetch Contact
-const fetchContact = async () => {
-  loading.value = true;
-  try {
-    const response = await useFetchApi<BaseResponse<Contact>>(
-      `/contact-read/${route.params.id}`,
-      "detail-contact",
-      "get",
-      null
-    );
-    if (response.status.value === "success") {
-      contactData.value = response.data.value!.data!;
-    }
-  } catch (error) {
-    ElMessage.error("Gagal memuat data kontak");
-    goBack();
-  } finally {
-    loading.value = false;
-  }
-};
 
 const submitDeleteContact = async (ids: string[]): Promise<boolean> => {
   loading.value = true;
@@ -202,49 +176,11 @@ const submitDeleteContact = async (ids: string[]): Promise<boolean> => {
   }
 };
 
-const handleDeletePIC = async (index: number) => {
-  await ElMessageBox.confirm("Yakin ingin menghapus data PIC", "Warning", {
-    confirmButtonText: "Hapus",
-    cancelButtonText: "Batal",
-    type: "warning",
-  });
-
-  const exist = contactData.value?.children?.[index];
-  if (exist) {
-    if (exist.unique_id) {
-      await submitDeleteContact([exist.unique_id ?? ""]);
-    }
-    contactData.value?.children?.splice(index, 1);
-  }
-};
-
 // Format date
 const formatDate = (timestamp?: number | null) => {
   if (!timestamp) return "-";
   return new Date(timestamp * 1000).toLocaleDateString("id-ID");
 };
-
-const addLineContact = () =>
-  contactData.value!.children!.push({
-    id: 0,
-    unique_id: "",
-    unique_code: "",
-    is_personal: false,
-    is_company: null,
-    internal_id: "",
-    name: "",
-    email: "",
-    phone: null,
-    tax_id: null,
-    website: null,
-    title: null,
-    tags: "",
-    created_at: 0,
-    created_by: "",
-    updated_at: 0,
-    version: 0,
-    address: [],
-  });
 
 // Delete Contact
 const confirmDelete = () => {
@@ -275,10 +211,6 @@ const deleteContact = async () => {
     loading.value = false;
   }
 };
-
-onMounted(() => {
-  fetchContact();
-});
 </script>
 
 <style scoped>

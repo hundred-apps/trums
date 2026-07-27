@@ -63,7 +63,7 @@ import {
 } from "@element-plus/icons-vue";
 import type { Maintenance } from "~/types/maintenance";
 import type { Contact } from "~/types/contact";
-import type { Catalogue } from "~/types/catalogue";
+import { CatalogueType, type Catalogue } from "~/types/catalogue";
 import type { Unit } from "~/types/unit";
 import type { RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
@@ -769,7 +769,7 @@ const openCatalogueDetail = (cat: ItemInterface, index: number) => {
       is_asset: null,
       tmp_asset: null,
       version: null,
-      type: "item",
+      type: CatalogueType.ITEM,
       created_at: null,
       created_by: null,
       updated_at: null,
@@ -851,7 +851,7 @@ const onHandleSelectItemAutocomplete = async (
       is_asset: null,
       tmp_asset: null,
       version: null,
-      type: "item",
+      type: CatalogueType.ITEM,
       created_at: null,
       created_by: null,
       updated_at: null,
