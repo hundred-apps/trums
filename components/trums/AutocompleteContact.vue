@@ -1,5 +1,5 @@
 <template>
-  <div class="flex items-center gap-3 w-full">
+  <div class="flex items-center gap-3 w-full" :class="class">
     <el-autocomplete
       :fetch-suggestions="handleFetch"
       v-model="model"
@@ -55,6 +55,7 @@ interface Props {
     type?: string
   ) => void;
   contact?: any;
+  class?: string;
 }
 
 const props = withDefaults(defineProps<Props>(), {

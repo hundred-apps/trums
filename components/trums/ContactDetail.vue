@@ -1,122 +1,97 @@
 <template>
-  <TrumsWrapper>
-    <!-- Header -->
-    <el-page-header @back="goBack">
-      <template #content>
-        <span class="text-large font-600 mr-3">
-          Contact - {{ contactData?.unique_code }}
-        </span>
-      </template>
-    </el-page-header>
-
-    <!-- Contact Detail -->
-    <el-card
-      class="my-3"
-      v-loading="loading"
-      element-loading-text="Loading..."
-      :element-loading-spinner="svg"
-      element-loading-svg-view-box="-10, -10, 50, 50"
-      element-loading-background="rgba(122, 122, 122, 0.8)"
-    >
-      <template #header>
-        <div class="card-header flex justify-end">
-          <el-button type="danger" :icon="Delete" @click="confirmDelete"
-            >Hapus</el-button
-          >
-          <NuxtLink
-            :href="`/contact-management/contacts/form/${contactData?.name}?mode=update&unique_id=${contactData?.unique_id}`"
-            class="el-button el-button--primary"
-          >
-            <el-icon class="me-2"><Edit /></el-icon> Edit
-          </NuxtLink>
-        </div>
-      </template>
-
-      <div class="flex gap-3 my-3">
-        <!-- Left Side -->
-        <div class="flex-1">
-          <el-descriptions :column="1" size="large" border>
-            <el-descriptions-item label="Nama">
-              {{ contactData?.name ?? "-" }}
-            </el-descriptions-item>
-            <el-descriptions-item label="Email">
-              {{ contactData?.email ?? "-" }}
-            </el-descriptions-item>
-            <el-descriptions-item label="Telepon">
-              {{ contactData?.phone ?? "-" }}
-            </el-descriptions-item>
-            <el-descriptions-item label="Website">
-              {{ contactData?.website ?? "-" }}
-            </el-descriptions-item>
-            <el-descriptions-item label="Tax ID">
-              {{ contactData?.tax_id ?? "-" }}
-            </el-descriptions-item>
-          </el-descriptions>
-        </div>
-
-        <!-- Right Side -->
-        <div class="flex-1">
-          <el-descriptions :column="1" size="large" border>
-            <el-descriptions-item label="Tipe Contact">
-              <el-tag v-if="contactData?.is_personal" type="primary"
-                >Personal</el-tag
-              >
-              <el-tag v-else-if="contactData?.is_company" type="success"
-                >Company</el-tag
-              >
-              <span v-else>-</span>
-            </el-descriptions-item>
-            <el-descriptions-item label="Parent">
-              {{ contactData?.parent?.name ?? "-" }}
-            </el-descriptions-item>
-            <el-descriptions-item label="Title">
-              {{ contactData?.title ?? "-" }}
-            </el-descriptions-item>
-            <el-descriptions-item label="Tags">
-              <span v-if="contactData?.tags">{{ contactData.tags }}</span>
-              <span v-else>-</span>
-            </el-descriptions-item>
-            <el-descriptions-item label="Di Buat Pada">
-              {{
-                contactData?.created_at != null
-                  ? formatLocalDate(contactData?.created_at)
-                  : "-"
-              }}
-            </el-descriptions-item>
-          </el-descriptions>
-        </div>
+  <el-card
+    shadow="never"
+    class="my-3"
+    v-loading="loading"
+    element-loading-text="Loading..."
+    :element-loading-spinner="svg"
+    element-loading-svg-view-box="-10, -10, 50, 50"
+    element-loading-background="rgba(122, 122, 122, 0.8)"
+  >
+    <div class="flex gap-3 my-3">
+      <!-- Left Side -->
+      <div class="flex-1">
+        <el-descriptions :column="1" size="large" border>
+          <el-descriptions-item label="Nama">
+            {{ contactData?.name ?? "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="Email">
+            {{ contactData?.email ?? "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="Telepon">
+            {{ contactData?.phone ?? "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="Website">
+            {{ contactData?.website ?? "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="Tax ID">
+            {{ contactData?.tax_id ?? "-" }}
+          </el-descriptions-item>
+        </el-descriptions>
       </div>
-      <el-card class="mt-3" shadow="never">
-        <template #header>
-          <div class="card-header flex items-center justify-between">
-            <span>Daftar PIC</span>
-          </div>
-        </template>
-        <el-table :data="contactData?.children ?? []" border>
-          <el-table-column label="Nama" prop="name" />
-          <el-table-column label="Telepon" prop="phone" />
-          <el-table-column label="Email" prop="email" />
-        </el-table>
-      </el-card>
 
-      <!-- Addresses -->
-      <el-card shadow="never" class="mt-3">
-        <template #header>
-          <div class="card-header">
-            <span>Alamat</span>
-          </div>
-        </template>
-        <el-table :data="contactData?.address ?? []" border>
-          <el-table-column prop="address_name" label="Nama Alamat" />
-          <el-table-column prop="street" label="Jalan" />
-          <el-table-column prop="city" label="Kota" />
-          <el-table-column prop="province" label="Provinsi" />
-          <el-table-column prop="codepos" label="Kode Pos" />
-          <el-table-column prop="country" label="Negara" />
-        </el-table>
-      </el-card>
+      <!-- Right Side -->
+      <div class="flex-1">
+        <el-descriptions :column="1" size="large" border>
+          <el-descriptions-item label="Tipe Contact">
+            <el-tag v-if="contactData?.is_personal" type="primary"
+              >Personal</el-tag
+            >
+            <el-tag v-else-if="contactData?.is_company" type="success"
+              >Company</el-tag
+            >
+            <span v-else>-</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="Parent">
+            {{ contactData?.parent?.name ?? "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="Title">
+            {{ contactData?.title ?? "-" }}
+          </el-descriptions-item>
+          <el-descriptions-item label="Tags">
+            <span v-if="contactData?.tags">{{ contactData.tags }}</span>
+            <span v-else>-</span>
+          </el-descriptions-item>
+          <el-descriptions-item label="Di Buat Pada">
+            {{
+              contactData?.created_at != null
+                ? formatLocalDate(contactData?.created_at)
+                : "-"
+            }}
+          </el-descriptions-item>
+        </el-descriptions>
+      </div>
+    </div>
+    <el-card class="mt-3" shadow="never">
+      <template #header>
+        <div class="card-header flex items-center justify-between">
+          <span>Daftar PIC</span>
+        </div>
+      </template>
+      <el-table :data="contactData?.children ?? []" border>
+        <el-table-column label="Nama" prop="name" />
+        <el-table-column label="Telepon" prop="phone" />
+        <el-table-column label="Email" prop="email" />
+      </el-table>
     </el-card>
-  </TrumsWrapper>
+
+    <!-- Addresses -->
+    <el-card shadow="never" class="mt-3">
+      <template #header>
+        <div class="card-header">
+          <span>Alamat</span>
+        </div>
+      </template>
+      <el-table :data="contactData?.address ?? []" border>
+        <el-table-column prop="address_name" label="Nama Alamat" />
+        <el-table-column prop="street" label="Jalan" />
+        <el-table-column prop="city" label="Kota" />
+        <el-table-column prop="province" label="Provinsi" />
+        <el-table-column prop="codepos" label="Kode Pos" />
+        <el-table-column prop="country" label="Negara" />
+      </el-table>
+    </el-card>
+  </el-card>
 </template>
 
 <script lang="ts" setup>

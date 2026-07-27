@@ -146,15 +146,25 @@
               <el-descriptions-item
                 label="Diminta Oleh"
                 :label-width="isMobile ? 100 : 0"
-                >{{ inquiryData?.request_to?.name ?? "-" }}
+              >
+                <div
+                  class="text-blue-600 cursor-pointer"
+                  @click="() => openDetailContact(inquiryData.request_to!)"
+                >
+                  {{ inquiryData?.request_to?.name ?? "-" }}
+                </div>
               </el-descriptions-item>
               <el-descriptions-item
                 label="PIC"
                 :label-width="isMobile ? 100 : 0"
-                >{{
-                  inquiryData?.request_by?.name ?? "-"
-                }}</el-descriptions-item
               >
+                <div
+                  class="text-blue-600 cursor-pointer"
+                  @click="() => openDetailContact(inquiryData.request_by!)"
+                >
+                  {{ inquiryData?.request_by?.name ?? "-" }}
+                </div>
+              </el-descriptions-item>
             </el-descriptions>
           </div>
         </div>
@@ -314,6 +324,13 @@
       </div>
     </template>
   </el-dialog>
+  <el-dialog
+    v-model="dialogDetailContact"
+    title="Detail Contact"
+    style="width: 80%"
+  >
+    <TrumsContactDetail :contact-data="contactDataDetail!" />
+  </el-dialog>
 </template>
 
 <script lang="tsx" setup>
@@ -385,6 +402,10 @@ const approveForm = reactive({
   note: "",
 });
 
+const dialogDetailContact = ref<boolean>(false);
+
+const contactDataDetail = ref<Contact | undefined>();
+
 const goBack = () => router.back();
 
 const request_sugestion_item = ref<RequestSearch>({
@@ -410,6 +431,11 @@ const loading = ref<boolean>(false);
 const loadingBook = ref<boolean>(false);
 
 const fileList = ref<string[]>([]);
+
+const openDetailContact = (contact: Contact) => {
+  dialogDetailContact.value = true;
+  contactDataDetail.value = contact;
+};
 
 const confirmDelete = () => {
   ElMessageBox.confirm(

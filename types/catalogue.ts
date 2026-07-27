@@ -36,6 +36,7 @@ export type Catalogue = {
   checked?: boolean;
   brand?: Brands;
   inventories_location?: Inventory[];
+  document?: Document;
 };
 
 export type ItemInterface = {

@@ -210,7 +210,7 @@ const ruleForm = reactive<RuleForm>({
   address_view: "",
 });
 
-const rules = reactive<FormRules<RuleForm>>({
+const rules = reactive<FormRules>({
   date: [
     {
       type: "date",
@@ -888,7 +888,7 @@ const querySearchContact = (queryString: string, cb: (arg: any) => void) => {
         const resultApi: ResponsePagination<Contact[]> = response.data;
         if (resultApi.data.length > 0) {
           const results = response.data.data.map((data: Contact) => {
-            return { ...data, value: `${data.name}` };
+            return { ...data, value: `${data.name}`, data: data };
           });
           cb(results);
         } else {
@@ -1024,75 +1024,25 @@ const createNewContact = async (data: any): Promise<Contact | null> => {
   }
 };
 
-const onHandleSelectContact = async (
-  item: Record<string, any>,
-  type: "to" | "pic"
-) => {
-  console.log(item);
-  if (item.isNew) {
-    if (type == "to") {
-      toContact.value = {
-        unique_id: "",
-        unique_code: "",
-        is_personal: false,
-        is_company: false,
-        internal_id: "",
-        name: item.query,
-        email: "",
-        phone: "",
-        tax_id: "",
-        website: "",
-        title: "",
-        tmp_tags: [],
-        tags: "",
-        ownership: false,
-        address: [],
-        id: 0,
-        created_at: 0,
-        created_by: "",
-        updated_at: 0,
-        version: 0,
-      };
-    } else {
-      picContact.value = {
-        unique_id: "",
-        unique_code: "",
-        is_personal: false,
-        is_company: false,
-        internal_id: "",
-        name: item.query,
-        email: "",
-        phone: "",
-        tax_id: "",
-        website: "",
-        title: "",
-        tmp_tags: [],
-        tags: "",
-        ownership: false,
-        address: [],
-        id: 0,
-        created_at: 0,
-        created_by: "",
-        updated_at: 0,
-        version: 0,
-      };
-    }
-    typeContactActive.value = type;
-    dialogContact.value = true;
-  } else {
-    const contact: Contact = item as Contact;
+const onHandleSelectContact = async (item: Contact, type: "to" | "pic") => {
+  console.log("is company", item);
+  if (type == "to") {
+    toContact.value = item;
+    ruleForm.to_unique_id = item.unique_id;
+    ruleForm.to_version = item.version;
+    ruleForm.to_name = item.name ?? "";
 
-    if (type == "to") {
-      toContact.value = contact;
-      ruleForm.to_unique_id = contact.unique_id;
-      ruleForm.to_version = contact.version;
-      ruleForm.to_name = contact.name ?? "";
-    } else {
-      picContact.value = contact;
-      ruleForm.request_by = contact.unique_id;
-      ruleForm.request_by_version = contact.version;
-      ruleForm.request_by_name = contact.name ?? "";
+    if (item.children && item.children.length > 0) {
+      picContact.value = item.children[0];
+      ruleForm.request_by = item.children[0].unique_id;
+      ruleForm.request_by_version = item.children[0].version;
+      ruleForm.request_by_name = item.children[0].name;
     }
+  } else {
+    picContact.value = item;
+    ruleForm.request_by = item.unique_id;
+    ruleForm.request_by_version = item.version;
+    ruleForm.request_by_name = item.name ?? "";
   }
 };
 
@@ -1238,6 +1188,8 @@ const fetchInquiry = async () => {
               : "Document",
         });
       });
+
+      address.value = inquiryData.address;
     }
   } catch (error) {
     console.error("Failed to fetch related data", error);
@@ -1634,13 +1586,15 @@ onMounted(() => {
           </div>
         </el-form-item>
 
-        <el-form-item
-          v-if="ruleForm.reference != InquiryReference.NON_MAINTENANCE"
-          label="Diminta oleh?"
-          prop="to_name"
-        >
+        <el-form-item label="Kontak" prop="to_name">
           <div class="flex items-center gap-3">
-            <el-autocomplete
+            <TrumsAutocompleteContact
+              v-model="ruleForm.to_name"
+              :contact="toContact"
+              :fetch-suggestions="querySearchContact"
+              @save-contact="(data: Contact) => onHandleSelectContact(data, 'to')"
+            />
+            <!-- <el-autocomplete
               :fetch-suggestions="querySearchContact"
               v-model="ruleForm.to_name"
               placeholder="Cari Kontak"
@@ -1651,7 +1605,7 @@ onMounted(() => {
               v-if="toContact"
               @click="openDialogTo"
               :icon="User"
-            />
+            /> -->
           </div>
         </el-form-item>
         <el-form-item
@@ -1660,17 +1614,11 @@ onMounted(() => {
           prop="request_by_name"
         >
           <div class="flex items-center gap-3">
-            <el-autocomplete
-              :fetch-suggestions="querySearchContact"
+            <TrumsAutocompleteContact
               v-model="ruleForm.request_by_name"
-              placeholder="Cari Kontak"
-              @select="(item: Record<string, any>) => onHandleSelectContact(item, 'pic')"
-            />
-            <el-button
-              type="primary"
-              v-if="picContact"
-              @click="openDialogPIC"
-              :icon="User"
+              :contact="picContact"
+              :fetch-suggestions="querySearchContact"
+              @save-contact="(data: Contact) => onHandleSelectContact(data, 'pic')"
             />
           </div>
         </el-form-item>

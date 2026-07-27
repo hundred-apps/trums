@@ -125,7 +125,12 @@
         <div class="flex-1">
           <el-descriptions title="" :column="1" size="large" border>
             <el-descriptions-item label="Customer">
-              {{ data?.data?.customer_name ?? "-" }}
+              <div
+                class="text-blue-600 cursor-pointer"
+                @click="() => openDialogDetailContact(data?.data?.customer!)"
+              >
+                {{ data?.data?.customer_name ?? "-" }}
+              </div>
             </el-descriptions-item>
 
             <el-descriptions-item label="Tanggal Invoice">
@@ -157,7 +162,12 @@
         <div class="flex-1">
           <el-descriptions title="" :column="1" size="large" border>
             <el-descriptions-item label="PIC">
-              {{ data?.data?.pic_name ?? "" }}
+              <div
+                class="text-blue-600 cursor-pointer"
+                @click="() => openDialogDetailContact(data?.data?.pic!)"
+              >
+                {{ data?.data?.pic_name ?? "" }}
+              </div>
             </el-descriptions-item>
             <!-- <el-descriptions-item label="Status">
               <el-tag
@@ -544,6 +554,14 @@
       </template>
     </el-dialog>
   </div>
+
+  <el-dialog
+    v-model="dialogDetailContact"
+    title="Detail Contact"
+    style="width: 80%"
+  >
+    <TrumsContactDetail :contact-data="detailContactDialog!" />
+  </el-dialog>
 </template>
 
 <script lang="tsx" setup>
@@ -584,6 +602,7 @@ import checkAccess from "~/middleware/checkAccess";
 import { generateAddressViewName } from "#imports";
 import { PDFDocument } from "pdf-lib";
 import type { TrumDoc } from "~/types/document";
+import type { Contact } from "~/types/contact";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -596,6 +615,9 @@ const route = useRoute();
 const invoiceId = ref<string>(route.params.id as string);
 
 const canApproveInvoice = ref(false);
+const dialogDetailContact = ref<boolean>(false);
+
+const detailContactDialog = ref<Contact | undefined>();
 
 const config = useRuntimeConfig();
 const imageUrl = config.public.baseImageURL;
@@ -673,6 +695,11 @@ const handleChangeUploadFile: UploadProps["onChange"] = (
 ) => {
   console.log("file upload", uploadFiles);
   internalFileList.value = uploadFiles; // Memicu watch dan emit ke parent
+};
+
+const openDialogDetailContact = (contact: Contact) => {
+  dialogDetailContact.value = true;
+  detailContactDialog.value = contact;
 };
 
 // Calculation functions

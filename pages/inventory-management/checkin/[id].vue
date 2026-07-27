@@ -72,10 +72,6 @@
                 {{ formatStatus(checkData!.status) }}
               </el-tag>
             </el-descriptions-item>
-          </el-descriptions>
-        </div>
-        <div class="flex-1">
-          <el-descriptions title="" :column="1" size="large" border>
             <el-descriptions-item
               v-if="checkData!.reference == 'inquiry'"
               label="Nomor Permintaan"
@@ -86,7 +82,10 @@
                 >{{ checkData?.data_reference != null ? (checkData?.data_reference as Inquiry).unique_code ?? '-' : 'N/A'}}</NuxtLink
               >
             </el-descriptions-item>
-
+          </el-descriptions>
+        </div>
+        <div class="flex-1">
+          <el-descriptions title="" :column="1" size="large" border>
             <el-descriptions-item
               v-if="checkData!.reference == 'so' || checkData!.reference == 'po'"
               label="Nomor SO/PO"
@@ -103,13 +102,22 @@
             <el-descriptions-item label="Tujuan">{{
               checkData?.to_name
             }}</el-descriptions-item>
+            <el-descriptions-item
+              v-for="(pic, index) in checkData?.inventory_movement_pic"
+              :key="index"
+              :label="index == 0 ? 'PIC' : ''"
+              >{{ pic.pic?.name }}
+              {{
+                pic.pic?.phone ? `(${pic.pic?.phone})` : ""
+              }}</el-descriptions-item
+            >
           </el-descriptions>
         </div>
       </div>
       <div class="mb-5">
         <h1 class="text-lg font-bold">Alamat Pengiriman</h1>
         <div class="text-sm mt-2" v-if="checkData?.address">
-          <span class="font-bold"
+          <span class="font-italic"
             >({{ checkData?.address?.address_name }}) |
             {{ checkData?.pic?.name }}
             {{
@@ -117,8 +125,46 @@
             }}</span
           >
           <div class="flex flex-col">
-            <span>{{ checkData?.address?.street }}</span>
-            <span>{{ generateAddressViewName(checkData?.address!) }}</span>
+            <span class="text-gray-500">{{ checkData?.address?.street }}</span>
+            <span
+              class="text-gray-500"
+              >{{ generateAddressViewName(checkData?.address!) }}</span
+            >
+          </div>
+        </div>
+      </div>
+      <div
+        class="mb-5"
+        v-if="
+          checkData?.inventory_movement_address &&
+          checkData.inventory_movement_address.length > 0 &&
+          checkData.inventory_movement_address[0].type ==
+            AddressMovementType.WAREHOUSE
+        "
+      >
+        <h1 class="text-lg font-bold">Alamat Gudang</h1>
+        <div
+          class="text-sm mt-2"
+          v-if="checkData?.inventory_movement_address[0].address"
+        >
+          <span class="font-italic"
+            >({{
+              checkData?.inventory_movement_address[0].address.address_name
+            }}) |
+            {{ checkData?.inventory_movement_address[0].address.address_name }}
+            {{
+              checkData?.inventory_movement_address[0].address.contact_name
+            }}</span
+          >
+          <div class="flex flex-col">
+            <span class="text-gray-500">{{
+              checkData?.inventory_movement_address[0].address?.street
+            }}</span>
+            <span class="text-gray-500">{{
+              generateAddressViewName(
+                checkData?.inventory_movement_address[0].address
+              )
+            }}</span>
           </div>
         </div>
       </div>
@@ -202,9 +248,10 @@
 <script lang="tsx" setup>
 import { Download, Eleme, Tickets } from "@element-plus/icons-vue";
 import { InquiryReference, TypeInquiry, type Inquiry } from "~/types/inquiry";
-import type {
-  InventoryMovement,
-  InventoryMovementItem,
+import {
+  AddressMovementType,
+  type InventoryMovement,
+  type InventoryMovementItem,
 } from "~/types/inventory_movement";
 import type { BaseResponse } from "~/types/response";
 import { formatLocalDate, currencyWithoutSymbol, canAccess } from "#imports";
@@ -354,19 +401,8 @@ const generateDeliveryOrderPdf = async (unique_code: string) => {
   const margin = 15;
   let y = 15;
 
-  const leftColX = margin;
-  const leftColWidth = 90;
-  const leftColCenterX = leftColX + leftColWidth / 2;
-
-  const logoWidth = 30;
-  const logoX = leftColCenterX - logoWidth / 2;
-  // ================= LOGO & HEADER =================
   const imgLogo = await getBase64ImageFromUrl("/images/trumecs-logo.png");
   doc.addImage(imgLogo, "PNG", margin, y, 30, 10);
-
-  //   doc.setFontSize(10);
-  //   doc.setFont("helvetica", "bold");
-  //   doc.text("TruMecs.com", margin, y + 5);
 
   doc.setFont("helvetica", "normal");
   doc.setFontSize(8);
@@ -383,7 +419,6 @@ const generateDeliveryOrderPdf = async (unique_code: string) => {
     }
   );
 
-  // Title kanan
   doc.setFontSize(20);
   doc.setFont("helvetica", "bold");
   doc.text("DELIVERY\nORDER", pageWidth - margin, y + 8, {
@@ -391,52 +426,47 @@ const generateDeliveryOrderPdf = async (unique_code: string) => {
   });
 
   y += 25;
-  doc.setDrawColor(0);
   doc.line(margin, y, pageWidth - margin, y);
   y += 6;
 
-  // ================= INFO SECTION =================
   const leftX = margin;
   const rightX = pageWidth / 2 + 10;
 
+  // ================= INFO =================
   doc.setFontSize(8);
+
   doc.setFont("helvetica", "bold");
   doc.text("To", leftX, y);
   doc.text(":", leftX + 20, y);
+
   doc.setFont("helvetica", "normal");
   doc.text(inquiryData.value?.request_to?.name ?? "-", leftX + 25, y);
 
   y += 5;
+
   doc.setFont("helvetica", "bold");
-  doc.text("PIC", leftX, y);
-  doc.text(":", leftX + 20, y);
-  doc.setFont("helvetica", "normal");
-  doc.text(`${checkData?.pic?.name} (${checkData?.pic?.phone})`, leftX + 25, y);
 
-  y += 5;
-  doc.setFont("helvetica", "bold");
-  doc.text("Address", leftX, y);
-  doc.text(":", leftX + 20, y);
-  doc.setFont("helvetica", "normal");
-  doc.text(
-    `${checkData?.address?.street} ${generateAddressView(checkData!.address!)}`,
-    leftX + 25,
-    y,
-    {
-      maxWidth: 70,
-    }
-  );
+  (checkData?.inventory_movement_pic || []).forEach((element, index) => {
+    doc.text(index === 0 ? "PIC" : "", leftX, y);
+    doc.text(index === 0 ? ":" : "", leftX + 20, y);
 
-  // Right info (grid 2x2)
-  let ry = y - 10;
+    doc.setFont("helvetica", "normal");
+    doc.text(
+      `${element.pic?.name} ${
+        element.pic?.phone ? `(${element.pic.phone})` : ""
+      }`,
+      leftX + 25,
+      y
+    );
 
-  const rightInfo = [
-    // [
-    //   "No Invoice",
-    //   `${purchaseOrderData?.value?.reference_data[0]?.unique_code ?? ""}`,
-    // ],
-    ["No. DO", unique_code],
-  ];
+    y += 5;
+  });
+
+  // ================= RIGHT INFO =================
+
+  let ry = 46;
+
+  const rightInfo: string[][] = [["No. DO", unique_code]];
 
   if (
     inquiryData?.value?.type == TypeInquiry.INTERNAL &&
@@ -445,6 +475,7 @@ const generateDeliveryOrderPdf = async (unique_code: string) => {
     const salesOrder = inquiryData?.value?.reference_data as
       | PurchaseOrder
       | undefined;
+
     if (salesOrder) {
       rightInfo.push(["No. PO", salesOrder.sourcing_document || "-"]);
     }
@@ -452,24 +483,25 @@ const generateDeliveryOrderPdf = async (unique_code: string) => {
 
   rightInfo.push([
     "Tanggal",
-    `${
-      data.value?.data?.created_at != null &&
-      data.value?.data?.created_at != undefined
-        ? formatLocalDate(data.value?.data?.created_at)
-        : ""
-    }`,
+    data.value?.data?.created_at
+      ? formatLocalDate(data.value.data.created_at)
+      : "-",
   ]);
 
   rightInfo.forEach(([label, value]) => {
     doc.setFont("helvetica", "bold");
     doc.text(label, rightX, ry);
     doc.text(":", rightX + 30, ry);
+
     doc.setFont("helvetica", "normal");
-    doc.text(value || "-", rightX + 35, ry);
+    doc.text(value, rightX + 35, ry);
+
     ry += 5;
   });
 
-  y += 18;
+  y += 10;
+
+  // ================= NOTES =================
 
   const noteText = checkData?.note
     ? `${checkData.note}`
@@ -478,7 +510,9 @@ const generateDeliveryOrderPdf = async (unique_code: string) => {
         .map((v) => `• ${v}`)
         .join("\n")
     : "-";
-  // ================= ITEMS TABLE =================
+
+  // ================= TABLE =================
+
   autoTable(doc, {
     startY: y,
     margin: { left: margin, right: margin },
@@ -493,7 +527,6 @@ const generateDeliveryOrderPdf = async (unique_code: string) => {
           item.note ?? "",
         ]
       ),
-
       [
         {
           content: `Notes:\n${noteText}`,
@@ -531,74 +564,84 @@ const generateDeliveryOrderPdf = async (unique_code: string) => {
 
   y = (doc as any).lastAutoTable.finalY + 10;
 
-  // doc.setFontSize(8);
-  // doc.text("Notes:", margin, y);
+  // ================= ADDRESS =================
 
-  // y += 8;
+  const addressWarehouse = checkData?.inventory_movement_address?.findLast(
+    (find) => find.type == AddressMovementType.WAREHOUSE
+  );
 
-  // doc.setFontSize(8);
-  // const writeWrappedText = (text: string, x = 20, lineHeight = 5) => {
-  //   const lines = doc.splitTextToSize(text, pageWidth - 30);
+  const addressLeft = `${checkData?.address?.street ?? ""} ${
+    checkData?.address ? generateAddressView(checkData.address) : ""
+  }`;
 
-  //   // ensureSpace(lines.length * lineHeight);
+  let addressRight = "";
+  if (addressWarehouse && addressWarehouse.address) {
+    addressRight = `${
+      addressWarehouse.address.street ?? ""
+    } ${generateAddressView(addressWarehouse.address)}`;
+  }
 
-  //   doc.text(lines, x, y);
+  const leftWidth = 80;
+  const rightWidth = 80;
 
-  //   y += lines.length * lineHeight;
-  // };
+  doc.setFont("helvetica", "bold");
+  doc.text("Alamat Pengiriman", margin, y);
+  if (addressWarehouse && addressWarehouse.address) {
+    doc.text("Alamat Gudang", pageWidth / 2 + 10, y);
+  }
 
-  // if (checkData?.note) {
-  //   const splits = `${checkData?.note}`.split("\n");
+  y += 5;
 
-  //   console.log("note lines", splits);
-  //   splits.forEach((value) => {
-  //     if (value !== "\r") {
-  //       writeWrappedText(`\u2022 ${value ?? "-"}`);
-  //     }
-  //     // yFinal = yFinal + Number(5);
-  //     // console.log("final Y", yFinal);
-  //     // doc.text(`\u2022 ${value ?? "-"}`, 20, yFinal);
-  //   });
-  // }
+  doc.setFont("helvetica", "normal");
 
-  y += 20;
+  const leftLines = doc.splitTextToSize(addressLeft, leftWidth);
+  const rightLines = doc.splitTextToSize(addressRight, rightWidth);
+
+  doc.text(leftLines, margin, y);
+  doc.text(rightLines, pageWidth / 2 + 10, y);
+
+  const addressHeight = Math.max(leftLines.length, rightLines.length) * 4;
+
+  y += addressHeight + 12;
 
   // ================= SIGNATURE =================
+
   const signY = y;
+
   const colWidth = (pageWidth - margin * 2) / 3;
 
   const col1X = margin;
   const col2X = margin + colWidth;
   const col3X = margin + colWidth * 2;
 
-  // Judul tanda tangan
   doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
 
   doc.text("Penerima / Pembeli", col1X + colWidth / 2, signY, {
     align: "center",
   });
+
   doc.text("Bagian Pengiriman", col2X + colWidth / 2, signY, {
     align: "center",
   });
-  doc.text("Petugas Gudang", col3X + colWidth / 2, signY, { align: "center" });
 
-  // Garis tanda tangan
+  doc.text("Petugas Gudang", col3X + colWidth / 2, signY, {
+    align: "center",
+  });
+
   const lineY = signY + 35;
 
   doc.line(col1X + 10, lineY, col1X + colWidth - 10, lineY);
   doc.line(col2X + 10, lineY, col2X + colWidth - 10, lineY);
   doc.line(col3X + 10, lineY, col3X + colWidth - 10, lineY);
 
-  // Update posisi y setelah tanda tangan
-  y = lineY + 10;
-  // ================= FOOTER =================
   doc.setFontSize(8);
   doc.text(
     "PT Tiyasa Makmur Perkasa\nJl. Jend. Sudirman KM 31, Kayuringin Jaya, Kota Bekasi, Jawa Barat 17144 | Tel: 021-8849319",
     pageWidth / 2,
     285,
-    { align: "center" }
+    {
+      align: "center",
+    }
   );
 
   const blob = doc.output("blob");

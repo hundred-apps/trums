@@ -233,6 +233,7 @@ import type { AddressType } from "~/types/address";
 import { formatLocalDate } from "#imports";
 import type { JSX } from "vue/jsx-runtime";
 import type { InventoryMovementItem } from "~/types/inventory_movement";
+import type { ColumnTable } from "~/types/ColumnTable";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -282,6 +283,38 @@ const handleSelectionChange = (val: any[]) => {
 
   console.log("selected items", val);
 };
+
+// const availableColumn = computed(() => {
+//   const column: ColumnTable<ItemRequest>[] = [
+//     {
+//       title: "Nama Item",
+//       dataKey: "item_name",
+//       key: "item_name",
+//       fixed: true,
+//       width: 200,
+//       cellRenderer: ({ rowData }: { rowData: ItemRequest }) => (
+//         <NuxtLink
+//           href={`/catalogue/${rowData.unique_id}`}
+//           class={"text-blue-600"}
+//         >
+//           {rowData.catalogue_name}
+//         </NuxtLink>
+//       ),
+//     },
+//     {
+//       title: "QTY",
+//       dataKey: "quantity",
+//       key: "quantity",
+//       width: 300,
+//       fixed: true,
+//       cellRenderer: ({ rowData }: { rowData: ItemRequest }) => (
+//         <>{rowData.request_qty ?? "0"}</>
+//       ),
+//     },
+//   ];
+
+//   if
+// });
 
 const confirmDelete = () => {
   ElMessageBox.confirm(

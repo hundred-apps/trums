@@ -20,6 +20,11 @@ export enum InventoryMovementReferenceItem {
   ITEM_REQUEST = "item_request",
 }
 
+export enum CategoryMovement {
+  GOODS = "goods",
+  DOCUMENTS = "documents",
+}
+
 export interface InventoryMovementItem {
   id: number;
   unique_id: string;
@@ -96,4 +101,40 @@ export interface InventoryMovement {
   status_invoice?: string;
   invoice_data?: Invoice;
   reference_data?: Inquiry;
+  category?: CategoryMovement;
+  inventory_movement_pic?: InventoryMovementPIC[];
+  inventory_movement_address?: InventoryMovementAddress[];
 }
+
+export type InventoryMovementPIC = {
+  inventory_movement_id: string;
+  inventory_movement_version: number;
+  pic?: Contact;
+  pic_id: string;
+  pic_version: number;
+  unique_id: string;
+  version: number;
+};
+export type InventoryMovementAddress = {
+  address?: AddressType;
+  address_id: string;
+  address_version: 2;
+  inventory_movement_id: string;
+  inventory_movement_version: number;
+  type: AddressMovementType;
+  unique_id: string;
+  version: number;
+};
+
+export enum AddressMovementType {
+  DELIVERY = "delivery",
+  WAREHOUSE = "warehouse",
+}
+
+export type AddressMovement = {
+  movement_id: string;
+  type: AddressMovementType;
+  address_id: string;
+  address_version: number;
+  address?: AddressType;
+};

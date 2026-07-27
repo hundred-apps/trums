@@ -60,6 +60,16 @@
               <el-radio-button value="out">Check Out</el-radio-button>
             </el-radio-group>
           </el-form-item>
+          <el-form-item label="Pengiriman" prop="category">
+            <el-radio-group v-model="formInline.category">
+              <el-radio :value="CategoryMovement.GOODS" size="default"
+                >Barang</el-radio
+              >
+              <el-radio :value="CategoryMovement.DOCUMENTS" size="default"
+                >Dokumen</el-radio
+              >
+            </el-radio-group>
+          </el-form-item>
           <el-form-item label="Nomor Referensi" prop="reference_id">
             <div class="flex gap-2">
               <el-input
@@ -104,12 +114,37 @@
           </el-form-item>
         </div>
         <div class="flex flex-col flex-1 justify-start">
-          <el-form-item label="PIC" prop="pic_name">
+          <el-form-item
+            :label="index === 0 ? 'PIC' : ''"
+            :prop="index === 0 ? 'pic_name' : undefined"
+            v-for="(pic, index) in listPIC.filter(
+              (filter) => !filter.is_deleted
+            )"
+          >
+            <template #label>
+              <div class="flex items-center h-full">
+                <span v-if="index === 0">PIC</span>
+
+                <el-button
+                  v-else
+                  type="danger"
+                  link
+                  @click="
+                    () => {
+                      listPIC[index].is_deleted = true;
+                      // listPIC.splice(index, 1);
+                    }
+                  "
+                >
+                  <el-icon><Delete /></el-icon>
+                </el-button>
+              </div>
+            </template>
             <AutocompleteContact
-              v-model="formInline.pic_name"
-              :contact="formInline.pic"
+              v-model="pic.pic.name"
+              :contact="pic.pic"
               :fetch-suggestions="(queryString: string, cb: (arg: any) => void) => querySearchContact(queryString, cb)"
-              @save-contact="(data: Contact) => onHandleSelectPIC(data)"
+              @save-contact="(data: Contact) => onHandleSelectPIC(data, index)"
             />
           </el-form-item>
           <el-form-item label="Alamat Pengiriman" prop="address_name">
@@ -120,7 +155,7 @@
               clearable
               class="inline-input w-50"
               placeholder="Cari Alamat/Buat Baru"
-              @select="(record: any) => handleSelectAddress(record)"
+              @select="(record: any) => handleSelectAddress(record, AddressMovementType.DELIVERY)"
             >
               <template #default="{ item }">
                 <div v-if="!item.new">
@@ -146,6 +181,51 @@
               <div>
                 {{ formInline.address.street }},
                 {{ generateResultSearchAddress(formInline.address).name }}
+              </div>
+            </div>
+          </el-form-item>
+          <el-form-item label="Alamat Gudang">
+            <el-autocomplete
+              v-model="adddressWarehouse.address.address_name"
+              :fetch-suggestions="querySearchAddress"
+              :trigger-on-focus="false"
+              clearable
+              class="inline-input w-50"
+              placeholder="Cari Alamat/Buat Baru"
+              @select="(record: any) => handleSelectAddress(record, AddressMovementType.WAREHOUSE)"
+            >
+              <template #default="{ item }">
+                <div v-if="!item.new">
+                  <div class="name">{{ item.name }}</div>
+                  <span class="street text-sm">{{ item.street }}</span>
+                </div>
+                <div v-else>
+                  <div class="text-blue-600">{{ item.name }}</div>
+                </div>
+              </template>
+            </el-autocomplete>
+          </el-form-item>
+          <el-form-item
+            v-if="
+              adddressWarehouse.address.unique_id &&
+              !adddressWarehouse.is_deleted
+            "
+            label=" "
+          >
+            <div>
+              <div class="flex items-center gap-2">
+                <p>{{ adddressWarehouse.address.address_name }}</p>
+                <el-icon
+                  class="cursor-pointer text-read-500 hover:text-read-600"
+                  @click="handleDeleteAddressWarehouse"
+                  ><Delete
+                /></el-icon>
+              </div>
+              <div>
+                {{ adddressWarehouse.address.street }},
+                {{
+                  generateResultSearchAddress(adddressWarehouse.address).name
+                }}
               </div>
             </div>
           </el-form-item>
@@ -426,11 +506,14 @@ import type { PurchaseOrder } from "~/types/scm/purchase_order";
 import type { AddressType } from "~/types/address";
 import FormAddress from "~/components/trums/FormAddress.vue";
 import { currency, currencyWithoutSymbol, formatLocalDate } from "#imports";
-import { TypeInquiry, type Inquiry } from "~/types/inquiry";
+import { InquiryReference, TypeInquiry, type Inquiry } from "~/types/inquiry";
 import { ElLoading } from "element-plus";
 import type { Inventory } from "~/types/inventory";
 import {
+  AddressMovementType,
+  CategoryMovement,
   InventoryMovementReferenceItem,
+  type AddressMovement,
   type InventoryMovement,
 } from "~/types/inventory_movement";
 import type { BaseResponse } from "~/types/response";
@@ -441,6 +524,7 @@ import {
 } from "~/types/item_request";
 import type { ColumnTable } from "~/types/ColumnTable";
 import AutocompleteContact from "~/components/trums/AutocompleteContact.vue";
+import { fa } from "element-plus/es/locale/index.mjs";
 
 interface formCheckInOut {
   unique_id: string | null;
@@ -469,6 +553,7 @@ interface formCheckInOut {
   pic_version: number;
   pic_name: string;
   pic?: Contact;
+  category: CategoryMovement;
 }
 
 const loading = ref<boolean>(false);
@@ -485,6 +570,49 @@ const route = useRoute();
 const inquiry_id = computed(() => route.query.inquiry_id as string);
 const id = computed(() => route.query.id as string);
 const type = computed(() => route.query.type || ("in" as string));
+
+const listPIC = ref<
+  {
+    unique_id: string;
+    movement_id: string;
+    pic: Contact;
+    is_deleted: boolean;
+  }[]
+>([]);
+const adddressWarehouse = ref<{
+  unique_id: string;
+  movement_id: string;
+  address: AddressType;
+  is_deleted: boolean;
+}>({
+  unique_id: "",
+  movement_id: "",
+  is_deleted: false,
+  address: {
+    unique_id: "",
+    contact_id: null,
+    contact_version: 0,
+    phone: undefined,
+    contact_name: "",
+    address_name: "",
+    street: "",
+    village_id: "",
+    village: "",
+    city: "",
+    regency: "",
+    province: "",
+    country: "",
+    codepos: undefined,
+    created_at: 0,
+    created_by: 0,
+    updated_at: 0,
+    version: 0,
+    checked: undefined,
+    villages: undefined,
+    type: undefined,
+    tmp_address_view: undefined,
+  },
+});
 
 let formInline = reactive<formCheckInOut>({
   unique_id: null,
@@ -511,6 +639,7 @@ let formInline = reactive<formCheckInOut>({
   pic_id: "",
   pic_name: "",
   pic_version: 0,
+  category: CategoryMovement.GOODS,
 });
 
 const requestSearchLocation = ref<RequestSearch>({
@@ -648,11 +777,29 @@ watch(
 watch(
   () => formInline.type,
   (newValue, oldValue) => {
-    requestSearchInquiry.value.column = [
-      {
-        reference: [newValue === "out" ? "so" : "po"],
-      },
-    ];
+    if (formInline.category == CategoryMovement.GOODS) {
+      requestSearchInquiry.value.column = [
+        {
+          reference: [newValue === "out" ? "so" : "po"],
+        },
+      ];
+    }
+  },
+  { immediate: true }
+);
+watch(
+  () => formInline.category,
+  (newValue, oldValue) => {
+    if (newValue == CategoryMovement.DOCUMENTS) {
+      requestSearchInquiry.value.column = [
+        {
+          reference: [
+            InquiryReference.MAINTENANCE,
+            InquiryReference.NON_MAINTENANCE,
+          ],
+        },
+      ];
+    }
   },
   { immediate: true }
 );
@@ -887,6 +1034,33 @@ const querySearchAddress = (queryString: string, cb: (arg: any) => void) => {
     }
   });
 };
+const handleDeleteAddressWarehouse = () => {
+  adddressWarehouse.value.is_deleted = true;
+  adddressWarehouse.value.address = {
+    unique_id: "",
+    contact_id: null,
+    contact_version: 0,
+    phone: undefined,
+    contact_name: "",
+    address_name: "",
+    street: "",
+    village_id: "",
+    village: "",
+    city: "",
+    regency: "",
+    province: "",
+    country: "",
+    codepos: undefined,
+    created_at: 0,
+    created_by: 0,
+    updated_at: 0,
+    version: 0,
+    checked: undefined,
+    villages: undefined,
+    type: undefined,
+    tmp_address_view: undefined,
+  };
+};
 const handleDeleteAddress = () => {
   formInline.address = undefined;
   formInline.address_id = "";
@@ -935,17 +1109,27 @@ const handleDeleteItem = async (index: number) => {
   }
 };
 
-const handleSelectAddress = (record: Record<string, any>) => {
+const handleSelectAddress = (
+  record: Record<string, any>,
+  type: AddressMovementType
+) => {
   if (record.new) {
     dialogNewAddress.value = true;
   } else {
-    // const address: AddressType = record as AddressType;
-    formInline.address_id = record.address_id;
-    formInline.address_version = record.address_version;
-    formInline.address_name = record.name;
+    if (type == AddressMovementType.DELIVERY) {
+      // const address: AddressType = record as AddressType;
+      formInline.address_id = record.address_id;
+      formInline.address_version = record.address_version;
+      formInline.address_name = record.name;
 
-    if (record.address) {
-      formInline.address = record.address;
+      if (record.address) {
+        formInline.address = record.address;
+      }
+    } else {
+      if (record.address) {
+        adddressWarehouse.value.address = record.address;
+        adddressWarehouse.value.is_deleted = false;
+      }
     }
   }
 };
@@ -1256,6 +1440,7 @@ const onSubmit = async () => {
     formData.append("from_name", formInline.location);
     formData.append("from", formInline.location_id);
     formData.append("from_version", formInline.version.toString());
+    formData.append("category", formInline.category);
 
     formData.append("reference_id", `${formInline.reference_id}`);
     if (formInline.reference != null) {
@@ -1276,6 +1461,49 @@ const onSubmit = async () => {
     formData.append("pic_version", `${formInline.pic_version}`);
     formData.append("status", formInline.status);
     formData.append("note", formInline.note);
+
+    listPIC.value.forEach((element, index) => {
+      if (element.pic.unique_id != "") {
+        formData.append(
+          `movement_pic[${index}][is_deleted]`,
+          `${element.is_deleted}`
+        );
+        formData.append(
+          `movement_pic[${index}][unique_id]`,
+          `${element.unique_id}`
+        );
+        formData.append(
+          `movement_pic[${index}][inventory_movement_id]`,
+          `${formInline.unique_id}`
+        );
+        formData.append(
+          `movement_pic[${index}][inventory_movement_version]`,
+          `${formInline.version ?? 0}`
+        );
+        formData.append(
+          `movement_pic[${index}][pic_id]`,
+          element.pic.unique_id ?? ""
+        );
+        formData.append(
+          `movement_pic[${index}][pic_version]`,
+          `${element.pic.version ?? 0}`
+        );
+      }
+    });
+
+    formData.append(
+      "movement_address[0][unique_id]",
+      `${adddressWarehouse.value.unique_id}`
+    );
+    formData.append(
+      "movement_address[0][is_deleted]",
+      `${adddressWarehouse.value.is_deleted}`
+    );
+    formData.append(
+      "movement_address[0][address_id]",
+      `${adddressWarehouse.value.address.unique_id}`
+    );
+    formData.append("movement_address[0][type]", `warehouse`);
 
     tableItem.value.forEach((element, index) => {
       if (element.catalogue_id != null) {
@@ -1389,7 +1617,7 @@ const onSubmit = async () => {
 
     console.log(data);
 
-    const response = await useFetchApi(
+    const response = await useFetchApi<BaseResponse<InventoryMovement>>(
       "/inventory-movement-create",
       "inventory-movement-create",
       "post",
@@ -1400,6 +1628,8 @@ const onSubmit = async () => {
       ElMessage.success("Berhasil!");
       tableItem.value = [];
       ruleFormRef.value?.resetFields();
+      window.location.href =
+        "/inventory-management/checkin/" + response.data.value?.data?.unique_id;
     }
   } catch (error: any) {
     ElMessage.error(`${error.response?.data?.message ?? error}`);
@@ -1494,7 +1724,7 @@ const fetchDataEdit = async () => {
 
     if (response.status.value === "success" && response.data.value!.data) {
       const movement: InventoryMovement = response.data.value!.data;
-      console.log("movement", movement);
+
       formInline.unique_id = movement.unique_id ?? "";
       formInline.address_id = movement.address_id ?? "";
       formInline.address_name = movement.address?.address_name ?? "";
@@ -1517,6 +1747,58 @@ const fetchDataEdit = async () => {
       formInline.pic_id = movement.pic_id || "";
       formInline.pic_name = movement.pic?.name || "";
       formInline.pic_version = movement.pic_version || 0;
+
+      // if (formInline.pic) {
+      //   listPIC.value.push({
+      //     movement_id: movement.unique_id,
+      //     pic: movement.pic!,
+      //   });
+      // }
+      const addressWarehouseData = movement.inventory_movement_address || [];
+      if (addressWarehouseData.length > 0 && addressWarehouseData[0].address) {
+        adddressWarehouse.value = {
+          address: addressWarehouseData[0].address,
+          unique_id: addressWarehouseData[0].unique_id,
+          movement_id: movement.unique_id,
+          is_deleted: false,
+        };
+      }
+
+      (movement.inventory_movement_pic || []).forEach((element) => {
+        listPIC.value.push({
+          unique_id: element.unique_id,
+          movement_id: movement.unique_id,
+          pic: element.pic!,
+          is_deleted: false,
+        });
+      });
+
+      listPIC.value.push({
+        unique_id: "",
+        movement_id: movement.unique_id,
+        pic: {
+          id: 0,
+          unique_id: "",
+          unique_code: "",
+          is_personal: false,
+          is_company: null,
+          internal_id: "",
+          name: "",
+          email: "",
+          phone: null,
+          tax_id: null,
+          website: null,
+          title: null,
+          tags: "",
+          created_at: 0,
+          created_by: "",
+          updated_at: 0,
+          version: 0,
+          address: [],
+        },
+        is_deleted: false,
+      });
+
       if (movement.address) {
         formInline.address = movement.address;
         formInline.address_view = movement.address.address_name;
@@ -1552,7 +1834,7 @@ const fetchDataEdit = async () => {
         request_qty: item.reference_data?.request_qty ?? 0,
         is_traceable: "false",
         quantity_to_in: item.quantity,
-        stok: item.inventory?.quantity ?? 0,
+        stok: item.inventory?.quantity ?? item.quantity,
         item_request_trail: item.item_request_trail,
       }));
 
@@ -1616,11 +1898,39 @@ const querySearchContact = (queryString: string, cb: (arg: any) => void) => {
   });
 };
 
-const onHandleSelectPIC = (data: Contact) => {
-  formInline.pic = data;
-  formInline.pic_id = data.unique_id;
-  formInline.pic_name = data.name;
-  formInline.pic_version = data.version;
+const onHandleSelectPIC = (data: Contact, index: number) => {
+  // formInline.pic = data;
+  // formInline.pic_id = data.unique_id;
+  // formInline.pic_name = data.name;
+  // formInline.pic_version = data.version;
+  listPIC.value[index].movement_id = formInline.unique_id || "";
+  listPIC.value[index].pic = data;
+
+  listPIC.value.push({
+    unique_id: "",
+    movement_id: formInline.unique_id || "",
+    pic: {
+      id: 0,
+      unique_id: "",
+      unique_code: "",
+      is_personal: false,
+      is_company: null,
+      internal_id: "",
+      name: "",
+      email: "",
+      phone: null,
+      tax_id: null,
+      website: null,
+      title: null,
+      tags: "",
+      created_at: 0,
+      created_by: "",
+      updated_at: 0,
+      version: 0,
+      address: [],
+    },
+    is_deleted: false,
+  });
 };
 
 onMounted(() => {
