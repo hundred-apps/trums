@@ -38,6 +38,7 @@ import type { ColumnTable } from "~/types/ColumnTable";
 import type { AppFile } from "~/types/file";
 import SelectionCell from "~/components/trums/table/SelectionCell.vue";
 import type { ResponsePagination } from "~/types/response_pagination";
+import { getDocRefLink, getDocRefView } from "~/types/document";
 
 const props = defineProps<{
   type: "place" | "item" | "document";
@@ -179,7 +180,6 @@ const availableColumn: ColumnTable<Catalogue>[] = [
     dataKey: "name",
     key: "name",
     title: "Nama",
-    width: 500,
     fixed: true,
     sortable: true,
   },
@@ -193,77 +193,9 @@ const availableColumn: ColumnTable<Catalogue>[] = [
     dataKey: "brand_name",
     key: "brand_name",
     title: "Brand",
+    width: 100,
     cellRenderer: ({ rowData }: { rowData: Catalogue }) => (
       <p>{rowData.brand?.name ?? "N/A"}</p>
-    ),
-  },
-  {
-    dataKey: "type",
-    key: "type",
-    title: "Tipe",
-    width: 100,
-    headerCellRenderer: () => (
-      <div class="flex items-center justify-center">
-        <span class="mr-2 text-xs">Tipe</span>
-        <ElPopover trigger="click" width="200">
-          {{
-            default: () => (
-              <div class="filter-wrapper">
-                <div class="filter-group flex flex-col">
-                  <ElCheckboxGroup
-                    v-model={request_search.value.column[0].type}
-                  >
-                    <ElCheckbox key={"place"} value={"place"} label={"Place"} />
-                    <ElCheckbox key={"item"} value={"item"} label={"Item"} />
-                  </ElCheckboxGroup>
-                </div>
-              </div>
-            ),
-            reference: () => (
-              <ElIcon class="cursor-pointer">
-                <Filter />
-              </ElIcon>
-            ),
-          }}
-        </ElPopover>
-      </div>
-    ),
-  },
-  {
-    dataKey: "is_asset",
-    key: "is_asset",
-    title: "Asset",
-    width: 120,
-    cellRenderer: ({ rowData: row }) => (
-      <ElTag type={row.is_asset ? "success" : "info"}>
-        {row.is_asset ? "Asset" : "Non-Asset"}
-      </ElTag>
-    ),
-  },
-  {
-    dataKey: "year",
-    key: "year",
-    title: "Tahun",
-    width: 150,
-  },
-  {
-    dataKey: "created_at",
-    key: "created_at",
-    title: "Dibuat Pada",
-    sortable: true,
-    width: 150,
-    cellRenderer: ({ rowData: row }) => (
-      <span>{formatLocalDate(row.created_at * 1000)}</span>
-    ),
-  },
-  {
-    dataKey: "created_by",
-    key: "created_by",
-    title: "Dibuat Oleh",
-    sortable: true,
-    width: 150,
-    cellRenderer: ({ rowData: row }) => (
-      <span>{row.people?.name ?? "N/A"}</span>
     ),
   },
 ];
@@ -363,7 +295,6 @@ const availableColumnDocument: ColumnTable<Catalogue>[] = [
     dataKey: "name",
     key: "name",
     title: "Nama",
-    width: 500,
     fixed: true,
     sortable: true,
   },
@@ -373,31 +304,36 @@ const availableColumnDocument: ColumnTable<Catalogue>[] = [
     key: "type",
     title: "Tipe",
     width: 100,
-    headerCellRenderer: () => (
-      <div class="flex items-center justify-center">
-        <span class="mr-2 text-xs">Nama Dokumen</span>
-        <ElPopover trigger="click" width="200">
-          {{
-            default: () => (
-              <div class="filter-wrapper">
-                <div class="filter-group flex flex-col">
-                  <ElCheckboxGroup
-                    v-model={request_search.value.column[0].type}
-                  >
-                    <ElCheckbox key={"place"} value={"place"} label={"Place"} />
-                    <ElCheckbox key={"item"} value={"item"} label={"Item"} />
-                  </ElCheckboxGroup>
-                </div>
-              </div>
-            ),
-            reference: () => (
-              <ElIcon class="cursor-pointer">
-                <Filter />
-              </ElIcon>
-            ),
-          }}
-        </ElPopover>
-      </div>
+    // headerCellRenderer: () => (
+    //   <div class="flex items-center justify-center">
+    //     <span class="mr-2 text-xs">Doc REF</span>
+    //     <ElPopover trigger="click" width="200">
+    //       {{
+    //         default: () => (
+    //           <div class="filter-wrapper">
+    //             <div class="filter-group flex flex-col">
+    //               <ElCheckboxGroup
+    //                 v-model={request_search.value.column[0].type}
+    //               >
+    //                 <ElCheckbox key={"place"} value={"place"} label={"Place"} />
+    //                 <ElCheckbox key={"item"} value={"item"} label={"Item"} />
+    //               </ElCheckboxGroup>
+    //             </div>
+    //           </div>
+    //         ),
+    //         reference: () => (
+    //           <ElIcon class="cursor-pointer">
+    //             <Filter />
+    //           </ElIcon>
+    //         ),
+    //       }}
+    //     </ElPopover>
+    //   </div>
+    // ),
+    cellRenderer: ({ rowData }: { rowData: Catalogue }) => (
+      <NuxtLink href={getDocRefLink(rowData.document)} class={"text-blue-600"}>
+        {getDocRefView(rowData.document?.reference)}
+      </NuxtLink>
     ),
   },
 ];

@@ -82,6 +82,14 @@ onMounted(async () => {
 <template>
   <TrumsWrapper>
     <OrderSummery v-if="canReadPO" />
+    <ElCard class="mt-2 mb-5" shadow="never" v-if="canReadInquiry">
+      <template #header>
+        <div class="card-header">
+          <span>Status RFQ</span>
+        </div>
+      </template>
+      <inquiryTable />
+    </ElCard>
     <ElCard class="mt-2 mb-5" shadow="never" v-if="canReadCanvassing">
       <template #header>
         <div class="card-header">
@@ -142,14 +150,7 @@ onMounted(async () => {
         type="RAB"
       />
     </ElCard>
-    <ElCard class="mt-2 mb-5" shadow="never" v-if="canReadInquiry">
-      <template #header>
-        <div class="card-header">
-          <span>Status RFQ</span>
-        </div>
-      </template>
-      <inquiryTable />
-    </ElCard>
+
     <!-- <UmurPiutangLineChart /> -->
     <div v-if="canReadInvoice">
       <p class="font-bold text-xl mb-3">INVOICE</p>

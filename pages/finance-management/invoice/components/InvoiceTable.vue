@@ -543,6 +543,7 @@ const columnsSelected = ref<string[]>([
   "invoice_date",
   "due_date",
   "customer_id",
+  "sourcing_document",
   "total_amount",
   "status",
   "payment_method",
@@ -578,6 +579,28 @@ const columns: ColumnTable<Invoice>[] = [
     cellRenderer: ({ rowData }: { rowData: Invoice }) => (
       <span>{rowData.customer_name}</span>
     ),
+  },
+  {
+    key: "sourcing_document",
+    title: "No.PO",
+    dataKey: "sourcing_document",
+    width: 120,
+    cellRenderer: ({ rowData }: { rowData: Invoice }) => {
+      // const total = row.items?.reduce((sum: any, item: { total_amount: any }) => sum + (item.total_amount || 0), 0) || 0
+      return (
+        <NuxtLink
+          target={"_blank"}
+          class={"text-blue-600 cursor-pointer"}
+          href={
+            rowData.data_reference
+              ? `/sales/order/${rowData.data_reference.unique_id}`
+              : "/error/404"
+          }
+        >
+          {rowData.data_reference?.sourcing_document ?? ""}
+        </NuxtLink>
+      );
+    },
   },
   {
     key: "invoice_date",

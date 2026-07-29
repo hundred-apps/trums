@@ -21,11 +21,24 @@ export enum PurchaseOrderStatus {
   DONE = "done",
 }
 export enum PurchaseOrderItemStatus {
-  DRAFT = "draft",
-  PENDING_APPROVAL = "waiting_approval",
-  CANCELLED = "cancelled",
+  WAITING_REQUEST = "Menunggu Permintaan",
+  WAITING_PR = "Menunggu PR",
+  WAITING_PO = "Menunggu PO",
   DONE = "done",
 }
+
+export const displayStatusSOITEM = (status: PurchaseOrderItemStatus) => {
+  switch (status) {
+    case PurchaseOrderItemStatus.WAITING_REQUEST:
+      return "Menunggu Permintaan";
+    case PurchaseOrderItemStatus.WAITING_PR:
+      return "Menunggu PR";
+    case PurchaseOrderItemStatus.WAITING_PO:
+      return "Menunggu PO Vendor";
+    case PurchaseOrderItemStatus.DONE:
+      return "Telah Dikirim";
+  }
+};
 
 export type WarrantyUnit = "hari" | "minggu" | "bulan" | "tahun";
 export type DeliveryUnitTime = "hari" | "minggu" | "bulan" | "tahun";

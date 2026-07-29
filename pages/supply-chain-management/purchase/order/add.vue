@@ -1563,7 +1563,6 @@ const openModalPr = (index: number) => {
     {
       status: [ItemRequestTrailStatus.DONE],
       reference: ["pr"],
-      pr_purchase_order_item: ["null"],
       item_request: {
         catalogue_id: [ruleForm.items[index].catalogue_id],
       },

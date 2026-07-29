@@ -35,6 +35,7 @@ import type { Invoice } from "~/types/finance/invoice";
 import type { BaseResponse } from "~/types/response";
 import type { PurchaseOrder } from "~/types/scm/purchase_order";
 import { InquiryReference, TypeInquiry, type Inquiry } from "~/types/inquiry";
+import movementTable from "./components/movementTable.vue";
 
 interface FormFilter {
   date_range: string[];
@@ -684,98 +685,6 @@ onMounted(() => {
 </script>
 <template>
   <TrumsWrapper>
-    <el-row :gutter="20">
-      <el-col :span="6"
-        ><el-input
-          v-model="request_search.keyword"
-          size="default"
-          placeholder="Type to search"
-      /></el-col>
-      <el-button
-        size="default"
-        type="default"
-        :loading="status === 'pending'"
-        :icon="Eleme"
-        @click="onRefresh"
-        >Reload</el-button
-      >
-
-      <NuxtLink
-        class="el-button el-button--primary"
-        href="/inventory-management/checkin/add?type=in"
-        >CheckIn</NuxtLink
-      >
-      <NuxtLink
-        class="el-button el-button--primary"
-        href="/inventory-management/checkin/add?type=out"
-        >CheckOut</NuxtLink
-      >
-      <!-- <el-button size="default" @click="consigment">Consignment</el-button> -->
-      <el-form
-        :model="ruleFormFilter"
-        class="ml-3"
-        label-width="auto"
-        style="max-width: 600px"
-      >
-        <el-form-item label="">
-          <el-date-picker
-            v-model="ruleFormFilter.date_range"
-            type="daterange"
-            unlink-panels
-            range-separator="To"
-            start-placeholder="Start date"
-            end-placeholder="End date"
-            :shortcuts="shortcutsDate"
-            size="default"
-          />
-        </el-form-item>
-      </el-form>
-      <el-popconfirm
-        v-if="checkSelect()"
-        width="220"
-        :icon="InfoFilled"
-        icon-color="#626AEF"
-        title="Apakah Anda Yakin Ingin Menghapus Data ini?"
-        @cancel="() => {}"
-      >
-        <template #reference>
-          <el-button size="default" class="ml-3" type="danger"
-            >Delete</el-button
-          >
-        </template>
-        <template #actions="{ confirm, cancel }">
-          <el-button size="small" @click="cancel">Batal</el-button>
-          <el-button type="danger" size="small" @click="deleteBulk">
-            Hapus
-          </el-button>
-        </template>
-      </el-popconfirm>
-      <el-col :span="6"
-        ><el-checkbox
-          v-model="filterNotInvoice"
-          label="Belum ada invoice"
-          size="default"
-      /></el-col>
-    </el-row>
-
-    <TrumsDragScrollTable>
-      <CustomTable
-        @sort-change="onSort"
-        :columns="filteredColumn"
-        :data="data?.data ?? []"
-        :loading="status === 'pending'"
-      />
-    </TrumsDragScrollTable>
-    <div class="flex justify-end mt-3">
-      <el-pagination
-        background
-        layout="prev, pager, next, sizes"
-        :total="data?.total_data"
-        :page-size="parseInt(request_search.limit)"
-        :current-page="parseInt(request_search.offset)"
-        @current-change="paginationClick"
-        @size-change="handleSizeChange"
-      />
-    </div>
+    <movementTable :mode="'edit'" :prams-column="[]" />
   </TrumsWrapper>
 </template>

@@ -845,8 +845,12 @@
         :data="purchase_order?.data.value?.data ?? []"
         style="width: 100%"
       >
-        <el-table-column label="Nomor PO" prop="unique_code" />
-        <el-table-column label="Vendor">
+        <el-table-column label="Nomor PO" prop="unique_code">
+          <template #default="{ row }">
+            <span>{{ row.sourcing_document }}</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="Customer">
           <template #default="scope">
             {{ scope.row.vendor?.name }}
           </template>
@@ -1133,7 +1137,7 @@ const ruleForm = reactive<Invoice>({
   pic_name: "",
   pic_version: 0,
   type: "out",
-  status: PaymentStatus.WAITING,
+  status: PaymentStatus.UNPAID,
 
   invoice_item: [
     {

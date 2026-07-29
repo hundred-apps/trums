@@ -20,7 +20,9 @@
                   :loading="loading"
                   @click="() => submitForm(ruleFormRef)"
                   :disabled="
-                    formInline.type == 'out' && stockStatus.hasZeroStockOnly
+                    formInline.type == 'out' &&
+                    stockStatus.hasZeroStockOnly &&
+                    formInline.category == CategoryMovement.GOODS
                   "
                   >Simpan</el-button
                 >
@@ -309,10 +311,23 @@
               />
             </template>
           </el-table-column>
-          <el-table-column prop="stok" label="Stok" width="100" />
-          <el-table-column prop="unit_name" label="Unit" width="100" />
           <el-table-column
-            v-if="formInline.type == 'out'"
+            v-if="formInline.category == CategoryMovement.GOODS"
+            prop="stok"
+            label="Stok"
+            width="100"
+          />
+          <el-table-column
+            v-if="formInline.category == CategoryMovement.GOODS"
+            prop="unit_name"
+            label="Unit"
+            width="100"
+          />
+          <el-table-column
+            v-if="
+              formInline.type == 'out' &&
+              formInline.category == CategoryMovement.GOODS
+            "
             label="Status"
             width="150"
             align="center"
@@ -428,6 +443,7 @@
       <el-table-column label="Unique Code" width="300">
         <template #default="scope">
           <NuxtLink
+            :target="'_blank'"
             :href="`/sales/inquiry/${scope.row.unique_id}`"
             class="text-blue-600"
             >{{ scope.row.unique_code }}</NuxtLink
@@ -436,7 +452,7 @@
       </el-table-column>
       <el-table-column label="Kontak">
         <template #default="scope">
-          {{ ((scope.row as Inquiry).reference_data as PurchaseOrder | null)?.vendor_name ?? '-' }}
+          {{ ((scope.row as Inquiry).request_to as Contact | null)?.name ?? '-' }}
         </template>
       </el-table-column>
       <el-table-column label="Tanggal">
@@ -444,7 +460,11 @@
           {{ formatLocalDate(scope.row.date) }}
         </template>
       </el-table-column>
-      <el-table-column label="Total" align="right">
+      <el-table-column
+        v-if="formInline.category == CategoryMovement.GOODS"
+        label="Total"
+        align="right"
+      >
         <template #default="scope">
           {{ currencyWithoutSymbol(((scope.row as Inquiry).reference_data as PurchaseOrder | null)?.total_price ?? 0) }}
         </template>
@@ -797,6 +817,12 @@ watch(
             InquiryReference.MAINTENANCE,
             InquiryReference.NON_MAINTENANCE,
           ],
+        },
+      ];
+    } else {
+      requestSearchInquiry.value.column = [
+        {
+          reference: [formInline.type === "out" ? "so" : "po"],
         },
       ];
     }
@@ -1226,7 +1252,9 @@ const setFrom = (reference_from: string, value: any) => {
 
   // console.log(tableItem.value);
   if (formInline.type == "out" && reference_from == "catalogue") {
-    fetchInventory();
+    if (formInline.category == CategoryMovement.GOODS) {
+      fetchInventory();
+    }
   }
 
   // requestSearchPricelist.value.column![0].location_id = [value.unique_id];
@@ -1491,19 +1519,21 @@ const onSubmit = async () => {
       }
     });
 
-    formData.append(
-      "movement_address[0][unique_id]",
-      `${adddressWarehouse.value.unique_id}`
-    );
-    formData.append(
-      "movement_address[0][is_deleted]",
-      `${adddressWarehouse.value.is_deleted}`
-    );
-    formData.append(
-      "movement_address[0][address_id]",
-      `${adddressWarehouse.value.address.unique_id}`
-    );
-    formData.append("movement_address[0][type]", `warehouse`);
+    if (adddressWarehouse.value.address.unique_id) {
+      formData.append(
+        "movement_address[0][unique_id]",
+        `${adddressWarehouse.value.unique_id}`
+      );
+      formData.append(
+        "movement_address[0][is_deleted]",
+        `${adddressWarehouse.value.is_deleted}`
+      );
+      formData.append(
+        "movement_address[0][address_id]",
+        `${adddressWarehouse.value.address.unique_id}`
+      );
+      formData.append("movement_address[0][type]", `warehouse`);
+    }
 
     tableItem.value.forEach((element, index) => {
       if (element.catalogue_id != null) {
@@ -1899,10 +1929,12 @@ const querySearchContact = (queryString: string, cb: (arg: any) => void) => {
 };
 
 const onHandleSelectPIC = (data: Contact, index: number) => {
-  // formInline.pic = data;
-  // formInline.pic_id = data.unique_id;
-  // formInline.pic_name = data.name;
-  // formInline.pic_version = data.version;
+  if (index == 0) {
+    formInline.pic = data;
+    formInline.pic_id = data.unique_id;
+    formInline.pic_name = data.name;
+    formInline.pic_version = data.version;
+  }
   listPIC.value[index].movement_id = formInline.unique_id || "";
   listPIC.value[index].pic = data;
 
@@ -1940,6 +1972,32 @@ onMounted(() => {
 
   if (id.value) {
     fetchDataEdit();
+  } else {
+    listPIC.value.push({
+      unique_id: "",
+      movement_id: "",
+      pic: {
+        id: 0,
+        unique_id: "",
+        unique_code: "",
+        is_personal: false,
+        is_company: null,
+        internal_id: "",
+        name: "",
+        email: "",
+        phone: null,
+        tax_id: null,
+        website: null,
+        title: null,
+        tags: "",
+        created_at: 0,
+        created_by: "",
+        updated_at: 0,
+        version: 0,
+        address: [],
+      },
+      is_deleted: false,
+    });
   }
 });
 </script>

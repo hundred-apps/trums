@@ -9,239 +9,14 @@
       </template>
     </el-page-header>
 
-    <el-card class="my-3">
-      <template #header>
-        <div class="card-header flex justify-between">
-          <div class="flex flex-1">
-            <el-form-item label="Status" prop="status">
-              <el-radio-group
-                v-model="checkData!.status"
-                aria-label="status"
-                size="small"
-                @change="onChangeStatus"
-              >
-                <el-radio-button value="draft">Draft</el-radio-button>
-                <el-radio-button value="waiting">Waiting</el-radio-button>
-                <el-radio-button value="ready">Book</el-radio-button>
-                <el-radio-button value="delivery">Delivery</el-radio-button>
-                <el-radio-button value="done">Done</el-radio-button>
-              </el-radio-group>
-            </el-form-item>
-          </div>
-          <NuxtLink
-            v-if="canAccess('inventory_movement-update', privilages)"
-            :href="`/inventory-management/checkin/add?id=${checkData?.unique_id}`"
-            class="el-button el-button--defult"
-          >
-            Edit
-          </NuxtLink>
-          <el-button
-            type="primary"
-            :loading-icon="Eleme"
-            :loading="loading || loadingPO"
-            @click="generatePDF"
-          >
-            Cetak DO
-          </el-button>
-          <NuxtLink
-            class="el-button el-button--success"
-            :href="`/finance-management/invoice/add?movement_id=${checkData?.unique_id}`"
-            ><el-icon class="mr-2"><Tickets /></el-icon> Buat Faktur</NuxtLink
-          >
-          <el-button
-            type="danger"
-            :loading="loading || loadingPO"
-            @click="handleDelete"
-          >
-            Hapus
-          </el-button>
-        </div>
-      </template>
-      <!-- <el-button type="primary" @click="onCheckout" :loading="loading">Proses</el-button> -->
-      <div class="flex gap-3 my-3">
-        <div class="flex-1">
-          <el-descriptions title="" :column="1" size="large" border>
-            <el-descriptions-item label="Lokasi Awal">{{
-              checkData?.from_name
-            }}</el-descriptions-item>
-            <el-descriptions-item label="Tanggal">{{
-              formatLocalDate(checkData?.created_at ?? 0)
-            }}</el-descriptions-item>
-            <el-descriptions-item label="Status">
-              <el-tag :type="getStatusTagType(checkData!.status)">
-                {{ formatStatus(checkData!.status) }}
-              </el-tag>
-            </el-descriptions-item>
-            <el-descriptions-item
-              v-if="checkData!.reference == 'inquiry'"
-              label="Nomor Permintaan"
-            >
-              <NuxtLink
-                :href="`/inventory-management/inqueiries/${checkData?.reference_id}`"
-                class="text-blue-600"
-                >{{ checkData?.data_reference != null ? (checkData?.data_reference as Inquiry).unique_code ?? '-' : 'N/A'}}</NuxtLink
-              >
-            </el-descriptions-item>
-          </el-descriptions>
-        </div>
-        <div class="flex-1">
-          <el-descriptions title="" :column="1" size="large" border>
-            <el-descriptions-item
-              v-if="checkData!.reference == 'so' || checkData!.reference == 'po'"
-              label="Nomor SO/PO"
-              >{{
-                checkData?.data_reference?.unique_code ?? "-"
-              }}</el-descriptions-item
-            >
-            <el-descriptions-item label="Nomor Dokumen">{{
-              checkData?.source_document ?? "-"
-            }}</el-descriptions-item>
-            <!-- <el-descriptions-item label="Alamat">
-                            -
-                        </el-descriptions-item> -->
-            <el-descriptions-item label="Tujuan">{{
-              checkData?.to_name
-            }}</el-descriptions-item>
-            <el-descriptions-item
-              v-for="(pic, index) in checkData?.inventory_movement_pic"
-              :key="index"
-              :label="index == 0 ? 'PIC' : ''"
-              >{{ pic.pic?.name }}
-              {{
-                pic.pic?.phone ? `(${pic.pic?.phone})` : ""
-              }}</el-descriptions-item
-            >
-          </el-descriptions>
-        </div>
-      </div>
-      <div class="mb-5">
-        <h1 class="text-lg font-bold">Alamat Pengiriman</h1>
-        <div class="text-sm mt-2" v-if="checkData?.address">
-          <span class="font-italic"
-            >({{ checkData?.address?.address_name }}) |
-            {{ checkData?.pic?.name }}
-            {{
-              checkData?.pic?.phone ? `(${checkData?.pic?.phone})` : ""
-            }}</span
-          >
-          <div class="flex flex-col">
-            <span class="text-gray-500">{{ checkData?.address?.street }}</span>
-            <span
-              class="text-gray-500"
-              >{{ generateAddressViewName(checkData?.address!) }}</span
-            >
-          </div>
-        </div>
-      </div>
-      <div
-        class="mb-5"
-        v-if="
-          checkData?.inventory_movement_address &&
-          checkData.inventory_movement_address.length > 0 &&
-          checkData.inventory_movement_address[0].type ==
-            AddressMovementType.WAREHOUSE
-        "
-      >
-        <h1 class="text-lg font-bold">Alamat Gudang</h1>
-        <div
-          class="text-sm mt-2"
-          v-if="checkData?.inventory_movement_address[0].address"
-        >
-          <span class="font-italic"
-            >({{
-              checkData?.inventory_movement_address[0].address.address_name
-            }}) |
-            {{ checkData?.inventory_movement_address[0].address.address_name }}
-            {{
-              checkData?.inventory_movement_address[0].address.contact_name
-            }}</span
-          >
-          <div class="flex flex-col">
-            <span class="text-gray-500">{{
-              checkData?.inventory_movement_address[0].address?.street
-            }}</span>
-            <span class="text-gray-500">{{
-              generateAddressViewName(
-                checkData?.inventory_movement_address[0].address
-              )
-            }}</span>
-          </div>
-        </div>
-      </div>
-      <div class="mb-5">
-        <h1 class="text-lg font-bold">Lampiran</h1>
-        <div
-          class="flex gap-3 items-center"
-          v-if="(checkData?.files || []).length > 0"
-          v-for="file in checkData?.files"
-        >
-          <p>{{ file.filename }}</p>
-          <el-button @click="() => {}"
-            ><el-icon><Download /></el-icon> Download</el-button
-          >
-        </div>
-        <div v-else class="text-sm">Tidak Ada Lampiran</div>
-      </div>
-      <div class="mb-5">
-        <h1 class="text-lg font-bold">Catatan</h1>
-        <div class="flex gap-3 items-center" v-if="checkData?.note">
-          <span v-html="`${extractDescription(checkData?.note ?? '')}`"></span>
-        </div>
-        <div v-else class="text-sm">Tidak Ada Catatan</div>
-      </div>
-    </el-card>
-    <el-card>
-      <h1 class="mb-4">Item Permintaan</h1>
-      <el-table
-        :data="checkData?.inventory_movement_item"
-        style="width: 100%"
-        border
-      >
-        <el-table-column prop="inventory.catalogue.name" label="Nama Item">
-          <template #default="scope">
-            {{
-              scope.row.inventory?.catalogue?.name ??
-              scope.row.reference_data?.catalogue_name ??
-              "-"
-            }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="sn" label="Serial/Part Number" width="180" />
-        <el-table-column prop="quantity" label="QTY" width="100" />
-
-        <el-table-column prop="unit_name" label="UOM" width="100" />
-        <el-table-column prop="" label="Keterangan" width="100">
-          <template #default="{ row }">
-            <div
-              class="text-sm"
-              v-html="extractDescription(row?.note ?? '')"
-            ></div>
-          </template>
-        </el-table-column>
-      </el-table>
-    </el-card>
-
-    <el-dialog
-      v-model="showPreviewPDF"
-      title="Preview PDF"
-      width="80%"
-      destroy-on-close
-    >
-      <iframe
-        v-if="pdfUrl"
-        :src="pdfUrl"
-        width="100%"
-        height="600px"
-        style="border: none"
-      ></iframe>
-
-      <template #footer>
-        <el-button @click="showPreviewPDF = false">Tutup</el-button>
-        <el-button type="success" @click="() => downloadPdf('DO')"
-          >Download PDF</el-button
-        >
-      </template>
-    </el-dialog>
+    <movementDetail
+      v-if="!pending"
+      :check-data="checkData!"
+      :inquiry-data="inquiryData"
+      :privilages="data?.privilege || []"
+      :mode="'edit'"
+      :purchase-order-data="purchaseOrderData"
+    />
   </TrumsWrapper>
 </template>
 
@@ -250,6 +25,7 @@ import { Download, Eleme, Tickets } from "@element-plus/icons-vue";
 import { InquiryReference, TypeInquiry, type Inquiry } from "~/types/inquiry";
 import {
   AddressMovementType,
+  CategoryMovement,
   type InventoryMovement,
   type InventoryMovementItem,
 } from "~/types/inventory_movement";
@@ -261,8 +37,9 @@ import { ElLoading } from "element-plus";
 import type { PurchaseOrder } from "~/types/scm/purchase_order";
 import { load } from "@fingerprintjs/fingerprintjs";
 import { extractDescription, generateAddressViewName } from "#imports";
-import type { TrumDoc } from "~/types/document";
-
+import { DocRef, getDocRefLink, type TrumDoc } from "~/types/document";
+import type { ItemRequest } from "~/types/item_request";
+import movementDetail from "./components/movementDetail.vue";
 const showPreviewPDF = ref(false);
 const loading = ref(false);
 const loadingPO = ref<boolean>(false);
@@ -504,29 +281,51 @@ const generateDeliveryOrderPdf = async (unique_code: string) => {
   // ================= NOTES =================
 
   const noteText = checkData?.note
-    ? `${checkData.note}`
-        .split("\n")
-        .filter((v) => v.trim() !== "")
+    ? [
+        ...`${checkData.note}`.split("\n").filter((v) => v.trim() !== ""),
+        "Barang yang telah diterima dan dinyatakan sesuai tidak dapat dikembalikan atau ditukar (non-retur)",
+      ]
         .map((v) => `• ${v}`)
         .join("\n")
-    : "-";
+    : "• Barang yang telah diterima dan dinyatakan sesuai tidak dapat dikembalikan atau ditukar (non-retur)";
+
+  // Barang yang telah diterima dan dinyatakan sesuai tidak dapat dikembalikan atau ditukar (non-retur)
 
   // ================= TABLE =================
+
+  let itemTable: any[] = [];
+
+  (checkData?.inventory_movement_item ?? []).forEach((item, i) => {
+    if (checkData?.category == CategoryMovement.DOCUMENTS) {
+      itemTable.push([
+        i + 1,
+        `${item.reference_data?.catalogue_name}`,
+        item.quantity,
+        item.note ?? "",
+      ]);
+    } else {
+      itemTable.push([
+        i + 1,
+        item.inventory?.catalogue?.name ?? "",
+        item.quantity,
+        item.unit_name,
+        item.note ?? "",
+      ]);
+    }
+  });
+
+  let headerTable = [["No", "Nama Item", "Qty", "UoM", "Keterangan"]];
+
+  if (checkData?.category == CategoryMovement.DOCUMENTS) {
+    headerTable = [["No", "Nama Item", "Qty", "Keterangan"]];
+  }
 
   autoTable(doc, {
     startY: y,
     margin: { left: margin, right: margin },
-    head: [["No", "Nama Barang", "Qty", "UoM", "Keterangan"]],
+    head: headerTable,
     body: [
-      ...(checkData?.inventory_movement_item ?? []).map(
-        (item: InventoryMovementItem, i: number) => [
-          i + 1,
-          item.inventory?.catalogue?.name ?? "-",
-          item.quantity,
-          item.unit_name,
-          item.note ?? "",
-        ]
-      ),
+      ...itemTable,
       [
         {
           content: `Notes:\n${noteText}`,
@@ -557,7 +356,11 @@ const generateDeliveryOrderPdf = async (unique_code: string) => {
     columnStyles: {
       0: { cellWidth: 10, halign: "center" },
       2: { cellWidth: 12, halign: "center" },
-      3: { cellWidth: 15, halign: "center" },
+      3: {
+        cellWidth: checkData?.category == CategoryMovement.GOODS ? 15 : 50,
+        halign:
+          checkData?.category == CategoryMovement.GOODS ? "center" : "left",
+      },
       4: { cellWidth: 70, halign: "left" },
     },
   });

@@ -409,6 +409,7 @@ import {
   PurchaseOrderItemStatus,
   type PurchaseOrder,
   type PurchaseOrderItem,
+  displayStatusSOITEM,
 } from "~/types/scm/purchase_order";
 import type { BaseResponse } from "~/types/response";
 import {
@@ -587,15 +588,7 @@ const fetchPurchaseOrder = async () => {
 };
 
 const formatStatusItem = (status: PurchaseOrderItemStatus) => {
-  if (status === PurchaseOrderItemStatus.DRAFT) {
-    return "DRAFT";
-  } else if (status === PurchaseOrderItemStatus.DONE) {
-    return "APPROVE";
-  } else if (status === PurchaseOrderItemStatus.CANCELLED) {
-    return "REJECTED";
-  } else {
-    return status;
-  }
+  return displayStatusSOITEM(status);
 };
 
 const showTransactionAdjustmentValue = (
@@ -675,19 +668,6 @@ const formatStatus = (status: string | undefined) => {
   return statusMap[status] || status.charAt(0).toUpperCase() + status.slice(1);
 };
 
-const formatItemStatus = (status: string | undefined) => {
-  if (!status) return "-";
-
-  const statusMap: Record<string, string> = {
-    [PurchaseOrderItemStatus.DRAFT]: "Draft",
-    [PurchaseOrderItemStatus.PENDING_APPROVAL]: "Menunggu Persetujuan",
-    [PurchaseOrderItemStatus.CANCELLED]: "Dibatalkan",
-    [PurchaseOrderItemStatus.DONE]: "Selesai",
-  };
-
-  return statusMap[status] || status.charAt(0).toUpperCase() + status.slice(1);
-};
-
 const getStatusTagType = (
   status: string
 ): "success" | "info" | "danger" | "warning" | "primary" => {
@@ -711,16 +691,16 @@ const getItemStatusTagType = (
   status: string
 ): "success" | "info" | "danger" | "warning" | "primary" => {
   switch (status) {
-    case PurchaseOrderItemStatus.DRAFT:
+    case PurchaseOrderItemStatus.WAITING_REQUEST:
       return "info";
-    case PurchaseOrderItemStatus.PENDING_APPROVAL:
+    case PurchaseOrderItemStatus.WAITING_PO:
+      return "success";
+    case PurchaseOrderItemStatus.WAITING_PR:
       return "warning";
     case PurchaseOrderItemStatus.DONE:
-      return "success";
-    case PurchaseOrderItemStatus.CANCELLED:
-      return "danger";
-    default:
       return "primary";
+    default:
+      return "danger";
   }
 };
 
@@ -756,10 +736,7 @@ const updateStatus = async (status: PurchaseOrderStatus, note: string = "") => {
         );
 
         if (status == PurchaseOrderStatus.PENDING_APPROVAL) {
-          formData.append(
-            `item[${index}][status]`,
-            `${PurchaseOrderItemStatus.PENDING_APPROVAL}`
-          );
+          formData.append(`item[${index}][status]`, `waiting_approval`);
         } else {
           formData.append(`item[${index}][status]`, `${item.status}`);
         }
@@ -820,11 +797,6 @@ const markAsCompleted = async () => {
 const approveItem = async (itemIndex: number) => {
   purchaseOrderData.value!.purchase_order_item[itemIndex].status =
     PurchaseOrderItemStatus.DONE;
-};
-
-const rejectItem = async (itemIndex: number) => {
-  purchaseOrderData.value!.purchase_order_item[itemIndex].status =
-    PurchaseOrderItemStatus.CANCELLED;
 };
 
 const confirmDelete = () => {

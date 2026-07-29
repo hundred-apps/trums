@@ -312,6 +312,7 @@ export type CanvassingItemForm = {
   tmp_child_selected?: string;
   expected_delivery?: string;
   quo_number?: string;
+  is_deleted?: boolean;
 };
 
 export type CanvassingItemVendorSummery = {

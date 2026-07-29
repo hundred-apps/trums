@@ -332,9 +332,15 @@
         </div>
       </template>
 
-      <div class="flex gap-3 my-3">
+      <div :class="`flex gap-3 my-3 ${isMobile ? 'flex-col' : ''}`">
         <div class="flex-1">
-          <el-descriptions title="" :column="1" size="large" border>
+          <el-descriptions
+            title=""
+            :column="1"
+            :label-width="100"
+            size="default"
+            :border="isMobile ? false : true"
+          >
             <el-descriptions-item label="No Ref">
               {{ canvassingData?.source_document || "-" }}
             </el-descriptions-item>
@@ -343,12 +349,12 @@
               v-if="canvassingData?.source"
               label="Diminta Oleh"
             >
-              <p
+              <span
                 class="text-blue-600 cursor-pointer"
                 @click="() => (dialogCustomerOverview = true)"
               >
                 {{ canvassingData?.source?.request_to?.name ?? "-" }}
-              </p>
+              </span>
             </el-descriptions-item>
             <el-descriptions-item v-if="canvassingData?.source" label="PIC">
               {{ canvassingData?.source?.request_by?.name ?? "-" }}
@@ -356,16 +362,22 @@
           </el-descriptions>
         </div>
         <div class="flex-1">
-          <el-descriptions title="" :column="1" size="large" border>
+          <el-descriptions
+            title=""
+            :column="1"
+            size="default"
+            :label-width="100"
+            :border="isMobile ? false : true"
+          >
             <el-descriptions-item label="Status">
-              <div v-if="canvassingData">
+              <span v-if="canvassingData">
                 <el-tag :type="getStatusTagType(canvassingData.status)">
                   {{ formatStatus(canvassingData.status) }}
                 </el-tag>
-              </div>
+              </span>
               <span v-else>-</span>
             </el-descriptions-item>
-            <el-descriptions-item label="Berlaku Hingga">
+            <el-descriptions-item label="Berlaku S/d">
               {{
                 canvassingData?.expired_price
                   ? dayjs
@@ -590,13 +602,18 @@
             prop="item_name"
             label="Item"
             width="500"
-            fixed="left"
+            :fixed="isMobile ? false : 'left'"
           >
             <template #default="{ row }">
               {{ displayCatalogueName(row.catalogue) }}
             </template>
           </el-table-column>
-          <el-table-column v-else prop="item_name" label="Item" fixed="left">
+          <el-table-column
+            v-else
+            prop="item_name"
+            label="Item"
+            :fixed="isMobile ? false : 'left'"
+          >
             <template #default="{ row }">
               {{ row.catalogue_name }}
             </template>
@@ -622,7 +639,7 @@
             prop="type_item"
             label="Item Type"
             width="150"
-            fixed="left"
+            :fixed="isMobile ? false : 'left'"
           >
             <template #default="{ row }">
               <div v-if="row.type === 'parent'">
@@ -648,7 +665,7 @@
             "
             label="Status"
             width="130"
-            fixed="left"
+            :fixed="isMobile ? false : 'left'"
             align="center"
           >
             <template #default="{ row }">

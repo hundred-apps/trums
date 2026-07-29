@@ -6,6 +6,7 @@ import type { AppFile } from "../file";
 import type { TermOfPayment } from "../payment_term";
 import type { People } from "../people";
 import type { PaymentTerm } from "../scm/canvasing";
+import type { PurchaseOrder } from "../scm/purchase_order";
 import type { PaymentMethod, PaymentStatus } from "./bill";
 import type { TransactionBank, TransactionItem } from "./transaction";
 
@@ -90,7 +91,7 @@ export type Invoice = {
   checked?: boolean;
   history_payment?: TransactionItem[];
   purchase_order_bank?: TransactionBank[];
-  data_reference?: any;
+  data_reference?: PurchaseOrder;
   reference_transaction?: ReferenceTransactionAdjustment[];
   vendor?: Contact;
   vendor_address?: AddressType;

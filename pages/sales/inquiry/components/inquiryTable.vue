@@ -55,6 +55,10 @@ const column_selected = ref<string[]>([
   "date",
   "request_by.name",
   "request_to.name",
+  "no_canv",
+  "no_rab",
+  "no_quo",
+  "no_so",
   "progress",
   "status",
   "setup",
@@ -163,7 +167,7 @@ const availableColumn: ColumnTable<Inquiry>[] = [
     dataKey: "request_to.name",
     key: "request_to.name",
     sortable: true,
-    width: isMobile ? 250 : 0,
+    width: isMobile ? 250 : column_selected.value.length < 8 ? 0 : 400,
     cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
       <p>{rowData.request_to?.name ?? "Tidak Ada"}</p>
     ),
@@ -172,7 +176,7 @@ const availableColumn: ColumnTable<Inquiry>[] = [
     title: "INQ.NO",
     dataKey: "unique_code",
     key: "unique_code",
-    width: isMobile ? 100 : 0,
+    width: isMobile ? 100 : 200,
     cellRenderer: ({ rowData: row }) => (
       <NuxtLink
         href={`/sales/inquiry/${row.unique_id}`}
@@ -186,7 +190,7 @@ const availableColumn: ColumnTable<Inquiry>[] = [
     title: "PIC",
     dataKey: "request_by.name",
     key: "request_by.name",
-    width: isMobile ? 200 : 0,
+    width: isMobile ? 200 : 300,
     sortable: true,
     cellRenderer: ({ rowData }: { rowData: Inquiry }) => (
       <p>{rowData.request_by?.name ?? ""}</p>
@@ -196,7 +200,7 @@ const availableColumn: ColumnTable<Inquiry>[] = [
     title: "Tanggal",
     dataKey: "date",
     key: "date",
-    width: isMobile ? 150 : 0,
+    width: isMobile ? 150 : 200,
     sortable: true,
     cellRenderer: ({ rowData: row }) => (
       <p>{row.date == null ? "-" : formatLocalDate(row.date)}</p>
@@ -291,6 +295,82 @@ const availableColumn: ColumnTable<Inquiry>[] = [
     ),
   },
   {
+    title: "No.Canvassing",
+    dataKey: "no_canv",
+    key: "no_canv",
+    width: isMobile ? 130 : 150,
+    align: "center",
+    cellRenderer: ({ rowData }: { rowData: Inquiry }) =>
+      rowData.canvassing ? (
+        <NuxtLink
+          class={"text-blue-600 cursor-pointer"}
+          target={"_blank"}
+          href={`/sales/quotation/${rowData.canvassing?.unique_id}`}
+        >
+          {rowData.canvassing?.unique_code}
+        </NuxtLink>
+      ) : (
+        <></>
+      ),
+  },
+  {
+    title: "No.RAB",
+    dataKey: "no_rab",
+    key: "no_rab",
+    width: isMobile ? 130 : 150,
+    align: "center",
+    cellRenderer: ({ rowData }: { rowData: Inquiry }) =>
+      rowData.rab ? (
+        <NuxtLink
+          class={"text-blue-600 cursor-pointer"}
+          target={"_blank"}
+          href={`/sales/quotation/${rowData.rab?.unique_id}`}
+        >
+          {rowData.rab?.unique_code}
+        </NuxtLink>
+      ) : (
+        <></>
+      ),
+  },
+  {
+    title: "No.QUO",
+    dataKey: "no_quo",
+    key: "no_quo",
+    width: isMobile ? 130 : 150,
+    align: "center",
+    cellRenderer: ({ rowData }: { rowData: Inquiry }) =>
+      rowData.penawaran ? (
+        <NuxtLink
+          class={"text-blue-600 cursor-pointer"}
+          target={"_blank"}
+          href={`/sales/offer/${rowData.penawaran?.unique_id}`}
+        >
+          {rowData.penawaran?.unique_code}
+        </NuxtLink>
+      ) : (
+        <></>
+      ),
+  },
+  {
+    title: "No.SO",
+    dataKey: "no_so",
+    key: "no_so",
+    width: isMobile ? 130 : 150,
+    align: "center",
+    cellRenderer: ({ rowData }: { rowData: Inquiry }) =>
+      rowData.penawaran ? (
+        <NuxtLink
+          class={"text-blue-600 cursor-pointer"}
+          target={"_blank"}
+          href={`/sales/order/${rowData.so?.unique_id}`}
+        >
+          {rowData.so?.unique_code}
+        </NuxtLink>
+      ) : (
+        <></>
+      ),
+  },
+  {
     title: "Operasi",
     key: "operation",
     width: 100,
@@ -328,47 +408,47 @@ const availableColumn: ColumnTable<Inquiry>[] = [
       );
     },
   },
-  // {
-  //   title: "",
-  //   key: "setup",
-  //   width: 50,
-  //   fixed: TableV2FixedDir.RIGHT,
-  // },
+  {
+    title: "",
+    key: "setup",
+    width: 50,
+    fixed: TableV2FixedDir.RIGHT,
+  },
 ];
 
-// availableColumn[8].headerCellRenderer = () => {
-//   return (
-//     <div class="flex items-center justify-center">
-//       <span class="mr-2 text-xs"></span>
-//       <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
-//         {{
-//           default: () => (
-//             <div class="filter-wrapper">
-//               <div class="filter-group flex flex-col">
-//                 <ElCheckboxGroup v-model={column_selected.value}>
-//                   {availableColumn
-//                     .filter((c) => c.key !== "selection" && c.key !== "setup")
-//                     .map((c) => (
-//                       <ElCheckbox
-//                         key={c.key}
-//                         value={c.key!.toString()}
-//                         label={c.title}
-//                       />
-//                     ))}
-//                 </ElCheckboxGroup>
-//               </div>
-//             </div>
-//           ),
-//           reference: () => (
-//             <ElIcon class="cursor-pointer">
-//               <SetUp />
-//             </ElIcon>
-//           ),
-//         }}
-//       </ElPopover>
-//     </div>
-//   );
-// };
+availableColumn[availableColumn.length - 1].headerCellRenderer = () => {
+  return (
+    <div class="flex items-center justify-center">
+      <span class="mr-2 text-xs"></span>
+      <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
+        {{
+          default: () => (
+            <div class="filter-wrapper">
+              <div class="filter-group flex flex-col">
+                <ElCheckboxGroup v-model={column_selected.value}>
+                  {availableColumn
+                    .filter((c) => c.key !== "selection" && c.key !== "setup")
+                    .map((c) => (
+                      <ElCheckbox
+                        key={c.key}
+                        value={c.key!.toString()}
+                        label={c.title}
+                      />
+                    ))}
+                </ElCheckboxGroup>
+              </div>
+            </div>
+          ),
+          reference: () => (
+            <ElIcon class="cursor-pointer">
+              <SetUp />
+            </ElIcon>
+          ),
+        }}
+      </ElPopover>
+    </div>
+  );
+};
 
 const filteredColumn = computed(() => {
   return availableColumn.filter((col) =>
@@ -661,11 +741,13 @@ watch(
       ></el-input>
     </el-col>
   </el-row>
-  <customTable
-    @sort-change="onSort"
-    :columns="filteredColumn"
-    :data="data?.data ?? []"
-  />
+  <TrumsDragScrollTable>
+    <customTable
+      @sort-change="onSort"
+      :columns="filteredColumn"
+      :data="data?.data ?? []"
+    />
+  </TrumsDragScrollTable>
   <div class="flex justify-end mt-3">
     <el-pagination
       background

@@ -2,6 +2,7 @@ import type { UploadUserFile } from "element-plus";
 import type { Brands } from "./brand";
 import type { AppFile } from "./file";
 import type { Inventory } from "./inventory";
+import type { TrumDoc } from "./document";
 
 export enum CatalogueType {
   ITEM = "item",
@@ -36,7 +37,7 @@ export type Catalogue = {
   checked?: boolean;
   brand?: Brands;
   inventories_location?: Inventory[];
-  document?: Document;
+  document?: TrumDoc;
 };
 
 export type ItemInterface = {

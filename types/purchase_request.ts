@@ -1,6 +1,8 @@
+import type { Catalogue } from "./catalogue";
 import type { Contact } from "./contact";
 import type { ItemRequest, ItemRequestTrail } from "./item_request";
 import type { People } from "./people";
+import type { PurchaseOrder } from "./scm/purchase_order";
 
 export enum PurchaseRequestStatus {
   DRAFT = "draft",
@@ -50,4 +52,6 @@ export type PurchaseRequestItem = {
   item_request_version: number;
   status: PurchaseRequestStatus;
   checked?: boolean;
+  purchase_order?: PurchaseOrder;
+  catalogue?: Catalogue;
 };

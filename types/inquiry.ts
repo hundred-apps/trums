@@ -5,6 +5,7 @@ import type { AppFile } from "./file";
 import type { ItemRequest } from "./item_request";
 import type { Maintenance } from "./maintenance";
 import type { People } from "./people";
+import type { Pricetag } from "./pricetag";
 import type { Canvassing } from "./scm/canvasing";
 import type { PurchaseOrder } from "./scm/purchase_order";
 
@@ -74,7 +75,10 @@ export type Inquiry = {
   people: People;
   item_request: ItemRequest[];
   canvassing?: Canvassing;
+  rab?: Canvassing;
+  penawaran?: Pricetag;
   sales_order?: PurchaseOrder;
+  so?: PurchaseOrder;
   version?: number;
   files?: AppFile[];
   ref_code?: string;

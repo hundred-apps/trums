@@ -84,24 +84,46 @@
       </template>
       <TrumsDragScrollTable>
         <el-table
-          :data="item_memo ?? []"
+          :data="showItemMemo ?? []"
           row-key="unique_id"
           :expand-row-keys="getExpandRowKeys ?? []"
           border
         >
-          <el-table-column prop="catalogue_name" label="Item" width="400" />
+          <el-table-column prop="catalogue_name" label="Item" width="400">
+            <template #default="{ row }">
+              <div v-if="row.type == 'child'" class="flex items-center gap-2">
+                <el-button
+                  type="danger"
+                  link
+                  @click="
+                    () =>
+                      deleteITemMemoVendor(
+                        row.parent_index,
+                        parseInt(row.index)
+                      )
+                  "
+                >
+                  <el-icon><Delete /></el-icon>
+                </el-button>
+                <span>{{ row.catalogue_name }}</span>
+              </div>
+              <span v-else>{{ row.catalogue_name }}</span>
+            </template>
+          </el-table-column>
           <el-table-column
             prop="quantity"
             label="QTY"
-            align="right"
-            :width="70"
+            align="center"
+            :width="200"
           >
             <template #default="{ row, $index }">
               <el-input-number
+                v-if="row.type == 'child'"
                 v-model="row.quantity"
                 :min="1"
                 @blur="() => onChangeQuantity(row, $index)"
               />
+              <span v-else>{{ row.quantity }}</span>
             </template>
           </el-table-column>
           <el-table-column
@@ -166,6 +188,7 @@
             >
               <template #default="{ row }">
                 <span
+                  v-if="row.type == 'child'"
                   >{{ currencyWithoutSymbol((row as CanvassingItemMemoForm).unit_price, 0) }}</span
                 >
               </template>
@@ -245,7 +268,7 @@
           >
             <template #default="{ row }">
               <span
-                >{{ currencyWithoutSymbol(calculateMarginNominal((row as CanvassingItemMemoForm).unit_price, (row as CanvassingItemMemoForm).unit_po_price), 0) }}</span
+                >{{ currencyWithoutSymbol(calculateMarginNominal((row as CanvassingItemMemoForm).total_price, (row as CanvassingItemMemoForm).total_po_price), 0) }}</span
               >
             </template>
           </el-table-column>
@@ -257,154 +280,7 @@
           >
             <template #default="{ row }">
               <span
-                >{{ customMathCeil(calculateMargin((row as CanvassingItemMemoForm).unit_price, (row as CanvassingItemMemoForm).unit_po_price))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                >{{ customMathCeil(calculateMargin((row as CanvassingItemMemoForm).total_price, (row as CanvassingItemMemoForm).total_po_price))
 
 
 
@@ -611,7 +487,7 @@ import {
   type ReferenceTransactionAdjustment,
 } from "~/types/attribute_adjustment";
 import { customMathCeil } from "#imports";
-import { Refresh } from "@element-plus/icons-vue";
+import { Delete, Refresh } from "@element-plus/icons-vue";
 import ModalSearchItemExample from "~/components/trums/ModalSearchItemExample.vue";
 import type { Pricetag_item } from "~/types/pricetag";
 import PricetagItemSelect from "~/components/trums/PricetagItemSelect.vue";
@@ -829,6 +705,18 @@ const onSelectPricetagItem = (item: Pricetag_item) => {
     [];
 
   if (item.pricetag?.type == "in") {
+    if (item.catalogue) {
+      item_memo.value[parentIndexActive.value].children[
+        childIndexActive.value
+      ].catalogue = item.catalogue;
+      item_memo.value[parentIndexActive.value].children[
+        childIndexActive.value
+      ].catalogue_name = displayCatalogueName(item.catalogue);
+      item_memo.value[parentIndexActive.value].children[
+        childIndexActive.value
+      ].catalogue_id = item.catalogue_id || "";
+    }
+
     item_memo.value[parentIndexActive.value].children[
       childIndexActive.value
     ].vendor_id = item.pricetag?.owner_id;
@@ -901,6 +789,7 @@ const onSelectPricetagItem = (item: Pricetag_item) => {
   childIndexActive.value = -1;
   modalSelectItem.value = false;
 
+  calculateParentItem();
   findRecepientFee();
   calculateSummaryaData();
 };
@@ -908,30 +797,32 @@ const onSelectPricetagItem = (item: Pricetag_item) => {
 const generateFee = async () => {
   contactsFee.value = [];
   item_memo.value.forEach((element) => {
-    element.children.forEach((child) => {
-      child.contacts_fee.forEach((fee) => {
-        if (fee.type == FeeType.PERCENT) {
-          if (fee.value != null) {
-            const totalProfitFee = Number(fee.value) + 100;
-            const profit =
-              child.selling_price - child.unit_price - child.ongkir;
+    (element.children || [])
+      .filter((filter) => !filter.is_deleted)
+      .forEach((child) => {
+        child.contacts_fee.forEach((fee) => {
+          if (fee.type == FeeType.PERCENT) {
+            if (fee.value != null) {
+              const totalProfitFee = Number(fee.value) + 100;
+              const profit =
+                child.selling_price - child.unit_price - child.ongkir;
+              contactsFee.value.push({
+                ...fee,
+                amount: child.quantity * (profit / totalProfitFee) * fee.value,
+                canvassing_id: element.canvassing_id || "",
+                canvassing_code: element.canvassing_number,
+              });
+            }
+          } else {
             contactsFee.value.push({
               ...fee,
-              amount: child.quantity * (profit / totalProfitFee) * fee.value,
+              amount: fee.amount * child.quantity,
               canvassing_id: element.canvassing_id || "",
               canvassing_code: element.canvassing_number,
             });
           }
-        } else {
-          contactsFee.value.push({
-            ...fee,
-            amount: fee.amount * child.quantity,
-            canvassing_id: element.canvassing_id || "",
-            canvassing_code: element.canvassing_number,
-          });
-        }
+        });
       });
-    });
   });
 
   item_memo.value.forEach((element) => {
@@ -991,6 +882,21 @@ const totalHargaJual = computed(() => {
     (sum, data) => sum + data.total_selling_price,
     0
   );
+});
+
+const deleteITemMemoVendor = (parentIndex: number, childIndex: number) => {
+  item_memo.value[parentIndex].children[childIndex].is_deleted = true;
+  calculateParentItem();
+  findRecepientFee();
+  calculateReferences();
+  calculateSummaryaData();
+};
+
+const showItemMemo = computed(() => {
+  return item_memo.value.map((item) => ({
+    ...item,
+    children: item.children?.filter((child) => !child.is_deleted) ?? [],
+  }));
 });
 
 watch(
@@ -1082,7 +988,7 @@ watch(
                     sn: "",
                     quantity: vendor.quantity,
                     unit_price: vendor.unit_price,
-                    total_price: element.quantity * vendor.unit_price,
+                    total_price: vendor.quantity * vendor.unit_price,
                     status: CanvassingVendorStatus.SUBMITTED,
                     taxes: [],
                     editing: null,
@@ -1105,9 +1011,10 @@ watch(
                       element.pricetag_item?.pricetag?.unique_code || "",
                     unit_po_price: element.po_unit_price || 0,
                     total_po_price:
-                      element.quantity * (element.po_unit_price || 0),
+                      vendor.quantity * (element.po_unit_price || 0),
                     contacts_fee: fees,
                     canvassing_vendor_unique_id: vendor.unique_id || "",
+                    is_deleted: false,
                     canvassing_number:
                       (
                         element.pricetag_item?.pricetag?.reference_data as
@@ -1159,10 +1066,7 @@ watch(
           (sum, data) => sum + (data.unit_price || 0),
           0
         ),
-        total_price: childs.reduce(
-          (sum, data) => sum + data.quantity * (data.unit_price || 0),
-          0
-        ),
+        total_price: childs.reduce((sum, data) => sum + data.total_price, 0),
         status: CanvassingVendorStatus.SUBMITTED,
         taxes: [],
         editing: null,
@@ -1183,7 +1087,7 @@ watch(
         contacts_fee: feeAccum,
         unit_po_price: element.po_unit_price || 0,
         total_po_price: (element.po_unit_price || 0) * element.quantity,
-
+        is_deleted: false,
         canvassing_number:
           (
             element.pricetag_item?.pricetag?.reference_data as
@@ -1194,7 +1098,7 @@ watch(
 
       parentIndex++;
     }
-
+    calculateParentItem();
     findRecepientFee();
     calculateReferences();
   },
@@ -1203,6 +1107,17 @@ watch(
     deep: true,
   }
 );
+
+const calculateParentItem = () => {
+  item_memo.value.forEach((element) => {
+    element.total_price = (element.children || [])
+      .filter((filter) => !filter.is_deleted)
+      .reduce((sum, data) => sum + data.total_price, 0);
+    element.total_selling_price = (element.children || [])
+      .filter((filter) => !filter.is_deleted)
+      .reduce((sum, data) => sum + data.total_selling_price, 0);
+  });
+};
 
 const getDPPNilaiLain = computed(() => {
   let dpp = 0;

@@ -1757,7 +1757,7 @@ onMounted(() => {
           style="width: 100%"
           @click="openDialogCatalogueSelect"
         >
-          Tambahkan Baris Baru
+          Tambah Item
         </el-button>
       </el-card>
     </el-form>

@@ -1,0 +1,661 @@
+<template>
+  <el-row :gutter="20">
+    <el-col :span="6"
+      ><el-input
+        v-model="request_search.keyword"
+        size="default"
+        placeholder="Type to search"
+    /></el-col>
+    <el-button
+      size="default"
+      type="default"
+      :loading="status === 'pending'"
+      :icon="Eleme"
+      @click="onRefresh"
+      >Reload</el-button
+    >
+
+    <NuxtLink
+      v-if="mode == 'edit'"
+      class="el-button el-button--primary"
+      href="/inventory-management/checkin/add?type=in"
+      >CheckIn</NuxtLink
+    >
+    <NuxtLink
+      v-if="mode == 'edit'"
+      class="el-button el-button--primary"
+      href="/inventory-management/checkin/add?type=out"
+      >CheckOut</NuxtLink
+    >
+    <!-- <el-button size="default" @click="consigment">Consignment</el-button> -->
+    <el-form
+      :model="ruleFormFilter"
+      class="ml-3"
+      label-width="auto"
+      style="max-width: 600px"
+    >
+      <el-form-item label="">
+        <el-date-picker
+          v-model="ruleFormFilter.date_range"
+          type="daterange"
+          unlink-panels
+          range-separator="To"
+          start-placeholder="Start date"
+          end-placeholder="End date"
+          :shortcuts="shortcutsDate"
+          size="default"
+        />
+      </el-form-item>
+    </el-form>
+    <el-popconfirm
+      v-if="checkSelect()"
+      width="220"
+      :icon="InfoFilled"
+      icon-color="#626AEF"
+      title="Apakah Anda Yakin Ingin Menghapus Data ini?"
+      @cancel="() => {}"
+    >
+      <template #reference>
+        <el-button size="default" class="ml-3" type="danger">Delete</el-button>
+      </template>
+      <template #actions="{ confirm, cancel }">
+        <el-button size="small" @click="cancel">Batal</el-button>
+        <el-button type="danger" size="small" @click="deleteBulk">
+          Hapus
+        </el-button>
+      </template>
+    </el-popconfirm>
+    <el-col :span="6"
+      ><el-checkbox
+        v-model="filterNotInvoice"
+        label="Belum ada invoice"
+        size="default"
+    /></el-col>
+  </el-row>
+
+  <TrumsDragScrollTable>
+    <CustomTable
+      @sort-change="onSort"
+      :columns="filteredColumn"
+      :data="data?.data ?? []"
+      :loading="status === 'pending'"
+    />
+  </TrumsDragScrollTable>
+  <div class="flex justify-end mt-3">
+    <el-pagination
+      background
+      layout="prev, pager, next, sizes"
+      :total="data?.total_data"
+      :page-size="parseInt(request_search.limit)"
+      :current-page="parseInt(request_search.offset)"
+      @current-change="paginationClick"
+      @size-change="handleSizeChange"
+    />
+  </div>
+</template>
+<script lang="tsx" setup>
+import {
+  Eleme,
+  Filter,
+  InfoFilled,
+  Setting,
+  SetUp,
+} from "@element-plus/icons-vue";
+import {
+  ElCheckbox,
+  ElCheckboxGroup,
+  ElDropdown,
+  ElDropdownItem,
+  ElDropdownMenu,
+  ElIcon,
+  ElPopover,
+  ElTag,
+  TableV2FixedDir,
+  type CheckboxValueType,
+} from "element-plus";
+import type { ColumnTable } from "~/types/ColumnTable";
+import type { InventoryMovement } from "~/types/inventory_movement";
+import { OrderColumn, type RequestSearch } from "~/types/request_search";
+import type { ResponsePagination } from "~/types/response_pagination";
+import SelectionCell from "~/components/trums/table/SelectionCell.vue";
+import { NuxtLink } from "#components";
+import { InquiryReference, type Inquiry } from "~/types/inquiry";
+import type { PurchaseOrder } from "~/types/scm/purchase_order";
+import type { Invoice } from "~/types/finance/invoice";
+import CustomTable from "~/components/trums/table/customTable.vue";
+
+type Props = {
+  pramsColumn: any;
+  mode: "view" | "edit";
+};
+
+const props = defineProps<Props>();
+
+const request_search = ref<RequestSearch>({
+  keyword: "",
+  column: [
+    {
+      type: [],
+      status: [],
+      ...props.pramsColumn,
+    },
+  ],
+  limit: "10",
+  offset: "1",
+  table: "inventory_movement",
+  sort: {
+    column: "created_at",
+    order: OrderColumn.DESC,
+  },
+});
+
+interface FormFilter {
+  date_range: string[];
+}
+const ruleFormFilter = reactive<FormFilter>({
+  date_range: ["", ""],
+});
+const filterNotInvoice = ref<boolean>(false);
+
+const popoverRef = ref();
+
+const column_selected = ref<string[]>([
+  "selection",
+  "unique_code",
+  "type",
+  "from_name",
+  "to_name",
+  "reference_number",
+  "status",
+  "status_invoice",
+  "created_at",
+  "operation",
+  "setup",
+]);
+
+const shortcutsDate = [
+  {
+    text: "Last week",
+    value: () => {
+      const end = new Date();
+      const start = new Date();
+      start.setTime(start.getTime() - 3600 * 1000 * 24 * 7);
+      return [start, end];
+    },
+  },
+  {
+    text: "Last month",
+    value: () => {
+      const end = new Date();
+      const start = new Date();
+      start.setTime(start.getTime() - 3600 * 1000 * 24 * 30);
+      return [start, end];
+    },
+  },
+  {
+    text: "Last 3 months",
+    value: () => {
+      const end = new Date();
+      const start = new Date();
+      start.setTime(start.getTime() - 3600 * 1000 * 24 * 90);
+      return [start, end];
+    },
+  },
+];
+
+const { data, status, refresh } = await useAsyncData(
+  "inventory_movement",
+  async () => {
+    const res = await useFetchApi<ResponsePagination<InventoryMovement[]>>(
+      `/search`,
+      "inventory_movement",
+      "post",
+      request_search.value
+    );
+    return res.data.value;
+  }
+);
+
+const checkSelect = () =>
+  (data?.value?.data ?? []).some((row) => row.checked) ?? [];
+
+const availableColumn = computed(() => {
+  const column: ColumnTable<InventoryMovement>[] = [
+    {
+      title: "",
+      dataKey: "",
+      key: "selection",
+      width: 50,
+      cellRenderer: ({ rowData }: { rowData: InventoryMovement }) => {
+        const onChange = (value: CheckboxValueType) =>
+          (rowData.checked = value as boolean);
+        return <SelectionCell value={rowData.checked!} onChange={onChange} />;
+      },
+      maxWidth: 50,
+
+      headerCellRenderer: () => {
+        const _data = unref(data);
+        const onChange = (value: CheckboxValueType) =>
+          (data.value = {
+            success: true,
+            current_page: _data?.current_page ?? 0,
+            total_data: _data?.total_data ?? 0,
+            total_page: _data?.total_data ?? 0,
+            data: _data?.data?.map((row: any) => {
+              row.checked = value;
+              return row;
+            })!,
+          });
+
+        const allSelected = _data!.data.every((row) => row.checked);
+        const containsChecked = _data?.data.some((row) => row.checked);
+
+        return (
+          <SelectionCell
+            style={{ width: 50 }}
+            value={allSelected}
+            interminate={containsChecked && !allSelected}
+            onChange={onChange}
+          />
+        );
+      },
+    },
+    {
+      title: "Unique Code",
+      dataKey: "unique_code",
+      key: "unique_code",
+      width: 300,
+      cellRenderer: ({ rowData }: { rowData: InventoryMovement }) => (
+        <NuxtLink href={`checkin/${rowData.unique_id}`} class={"text-blue-600"}>
+          {rowData.unique_code}
+        </NuxtLink>
+      ),
+    },
+    {
+      title: "Tipe",
+      dataKey: "type",
+      key: "type",
+      width: 150,
+      align: "center",
+      headerCellRenderer: () => (
+        <div class="flex items-center justify-center">
+          <span class="mr-2 text-xs">Type</span>
+          <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
+            {{
+              default: () => (
+                <div class="filter-wrapper">
+                  <div class="filter-group flex flex-col">
+                    <ElCheckboxGroup
+                      v-model={request_search.value.column[0].type}
+                    >
+                      <ElCheckbox value="in">Barang Masuk</ElCheckbox>
+                      <ElCheckbox value="out">Barang Keluar</ElCheckbox>
+                    </ElCheckboxGroup>
+                  </div>
+                </div>
+              ),
+              reference: () => (
+                <ElIcon class="cursor-pointer">
+                  <Filter />
+                </ElIcon>
+              ),
+            }}
+          </ElPopover>
+        </div>
+      ),
+      cellRenderer: ({ rowData }: { rowData: InventoryMovement }) => (
+        <>
+          {rowData.type == "in" ? (
+            <ElTag type="danger">Barang Masuk</ElTag>
+          ) : (
+            <ElTag type="success">Barang Keluar</ElTag>
+          )}
+        </>
+      ),
+    },
+    {
+      title: "Sumber",
+      dataKey: "from_name",
+      key: "from_name",
+      width: 200,
+    },
+    {
+      title: "Tujuan",
+      dataKey: "to_name",
+      key: "to_name",
+      width: 200,
+    },
+    {
+      title: "Referensi",
+      dataKey: "reference_number",
+      width: 200,
+      key: "reference_number",
+      cellRenderer: ({ rowData }: { rowData: InventoryMovement }) =>
+        renderReferenceData(rowData),
+    },
+    {
+      title: "Status Invoice",
+      dataKey: "status_invoice",
+      key: "status_invoice",
+      width: 200,
+      align: "center",
+      cellRenderer: ({ rowData }: { rowData: InventoryMovement }) => {
+        const invoice = getInvoice(rowData);
+        if (invoice) {
+          return (
+            <NuxtLink
+              class={"text-blue-600"}
+              href={`/finance-management/invoice/${invoice.unique_id}`}
+            >
+              {invoice.unique_code}
+            </NuxtLink>
+          );
+        } else {
+          return <>Belum ada invoice</>;
+        }
+      },
+    },
+    {
+      title: "Status",
+      dataKey: "status",
+      key: "status",
+      width: 130,
+      align: "center",
+      cellRenderer: ({ rowData }: { rowData: InventoryMovement }) =>
+        getStatus(rowData),
+      headerCellRenderer: () => (
+        <div class="flex items-center justify-center">
+          <span class="mr-2 text-xs">Status</span>
+          <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
+            {{
+              default: () => (
+                <div class="filter-wrapper">
+                  <div class="filter-group flex flex-col">
+                    <ElCheckboxGroup
+                      v-model={request_search.value.column[0].status}
+                    >
+                      <ElCheckbox value="draft">Draft</ElCheckbox>
+                      <ElCheckbox value="waiting">Waiting</ElCheckbox>
+                      <ElCheckbox value="ready">Ready</ElCheckbox>
+                      <ElCheckbox value="delivery">Delivery</ElCheckbox>
+                      <ElCheckbox value="done">Done</ElCheckbox>
+                    </ElCheckboxGroup>
+                  </div>
+                </div>
+              ),
+              reference: () => (
+                <ElIcon class="cursor-pointer">
+                  <Filter />
+                </ElIcon>
+              ),
+            }}
+          </ElPopover>
+        </div>
+      ),
+    },
+    {
+      title: "Tgl Dibuat",
+      dataKey: "created_at",
+      key: "created_at",
+      width: 200,
+      sortable: true,
+      cellRenderer: ({ rowData }: { rowData: InventoryMovement }) => (
+        <p>{formatLocalDate(rowData.created_at)}</p>
+      ),
+    },
+  ];
+
+  if (props.mode == "edit") {
+    column.push({
+      title: "Operasi",
+      key: "operation",
+      width: 100,
+      align: "center",
+      cellRenderer: ({ rowData }: { rowData: InventoryMovement }) => {
+        const onCommand = (command: string) => {
+          if (command === "edit") {
+            window.location.href = `/inventory-management/checkin/add?id=${rowData.unique_id}`;
+          }
+          if (command === "delete") {
+            handleDelete([rowData.unique_id]);
+          }
+        };
+
+        return (
+          <ElDropdown onCommand={onCommand} hideOnClick={false}>
+            {{
+              default: () => (
+                <span class="cursor-pointer text-primary">
+                  <ElIcon>
+                    <Setting />
+                  </ElIcon>
+                </span>
+              ),
+              dropdown: () => (
+                <ElDropdownMenu>
+                  <ElDropdownItem command="edit">Edit</ElDropdownItem>
+                  <ElDropdownItem
+                    class={"text-red-600"}
+                    command="delete"
+                    divided
+                  >
+                    Hapus
+                  </ElDropdownItem>
+                </ElDropdownMenu>
+              ),
+            }}
+          </ElDropdown>
+        );
+      },
+    });
+  }
+
+  column.push({
+    title: "",
+    key: "setup",
+    width: 50,
+    fixed: TableV2FixedDir.RIGHT,
+  });
+
+  column[props.mode == "edit" ? 10 : 9].headerCellRenderer = () => {
+    return (
+      <div class="flex items-center justify-center">
+        <span class="mr-2 text-xs"></span>
+        <ElPopover ref={popoverRef} trigger="click" {...{ width: 200 }}>
+          {{
+            default: () => (
+              <div class="filter-wrapper">
+                <div class="filter-group flex flex-col">
+                  <ElCheckboxGroup v-model={column_selected.value}>
+                    {column
+                      .filter((c) => c.key !== "selection" && c.key !== "setup")
+                      .map((c) => (
+                        <ElCheckbox
+                          key={c.key}
+                          value={c.key!.toString()}
+                          label={c.title}
+                        />
+                      ))}
+                  </ElCheckboxGroup>
+                </div>
+              </div>
+            ),
+            reference: () => (
+              <ElIcon class="cursor-pointer">
+                <SetUp />
+              </ElIcon>
+            ),
+          }}
+        </ElPopover>
+      </div>
+    );
+  };
+
+  return column;
+});
+
+const getStatus = (data: InventoryMovement) => {
+  // 'draft','waiting','approve','done','cancelled','repair'
+
+  if (data.status == "draft") {
+    return <ElTag type="info">{(data?.status ?? "").toUpperCase()}</ElTag>;
+  } else if (data.status == "waiting") {
+    return <ElTag type="warning">{(data?.status ?? "").toUpperCase()}</ElTag>;
+  } else if (data.status == "approve") {
+    return <ElTag type="success">{(data?.status ?? "").toUpperCase()}</ElTag>;
+  } else if (data.status == "done") {
+    return <ElTag type="primary">{(data?.status ?? "").toUpperCase()}</ElTag>;
+  } else if (data.status == "cancelled") {
+    return <ElTag type="danger">{(data?.status ?? "").toUpperCase()}</ElTag>;
+  } else {
+    return <ElTag type="info">{(data?.status ?? "").toUpperCase()}</ElTag>;
+  }
+};
+
+const getInvoice = (data: InventoryMovement): Invoice | undefined => {
+  if ((data.inventory_movement_item || []).length > 0) {
+    if ((data.inventory_movement_item[0].invoice_items || []).length > 0) {
+      return (data.inventory_movement_item[0].invoice_items || [])[0].invoice;
+    }
+  }
+};
+
+const renderReferenceData = (data: InventoryMovement) => {
+  if (data.reference_data) {
+    const inquiry = data.reference_data as Inquiry | undefined;
+    const purchaseOrder = data.reference_data.reference_data as
+      | PurchaseOrder
+      | undefined;
+
+    if (inquiry && inquiry.reference == InquiryReference.SALES_ORDER) {
+      return purchaseOrder ? (
+        <NuxtLink
+          target={"_blank"}
+          class={`text-blue-600`}
+          href={`/sales/order/${purchaseOrder?.unique_id}`}
+        >
+          {purchaseOrder?.unique_code}
+        </NuxtLink>
+      ) : (
+        <></>
+      );
+    } else if (
+      inquiry &&
+      inquiry.reference == InquiryReference.PURCHASE_ORDER
+    ) {
+      return purchaseOrder ? (
+        <NuxtLink
+          target={"_blank"}
+          class={`text-blue-600`}
+          href={`/supply-chain-management/purchase/order/${purchaseOrder?.unique_id}`}
+        >
+          {purchaseOrder?.unique_code}
+        </NuxtLink>
+      ) : (
+        <></>
+      );
+    } else {
+      return <></>;
+    }
+  } else {
+    return <></>;
+  }
+};
+
+const filteredColumn = computed(() => {
+  return availableColumn.value.filter((col) =>
+    column_selected.value.includes(col.key!.toString())
+  );
+});
+
+const deleteBulk = async () => {
+  const checkeds = data.value?.data.filter((value) => value.checked);
+  const ids = (checkeds ?? []).map((value) => value.unique_id);
+  if (ids.length > 0) {
+    handleDelete(ids);
+  }
+};
+
+const handleDelete = async (row: string[]) => {
+  console.log("Editing:", row);
+  try {
+    ElMessageBox.confirm(
+      "Data akan dihapus secara permanen. Lanjutkan?",
+      "Warning",
+      {
+        confirmButtonText: "Hapus",
+        cancelButtonText: "Batal",
+        type: "warning",
+      }
+    )
+      .then(async () => {
+        const response = await useFetchApi(
+          "/inventory-movement-delete",
+          "inventory_movement",
+          "post",
+          row
+        );
+        console.log("response", response.status);
+        if (response.status.value == "success") {
+          ElMessage.success(`Berhasil`);
+          await refreshNuxtData("inventory_movement");
+        }
+      })
+      .catch(() => {
+        // Cancel
+      });
+  } catch (e: any) {
+    ElMessage.error(`${e.response?.data?.message ?? e}`);
+  }
+};
+
+const onSort = async (sortBy: { prop: string; order: string }) => {
+  request_search.value.sort = {
+    column: sortBy.prop,
+    order:
+      sortBy.order === OrderColumn.ASCENDING
+        ? OrderColumn.DESC
+        : OrderColumn.ASC,
+  };
+};
+
+const paginationClick = (val: number) => {
+  const data: RequestSearch = { ...request_search.value };
+  data.offset = val.toString();
+  request_search.value = data;
+};
+
+const handleSizeChange = (size: number) => {
+  request_search.value.limit = `${size}`;
+  request_search.value.offset = "1";
+};
+
+const onRefresh = () => refresh();
+watch(
+  () => request_search.value,
+  () => onRefresh(),
+  { deep: true }
+);
+
+watch(
+  () => filterNotInvoice.value,
+  (value) => {
+    if (value) {
+      request_search.value.column[0] = {
+        ...request_search.value.column[0],
+        inventory_movement_item: {
+          invoice_items: ["null"],
+        },
+      };
+    } else {
+      request_search.value.column[0] = {
+        ...request_search.value.column[0],
+        inventory_movement_item: {
+          invoice_items: ["not null", "null"],
+        },
+      };
+    }
+  },
+  { deep: true }
+);
+</script>

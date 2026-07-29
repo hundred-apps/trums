@@ -22,7 +22,7 @@ export enum InventoryMovementReferenceItem {
 
 export enum CategoryMovement {
   GOODS = "goods",
-  DOCUMENTS = "documents",
+  DOCUMENTS = "document",
 }
 
 export interface InventoryMovementItem {
