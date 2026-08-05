@@ -1907,6 +1907,8 @@ const handleSaveFee = ({
       `${feeAccumulationAmount}`
     );
   }
+
+  calculateFeeAccumulation();
 };
 
 const syncFeeAcumulation = () => {
@@ -1918,10 +1920,11 @@ const syncFeeAcumulation = () => {
       value.amount_nominal_display = "0";
       value.tmp_amount_input = "0";
     });
+
     const newContactFee: ReferenceTransactionAdjustment[] = JSON.parse(
       JSON.stringify(contactsFee.value)
     );
-
+    console.log("current contact Fee", newContactFee);
     item_canvassing.value.forEach((item) => {
       item.children.forEach((child: CanvassingItemForm) => {
         child.contacts_fee.forEach(
@@ -1929,7 +1932,7 @@ const syncFeeAcumulation = () => {
             const findContactFee = newContactFee.findIndex(
               (fee) => fee.party_id == contact.party_id
             );
-            console.log("New Contact Fee", contact);
+
             const {
               fee_nominal,
               fee_percent,
@@ -1997,7 +2000,7 @@ const syncFeeAcumulation = () => {
       contact.amount_nominal = total;
       contact.tmp_amount_input = `${formatCurrencyID(total, 2)}`;
     });
-
+    console.log("New Contact Fee", newContactFee);
     contactsFee.value = newContactFee;
   }
 };
@@ -2029,6 +2032,8 @@ function updateItemFee(
   contacts?: ReferenceTransactionAdjustment[],
   fee?: number
 ) {
+  console.log("contact fee update", contacts);
+
   for (const it of items) {
     if (it.index === index && it.type === "child") {
       if (contacts) {
@@ -2040,7 +2045,7 @@ function updateItemFee(
           it.fee = it.fee_nominal;
         }
 
-        it.contacts_fee = contacts;
+        it.contacts_fee = structuredClone(contacts);
       } else {
         it.fee = fee ?? 0;
       }

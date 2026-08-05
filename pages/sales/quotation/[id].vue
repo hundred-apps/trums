@@ -8,7 +8,17 @@
       </template>
     </el-page-header>
 
-    <TrumsAlertPage v-if="!loading" :text="getTextInfo" :type="'warning'" />
+    <TrumsAlertPage
+      v-if="
+        !loading &&
+        canvassingData &&
+        (canvassingData.status == CanvassingStatus.PENDING_APPROVAL_RAB ||
+          canvassingData.status == CanvassingStatus.PENDING_APPROVAL ||
+          canvassingData.status == CanvassingStatus.DONE)
+      "
+      :text="getTextInfo"
+      :type="'warning'"
+    />
 
     <CanvassingDetail
       v-if="canvassingData"

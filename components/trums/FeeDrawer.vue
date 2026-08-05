@@ -57,7 +57,7 @@ watch(
     // clone data biar tidak ubah props langsung
     contactsFee.value = (newVal ?? []).map((contact) => ({
       ...contact,
-      party: contact.party, // Clone party object juga
+      party: { ...contact.party! }, // Clone party object juga
     }));
 
     console.log(props.contacts);
@@ -111,7 +111,6 @@ const onHandleSelectContact = async (
   item: Record<string, any>,
   index: number
 ) => {
-  console.log(item);
   if (item.isNew) {
     const contact: Contact | null = await createNewContact({
       name: item.query,
@@ -130,6 +129,7 @@ const onHandleSelectContact = async (
     contactsFee.value[index].reference_view = contact.name;
     contactsFee.value[index].party_id = contact.unique_id;
     contactsFee.value[index].party = contact;
+    console.log("selected contact fee", contactsFee.value[index]);
   }
 };
 
