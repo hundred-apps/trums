@@ -162,9 +162,11 @@
         v-if="(checkData?.files || []).length > 0"
         v-for="file in checkData?.files"
       >
-        <p>{{ file.filename }}</p>
-        <el-button @click="() => {}"
-          ><el-icon><Download /></el-icon> Download</el-button
+        <NuxtLink
+          class="text-blue-600 text-sm"
+          :href="`${baseImageURL}/${file.image_path}/${file.filename}`"
+          target="_blank"
+          >{{ file.filename_original }}</NuxtLink
         >
       </div>
       <div v-else class="text-sm">Tidak Ada Lampiran</div>
@@ -295,6 +297,9 @@ const loadingPO = ref<boolean>(false);
 const showPreviewPDF = ref(false);
 const pdfUrl = ref<string | null>(null);
 const pdfBlob = ref<Blob | null>(null);
+
+const config = useRuntimeConfig();
+const baseImageURL = config.public.baseImageURL;
 
 const onChangeStatus = (val: any) => {
   const formData = new FormData();

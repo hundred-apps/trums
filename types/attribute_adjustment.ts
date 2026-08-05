@@ -71,4 +71,6 @@ export type ReferenceTransactionAdjustment = {
   inc_tmp?: string;
   include?: boolean;
   disabled?: boolean;
+  data_reference?: any;
+  description?: string;
 };

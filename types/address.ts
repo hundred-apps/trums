@@ -28,6 +28,14 @@ export enum AddressLabel {
   INVOICE = "invoice",
 }
 
+export const getAddressLabel = (label: AddressLabel) => {
+  if (label == AddressLabel.DELIVERY) {
+    return "Pengiriman";
+  } else if (label == AddressLabel.INVOICE) {
+    return "Invoice";
+  }
+};
+
 export type Village = {
   id: string;
   name: string;

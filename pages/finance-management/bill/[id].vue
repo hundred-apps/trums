@@ -164,19 +164,35 @@
       </div>
 
       <h5 class="font-bold text-black text-1xl mt-6">Alamat Penagihan</h5>
-      <span class="text-sm text-gray-500 pl-5">{{
-        data?.data?.billing_address
-          ? generateAddressView(data?.data?.billing_address) +
-            `, ${data.data.billing_address?.codepos}`
-          : "-"
-      }}</span>
+      <div
+        class="text-sm text-gray-500 mt-2 p-2"
+        v-if="data?.data?.billing_address"
+      >
+        ({{ data?.data?.billing_address?.address_name }})
+        <div class="flex flex-col">
+          <span>{{ data?.data?.billing_address.street }}</span>
+          <span
+            >{{ generateAddressViewName(data?.data?.billing_address!) }}</span
+          >
+        </div>
+      </div>
       <h5 class="font-bold text-black text-1xl mt-6">Catatan</h5>
       <span
+        v-if="data?.data?.notes"
         class="text-sm text-gray-500 flex flex-col p-2"
         v-html="`${formattedText(data?.data?.notes ?? '')}`"
       ></span>
+      <span v-else class="text-sm text-gray-500 flex flex-col p-2"
+        >Tidak ada catatan</span
+      >
       <h5 class="font-bold text-black text-1xl mt-6">Lampiran</h5>
-      <el-descriptions title="" :column="1" size="small" border>
+      <el-descriptions
+        v-if="(data?.data?.files || []).length > 0"
+        title=""
+        :column="1"
+        size="small"
+        border
+      >
         <el-descriptions-item
           :label="`[${getDisplayFileType(file.type)}]`"
           v-for="(file, key) in data?.data?.files"
@@ -190,6 +206,9 @@
           >
         </el-descriptions-item>
       </el-descriptions>
+      <span v-else class="text-sm text-gray-500 flex flex-col p-2"
+        >Belum ada lampiran</span
+      >
     </el-card>
 
     <el-card class="mb-3">
@@ -448,7 +467,11 @@ import jsPDF from "jspdf";
 import type { PurchaseOrder } from "~/types/scm/purchase_order";
 import { autoTable, type RowInput } from "jspdf-autotable";
 import type { ReferenceTransactionAdjustment } from "~/types/attribute_adjustment";
-import { generateAddressView, currency } from "#imports";
+import {
+  generateAddressView,
+  generateAddressViewName,
+  currency,
+} from "#imports";
 import type { FormInstance } from "element-plus";
 import { formattedText } from "#imports";
 import { getDisplayFileType } from "~/types/file";

@@ -796,8 +796,12 @@
               @input="
                 (value) => {
                   onInputAdjustment(ref);
-                  ref.amount = Number(value);
-                  console.log('ref', ref);
+
+                  if (ref.type == FeeType.AMOUNT) {
+                    ref.amount = Number(value);
+                  } else if (ref.type == FeeType.PERCENT) {
+                    ref.value = Number(value);
+                  }
                 }
               "
             >
@@ -1146,6 +1150,7 @@ import TableSelectionCanvassing from "~/components/trums/TableSelectionCanvassin
 import { handleInput } from "#imports";
 import type { ItemRequest } from "~/types/item_request";
 import OfferDetail from "../offer/components/OfferDetail.vue";
+import { twCoupleWithHeartPersonPersonMediumSkinToneMediumDarkSkinTone } from "nuxt-twemoji/emojis";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -1837,7 +1842,6 @@ const openFeeDrawer = (item: CanvassingItemForm) => {
   drawerFeeVisible.value = true;
 };
 const openDetailVendor = (unique_id: string) => {
-  console.log("open detail vendor", unique_id);
   request_search_vendor.value.column = [
     {
       unique_id: [unique_id],
@@ -3251,6 +3255,7 @@ const handleSelectAdjustment = (items: AdjustmentTransaction[]) => {
       created_at: 0,
       value: element.default_value,
       adjustment: element,
+      tmp_amount_input: `${element.default_value}`,
       changeType: true,
     });
   });
@@ -3308,6 +3313,7 @@ const addContact = () => {
 const removeContact = async (index: number) => {
   submitRemoveCost([contactsFee.value[index].unique_id]).then((response) => {
     contactsFee.value.splice(index, 1);
+    calculateFeeAccumulation();
   });
 };
 
@@ -5224,15 +5230,15 @@ const calculateSummaryaData = () => {
 
   var tmp_gross = grossProfit;
 
-  references.value.forEach((element) => {
-    if (element.type === FeeType.PERCENT) {
-      tmp_gross -= displayAmount(element, grandTotalValue);
-    } else {
-      tmp_gross -= element.amount;
-    }
-  });
+  // references.value.forEach((element) => {
+  //   if (element.type === FeeType.PERCENT) {
+  //     tmp_gross -= displayAmount(element, grandTotalValue);
+  //   } else {
+  //     tmp_gross -= element.amount;
+  //   }
+  // });
 
-  let netProfit = Number(tmp_gross) - Number(ongkir);
+  // let netProfit = Number(tmp_gross) - Number(ongkir);
   summeryView.value = [];
 
   const data: {
@@ -5273,49 +5279,80 @@ const calculateSummaryaData = () => {
       beliMin: ``,
       jualMin: ``,
     },
-    {
-      label: "Ongkos Kirim",
-      max: currency(adjustmentTransactionOngkirTotal.value?.amount ?? 0),
-      beli: `${safePercent(
-        adjustmentTransactionOngkirTotal.value.amount,
-        totalBuyingPrice.value
-      )} %`,
-      jual: `${safePercent(
-        adjustmentTransactionOngkirTotal.value.amount,
-        grandTotalValue
-      )} %`,
-      min: currency(adjustmentTransactionOngkirTotal.value.amount),
-      beliMin: `${safePercent(
-        adjustmentTransactionOngkirTotal.value.amount,
-        totalBuyingPriceMin
-      )} %`,
-      jualMin: `${safePercent(
-        adjustmentTransactionOngkirTotal.value.amount,
-        grandTotalValue
-      )} %`,
-    },
   ];
 
+  let ongkirPercentJual = 0;
+  let ongkirPercentBeli = 0;
+  let ongkirAmount = 0;
+
+  if (adjustmentTransactionOngkirTotal.value.type == FeeType.AMOUNT) {
+    ongkirAmount = adjustmentTransactionOngkirTotal.value.amount;
+    adjustmentTransactionOngkirTotal.value.amount_nominal = ongkirAmount;
+
+    ongkirPercentJual = customMathCeil(
+      (Number(ongkirAmount) / grandTotalValue) * 100
+    );
+    ongkirPercentBeli = customMathCeil(
+      (Number(ongkirAmount) / totalBuyingPrice.value) * 100
+    );
+    adjustmentTransactionOngkirTotal.value.value = ongkirPercentJual;
+  } else {
+    ongkirPercentJual = adjustmentTransactionOngkirTotal.value.value || 0;
+    ongkirAmount = (grandTotalValue * Number(ongkirPercentJual)) / 100;
+    ongkirPercentBeli = (Number(ongkirAmount) / totalBuyingPrice.value) * 100;
+    adjustmentTransactionOngkirTotal.value.amount = ongkirAmount;
+    adjustmentTransactionOngkirTotal.value.amount_nominal = ongkirAmount;
+  }
+  let netProfit = Number(tmp_gross) - Number(ongkirAmount);
+  data.push({
+    label: "Ongkos Kirim",
+    max: currency(adjustmentTransactionOngkirTotal.value?.amount ?? 0),
+    beli: `${ongkirPercentBeli} %`,
+    jual: `${adjustmentTransactionOngkirTotal.value.value} %`,
+    min: currency(adjustmentTransactionOngkirTotal.value.amount),
+    beliMin: `${safePercent(
+      adjustmentTransactionOngkirTotal.value.amount,
+      totalBuyingPriceMin
+    )} %`,
+    jualMin: `${safePercent(
+      adjustmentTransactionOngkirTotal.value.amount,
+      grandTotalValue
+    )} %`,
+  });
+
   references.value.forEach((element) => {
-    const amount = element.amount_nominal;
-    console.log("amount", amount);
+    let percentJual = 0;
+    let percentBeli = 0;
+    let amount = 0;
+
+    if (element.type == FeeType.AMOUNT) {
+      amount = element.amount;
+      element.amount_nominal = amount;
+
+      percentJual = customMathCeil((Number(amount) / grandTotalValue) * 100);
+      percentBeli = customMathCeil(
+        (Number(amount) / totalBuyingPrice.value) * 100
+      );
+      element.value = percentJual;
+    } else {
+      percentJual = element.value || 0;
+      amount = (grandTotalValue * Number(percentJual)) / 100;
+      percentBeli = customMathCeil(
+        (Number(amount) / totalBuyingPrice.value) * 100
+      );
+      element.amount = amount;
+      element.amount_nominal = amount;
+    }
+
+    netProfit -= amount;
+
     data.push({
       label: element.adjustment?.name
         ? element.adjustment?.name
         : element.adjustments_transaction?.name ?? "-",
-      max: currency(displayAmount(element, grandTotalValue)),
-      beli: `${safePercent(
-        element.type == FeeType.PERCENT
-          ? displayAmount(element, grandTotalValue)
-          : element.amount,
-        totalBuyingPrice.value
-      )} %`,
-      jual: `${safePercent(
-        element.type == FeeType.PERCENT
-          ? displayAmount(element, grandTotalValue)
-          : element.amount,
-        grandTotalValue
-      )} %`,
+      max: currency(element.amount),
+      beli: `${percentBeli} %`,
+      jual: `${element.value} %`,
       min: currency(0),
       beliMin: `${safePercent(0, 1)}`,
       jualMin: `${safePercent(displayPercentage(element, grandTotalValue), 1)}`,

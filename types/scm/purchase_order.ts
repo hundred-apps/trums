@@ -24,7 +24,12 @@ export enum PurchaseOrderItemStatus {
   WAITING_REQUEST = "Menunggu Permintaan",
   WAITING_PR = "Menunggu PR",
   WAITING_PO = "Menunggu PO",
+  WAITING_DO = "Menunggu Pengiriman",
   DONE = "done",
+  SELESAI = "Selesai",
+  DRAFT = "draft",
+  CANCELLED = "cancelled",
+  REJECTED = "rejected",
 }
 
 export const displayStatusSOITEM = (status: PurchaseOrderItemStatus) => {
@@ -35,8 +40,32 @@ export const displayStatusSOITEM = (status: PurchaseOrderItemStatus) => {
       return "Menunggu PR";
     case PurchaseOrderItemStatus.WAITING_PO:
       return "Menunggu PO Vendor";
+    case PurchaseOrderItemStatus.WAITING_DO:
+      return "Menunggu DO";
     case PurchaseOrderItemStatus.DONE:
       return "Telah Dikirim";
+    case PurchaseOrderItemStatus.SELESAI:
+      return "Selesai";
+  }
+};
+export const displayColorStatusSOITEM = (
+  status: PurchaseOrderItemStatus
+): "success" | "warning" | "info" | "primary" | "danger" => {
+  switch (status) {
+    case PurchaseOrderItemStatus.WAITING_REQUEST:
+      return "danger";
+    case PurchaseOrderItemStatus.WAITING_PR:
+      return "warning";
+    case PurchaseOrderItemStatus.WAITING_PO:
+      return "warning";
+    case PurchaseOrderItemStatus.WAITING_DO:
+      return "info";
+    case PurchaseOrderItemStatus.DONE:
+      return "success";
+    case PurchaseOrderItemStatus.SELESAI:
+      return "primary";
+    default:
+      return "info";
   }
 };
 

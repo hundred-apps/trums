@@ -21,7 +21,7 @@ import {
 } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
 import CustomTable from "~/components/trums/table/customTable.vue";
-import type { Catalogue } from "~/types/catalogue";
+import { CatalogueType, type Catalogue } from "~/types/catalogue";
 import { Eleme, Filter } from "@element-plus/icons-vue";
 import { NuxtLink } from "#components";
 import { InfoFilled, SetUp } from "@element-plus/icons-vue";
@@ -127,7 +127,7 @@ const ruleForm = reactive<Pricetag>({
         is_asset: null,
         tmp_asset: null,
         version: null,
-        type: "",
+        type: CatalogueType.ITEM,
         created_at: null,
         created_by: null,
         updated_at: null,
@@ -167,7 +167,7 @@ const ruleForm = reactive<Pricetag>({
     is_asset: null,
     tmp_asset: null,
     version: null,
-    type: "",
+    type: CatalogueType.ITEM,
     created_at: null,
     created_by: null,
     updated_at: null,
@@ -334,6 +334,14 @@ const onRefreshTable = () => {
   refreshTrigger.value++;
   refresh();
 };
+
+watch(
+  () => request_search.value,
+  () => {
+    refreshTrigger.value += 1;
+  },
+  { deep: true }
+);
 
 const openImportModal = () => {
   importModalVisible.value = true;

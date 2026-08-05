@@ -1,6 +1,6 @@
 <template>
   <TrumsWrapper>
-    <InvoiceTable type="finance" />
+    <InvoiceTable :params-column="{ type: ['out'] }" type="finance" />
   </TrumsWrapper>
 </template>
 

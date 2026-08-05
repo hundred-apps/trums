@@ -141,7 +141,7 @@
         <el-button
           size="default"
           type="primary"
-          @click="addItemsToForm(selectedItemRequests)"
+          @click="() => addItemsToForm(selectedItemRequests, null)"
           :disabled="selectedItemRequests.length === 0"
         >
           Tambahkan ({{ selectedItemRequests.length }})
@@ -206,7 +206,7 @@
     <el-dialog v-model="dialogContact" title="Detail Kontak">
       <AddContact
         ref="formFieldsRefContact"
-        :contact-data="ruleForm.requester!"
+        :data="ruleForm.requester!"
         :loading="loading"
         @submit="handleSubmitContact"
         @reset="handleResetContact"
@@ -537,32 +537,34 @@ const createNewContact = async (data: any): Promise<Contact | null> => {
   }
 };
 
-const handleSubmitContact = async (formData: Contact) => {
-  try {
-    const contact: Contact | null = await createNewContact({
-      parent_id: formData.parent_id,
-      parent_version: formData.parent_version,
-      name: formData.name,
-      email: formData.email,
-      phone: formData.phone,
-      tax_id: formData.tax_id,
-      website: formData.website,
-      title: formData.title,
-      is_personal: formData.is_personal,
-      is_company: formData.is_company,
-      tags: formData.tags?.toString(),
-      unique_id: formData.unique_id,
-      ownership: formData.ownership,
-    });
-    if (contact !== null) {
-      ruleForm.requester_id = contact.unique_id;
-      ruleForm.requester_version = contact.version;
-      ruleForm.requester_name = contact.name ?? "";
-      ruleForm.requester = contact;
+const handleSubmitContact = async (formData: Contact | undefined) => {
+  if (formData) {
+    try {
+      const contact: Contact | null = await createNewContact({
+        parent_id: formData.parent_id,
+        parent_version: formData.parent_version,
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        tax_id: formData.tax_id,
+        website: formData.website,
+        title: formData.title,
+        is_personal: formData.is_personal,
+        is_company: formData.is_company,
+        tags: formData.tags?.toString(),
+        unique_id: formData.unique_id,
+        ownership: formData.ownership,
+      });
+      if (contact !== null) {
+        ruleForm.requester_id = contact.unique_id;
+        ruleForm.requester_version = contact.version;
+        ruleForm.requester_name = contact.name ?? "";
+        ruleForm.requester = contact;
+      }
+      dialogContact.value = false;
+    } catch (error) {
+      console.log("eror", error);
     }
-    dialogContact.value = false;
-  } catch (error) {
-    console.log("eror", error);
   }
 };
 

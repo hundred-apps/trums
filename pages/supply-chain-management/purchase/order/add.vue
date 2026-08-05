@@ -19,11 +19,22 @@
         <template #header>
           <div class="card-header">
             <div class="flex">
-              <el-button type="primary" @click="submitForm(ruleFormRef)"
+              <el-button
+                type="primary"
+                :loading="loading"
+                :disabled="loading"
+                @click="submitForm(ruleFormRef)"
                 >Simpan</el-button
               >
-              <el-button @click="resetForm(ruleFormRef)">Reset</el-button>
-              <el-button @click="goBack">Batal</el-button>
+              <el-button
+                :loading="loading"
+                :disabled="loading"
+                @click="resetForm(ruleFormRef)"
+                >Reset</el-button
+              >
+              <el-button :loading="loading" :disabled="loading" @click="goBack"
+                >Batal</el-button
+              >
             </div>
           </div>
         </template>
@@ -386,7 +397,9 @@
                   :show-message="false"
                   :rules="[
                     {
-                      required: true,
+                      required: scope.row.pr_item_request_trail_id
+                        ? false
+                        : true,
                       message: 'PR Number Wajib Diisi',
                       trigger: 'change',
                     },
@@ -775,7 +788,11 @@ import {
 } from "~/types/attribute_adjustment";
 import ModalAdjustmentTransaction from "~/components/trums/ModalAdjustmentTransaction.vue";
 import AddAdjustment from "~/components/trums/AddAdjustment.vue";
-import type { Catalogue, ItemInterface } from "~/types/catalogue";
+import {
+  CatalogueType,
+  type Catalogue,
+  type ItemInterface,
+} from "~/types/catalogue";
 import type { ItemSearch } from "~/types/item_search";
 import type { Unit } from "~/types/unit";
 import CatalogueAdd from "~/components/trums/CatalogueAdd.vue";
@@ -1285,7 +1302,7 @@ const openCatalogueDetail = (cat: ItemInterface, index: number) => {
       is_asset: null,
       tmp_asset: null,
       version: null,
-      type: "item",
+      type: CatalogueType.ITEM,
       created_at: null,
       created_by: null,
       updated_at: null,
@@ -1476,7 +1493,7 @@ const onHandleSelectItemAutocomplete = async (
       is_asset: null,
       tmp_asset: null,
       version: null,
-      type: "item",
+      type: CatalogueType.ITEM,
       created_at: null,
       created_by: null,
       updated_at: null,
@@ -1513,7 +1530,7 @@ const onHandleSelectItemAutocomplete = async (
     ruleForm.items[scope.$index].item_request_trail_id = "";
     ruleForm.items[scope.$index].item_request_trail_version = 0;
     ruleForm.items[scope.$index].order_version = 1;
-    ruleForm.items[scope.$index].status = PurchaseOrderItemStatus.DRAFT;
+    // ruleForm.items[scope.$index].status = PurchaseOrderItemStatus.DRAFT;
 
     const catalogue: Catalogue | undefined = await fetchCatalogueDetail(
       selected.catalogue_id ?? ""
@@ -2094,7 +2111,7 @@ const onSubmit = async (formEl: FormInstance) => {
     formData.append("vendor_name", `${ruleForm.vendor_name}`);
     formData.append("vendor_version", `${ruleForm.vendor_version}`);
     formData.append("sourcing_document", `${ruleForm.sourcing_document}`);
-    formData.append("total_price", `${ruleForm.total_price}`);
+    formData.append("total_price", `${grandTotal.value}`);
     formData.append("delivery_address_id", `${ruleForm.delivery_address_id}`);
     formData.append(
       "delivery_address_version",
@@ -2367,6 +2384,7 @@ const fetchDataEdit = async () => {
         ruleForm.payment_term_unit = request.term_payment_unit;
         ruleForm.payment_term_value = request.term_payment_value ?? 0;
         ruleForm.payment_method = request.method_payment as PaymentMethod;
+
         console.log("rule form", ruleForm);
         query_search_canvasing_item.value.column = [
           {

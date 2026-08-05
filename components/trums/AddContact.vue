@@ -524,6 +524,8 @@ const submit = async (formEl: FormInstance | undefined) => {
         country: "indonesia",
         codepos: parseInt(`${value.codepos || 0}`),
         unique_id: value.unique_id.includes("temp-") ? null : value.unique_id,
+        type: value.type,
+        phone: value.phone,
       })),
       is_customer_new: ruleForm.is_customer_new,
       is_vendor_new: ruleForm.is_vendor_new,

@@ -1000,7 +1000,7 @@ const request_search_pricelist_item = ref<RequestSearch>({
       tag_id: [id.value],
     },
   ],
-  limit: "10",
+  limit: "50",
   offset: "1",
   table: "pricetag_item",
   sort: {

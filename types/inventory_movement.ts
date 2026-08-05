@@ -1,5 +1,6 @@
 import type { AddressType } from "./address";
 import type { Contact } from "./contact";
+import type { AppFile } from "./file";
 import type { Invoice, InvoiceItem } from "./finance/invoice";
 import type { Inquiry } from "./inquiry";
 import type { Inventory } from "./inventory";
@@ -92,7 +93,7 @@ export interface InventoryMovement {
   address: AddressType | null; // Jika struktur `address` diketahui, lebih baik diganti dengan tipe yang sesuai
   checked?: boolean | null;
   contact?: Contact;
-  files: FileDocument[];
+  files: AppFile[];
   data_reference?: any;
   note?: string;
   pic?: Contact;

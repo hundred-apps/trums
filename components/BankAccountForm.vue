@@ -92,7 +92,13 @@ const submitForm = async () => {
       endpoint,
       `create-bank-account`,
       "post",
-      form
+      {
+        account_id: form.account_id,
+        account_name: form.account_name,
+        account_number: form.account_number,
+        bank_id: form.bank_id,
+        bank_name: form.bank_name,
+      }
     );
 
     if (response.status.value === "success") {

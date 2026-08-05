@@ -707,7 +707,7 @@ import {
   type SortBy,
   type UploadUserFile,
 } from "element-plus";
-import type { Catalogue } from "~/types/catalogue";
+import { CatalogueType, type Catalogue } from "~/types/catalogue";
 import type { Inventory } from "~/types/inventory";
 import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
@@ -839,7 +839,7 @@ const ruleForm = reactive<Pricetag>(
       is_asset: null,
       tmp_asset: null,
       version: null,
-      type: "",
+      type: CatalogueType.PLACE,
       created_at: null,
       created_by: null,
       updated_at: null,
@@ -893,7 +893,7 @@ const getItemDialogInitial = (): Pricetag_item => ({
     is_asset: null,
     tmp_asset: null,
     version: null,
-    type: "",
+    type: CatalogueType.ITEM,
     created_at: null,
     created_by: null,
     updated_at: null,
@@ -1801,7 +1801,7 @@ const resetFormDialog = () => {
     is_asset: null,
     tmp_asset: null,
     version: null,
-    type: "",
+    type: CatalogueType.ITEM,
     created_at: null,
     created_by: null,
     updated_at: null,
@@ -2209,7 +2209,7 @@ const addNewLine = () => {
         is_asset: null,
         tmp_asset: null,
         version: null,
-        type: "",
+        type: CatalogueType.ITEM,
         created_at: null,
         created_by: null,
         updated_at: null,
@@ -2373,7 +2373,7 @@ const onHandleSelectItemAutocompleteModal = async (
       is_asset: null,
       tmp_asset: null,
       version: null,
-      type: "item",
+      type: CatalogueType.ITEM,
       created_at: null,
       created_by: null,
       updated_at: null,
@@ -2417,7 +2417,7 @@ const onHandleSelectItemAutocomplete = async (
       is_asset: null,
       tmp_asset: null,
       version: null,
-      type: "item",
+      type: CatalogueType.ITEM,
       created_at: null,
       created_by: null,
       updated_at: null,

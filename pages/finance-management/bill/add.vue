@@ -87,12 +87,13 @@
           </el-select>
         </el-form-item>
 
-        <el-form-item label="Customer" prop="customer_name">
+        <!-- <el-form-item label="Customer" prop="customer_name">
           <AutocompleteContact
             v-model="ruleForm.customer_name"
             :contact="dataCustomer"
             :fetch-suggestions="querySearchCustomer"
             @save-contact="onHandleSelectCustomer"
+            :disabled="true"
           />
         </el-form-item>
         <el-form-item label="PIC" prop="pic_name">
@@ -102,7 +103,7 @@
             :fetch-suggestions="querySearchCustomer"
             @save-contact="onHandleSelectPIC"
           />
-        </el-form-item>
+        </el-form-item> -->
 
         <el-form-item label="Alamat Penagihan" prop="billing_address_id">
           <el-autocomplete
@@ -395,7 +396,7 @@
           <div>
             <div class="flex justify-between items-center">
               <p>Total Price</p>
-              <p>{{ currencyWithoutSymbol(totalAmount || 0, 0) }}</p>
+              <p>{{ currencyWithoutSymbol(totalAmount || 0) }}</p>
             </div>
             <el-divider />
             <div
@@ -569,7 +570,7 @@
             <el-divider />
             <div class="flex justify-between items-center">
               <p>Grand Total</p>
-              <p>{{ currencyWithoutSymbol(paidAmount || 0, 0) }}</p>
+              <p>{{ currencyWithoutSymbol(paidAmount || 0) }}</p>
             </div>
           </div>
         </div>
@@ -626,7 +627,7 @@
 
     <el-dialog
       v-model="visibleModalPurchaseOrder"
-      title="Cari Sales Order"
+      title="Cari Purchase Order"
       width="1000"
     >
       <el-row :gutter="20" class="mb-3">
@@ -671,11 +672,11 @@
       <div class="flex justify-end mt-3">
         <el-pagination
           background
-          layout="prev, pager, next, sizes, total"
+          :layout="`prev, pager, next, ${isMobile ? '' : 'sizes, total'}`"
           :total="purchase_order?.data.value?.total_data"
-          :current-page="purchase_order?.data.value?.current_page"
-          @current-change="paginationClick"
+          @current-change="handlePageChange"
           @size-change="handlePoSizeChange"
+          size="small"
         />
       </div>
     </el-dialog>
@@ -728,7 +729,7 @@ import {
   type Invoice,
   type InvoiceItem,
 } from "~/types/finance/invoice";
-import type { AddressType } from "~/types/address";
+import { AddressLabel, type AddressType } from "~/types/address";
 import type { Catalogue } from "~/types/catalogue";
 import type { Contact } from "~/types/contact";
 import {
@@ -780,6 +781,8 @@ const router = useRouter();
 const route = useRoute();
 const id = computed(() => route.query.id as string);
 const is_termin = computed(() => route.query.is_termin as string);
+
+const isMobile = useDevice();
 
 const ruleFormRef = ref<FormInstance>();
 const dialogNewAddress = ref(false);
@@ -1000,7 +1003,7 @@ const request_search_purchase_order = ref<RequestSearch>({
   table: "purchase_order",
   sort: {
     column: "created_at",
-    order: OrderColumn.ASC,
+    order: OrderColumn.DESC,
   },
   flag: "form",
 });
@@ -1029,15 +1032,22 @@ const deliveryOrders = await useAsyncData("fetch-delivery-order", async () => {
   return res.data.value;
 });
 
-const purchase_order = await useFetchApi<ResponsePagination<PurchaseOrder[]>>(
-  "/search",
+const purchase_order = await useAsyncData(
   "search-reference-purchase-order",
-  "post",
-  request_search_purchase_order.value
+  async () => {
+    const res = await useFetchApi<ResponsePagination<PurchaseOrder[]>>(
+      `/search`,
+      "search-reference-purchase-order",
+      "post",
+      request_search_purchase_order.value
+    );
+    return res.data.value;
+  }
 );
 
-const paginationClick = (page: number) => {
-  request_search_purchase_order.value.offset = page.toString();
+const handlePageChange = (page: number) => {
+  console.log("harusnya referesh");
+  request_search_purchase_order.value.offset = `${page}`;
 };
 const handlePoSizeChange = (limit: number) => {
   request_search_purchase_order.value.limit = limit.toString();
@@ -1110,9 +1120,9 @@ const onHandleSelectDO = (values: InventoryMovement[]) => {
 };
 
 watch(
-  request_search_purchase_order.value,
-  () => refreshNuxtData("search-reference-purchase-order"),
-  { immediate: true }
+  () => request_search_purchase_order.value,
+  () => purchase_order.refresh(),
+  { deep: true }
 );
 
 watch(
@@ -1471,14 +1481,23 @@ const removeItem = async (index: number) => {
 
 const querySearchBanks = (query: string, cb: (arg: any) => void) => {
   try {
-    useFetchApi<DefaultResponsePagination<BankAccount[]>>(
-      "/bank-accounts-read?flag=form",
+    const request_search_bank_accounts: RequestSearch = {
+      keyword: query,
+      table: "bank_accounts",
+      column: [],
+      sort: null,
+      offset: "1",
+      flag: "form",
+      limit: "100",
+    };
+    useFetchApi<ResponsePagination<BankAccount[]>>(
+      "/search",
       "get-bank-accounts",
-      "get",
-      null
+      "post",
+      request_search_bank_accounts
     ).then((response) => {
       if (response.status.value == "success") {
-        const banks = (response.data.value?.data.query ?? []) as BankAccount[];
+        const banks = (response.data.value?.data ?? []) as BankAccount[];
         if (banks.length > 0) {
           let lists = banks.map((value) => ({
             value: `${value.account_name} (${value.account_number})`,
@@ -1930,6 +1949,7 @@ const onHandleSelectReference = async (item: any) => {
     ruleForm.reference_number = item.data;
   } else if (ruleForm.reference === FinanceReference.PURCHASE_ORDER) {
     const po = item as PurchaseOrder;
+    console.log("data po", po);
 
     tmp_purchase_order.value = po;
 
@@ -1975,13 +1995,22 @@ const onHandleSelectReference = async (item: any) => {
       });
     });
     ruleForm.subtotal = po.total_price;
-    ruleForm.vendor_address_id = po.address?.unique_id ?? "";
-    ruleForm.vendor_address_view = po.address?.address_name ?? "";
-    ruleForm.vendor_address_version = po.address?.version || 1;
 
-    publisher_address.value = await getAddressDetail(
-      po.address?.unique_id ?? ""
+    const addressInvoice = po.vendor?.address.findLast(
+      (find) => find.type == AddressLabel.INVOICE
     );
+
+    if (addressInvoice) {
+      publisher_address.value = await getAddressDetail(
+        addressInvoice.unique_id ?? ""
+      );
+
+      ruleForm.vendor_address_id = publisher_address.value?.unique_id || "";
+      ruleForm.vendor_address_view =
+        publisher_address.value?.address_name || "";
+      ruleForm.vendor_address_version = publisher_address.value?.version || 1;
+    }
+
     paymentTerms.value = po.payment_terms ?? [];
 
     po.reference_transaction.forEach((element) => {
@@ -1989,12 +2018,26 @@ const onHandleSelectReference = async (item: any) => {
         (find) => find.adjustment_id == element.adjustment_id
       );
       if (index < 0) {
-        references.value.push({
-          ...element,
-          reference: ReferenceAdjustment.INVOICE,
-          reference_id: "",
-          adjustment: element.adjustments_transaction,
-        });
+        if (element.type === FeeType.AMOUNT) {
+          references.value.push({
+            ...element,
+            reference: ReferenceAdjustment.INVOICE,
+            reference_id: "",
+            adjustment: element.adjustments_transaction,
+            amount_nominal: element.amount,
+            amount_nominal_display: formatCurrencyID(element.amount),
+          });
+        } else {
+          element.amount_nominal =
+            (totalAmount.value * Number(element.value)) / 100;
+          references.value.push({
+            ...element,
+            reference: ReferenceAdjustment.INVOICE,
+            reference_id: "",
+            adjustment: element.adjustments_transaction,
+            amount_nominal_display: formatCurrencyID(element.amount_nominal),
+          });
+        }
       } else {
         references.value[index] = {
           ...element,

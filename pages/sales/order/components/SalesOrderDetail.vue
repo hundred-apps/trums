@@ -62,7 +62,7 @@
           </el-button>
           <NuxtLink
             class="el-button el-button--success el-button--default"
-            :href="`/sales/order/memo/add?id=${purchaseOrderData?.unique_id}`"
+            :href="`/sales/order/memo/add?so_id=${purchaseOrderData?.unique_id}`"
           >
             Buat Memo Transaksi
           </NuxtLink>
@@ -210,8 +210,18 @@
         >
           <template #default="{ row }">
             {{ currencyWithoutSymbol(row.total, 0) }}
-          </template></el-table-column
-        >
+          </template>
+        </el-table-column>
+        <el-table-column prop="status" label="Status" align="right" width="150">
+          <template #default="{ row }">
+            <el-tag
+              v-if="row.status"
+              :type="displayColorStatusSOITEM(row.status)"
+            >
+              {{ displayStatusSOITEM(row.status) }}
+            </el-tag>
+          </template>
+        </el-table-column>
         <!-- <el-table-column label="Garansi" width="150">
           <template #default="scope">
             {{
@@ -393,7 +403,7 @@
   </div>
 </template>
 
-<script lang="ts" setup>
+<script lang="tsx" setup>
 import {
   Delete,
   Edit,
@@ -403,13 +413,14 @@ import {
   CircleClose,
   Printer,
 } from "@element-plus/icons-vue";
-import type { FormProps } from "element-plus";
+import { ElTag, type FormProps } from "element-plus";
 import {
   PurchaseOrderStatus,
   PurchaseOrderItemStatus,
   type PurchaseOrder,
   type PurchaseOrderItem,
   displayStatusSOITEM,
+  displayColorStatusSOITEM,
 } from "~/types/scm/purchase_order";
 import type { BaseResponse } from "~/types/response";
 import {
@@ -436,10 +447,6 @@ import { AppFileType } from "~/types/file";
 
 const config = useRuntimeConfig();
 const baseImageURL = config.public.baseImageURL;
-
-definePageMeta({
-  middleware: ["auth", "app"],
-});
 
 const props = defineProps<{
   purchaseOrder: PurchaseOrder;
@@ -478,6 +485,7 @@ type PurchasOrderViewTree = {
   harga_po: number;
   total: number;
   children: PurchasOrderViewTree[];
+  status?: PurchaseOrderItemStatus;
 };
 
 const request_search_po_item = ref<RequestSearch>({
@@ -1067,6 +1075,7 @@ watch(
           )?.unique_id ?? "",
         quo_id: element.pricetag_item?.pricetag?.unique_id ?? "",
         children: childs,
+        status: element.status,
       });
     });
   },

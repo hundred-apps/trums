@@ -239,24 +239,28 @@
             />
           </el-form-item>
           <el-form-item label="Upload Dokumen" prop="source_document">
-            <el-upload
-              v-model:file-list="fileList"
-              class="upload-demo"
-              action=""
-              multiple
-              :on-preview="handlePreview"
-              :on-remove="handleRemove"
-              :before-remove="beforeRemove"
-              :limit="1"
-              :on-exceed="handleExceed"
+            <TrumsUploadFile v-model:file-list="fileList" />
+            <div
+              class="flex w-full items-center justify-between py-2 pr-1 hover:bg-gray-50"
+              style="padding-left: 8px"
+              v-for="(value, key) in appFiles"
+              :key="key"
             >
-              <el-button type="primary">Click to upload</el-button>
-              <template #tip>
-                <div class="el-upload__tip">
-                  jpg/png files with a size less than 500KB.
-                </div>
-              </template>
-            </el-upload>
+              <div class="flex items-center gap-2">
+                <el-icon><Document /></el-icon>
+                <NuxtLink
+                  class="text-gray-600 text-sm"
+                  :target="'_blank'"
+                  :href="`${baseImageURL}/${value.image_path}/${value.filename}`"
+                  >{{ value.filename_original }}</NuxtLink
+                >
+              </div>
+              <el-icon
+                class="cursor-pointer"
+                @click="() => handleRemoveFileDocument(value)"
+                ><Close
+              /></el-icon>
+            </div>
           </el-form-item>
         </div>
       </div>
@@ -517,6 +521,8 @@ import {
   Warning,
   Delete,
   Eleme,
+  Close,
+  Document,
 } from "@element-plus/icons-vue";
 import type { Catalogue } from "~/types/catalogue";
 import type { Contact } from "~/types/contact";
@@ -545,6 +551,8 @@ import {
 import type { ColumnTable } from "~/types/ColumnTable";
 import AutocompleteContact from "~/components/trums/AutocompleteContact.vue";
 import { fa } from "element-plus/es/locale/index.mjs";
+import TrumsUploadFile from "~/components/trums/form/TrumsUploadFile.vue";
+import type { AppFile } from "~/types/file";
 
 interface formCheckInOut {
   unique_id: string | null;
@@ -633,6 +641,9 @@ const adddressWarehouse = ref<{
     tmp_address_view: undefined,
   },
 });
+const config = useRuntimeConfig();
+const baseImageURL = config.public.baseImageURL;
+const appFiles = ref<AppFile[]>([]);
 
 let formInline = reactive<formCheckInOut>({
   unique_id: null,
@@ -1241,7 +1252,12 @@ const onSelectReference_id = async (data: Inquiry) => {
     formInline.address_version = data.address_version || 0;
     formInline.address_view = generateAddressViewName(data.address);
   }
-  showModal(0);
+
+  if (formInline.type == "out") {
+    showModal(0);
+  } else {
+    showModal(1);
+  }
 };
 
 const setFrom = (reference_from: string, value: any) => {
@@ -1425,6 +1441,38 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       console.log("error submit!", fields);
     }
   });
+};
+
+const handleRemoveFileDocument = async (appFile: AppFile) => {
+  ElMessageBox.confirm(
+    "File akan di hapus secara permanen. Lanjutkan?",
+    "Warning",
+
+    {
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
+      type: "warning",
+      title: "Yakin ingin menghapus file?",
+    }
+  )
+    .then(async () => {
+      try {
+        const response = await useApiFetch<BaseResponse<any>>("/file-delete", {
+          method: "POST",
+          body: [appFile.unique_id],
+        });
+
+        if (response.success) {
+          appFiles.value = appFiles.value.filter(
+            (filter) => filter.unique_id != appFile.unique_id
+          );
+          ElMessage.success(`Image Berhasil Di Hapus!`);
+        }
+      } catch (error: any) {
+        ElMessage.error(`${error?.response?.message ?? error}`);
+      }
+    })
+    .catch(() => {});
 };
 
 const onSubmit = async () => {
@@ -1640,12 +1688,10 @@ const onSubmit = async () => {
         );
       }
     });
-
+    console.log(fileList);
     fileList.value.forEach((element, index) => {
       formData.append(`files[${index}]`, element.raw as Blob);
     });
-
-    console.log(data);
 
     const response = await useFetchApi<BaseResponse<InventoryMovement>>(
       "/inventory-movement-create",
@@ -1778,6 +1824,7 @@ const fetchDataEdit = async () => {
       formInline.pic_name = movement.pic?.name || "";
       formInline.pic_version = movement.pic_version || 0;
 
+      appFiles.value = movement.files;
       // if (formInline.pic) {
       //   listPIC.value.push({
       //     movement_id: movement.unique_id,

@@ -858,6 +858,7 @@ watch(
           status_item: item.status_item,
           hasChild: false,
         });
+        no++;
       }
     });
 
@@ -1289,7 +1290,7 @@ const generateQuotationPdf = async () => {
         },
       },
     ]);
-    if (!isChild) {
+    if (item.hasChild) {
       no++;
     }
   });
@@ -1337,13 +1338,10 @@ const generateQuotationPdf = async () => {
         },
       },
     ]);
-
+  }
+  if (typeSummery.value === "total") {
     (props.dataInterface.data?.reference_transaction_adjustment ?? [])
-      .filter(
-        (value) =>
-          value.adjustments_transaction?.category == "transform" ||
-          value.adjustments_transaction?.category == "tax"
-      )
+      .filter((value) => value.adjustments_transaction?.category == "tax")
       .forEach((element) => {
         if (element.adjustments_transaction?.name.toLowerCase() == "ppn") {
           summeryData.push([
@@ -1368,7 +1366,7 @@ const generateQuotationPdf = async () => {
           ]);
         }
 
-        rowData.push([
+        summeryData.push([
           {
             content: `${element.adjustments_transaction?.name}`,
             colSpan: 5,
@@ -1682,7 +1680,7 @@ const downloadPdf = () => {
   }
 
   const filename = `Quotation-${
-    props.dataInterface?.data?.name || "document"
+    props.dataInterface?.data?.to?.name || "document"
   }.pdf`;
 
   // Buat URL object untuk blob

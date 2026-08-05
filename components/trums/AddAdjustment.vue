@@ -24,13 +24,6 @@
           status-icon
           :disabled="loading"
         >
-          <el-form-item label="Kode Unik" prop="unique_code">
-            <el-input
-              v-model="ruleForm.unique_code"
-              placeholder="Masukan kode unik"
-            />
-          </el-form-item>
-
           <el-form-item label="Nama" prop="name">
             <el-input
               v-model="ruleForm.name"
@@ -94,7 +87,7 @@ const props = defineProps<{
 // Types
 interface AdjustmentTransaction {
   unique_id: string;
-  unique_code: string;
+  unique_code?: string;
   name: string | null;
   type: "percent" | "fixed";
   default_value: string;
@@ -111,7 +104,6 @@ const ruleFormRef = ref<FormInstance>();
 
 const ruleForm = reactive<AdjustmentTransaction>({
   unique_id: "",
-  unique_code: "",
   name: null,
   type: "percent",
   default_value: "0",

@@ -319,6 +319,7 @@ const submitFormAddress = async (formEl: FormInstance | undefined) => {
           phone: ruleFormAddress.phone,
           version: 0,
           tmp_address_view: ruleFormAddress.address_view,
+          type: ruleFormAddress.type,
         };
 
         props.onSuccess!(data);

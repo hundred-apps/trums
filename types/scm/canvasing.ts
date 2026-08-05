@@ -10,7 +10,8 @@ import type { DeliveryUnitTime, DiscountUnit, WarrantyUnit } from "./offers";
 import type { AppFile } from "../file";
 import type { TermOfPayment } from "../payment_term";
 import type { People } from "../people";
-import type { Pricetag_item } from "../pricetag";
+import type { DeliveryMethod, Pricetag_item } from "../pricetag";
+import type { PurchaseOrder } from "./purchase_order";
 
 export enum CanvassingStatus {
   DRAFT = "draft",
@@ -20,6 +21,7 @@ export enum CanvassingStatus {
   PENDING_APPROVAL_RAB = "pending_approval_rab",
   DONE = "done",
   CANCEL = "cancel",
+  TRMEMO = "memo_transaction",
 }
 
 export const getStatusCanvassingLabel = (status: CanvassingStatus) => {
@@ -99,6 +101,11 @@ export type StatisticCanvassing = {
   total_done: number;
 };
 
+export enum CanvassingReference {
+  SO = "so",
+  PO = "po",
+}
+
 export type Canvassing = {
   unique_id: string | null;
   unique_code: string | null;
@@ -112,7 +119,10 @@ export type Canvassing = {
   updated_at: number;
   checked?: boolean;
   note: string | null;
+  reference?: CanvassingReference;
+  reference_id?: string;
   canvasing_item_vendor_summery?: CanvassingItemVendorSummery[];
+  reference_data?: PurchaseOrder;
   reference_transaction?: ReferenceTransactionAdjustment[];
   source?: Inquiry;
   payment_term?: PaymentTerm;
@@ -132,6 +142,8 @@ export type Canvassing = {
   checked_at?: number;
   checked_by?: string;
   checked_data?: People;
+  delivery_method?: DeliveryMethod;
+  delivery_description?: string;
 };
 
 export type CanvassingItem = {
@@ -242,10 +254,13 @@ export type CanvassingForm = {
   tempo_value?: number;
   tempo_unit?: PaymentTermUnit;
   address_id?: string;
+  address?: AddressType;
   address_version?: number;
   address_view?: string;
   expired_price_view?: string;
   expired_price?: number;
+  delivery_method?: DeliveryMethod;
+  delivery_description?: string;
 };
 
 export type CanvasingVendorView = {
@@ -313,7 +328,15 @@ export type CanvassingItemForm = {
   expected_delivery?: string;
   quo_number?: string;
   is_deleted?: boolean;
+  reference?: CanvassingItemReference;
+  reference_id?: string;
 };
+
+export enum CanvassingItemReference {
+  SO_ITEM = "so_item",
+  CANVASSING_VENDOR = "canvassing_vendor",
+  PURCHASE_ORDER_ITEM = "purchase_order_item",
+}
 
 export type CanvassingItemVendorSummery = {
   unique_id: string;

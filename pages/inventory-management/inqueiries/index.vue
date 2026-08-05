@@ -521,20 +521,20 @@ const onSort = (sortBy: { order: string; prop: string }) => {
         : OrderColumn.ASC,
   };
 };
+const onRefresh = () => refresh();
 
-watch(request_search, () => refreshNuxtData("get-inquiries"), {
-  immediate: true,
-});
-
-watch(request_search, () => refreshNuxtData("get-inquiries"), {
-  immediate: true,
-});
+watch(
+  () => request_search.value,
+  () => onRefresh(),
+  {
+    immediate: true,
+    deep: true,
+  }
+);
 
 const hasSelected = computed(() => {
   return data.value?.data?.some((item) => item.checked) || false;
 });
-
-const onRefresh = () => refresh();
 
 const handleSizeChange = (size: number) => {
   request_search.value.limit = `${size}`;

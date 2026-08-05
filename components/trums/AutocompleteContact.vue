@@ -3,6 +3,7 @@
     <el-autocomplete
       :fetch-suggestions="handleFetch"
       v-model="model"
+      :disabled="disabled"
       placeholder="Cari Kontak"
       @select="handleSelect"
     >
@@ -15,6 +16,7 @@
       </template>
     </el-autocomplete>
     <el-button
+      :disabled="disabled"
       type="primary"
       v-if="contact"
       @click="dialogContact = true"
@@ -56,10 +58,12 @@ interface Props {
   ) => void;
   contact?: any;
   class?: string;
+  disabled?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
   placeholder: "Cari Kontak",
+  disabled: false,
 });
 
 const emit = defineEmits(["update:modelValue", "open-dialog", "save-contact"]);

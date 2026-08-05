@@ -266,7 +266,10 @@ const availableColumn = computed(() => {
       key: "unique_code",
       width: 300,
       cellRenderer: ({ rowData }: { rowData: InventoryMovement }) => (
-        <NuxtLink href={`checkin/${rowData.unique_id}`} class={"text-blue-600"}>
+        <NuxtLink
+          href={`/inventory-management/checkin/${rowData.unique_id}`}
+          class={"text-blue-600"}
+        >
           {rowData.unique_code}
         </NuxtLink>
       ),

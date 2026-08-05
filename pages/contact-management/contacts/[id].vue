@@ -115,14 +115,26 @@
             <span>Alamat</span>
           </div>
         </template>
-        <el-table :data="contactData?.address ?? []" border>
-          <el-table-column prop="address_name" label="Nama Alamat" />
-          <el-table-column prop="street" label="Jalan" />
-          <el-table-column prop="city" label="Kota" />
-          <el-table-column prop="province" label="Provinsi" />
-          <el-table-column prop="codepos" label="Kode Pos" />
-          <el-table-column prop="country" label="Negara" />
-        </el-table>
+        <div
+          class="flex flex-col mb-5"
+          v-for="(address, index) in contactData?.address"
+        >
+          <div class="flex justify-start gap-3 items-center">
+            <span class="font-bold text-md mb-1">
+              {{ address.address_name }} | {{ address.phone }}
+            </span>
+            <span class="text-sm mb-1 text-blue-600 font-italic">
+              Alamat
+              {{ getAddressLabel(address.type || AddressLabel.DELIVERY) }}
+            </span>
+          </div>
+          <p class="text-sm" style="line-height: 15px">
+            {{ address.street }}
+          </p>
+          <p class="text-sm">
+            {{ generateAddressView(address) }}
+          </p>
+        </div>
       </el-card>
     </el-card>
   </TrumsWrapper>
@@ -135,6 +147,8 @@ import type { BaseResponse } from "~/types/response";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { PurchaseOrder } from "~/types/scm/purchase_order";
 import { formatLocalDate } from "#imports";
+import { generateAddressView } from "#imports";
+import { AddressLabel, getAddressLabel } from "~/types/address";
 
 definePageMeta({
   middleware: ["auth", "app"],
