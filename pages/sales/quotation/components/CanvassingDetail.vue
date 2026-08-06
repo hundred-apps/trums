@@ -6081,7 +6081,11 @@ const generateSCMMemo = async () => {
 
   (canvassingData.value?.payment_terms ?? []).forEach((element) => {
     writeWrappedText(
-      `\u2022 ${element.name} ${
+      `\u2022 ${element.name}: ${
+        element.unit == "nominal"
+          ? currencyWithoutSymbol(element.value)
+          : `${element.value}%`
+      } ${
         element.term_of_payment == PaymentTerm.TEMPO
           ? `${element.duration}D`
           : ""
@@ -6265,11 +6269,12 @@ const generateSCMMemo = async () => {
         : "";
 
     const paymentText =
-      payment.name.toUpperCase() === payment.term_of_payment.toUpperCase()
+      (payment.name ?? "").toUpperCase() ===
+      (payment.term_of_payment ?? "").toUpperCase()
         ? `${payment.name} ${payment.value}%`
-        : `${payment.name} ${
-            payment.value
-          }% ${payment.term_of_payment.toUpperCase()}${duration}`;
+        : `${payment.name} ${payment.value}% ${(
+            payment.term_of_payment ?? ""
+          ).toUpperCase()}${duration}`;
 
     doc.text(`• ${paymentText}`, marginX + 4, vendorY);
 
@@ -6400,7 +6405,8 @@ const generateSCMMemo = async () => {
           : "";
 
       const paymentText =
-        payment.name.toUpperCase() === payment.term_of_payment.toUpperCase()
+        (payment.name || "").toUpperCase() ===
+        (payment.term_of_payment || "").toUpperCase()
           ? `${payment.name} ${payment.value}%`
           : `${payment.name} ${payment.value}% ${payment.term_of_payment}${duration}`;
 
