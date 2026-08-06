@@ -24,7 +24,7 @@
         style="width: 100%"
         ref="tableRef"
         :lazy="true"
-        @cell-click="onSelect"
+        @cell-click="(data: Pricetag_item) => onSelect(data, 'in')"
       >
         <el-table-column label="No.QUO" width="130">
           <template #default="scope">
@@ -88,32 +88,29 @@
       </el-row>
 
       <el-table
-        :data="offerCustomer.data.value?.data ?? []"
+        :data="displayPricetagCustomer ?? []"
         style="width: 100%"
         ref="tableRef"
         :lazy="true"
-        @cell-click="onSelect"
+        @cell-click="(data: PricetagItemCustomerView) => onSelect(data.pricetagData, 'out', data.canvasing_vendor)"
       >
         <el-table-column label="No.QUO" width="130">
           <template #default="scope">
             <NuxtLink
               class="text-blue-500"
-              :href="`/sales/offer/${scope.row.pricetag.unique_id}`"
+              :href="`/sales/offer/${scope.row.tag_id}`"
               target="_blank"
-              >{{
-                wrapUniqueCode(scope.row.pricetag?.unique_code ?? "-")
-              }}</NuxtLink
+              >{{ wrapUniqueCode(scope.row.quo_number ?? "-") }}</NuxtLink
             >
           </template>
         </el-table-column>
         <el-table-column label="No.RAB" width="180">
           <template #default="scope">
             <NuxtLink
-              v-if="scope.row.pricetag?.reference_data"
               :target="'_blank'"
               class="text-blue-600"
-              :href="`/sales/quotation/${ (scope.row.pricetag?.reference_data as Canvassing).unique_id }`"
-              >{{ (scope.row.pricetag?.reference_data as Canvassing|undefined)?.unique_code || "N/A" }}
+              :href="`/sales/quotation/${scope.row.rab_id}`"
+              >{{ scope.row.rab_number || "N/A" }}
             </NuxtLink>
           </template>
         </el-table-column>
@@ -121,21 +118,31 @@
           <template #default="scope">
             <NuxtLink
               class="text-blue-500"
-              :to="`/catalogue/${scope.row.unique_id}`"
+              :to="`/catalogue/${scope.row.catalogue_id}`"
               target="_blank"
             >
-              {{ scope.row.catalogue?.name ?? "" }}
+              {{ scope.row.catalogue_name ?? "" }}
             </NuxtLink>
+          </template>
+        </el-table-column>
+        <el-table-column label="Nama Vendor" width="150">
+          <template #default="scope">
+            <p>{{ scope.row.vendor_name }}</p>
+          </template>
+        </el-table-column>
+        <el-table-column label="Harga Beli" width="120" align="right">
+          <template #default="scope">
+            <p>{{ currency(scope.row.buy_price) }}</p>
           </template>
         </el-table-column>
         <el-table-column label="Harga" width="120" align="right">
           <template #default="scope">
-            <p>{{ currency(scope.row.price) }}</p>
+            <p>{{ currency(scope.row.selling_price) }}</p>
           </template>
         </el-table-column>
         <el-table-column label="UOM" width="100" align="right">
           <template #default="scope">
-            <p>{{ scope.row.unit?.name ?? "" }}</p>
+            <p>{{ scope.row.unit_name ?? "" }}</p>
           </template>
         </el-table-column>
       </el-table>
@@ -184,14 +191,28 @@ import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import type { ResponsePagination } from "~/types/response_pagination";
 import AddPriceTagComponent from "./AddPriceTagComponent.vue";
 import { currency, wrapUniqueCode } from "#imports";
-import type { Canvassing } from "~/types/scm/canvasing";
+import type {
+  Canvassing,
+  CanvassingItem,
+  CanvassingVendor,
+} from "~/types/scm/canvasing";
 
 interface Props {
   customer_id: string;
 }
 
 const props = defineProps<Props>();
-const emit = defineEmits(["onSelection"]);
+// const emit = defineEmits(["onSelection"]);
+
+const emit = defineEmits<{
+  onSelection: [
+    data: Pricetag_item,
+    type: "in" | "out",
+    vendor?: CanvassingVendor
+  ];
+  reset: [];
+  cancel: [];
+}>();
 
 const { isMobile } = useDevice();
 
@@ -255,6 +276,25 @@ const { data, refresh } = await useAsyncData(
   }
 );
 
+type PricetagItemCustomerView = {
+  catalogue_name: string;
+  catalogue_id: string;
+  pricetag_item_id: string;
+  pricetagData: Pricetag_item;
+  quo_number: string;
+  tag_id: string;
+  buy_price: number;
+  selling_price: number;
+  rab_id: string;
+  rab_number: string;
+  qty: number;
+  unit_name: string;
+  expired_date: string;
+  vendor_id: string;
+  vendor_name: string;
+  canvasing_vendor: CanvassingVendor;
+};
+
 const offerCustomer = await useAsyncData(
   `fetch-pricetag-item-${props.customer_id}`,
   async () => {
@@ -267,6 +307,41 @@ const offerCustomer = await useAsyncData(
     return res.data.value;
   }
 );
+
+const displayPricetagCustomer = computed(() => {
+  const data: PricetagItemCustomerView[] = [];
+  (offerCustomer.data.value?.data || []).forEach((element) => {
+    (
+      (element.data_reference as CanvassingItem | undefined)
+        ?.canvassing_vendor || []
+    ).forEach((vendor) => {
+      data.push({
+        catalogue_name: displayCatalogueName(vendor.catalogue!) || "",
+        catalogue_id: vendor.catalogue_id || "",
+        pricetag_item_id: element.unique_id || "",
+        pricetagData: element,
+        quo_number: element.pricetag?.unique_code || "",
+        tag_id: element.pricetag?.unique_id || "",
+        buy_price: vendor.unit_price,
+        selling_price: element.price || 0,
+        qty: 0,
+        unit_name: element.unit_name || "",
+        expired_date: formatLocalDate(element.pricetag?.end_date || 0),
+        rab_id:
+          (element.pricetag?.reference_data as Canvassing | undefined)
+            ?.unique_id || "",
+        rab_number:
+          (element.pricetag?.reference_data as Canvassing | undefined)
+            ?.unique_code || "",
+        vendor_id: vendor.vendor_id || "",
+        vendor_name: vendor.vendor?.name || "",
+        canvasing_vendor: vendor,
+      });
+    });
+  });
+  console.log("penawaran customer", data);
+  return data;
+});
 
 const handlePageChange = (page: number) => {
   console.log("harusnya referesh");
@@ -291,8 +366,12 @@ const createNewOffer = () => {
   visibleModalPricetagNewItem.value = true;
 };
 
-const onSelect = (item: Pricetag_item) => {
-  emit("onSelection", item);
+const onSelect = (
+  item: Pricetag_item,
+  type: "in" | "out",
+  vendor?: CanvassingVendor
+) => {
+  emit("onSelection", item, type, vendor);
 };
 
 const onRefresh = () => refresh();

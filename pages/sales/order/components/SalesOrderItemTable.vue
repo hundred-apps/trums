@@ -158,6 +158,8 @@ const renderStatusItem = (data: PurchaseOrderItem) => {
       return <ElTag type="warning">{displayStatusSOITEM(data.status)}</ElTag>;
     case PurchaseOrderItemStatus.DONE:
       return <ElTag type="success">{displayStatusSOITEM(data.status)}</ElTag>;
+    default:
+      return <></>;
   }
 };
 

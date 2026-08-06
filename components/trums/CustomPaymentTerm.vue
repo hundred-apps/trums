@@ -120,6 +120,7 @@ import { currencyWithoutSymbol } from "#imports";
 const props = defineProps<{
   type: "input" | "view";
   data?: TermOfPayment[];
+  total: number;
 }>();
 
 const emit = defineEmits<{
@@ -130,18 +131,62 @@ const paymentTermError = ref(false);
 const termOfPayments = ref<TermOfPayment[]>([]);
 
 const addNewPaymentTerm = () => {
-  termOfPayments.value.push({
-    duration: 0,
-    name: "",
-    reference: TermOfPaymentReference.RAB,
-    reference_id: "",
-    term_of_payment: PaymentTerm.CBD,
-    unique_code: "",
-    unique_id: "",
-    unit: "percentage",
-    value: 0,
-  });
+  if (termOfPayments.value.length == 0) {
+    termOfPayments.value.push({
+      duration: 0,
+      name: "",
+      reference: TermOfPaymentReference.RAB,
+      reference_id: "",
+      term_of_payment: PaymentTerm.CBD,
+      unique_code: "",
+      unique_id: "",
+      unit: "percentage",
+      value: 0,
+    });
+  } else {
+    const unit = termOfPayments.value[0].unit;
+
+    const totalValue = termOfPayments.value.reduce(
+      (total, item) => total + Number(item.value || 0),
+      0
+    );
+
+    termOfPayments.value.push({
+      duration: 0,
+      name: "",
+      reference: TermOfPaymentReference.RAB,
+      reference_id: "",
+      term_of_payment: PaymentTerm.CBD,
+      unique_code: "",
+      unique_id: "",
+      unit,
+      value:
+        unit === "nominal"
+          ? Number(props.total || 0) - totalValue
+          : 100 - totalValue,
+    });
+  }
 };
+
+watch(
+  () => props.total,
+  (newTotal) => {
+    if (!termOfPayments.value.length) return;
+
+    const unit = termOfPayments.value[0].unit;
+
+    if (unit !== "nominal") return;
+
+    const lastIndex = termOfPayments.value.length - 1;
+
+    const totalBeforeLast = termOfPayments.value
+      .slice(0, lastIndex)
+      .reduce((total, item) => total + Number(item.value || 0), 0);
+
+    termOfPayments.value[lastIndex].value =
+      Number(newTotal || 0) - totalBeforeLast;
+  }
+);
 
 const submitDeletePaymentTerm = async (data: TermOfPayment) => {
   try {

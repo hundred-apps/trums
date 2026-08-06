@@ -9,6 +9,15 @@
       element-loading-svg-view-box="-10, -10, 50, 50"
       element-loading-background="rgba(122, 122, 122, 0.8)"
     >
+      <template #header>
+        <div class="card-header flex justify-end">
+          <NuxtLink
+            class="el-button el-button--warning el-button--default"
+            :href="`/sales/order/memo/add?id=${canvassingData?.unique_id}`"
+            >Edit</NuxtLink
+          >
+        </div>
+      </template>
       <div :class="`flex gap-3 my-3 ${isMobile ? 'flex-col' : ''}`">
         <div class="flex-1">
           <el-descriptions
@@ -439,7 +448,7 @@
             clearable
             class="inline-input w-50"
             placeholder="Cari Alamat/Buat Baru"
-            @select="(record) => handleSelectAddress(record)"
+            @select="(record: Record<string, any>) => handleSelectAddress(record)"
           >
             <template #default="{ item }">
               <div class="name">{{ item.name }}</div>

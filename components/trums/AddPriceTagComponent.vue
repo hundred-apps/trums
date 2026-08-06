@@ -483,12 +483,14 @@
         "
         @update:term-of-payments="onUpdatePaymentTerms"
         type="input"
+        :total="grandTotal"
       />
       <CustomPaymentTerm
         v-else
         @update:term-of-payments="onUpdatePaymentTerms"
         :data="termOfPayments"
         type="input"
+        :total="grandTotal"
       />
 
       <el-card class="mb-3" shadow="never">
@@ -2752,6 +2754,26 @@ const submitForm = async (formEl: FormInstance | undefined) => {
   if (!formEl) return;
   await formEl.validate((valid, fields) => {
     if (valid) {
+      const unit = termOfPayments.value[0]?.unit;
+
+      const totalValue = termOfPayments.value.reduce(
+        (total, item) => total + Number(item.value || 0),
+        0
+      );
+
+      const isValidTerm =
+        unit === "percentage"
+          ? totalValue === 100
+          : totalValue === Number(grandTotal.value);
+
+      if (!isValidTerm) {
+        ElMessage.error(
+          unit === "percentage"
+            ? "Jumlah Informasi Pembayaran harus sama dengan 100%."
+            : "Jumlah Informasi Pembayaran harus sama dengan Grand Total."
+        );
+        return;
+      }
       if (ruleForm.type == "in") {
         if (fileList.value.length == 0 && fileDocument.value.length == 0) {
           ElMessage.error("Lampiran Tidak Boleh Kosong!");

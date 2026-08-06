@@ -410,6 +410,7 @@
       <CustomPaymentTerm
         type="view"
         :data="dataInterface.data?.payment_terms ?? []"
+        :total="grandTotal"
       />
 
       <el-card class="mb-3" shadow="never">
@@ -1490,7 +1491,11 @@ const generateQuotationPdf = async () => {
 
     (props.dataInterface.data?.payment_terms ?? []).forEach((element) => {
       writeWrappedText(
-        `\u2022 ${element.name} ${
+        `\u2022 ${element.name}: ${
+          element.unit == "nominal"
+            ? currencyWithoutSymbol(element.value)
+            : `${element.value}%`
+        } ${
           element.term_of_payment == PaymentTerm.TEMPO
             ? `${element.duration}D`
             : ""

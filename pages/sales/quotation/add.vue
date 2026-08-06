@@ -64,7 +64,7 @@
             clearable
             class="inline-input w-50"
             placeholder="Cari Alamat/Buat Baru"
-            @select="(record) => handleSelectAddress(record)"
+            @select="(record: Record<string, any>) => handleSelectAddress(record)"
           >
             <template #default="{ item }">
               <div class="name">{{ item.name }}</div>
@@ -163,7 +163,7 @@
               v-model="row.party.name"
               :fetch-suggestions="querySearchContact"
               placeholder="Cari nama..."
-              @select="(item) => onHandleSelectContact(item, $index)"
+              @select="(item: Record<string, any>) => onHandleSelectContact(item, $index)"
               style="width: 100%"
             />
           </template>
@@ -346,7 +346,7 @@
                       (item) => item.index === scope.row.index
                     )
                   "
-                  @change="(val) => handleCheck(val, scope.row)"
+                  @change="(val: any) => handleCheck(val, scope.row)"
                 />
               </div>
             </template>
@@ -661,7 +661,7 @@
                     v-model="row.selling_price"
                     :min="0"
                     @change="
-                      (value) => {
+                      (value: any) => {
                         // (row as CanvassingItemForm).children?.forEach((child: CanvassingItemForm) => {
                         //   if (child.type_item == 'original') {
                         //     child.selling_price = value || 0;
@@ -841,77 +841,19 @@
       header="Informasi Pembayaran"
       :class="{ 'error-card': paymentTermError }"
     >
-      <el-table :data="payment_terms" border style="width: 100%">
-        <el-table-column label="Nama">
-          <template #default="scope">
-            <el-input v-model="scope.row.name" placeholder="TOP 1" />
-          </template>
-        </el-table-column>
-
-        <el-table-column label="Jumlah">
-          <template #default="scope">
-            <el-input
-              v-model="scope.row.value"
-              style="max-width: 300px"
-              placeholder="Jumlah"
-            >
-              <template #append>
-                <el-select v-model="scope.row.unit" style="width: 100px">
-                  <el-option label="%" value="percentage" />
-                  <el-option label="Rp" value="nominal" />
-                </el-select>
-              </template>
-            </el-input>
-          </template>
-        </el-table-column>
-
-        <el-table-column label="TOP">
-          <template #default="scope">
-            <el-select
-              v-model="scope.row.term_of_payment"
-              placeholder="Select"
-              style="width: 240px"
-            >
-              <el-option
-                v-for="item in [
-                  { value: PaymentTerm.COD, label: 'COD' },
-                  { value: PaymentTerm.CBD, label: 'CBD' },
-                  { value: PaymentTerm.TEMPO, label: 'TEMPO' },
-                ]"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
-              />
-            </el-select>
-          </template>
-        </el-table-column>
-
-        <el-table-column :label="`Durasi Tempo`">
-          <template #default="scope">
-            <el-input
-              :step="1"
-              :min="0"
-              v-model="scope.row.duration"
-              placeholder="Masukkan Durasi Tempo"
-              :disabled="scope.row.term_of_payment !== PaymentTerm.TEMPO"
-            />
-          </template>
-        </el-table-column>
-
-        <el-table-column label="Aksi" width="60">
-          <template #default="scope">
-            <el-button
-              type="danger"
-              :icon="Delete"
-              circle
-              @click="() => removePaymentTerm(scope.row)"
-            />
-          </template>
-        </el-table-column>
-      </el-table>
-      <el-button class="mt-4" style="width: 100%" @click="addNewPaymentTerm">
-        Add New Item
-      </el-button>
+      <CustomPaymentTerm
+        v-if="id === undefined && !loading"
+        @update:term-of-payments="onUpdatePaymentTerms"
+        type="input"
+        :total="grandTotal"
+      />
+      <CustomPaymentTerm
+        v-else
+        @update:term-of-payments="onUpdatePaymentTerms"
+        :data="payment_terms"
+        type="input"
+        :total="grandTotal"
+      />
     </el-card>
 
     <!-- Summary -->
@@ -1151,6 +1093,7 @@ import { handleInput } from "#imports";
 import type { ItemRequest } from "~/types/item_request";
 import OfferDetail from "../offer/components/OfferDetail.vue";
 import { twCoupleWithHeartPersonPersonMediumSkinToneMediumDarkSkinTone } from "nuxt-twemoji/emojis";
+import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -3079,6 +3022,9 @@ const submitDeletePaymentTerm = async (data: TermOfPayment) => {
   } catch (error: any) {
     ElMessage.error(error?.response?.message ?? error);
   }
+};
+const onUpdatePaymentTerms = (data: TermOfPayment[]) => {
+  payment_terms.value = data;
 };
 
 const removePaymentTerm = async (data: TermOfPayment) => {

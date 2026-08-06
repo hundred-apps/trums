@@ -91,7 +91,7 @@
             clearable
             class="inline-input w-50"
             placeholder="Cari Alamat/Buat Baru"
-            @select="(record) => handleSelectAddress(record)"
+            @select="(record: any) => handleSelectAddress(record)"
           >
             <template #default="{ item }">
               <div class="name">{{ item.name }}</div>
@@ -175,6 +175,20 @@
               <span v-else>{{ row.catalogue_name }}</span>
             </template>
           </el-table-column>
+          <el-table-column label="Type" width="200">
+            <template #default="{ row }">
+              <el-select
+                v-if="row.type == 'child'"
+                v-model="row.type_item"
+                :disabled="row.type == 'parent'"
+                placeholder="Select"
+              >
+                <el-option :label="`Subtitution`" :value="'quotation'" />
+                <el-option :label="`Equivalent`" :value="'equivalent'" />
+                <el-option :label="`AS Requested`" :value="'original'" />
+              </el-select>
+            </template>
+          </el-table-column>
           <el-table-column
             prop="quantity"
             label="QTY"
@@ -248,14 +262,39 @@
             width="200"
           >
             <template #default="{ row }">
-              <span
+              <!-- <span
                 v-if="row.po_id"
                 class="text-blue-600 cursor-pointer"
                 @click="() => openDetailPoVendor(row.po_id)"
               >
                 {{ row.po_number }}
               </span>
-              <span v-else>N/A</span>
+              <span v-else>N/A</span> -->
+              <div
+                v-if="row.type == 'child'"
+                class="flex items-center justify-between"
+              >
+                <span
+                  v-if="row.po_id"
+                  class="text-blue-600 cursor-pointer"
+                  @click="() => openDetailPoVendor(row.po_id)"
+                >
+                  {{ row.po_number }}
+                </span>
+                <span v-else>Belum pilih PO</span>
+                <el-icon
+                  color="#409efc"
+                  class="cursor-pointer"
+                  @click="
+                    () =>
+                      openModalSelectPoItemVendor(
+                        row.parent_index,
+                        parseInt(row.index)
+                      )
+                  "
+                  ><EditPen
+                /></el-icon>
+              </div>
             </template>
           </el-table-column>
           <el-table-column
@@ -387,6 +426,44 @@
             <template #default="{ row }">
               <span
                 >{{ customMathCeil(calculateMargin((row as CanvassingItemMemoForm).total_price, (row as CanvassingItemMemoForm).total_po_price))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -771,7 +848,7 @@
               :disabled="false"
               placeholder="Masukan Nilai"
               @input="
-                (value) => {
+                (value: any) => {
                   // onInputAdjustment(ref);
                   ref.amount = Number(value);
                   console.log('ref', ref);
@@ -827,9 +904,19 @@
     </el-card>
 
     <el-dialog
+      v-model="modalSelectPoItem.visible"
+      title="Pilih PO Vendor"
+      width="1000"
+    >
+      <PurchaseOrderItemComponent
+        :request_column="request_search_po_item_vendor.column"
+        @row-click="handleSelectPOitemVendor"
+      />
+    </el-dialog>
+    <el-dialog
       v-model="modalSelectItem"
       title="Buat/Pilih Penawaran Baru"
-      width="1000"
+      width="1200"
     >
       <PricetagItemSelect
         :customer_id="data?.vendor_id!"
@@ -979,6 +1066,8 @@ import PurchaseOrderDetailSCM from "~/pages/supply-chain-management/purchase/ord
 import type { TermOfPayment } from "~/types/payment_term";
 import { getDeliveryMethodLabel } from "~/types/pricetag";
 import type { AddressType } from "~/types/address";
+import { displayCatalogueName } from "#imports";
+import PurchaseOrderItemComponent from "~/components/trums/PurchaseOrderItemComponent.vue";
 
 type ReferenceTransactionAdjustmentMemo = ReferenceTransactionAdjustment & {
   canvassing_id: string;
@@ -1018,11 +1107,21 @@ const baseImageURL = config.public.baseImageURL;
 const goBack = () => router.back();
 
 const purchaseOrderId = ref<string>(route.query.so_id as string);
+const id = ref<string>(route.query.id as string);
 
 const visibleModalNewAdjustment = ref<boolean>(false);
 const visibleModalAdjustmentTransaction = ref(false);
 const visibleModalSearchItemExample = ref(false);
 const modalSelectItem = ref(false);
+const modalSelectPoItem = ref<{
+  visible: boolean;
+  parentIndex: number;
+  childIndex: number;
+}>({
+  visible: false,
+  parentIndex: 0,
+  childIndex: 0,
+});
 const modalPOVendorDetail = ref<{
   modal: boolean;
   order_id: string | null;
@@ -1244,6 +1343,61 @@ const closeAdjustment = () => {
   formAdjustmentRef.value?.resetFields();
 };
 
+const openModalSelectPoItemVendor = (
+  parentIndex: number,
+  childIndex: number
+) => {
+  modalSelectPoItem.value = {
+    visible: true,
+    parentIndex: parentIndex,
+    childIndex: childIndex,
+  };
+};
+
+const handleSelectPOitemVendor = async (item: PurchaseOrderItem) => {
+  const dataExist =
+    item_memo.value[modalSelectPoItem.value.parentIndex].children[
+      modalSelectPoItem.value.childIndex
+    ];
+
+  const memoChild: CanvassingItemMemoForm = {
+    ...dataExist,
+  } as CanvassingItemMemoForm;
+
+  memoChild.vendor_id = item.purchase_order?.vendor_id || dataExist.vendor_id;
+
+  memoChild.vendor_name =
+    item.purchase_order?.vendor?.name || dataExist.vendor_name;
+
+  memoChild.quantity = item.quantity || dataExist.quantity;
+
+  memoChild.total_price =
+    (item.quantity || dataExist.quantity) *
+    (item.unit_price || dataExist.unit_price);
+
+  memoChild.total_po_price =
+    (item.quantity || dataExist.quantity) * memoChild.unit_po_price;
+  memoChild.po_number = item.purchase_order?.unique_code || "";
+  memoChild.po_id = item.purchase_order?.unique_id || "";
+  memoChild.reference = CanvassingItemReference.PURCHASE_ORDER_ITEM;
+  memoChild.reference_id = item.unique_id || "";
+  item_memo.value[modalSelectPoItem.value.parentIndex].children[
+    modalSelectPoItem.value.childIndex
+  ] = memoChild;
+
+  calculateParentItem();
+  findRecepientFee();
+  calculateReferences();
+
+  await fetchAdjustmentForPOVendor([item.order_id]);
+
+  modalSelectPoItem.value = {
+    childIndex: -1,
+    parentIndex: -1,
+    visible: false,
+  };
+};
+
 const onSubmitAdjustment = () => {
   otherCost.value[modalEditAdjustment.value.index].type =
     modelFormAdjustment.type;
@@ -1329,6 +1483,8 @@ const fetchSoDetail = async () => {
 
       await fetchPOItem();
       await fetchInquiry();
+
+      await initialItemMemo();
     }
   } catch (error) {
     console.error("Failed to fetch related data", error);
@@ -1471,8 +1627,14 @@ const fetchPOVendor = async () => {
           const list_po_vendor = item_request_trail.map(
             (map) => (map.data_reference as PurchaseOrder).unique_id
           );
-
-          await fetchPOVendorItem(list_po_vendor);
+          request_search_po_item_vendor.value.column = [
+            {
+              purchase_order: {
+                type: ["po"],
+                unique_id: list_po_vendor,
+              },
+            },
+          ];
           await fetchAdjustmentForPOVendor(list_po_vendor);
         }
       }
@@ -1529,51 +1691,13 @@ const fetchAdjustmentForPOVendor = async (uniques: string[]) => {
   }
 };
 
-const fetchPOVendorItem = async (uniques: string[]) => {
-  try {
-    const request_search: RequestSearch = {
-      keyword: "",
-      column: [
-        {
-          purchase_order: {
-            type: ["po"],
-            unique_id: uniques,
-          },
-        },
-      ],
-      limit: "10",
-      offset: "1",
-      table: "purchase_order_item",
-      sort: {
-        column: "created_at",
-        order: "DESC",
-      },
-      flag: "list",
-    };
-
-    const response = await useFetchApi<ResponsePagination<PurchaseOrderItem[]>>(
-      "/search",
-      "fetch-po-item",
-      "post",
-      request_search
-    );
-    if (response.status.value == "success") {
-      listPOitemVendor.value = response.data.value?.data || [];
-    }
-
-    await initialItemMemo();
-  } catch (error: any) {
-    ElMessage.error(error?.response?.message ?? error);
-  }
-};
-
-watch(
-  () => listPOitemVendor.value,
-  () => {
-    console.log("po vendor item", listPOitemVendor.value);
-  },
-  { deep: true }
-);
+// watch(
+//   () => listPOitemVendor.value,
+//   () => {
+//     console.log("po vendor item", listPOitemVendor.value);
+//   },
+//   { deep: true }
+// );
 
 const adjustmentTransactions = await useAsyncData(
   "search-adjustment",
@@ -1601,6 +1725,24 @@ const request_search_po_item = ref<RequestSearch>({
   sort: {
     column: "created_at",
     order: OrderColumn.DESC,
+  },
+  flag: "list",
+});
+const request_search_po_item_vendor = ref<RequestSearch>({
+  keyword: "",
+  column: [
+    {
+      purchase_order: {
+        type: ["po"],
+      },
+    },
+  ],
+  limit: "10",
+  offset: "1",
+  table: "purchase_order_item",
+  sort: {
+    column: "created_at",
+    order: "DESC",
   },
   flag: "list",
 });
@@ -1669,7 +1811,11 @@ const getPricetagItemDetail = async (
   }
 };
 
-const onSelectPricetagItem = (item: Pricetag_item) => {
+const onSelectPricetagItem = (
+  item: Pricetag_item,
+  type: "in" | "out",
+  vendor?: CanvassingVendor
+) => {
   const vendors =
     (item.data_reference as CanvassingItem | undefined)?.canvassing_vendor ??
     [];
@@ -1939,12 +2085,12 @@ const findChilds = async (
         fees = await getContactsFee(["canvassing_vendor"], [vendor.unique_id!]);
       }
 
-      const findPoItem: PurchaseOrderItem | undefined =
-        listPOitemVendor.value.findLast(
-          (find) =>
-            find.purchase_order?.vendor_id == vendor.vendor_id &&
-            find.catalogue_id == vendor.catalogue_id
-        );
+      // const findPoItem: PurchaseOrderItem | undefined =
+      //   listPOitemVendor.value.findLast(
+      //     (find) =>
+      //       find.purchase_order?.vendor_id == vendor.vendor_id &&
+      //       find.catalogue_id == vendor.catalogue_id
+      //   );
 
       memoChilds.push({
         index: `${indexChild}`,
@@ -1958,10 +2104,8 @@ const findChilds = async (
         item_request_trail_version: null,
         item_request_trail_id: null,
         unique_id: vendor.unique_id,
-        vendor_id:
-          findPoItem?.purchase_order?.vendor?.unique_id ?? vendor.vendor_id,
-        vendor_name:
-          findPoItem?.purchase_order?.vendor?.name || vendor.vendor?.name || "",
+        vendor_id: vendor.vendor_id,
+        vendor_name: vendor.vendor?.name || "",
         unit_id: vendor.unit_id,
         unit_name: vendor.unit_name,
         unit_version: vendor.unit_version,
@@ -1972,16 +2116,14 @@ const findChilds = async (
           ? displayCatalogueName(vendor.catalogue)
           : vendor.catalogue_name,
         sn: "",
-        quantity: findPoItem?.quantity || vendor.quantity,
-        unit_price: findPoItem?.unit_price || vendor.unit_price,
-        total_price:
-          (findPoItem?.quantity || vendor.quantity) *
-          (findPoItem?.unit_price || vendor.unit_price),
+        quantity: vendor.quantity,
+        unit_price: vendor.unit_price,
+        total_price: vendor.quantity * vendor.unit_price,
         status: CanvassingVendorStatus.SUBMITTED,
         taxes: [],
         editing: null,
         type: "child",
-        type_item: "request",
+        type_item: vendor.type_item,
         equivalent_id: null,
         children: [],
         selling_price: element.pricetag_item?.price || 0,
@@ -1997,9 +2139,7 @@ const findChilds = async (
         pricetag_item_version: vendor.pricetag_item_version,
         quo_number: element.pricetag_item?.pricetag?.unique_code || "",
         unit_po_price: element.po_unit_price || 0,
-        total_po_price:
-          (findPoItem?.quantity || vendor.quantity) *
-          (element.po_unit_price || 0),
+        total_po_price: vendor.quantity * (element.po_unit_price || 0),
         contacts_fee: fees,
         canvassing_vendor_unique_id: vendor.unique_id || "",
         is_deleted: false,
@@ -2010,18 +2150,88 @@ const findChilds = async (
               | undefined
           )?.unique_code || "",
         parent_index: parentIndex,
-        po_number: findPoItem?.purchase_order?.unique_code || "",
-        po_id: findPoItem?.order_id,
+        po_number: "",
         status_stok: pricetagItemDetail?.status_item,
         delivery: pricetagItemDetail?.delivery,
         expected_delivery: vendor.expected_delivery || "",
-        reference: findPoItem
-          ? CanvassingItemReference.PURCHASE_ORDER_ITEM
-          : CanvassingItemReference.CANVASSING_VENDOR,
-        reference_id: findPoItem
-          ? findPoItem.unique_id
-          : vendor.unique_id || "",
+        reference: CanvassingItemReference.CANVASSING_VENDOR,
+        reference_id: vendor.unique_id || "",
       });
+      // memoChilds.push({
+      //   index: `${indexChild}`,
+      //   canvassing_id:
+      //     (
+      //       element.pricetag_item?.pricetag?.reference_data as
+      //         | Canvassing
+      //         | undefined
+      //     )?.unique_id || "N/A",
+      //   canvaasing_version: null,
+      //   item_request_trail_version: null,
+      //   item_request_trail_id: null,
+      //   unique_id: vendor.unique_id,
+      //   vendor_id: vendor.vendor_id,
+      //   vendor_name:
+      //     findPoItem?.purchase_order?.vendor?.name || vendor.vendor?.name || "",
+      //   unit_id: vendor.unit_id,
+      //   unit_name: vendor.unit_name,
+      //   unit_version: vendor.unit_version,
+      //   offer_item_id: null,
+      //   offer_item_version: 0,
+      //   catalogue_id: vendor.catalogue_id || "",
+      //   catalogue_name: vendor.catalogue
+      //     ? displayCatalogueName(vendor.catalogue)
+      //     : vendor.catalogue_name,
+      //   sn: "",
+      //   quantity: findPoItem?.quantity || vendor.quantity,
+      //   unit_price: findPoItem?.unit_price || vendor.unit_price,
+      //   total_price:
+      //     (findPoItem?.quantity || vendor.quantity) *
+      //     (findPoItem?.unit_price || vendor.unit_price),
+      //   status: CanvassingVendorStatus.SUBMITTED,
+      //   taxes: [],
+      //   editing: null,
+      //   type: "child",
+      //   type_item: vendor.type_item,
+      //   equivalent_id: null,
+      //   children: [],
+      //   selling_price: element.pricetag_item?.price || 0,
+      //   total_selling_price:
+      //     element.quantity * (element.pricetag_item?.price || 0),
+      //   profit: vendor.profit_nominal || 0,
+      //   profit_unit: "amount",
+      //   fee: vendor.fee_nominal || 0,
+      //   fee_unit: "amount",
+      //   ongkir: vendor.ongkir,
+      //   ongkir_unit: "amount",
+      //   pricetag_item_id: vendor.pricetag_item_id || "",
+      //   pricetag_item_version: vendor.pricetag_item_version,
+      //   quo_number: element.pricetag_item?.pricetag?.unique_code || "",
+      //   unit_po_price: element.po_unit_price || 0,
+      //   total_po_price:
+      //     (findPoItem?.quantity || vendor.quantity) *
+      //     (element.po_unit_price || 0),
+      //   contacts_fee: fees,
+      //   canvassing_vendor_unique_id: vendor.unique_id || "",
+      //   is_deleted: false,
+      //   canvassing_number:
+      //     (
+      //       element.pricetag_item?.pricetag?.reference_data as
+      //         | Canvassing
+      //         | undefined
+      //     )?.unique_code || "",
+      //   parent_index: parentIndex,
+      //   po_number: findPoItem?.purchase_order?.unique_code || "",
+      //   po_id: findPoItem?.order_id,
+      //   status_stok: pricetagItemDetail?.status_item,
+      //   delivery: pricetagItemDetail?.delivery,
+      //   expected_delivery: vendor.expected_delivery || "",
+      //   reference: findPoItem
+      //     ? CanvassingItemReference.PURCHASE_ORDER_ITEM
+      //     : CanvassingItemReference.CANVASSING_VENDOR,
+      //   reference_id: findPoItem
+      //     ? findPoItem.unique_id
+      //     : vendor.unique_id || "",
+      // });
 
       indexChild++;
     }
@@ -2822,7 +3032,48 @@ const cancellForm = async () => {
   window.location.href = "/sales/order/" + purchaseOrderId.value;
 };
 
+const fetchDataEdit = async () => {
+  loading.value = true;
+  try {
+    const response = await useFetchApi<BaseResponse<Canvassing>>(
+      `/canvassing-read/${id.value}`,
+      "detail-canvassing",
+      "get",
+      null
+    );
+
+    if (response.status.value === "success") {
+      const canvassing: Canvassing | null = response.data.value?.data ?? null;
+      if (canvassing != null) {
+        ruleForm.unique_id = canvassing.unique_id!;
+        ruleForm.description = canvassing.description || "";
+
+        if (canvassing.address) {
+          ruleForm.delivery_id = canvassing.address_id || "";
+          ruleForm.address_view = canvassing.address?.address_name || "";
+          ruleForm.delivery_version = canvassing.address_version || 0;
+          ruleForm.address = canvassing.address;
+        }
+
+        ruleForm.reference = canvassing.reference || CanvassingReference.SO;
+        ruleForm.reference_id = canvassing.reference_id || "";
+        ruleForm.delivery_method =
+          canvassing.delivery_method || DeliveryMethod.DIKIRIM;
+        ruleForm.delivery_description = canvassing.delivery_description || "";
+      }
+    }
+  } catch (error: any) {
+    ElMessage.error(error);
+  } finally {
+    loading.value = false;
+  }
+};
+
 onMounted(() => {
-  fetchSoDetail();
+  if (id.value) {
+    fetchDataEdit();
+  } else if (purchaseOrderId.value) {
+    fetchSoDetail();
+  }
 });
 </script>
