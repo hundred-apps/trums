@@ -6271,10 +6271,16 @@ const generateSCMMemo = async () => {
     const paymentText =
       (payment.name ?? "").toUpperCase() ===
       (payment.term_of_payment ?? "").toUpperCase()
-        ? `${payment.name} ${payment.value}%`
-        : `${payment.name} ${payment.value}% ${(
-            payment.term_of_payment ?? ""
-          ).toUpperCase()}${duration}`;
+        ? `${payment.name} ${
+            payment.unit == "percentage"
+              ? `${payment.value}%`
+              : currency(payment.value)
+          }`
+        : `${payment.name} ${
+            payment.unit == "percentage"
+              ? `${payment.value}%`
+              : currency(payment.value)
+          } ${(payment.term_of_payment ?? "").toUpperCase()}${duration}`;
 
     doc.text(`• ${paymentText}`, marginX + 4, vendorY);
 
