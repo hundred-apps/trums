@@ -292,13 +292,9 @@
           >
             <el-icon class="me-2"><CircleCheck /></el-icon> Approve dan Buat RAP
           </NuxtLink> -->
-            <NuxtLink
-              v-if="canvassingData?.status === CanvassingStatus.DONE"
-              :href="`/sales/offer/add?canvassing_id=${canvassingData?.unique_id}&type=out`"
-              class="el-button el-button--default"
-            >
+            <el-button type="default" size="default" @click="onCreateOffer">
               Buat Penawaran
-            </NuxtLink>
+            </el-button>
             <el-button
               v-if="editState"
               type="default"
@@ -6855,6 +6851,43 @@ const generateSCMMemo = async () => {
   return {
     blob: mergedBlob,
   };
+};
+
+const onCreateOffer = async () => {
+  loading.value = true;
+  try {
+    const request_search: RequestSearch = {
+      keyword: "",
+      table: "pricetag",
+      column: [
+        {
+          reference: ["canvassing"],
+          reference_id: [canvassingData.value?.unique_id],
+        },
+      ],
+      sort: null,
+      offset: "1",
+      limit: "1",
+    };
+
+    const response = await useFetchApi<ResponsePagination<Pricetag[]>>(
+      "/search",
+      "fetch-pricetag",
+      "post",
+      request_search
+    );
+    if (response.status.value === "success") {
+      if ((response.data.value?.data || []).length > 0) {
+        window.location.href =
+          "/sales/offer/add?id=" + response.data.value?.data[0].unique_id;
+      }
+    }
+  } catch (error: any) {
+    ElMessage.error("Gagal Mendapatkan Data Penawaran!");
+    window.location.href = "/sales/offer/add?type=out";
+  } finally {
+    loading.value = false;
+  }
 };
 
 const generateSCMMemoExcel = async () => {
