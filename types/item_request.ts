@@ -8,8 +8,8 @@ import type { CanvassingVendor } from "./scm/canvasing";
 
 export enum ItemRequestTrailReference {
   BOOK = "inventory",
-  PO = "PO",
-  PR = "PR",
+  PO = "po",
+  PR = "pr",
   MOVEMENT_ITEM = "movement_item",
 }
 export enum ItemRequestTrailStatus {

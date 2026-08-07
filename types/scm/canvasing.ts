@@ -11,7 +11,7 @@ import type { AppFile } from "../file";
 import type { TermOfPayment } from "../payment_term";
 import type { People } from "../people";
 import type { DeliveryMethod, Pricetag_item } from "../pricetag";
-import type { PurchaseOrder } from "./purchase_order";
+import type { PurchaseOrder, PurchaseOrderItem } from "./purchase_order";
 
 export enum CanvassingStatus {
   DRAFT = "draft",
@@ -173,6 +173,9 @@ export type CanvassingItem = {
   files?: AppFile[];
   image?: string;
   expected_delivery?: string;
+  reference?: CanvassingItemReference;
+  reference_data?: PurchaseOrderItem;
+  reference_id?: string;
 };
 
 export type CanvassingVendor = {
@@ -227,6 +230,9 @@ export type CanvassingVendor = {
   reference_transaction: ReferenceTransactionAdjustment[];
   files?: AppFile[];
   expected_delivery?: string;
+  reference_id: string;
+  reference?: CanvassingItemReference;
+  reference_data?: CanvassingVendor | PurchaseOrderItem;
 };
 
 export type CanvassingVendorTax = {
@@ -330,6 +336,7 @@ export type CanvassingItemForm = {
   is_deleted?: boolean;
   reference?: CanvassingItemReference;
   reference_id?: string;
+  reference_data?: CanvassingVendor | PurchaseOrderItem;
 };
 
 export enum CanvassingItemReference {

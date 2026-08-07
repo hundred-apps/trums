@@ -222,70 +222,6 @@
             </el-tag>
           </template>
         </el-table-column>
-        <!-- <el-table-column label="Garansi" width="150">
-          <template #default="scope">
-            {{
-              scope.row.is_warranty
-                ? `${scope.row.warranty} ${scope.row.warranty_unit}`
-                : "Tidak ada"
-            }}
-          </template>
-        </el-table-column>
-        <el-table-column label="Diskon" width="150">
-          <template #default="scope">
-            {{
-              scope.row.is_discount
-                ? `${scope.row.discount}${
-                    scope.row.discount_unit === "percent" ? "%" : ""
-                  }`
-                : "Tidak ada"
-            }}
-          </template>
-        </el-table-column> -->
-
-        <!-- <el-table-column
-          label="Aksi"
-          align="center"
-          width="300"
-          v-if="
-            purchaseOrderData?.status === PurchaseOrderStatus.PENDING_APPROVAL
-          "
-        >
-          <template #default="scope">
-            <el-button
-              type="success"
-              v-if="
-                scope.row.status === PurchaseOrderItemStatus.PENDING_APPROVAL ||
-                (scope.row.status === PurchaseOrderItemStatus.DRAFT &&
-                  purchaseOrderData?.status ===
-                    PurchaseOrderStatus.PENDING_APPROVAL)
-              "
-              @click="() => approveItem(scope.$index)"
-            >
-              <el-icon class="me-2"><CircleCheck /></el-icon> Approve
-            </el-button>
-            <el-button
-              type="danger"
-              v-if="
-                scope.row.status === PurchaseOrderItemStatus.PENDING_APPROVAL ||
-                (scope.row.status === PurchaseOrderItemStatus.DRAFT &&
-                  purchaseOrderData?.status ===
-                    PurchaseOrderStatus.PENDING_APPROVAL)
-              "
-              @click="() => rejectItem(scope.$index)"
-            >
-              <el-icon class="me-2"><Close /></el-icon> Reject
-            </el-button>
-            <el-tag
-              v-if="
-                scope.row.status !== PurchaseOrderItemStatus.PENDING_APPROVAL
-              "
-              :type="getItemStatusTagType(scope.row.status)"
-            >
-              {{ formatStatusItem(scope.row.status) }}
-            </el-tag>
-          </template>
-        </el-table-column> -->
       </el-table>
 
       <div class="flex justify-end mt-3">
@@ -331,6 +267,7 @@
     <CustomPaymentTerm
       type="view"
       :data="purchaseOrderData?.payment_terms ?? []"
+      :total="grandTotal"
     />
 
     <el-card class="mb-3" shadow="hover">

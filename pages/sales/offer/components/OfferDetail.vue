@@ -763,7 +763,7 @@ watch(
     let no = 1;
 
     (data ?? []).forEach((item) => {
-      // console.log('')
+      console.log("item catalogue", item.data_reference);
       if (item.data_reference) {
         const isExist = pricetag_item_views.value.findIndex(
           (find) => find.unique_id == item.reference_id
@@ -773,9 +773,11 @@ watch(
         if (isExist < 0) {
           pricetag_item_views.value.push({
             no: `${no}`,
-            item_id: item.catalogue_id || "",
+            item_id: item.data_reference?.catalogue_id || "",
             unique_id: item.reference_id || "",
-            item_name: item.catalogue?.name || "",
+            item_name: item.data_reference.catalogue
+              ? displayCatalogueName(item.data_reference.catalogue)
+              : item.data_reference.catalogue_name || "",
             price: item.price,
             qty: item.quantity,
             unit_id: item.unit_id || "",

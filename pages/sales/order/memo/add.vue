@@ -255,48 +255,7 @@
               </div>
             </template>
           </el-table-column>
-          <el-table-column
-            prop="po_number"
-            label="No.PO"
-            align="center"
-            width="200"
-          >
-            <template #default="{ row }">
-              <!-- <span
-                v-if="row.po_id"
-                class="text-blue-600 cursor-pointer"
-                @click="() => openDetailPoVendor(row.po_id)"
-              >
-                {{ row.po_number }}
-              </span>
-              <span v-else>N/A</span> -->
-              <div
-                v-if="row.type == 'child'"
-                class="flex items-center justify-between"
-              >
-                <span
-                  v-if="row.po_id"
-                  class="text-blue-600 cursor-pointer"
-                  @click="() => openDetailPoVendor(row.po_id)"
-                >
-                  {{ row.po_number }}
-                </span>
-                <span v-else>Belum pilih PO</span>
-                <el-icon
-                  color="#409efc"
-                  class="cursor-pointer"
-                  @click="
-                    () =>
-                      openModalSelectPoItemVendor(
-                        row.parent_index,
-                        parseInt(row.index)
-                      )
-                  "
-                  ><EditPen
-                /></el-icon>
-              </div>
-            </template>
-          </el-table-column>
+
           <el-table-column
             prop="quo_number"
             label="No.QUO"
@@ -324,6 +283,81 @@
               <span v-else></span>
             </template>
           </el-table-column>
+          <el-table-column label="PO Vendor" width="420" align="center">
+            <el-table-column
+              label="No PO"
+              width="200"
+              header-align="center"
+              align="right"
+            >
+              <template #default="{ row }">
+                <div
+                  v-if="row.type == 'child'"
+                  class="flex items-center justify-between"
+                >
+                  <span
+                    v-if="row.po_id"
+                    class="text-blue-600 cursor-pointer"
+                    @click="() => openDetailPoVendor(row.po_id)"
+                  >
+                    {{ row.po_number }}
+                  </span>
+                  <span v-else>Belum pilih PO</span>
+                  <el-icon
+                    color="#409efc"
+                    class="cursor-pointer"
+                    @click="
+                      () =>
+                        openModalSelectPoItemVendor(
+                          row.parent_index,
+                          parseInt(row.index)
+                        )
+                    "
+                    ><EditPen
+                  /></el-icon>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column
+              label="Satuan"
+              width="150"
+              header-align="center"
+              align="right"
+            >
+              <template #default="{ row }">
+                <span
+                  v-if="row.type == 'child'"
+                  >{{ currencyWithoutSymbol((row as CanvassingItemMemoForm).unit_price_po_vendor, 0) }}</span
+                >
+              </template>
+            </el-table-column>
+            <el-table-column
+              label="QTY"
+              width="80"
+              header-align="center"
+              align="right"
+            >
+              <template #default="{ row }">
+                <span
+                  v-if="row.type == 'child'"
+                  >{{ currencyWithoutSymbol((row as CanvassingItemMemoForm).qty_po_vendor, 0) }}</span
+                >
+              </template>
+            </el-table-column>
+            <el-table-column
+              label="Total"
+              header-align="center"
+              align="right"
+              width="150"
+            >
+              <template #default="{ row }">
+                <span
+                  v-if="row.type == 'child'"
+                  >{{ currencyWithoutSymbol((row as CanvassingItemMemoForm).total_price_po_vendor, 0) }}</span
+                >
+              </template>
+            </el-table-column>
+          </el-table-column>
           <el-table-column label="Harga Beli" width="300" align="center">
             <el-table-column
               label="Satuan"
@@ -346,6 +380,7 @@
             >
               <template #default="{ row }">
                 <span
+                  v-if="row.type == 'child'"
                   >{{ currencyWithoutSymbol((row as CanvassingItemMemoForm).total_price, 0) }}</span
                 >
               </template>
@@ -426,6 +461,28 @@
             <template #default="{ row }">
               <span
                 >{{ customMathCeil(calculateMargin((row as CanvassingItemMemoForm).total_price, (row as CanvassingItemMemoForm).total_po_price))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -1262,6 +1319,9 @@ type CanvassingItemMemoForm = CanvassingItemForm & {
   po_id?: string;
   status_stok?: string;
   delivery?: string;
+  unit_price_po_vendor: number;
+  total_price_po_vendor: number;
+  qty_po_vendor: number;
 };
 
 type TotalPerRAB = {
@@ -1484,7 +1544,7 @@ const fetchSoDetail = async () => {
       await fetchPOItem();
       await fetchInquiry();
 
-      await initialItemMemo();
+      // await initialItemMemo();
     }
   } catch (error) {
     console.error("Failed to fetch related data", error);
@@ -1635,12 +1695,51 @@ const fetchPOVendor = async () => {
               },
             },
           ];
+          await fetchPOVendorItem(list_po_vendor);
           await fetchAdjustmentForPOVendor(list_po_vendor);
         }
       }
     }
   } catch (error) {
     console.error("Failed to fetch related data", error);
+  }
+};
+
+const fetchPOVendorItem = async (uniques: string[]) => {
+  try {
+    const request_search: RequestSearch = {
+      keyword: "",
+      column: [
+        {
+          purchase_order: {
+            type: ["po"],
+            unique_id: uniques,
+          },
+        },
+      ],
+      limit: "10",
+      offset: "1",
+      table: "purchase_order_item",
+      sort: {
+        column: "created_at",
+        order: "DESC",
+      },
+      flag: "list",
+    };
+
+    const response = await useFetchApi<ResponsePagination<PurchaseOrderItem[]>>(
+      "/search",
+      "fetch-po-item",
+      "post",
+      request_search
+    );
+    if (response.status.value == "success") {
+      listPOitemVendor.value = response.data.value?.data || [];
+    }
+
+    await initialItemMemo();
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? error);
   }
 };
 
@@ -1820,7 +1919,7 @@ const onSelectPricetagItem = (
     (item.data_reference as CanvassingItem | undefined)?.canvassing_vendor ??
     [];
 
-  if (item.pricetag?.type == "in") {
+  if (type == "in") {
     if (item.catalogue) {
       item_memo.value[parentIndexActive.value].children[
         childIndexActive.value
@@ -1835,7 +1934,7 @@ const onSelectPricetagItem = (
 
     item_memo.value[parentIndexActive.value].children[
       childIndexActive.value
-    ].vendor_id = item.pricetag?.owner_id;
+    ].vendor_id = item.pricetag?.owner_id || "";
     item_memo.value[parentIndexActive.value].children[
       childIndexActive.value
     ].vendor_name = item.pricetag?.owner?.name || "";
@@ -1858,20 +1957,20 @@ const onSelectPricetagItem = (
         .quantity * item.price;
   } else {
     console.log("items", item);
-    const match = vendors.findLast(
-      (find) =>
-        find.catalogue_id ==
-        item_memo.value[parentIndexActive.value].children[
-          childIndexActive.value
-        ].catalogue_id
-    );
-    if (match) {
+    // const match = vendors.findLast(
+    //   (find) =>
+    //     find.catalogue_id ==
+    //     item_memo.value[parentIndexActive.value].children[
+    //       childIndexActive.value
+    //     ].catalogue_id
+    // );
+    if (vendor) {
       item_memo.value[parentIndexActive.value].children[
         childIndexActive.value
-      ].vendor_id = match.vendor_id;
+      ].vendor_id = vendor.vendor_id;
       item_memo.value[parentIndexActive.value].children[
         childIndexActive.value
-      ].vendor_name = match.vendor?.name || "";
+      ].vendor_name = vendor.vendor?.name || "";
       item_memo.value[parentIndexActive.value].children[
         childIndexActive.value
       ].quo_number = item.pricetag?.unique_code;
@@ -1883,13 +1982,13 @@ const onSelectPricetagItem = (
       ].unit_id = item.unit_name;
       item_memo.value[parentIndexActive.value].children[
         childIndexActive.value
-      ].unit_price = match.unit_price;
+      ].unit_price = vendor.unit_price;
       item_memo.value[parentIndexActive.value].children[
         childIndexActive.value
       ].total_price =
         item_memo.value[parentIndexActive.value].children[
           childIndexActive.value
-        ].quantity * match.unit_price;
+        ].quantity * vendor.unit_price;
       item_memo.value[parentIndexActive.value].children[
         childIndexActive.value
       ].selling_price = item.price;
@@ -2085,12 +2184,14 @@ const findChilds = async (
         fees = await getContactsFee(["canvassing_vendor"], [vendor.unique_id!]);
       }
 
-      // const findPoItem: PurchaseOrderItem | undefined =
-      //   listPOitemVendor.value.findLast(
-      //     (find) =>
-      //       find.purchase_order?.vendor_id == vendor.vendor_id &&
-      //       find.catalogue_id == vendor.catalogue_id
-      //   );
+      const findPoItem: PurchaseOrderItem | undefined =
+        listPOitemVendor.value.findLast(
+          (find) =>
+            find.purchase_order?.vendor_id == vendor.vendor_id &&
+            find.catalogue_id == vendor.catalogue_id
+        );
+
+      console.log("find po item", findPoItem);
 
       memoChilds.push({
         index: `${indexChild}`,
@@ -2105,7 +2206,8 @@ const findChilds = async (
         item_request_trail_id: null,
         unique_id: vendor.unique_id,
         vendor_id: vendor.vendor_id,
-        vendor_name: vendor.vendor?.name || "",
+        vendor_name:
+          findPoItem?.purchase_order?.vendor?.name || vendor.vendor?.name || "",
         unit_id: vendor.unit_id,
         unit_name: vendor.unit_name,
         unit_version: vendor.unit_version,
@@ -2116,9 +2218,11 @@ const findChilds = async (
           ? displayCatalogueName(vendor.catalogue)
           : vendor.catalogue_name,
         sn: "",
-        quantity: vendor.quantity,
-        unit_price: vendor.unit_price,
-        total_price: vendor.quantity * vendor.unit_price,
+        quantity: findPoItem?.quantity || vendor.quantity,
+        unit_price: findPoItem?.unit_price || vendor.unit_price,
+        total_price:
+          (findPoItem?.quantity || vendor.quantity) *
+          (findPoItem?.unit_price || vendor.unit_price),
         status: CanvassingVendorStatus.SUBMITTED,
         taxes: [],
         editing: null,
@@ -2139,7 +2243,12 @@ const findChilds = async (
         pricetag_item_version: vendor.pricetag_item_version,
         quo_number: element.pricetag_item?.pricetag?.unique_code || "",
         unit_po_price: element.po_unit_price || 0,
-        total_po_price: vendor.quantity * (element.po_unit_price || 0),
+        total_po_price:
+          (findPoItem?.quantity || vendor.quantity) *
+          (element.po_unit_price || 0),
+        unit_price_po_vendor: findPoItem?.unit_price || 0,
+        total_price_po_vendor: findPoItem?.total_price || 0,
+        qty_po_vendor: findPoItem?.quantity || 0,
         contacts_fee: fees,
         canvassing_vendor_unique_id: vendor.unique_id || "",
         is_deleted: false,
@@ -2150,92 +2259,22 @@ const findChilds = async (
               | undefined
           )?.unique_code || "",
         parent_index: parentIndex,
-        po_number: "",
+        po_number: findPoItem?.purchase_order?.unique_code || "",
+        po_id: findPoItem?.order_id,
         status_stok: pricetagItemDetail?.status_item,
         delivery: pricetagItemDetail?.delivery,
         expected_delivery: vendor.expected_delivery || "",
-        reference: CanvassingItemReference.CANVASSING_VENDOR,
-        reference_id: vendor.unique_id || "",
+        reference: findPoItem
+          ? CanvassingItemReference.PURCHASE_ORDER_ITEM
+          : CanvassingItemReference.CANVASSING_VENDOR,
+        reference_id: findPoItem
+          ? findPoItem.unique_id
+          : vendor.unique_id || "",
       });
-      // memoChilds.push({
-      //   index: `${indexChild}`,
-      //   canvassing_id:
-      //     (
-      //       element.pricetag_item?.pricetag?.reference_data as
-      //         | Canvassing
-      //         | undefined
-      //     )?.unique_id || "N/A",
-      //   canvaasing_version: null,
-      //   item_request_trail_version: null,
-      //   item_request_trail_id: null,
-      //   unique_id: vendor.unique_id,
-      //   vendor_id: vendor.vendor_id,
-      //   vendor_name:
-      //     findPoItem?.purchase_order?.vendor?.name || vendor.vendor?.name || "",
-      //   unit_id: vendor.unit_id,
-      //   unit_name: vendor.unit_name,
-      //   unit_version: vendor.unit_version,
-      //   offer_item_id: null,
-      //   offer_item_version: 0,
-      //   catalogue_id: vendor.catalogue_id || "",
-      //   catalogue_name: vendor.catalogue
-      //     ? displayCatalogueName(vendor.catalogue)
-      //     : vendor.catalogue_name,
-      //   sn: "",
-      //   quantity: findPoItem?.quantity || vendor.quantity,
-      //   unit_price: findPoItem?.unit_price || vendor.unit_price,
-      //   total_price:
-      //     (findPoItem?.quantity || vendor.quantity) *
-      //     (findPoItem?.unit_price || vendor.unit_price),
-      //   status: CanvassingVendorStatus.SUBMITTED,
-      //   taxes: [],
-      //   editing: null,
-      //   type: "child",
-      //   type_item: vendor.type_item,
-      //   equivalent_id: null,
-      //   children: [],
-      //   selling_price: element.pricetag_item?.price || 0,
-      //   total_selling_price:
-      //     element.quantity * (element.pricetag_item?.price || 0),
-      //   profit: vendor.profit_nominal || 0,
-      //   profit_unit: "amount",
-      //   fee: vendor.fee_nominal || 0,
-      //   fee_unit: "amount",
-      //   ongkir: vendor.ongkir,
-      //   ongkir_unit: "amount",
-      //   pricetag_item_id: vendor.pricetag_item_id || "",
-      //   pricetag_item_version: vendor.pricetag_item_version,
-      //   quo_number: element.pricetag_item?.pricetag?.unique_code || "",
-      //   unit_po_price: element.po_unit_price || 0,
-      //   total_po_price:
-      //     (findPoItem?.quantity || vendor.quantity) *
-      //     (element.po_unit_price || 0),
-      //   contacts_fee: fees,
-      //   canvassing_vendor_unique_id: vendor.unique_id || "",
-      //   is_deleted: false,
-      //   canvassing_number:
-      //     (
-      //       element.pricetag_item?.pricetag?.reference_data as
-      //         | Canvassing
-      //         | undefined
-      //     )?.unique_code || "",
-      //   parent_index: parentIndex,
-      //   po_number: findPoItem?.purchase_order?.unique_code || "",
-      //   po_id: findPoItem?.order_id,
-      //   status_stok: pricetagItemDetail?.status_item,
-      //   delivery: pricetagItemDetail?.delivery,
-      //   expected_delivery: vendor.expected_delivery || "",
-      //   reference: findPoItem
-      //     ? CanvassingItemReference.PURCHASE_ORDER_ITEM
-      //     : CanvassingItemReference.CANVASSING_VENDOR,
-      //   reference_id: findPoItem
-      //     ? findPoItem.unique_id
-      //     : vendor.unique_id || "",
-      // });
 
       indexChild++;
     }
-
+    console.log("find child", memoChilds);
     return memoChilds;
   }
 };
@@ -2313,6 +2352,9 @@ const initialItemMemo = async () => {
             | Canvassing
             | undefined
         )?.unique_code || "N/A",
+      unit_price_po_vendor: 0,
+      total_price_po_vendor: 0,
+      qty_po_vendor: 0,
     });
 
     parentIndex++;
@@ -3019,7 +3061,7 @@ const submitForm = async () => {
     if (response.status.value === "success") {
       ElMessage.success(`Berhasil Membuat Data Canvasing!`);
 
-      // router.push(`/sales/quotation/${response.data.value?.data?.unique_id}`);
+      router.push(`/sales/order/${response.data.value?.data?.unique_id}`);
     }
   } catch (error: any) {
     ElMessage.error(error.response?.message ?? error);
