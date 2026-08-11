@@ -246,7 +246,12 @@
           </div>
         </el-form> -->
         <template #header>
-          <div class="card-header">Item</div>
+          <div class="card-header flex items-center justify-between">
+            <span> Item </span>
+            <el-button type="primary" @click="() => (dialogItemRAB = true)">
+              Tambahkan Dari RAB
+            </el-button>
+          </div>
         </template>
         <el-table :data="ruleForm.pricetag_item" :size="'small'">
           <!-- <el-table-column prop="fileUploads" label="image" width="75">
@@ -663,6 +668,86 @@
     >
       <AddAdjustment @submit="handleAdjustmentSubmit" />
     </el-dialog> -->
+    <el-dialog v-model="dialogItemRAB" title="Pilih Item Dari RAB" width="70%">
+      <el-input
+        v-model="requestSearchRAB.keyword"
+        size="default"
+        class="mb-2 w-1/4"
+        placeholder="Type to search"
+      >
+        <template #prefix>
+          <el-icon class="el-input__icon"><Search /></el-icon> </template
+      ></el-input>
+      <el-table :data="rab_item || []" row-key="unique_id" border>
+        <el-table-column width="55" :fixed="isMobile ? false : 'left'">
+          <template #default="{ row }">
+            <el-checkbox
+              v-if="(row as ItemRABView).type === 'item'"
+              :model-value="isSelected(row)"
+              @change="(checked: any) => toggleParent(row, checked)"
+            />
+          </template>
+        </el-table-column>
+        <el-table-column label="Item">
+          <template #default="{ row }">
+            {{ (row as ItemRABView).catalogue_name }}
+          </template>
+        </el-table-column>
+        <el-table-column label="RAB" width="200" align="center">
+          <template #default="{ row }">
+            <NuxtLink
+              class="text-blue-600 cursor-pointer"
+              :target="'_blank'"
+              :href="`/sales/quotation/${(row as ItemRABView).rab_id}`"
+              >{{ (row as ItemRABView).rab_number }}</NuxtLink
+            >
+          </template>
+        </el-table-column>
+        <el-table-column label="Vendor" width="200" align="center">
+          <template #default="{ row }">
+            {{ (row as ItemRABView).vendor_name }}
+          </template>
+        </el-table-column>
+        <el-table-column label="QTY" width="100" align="right">
+          <template #default="{ row }">
+            {{ `${(row as ItemRABView).quantity} ${(row as ItemRABView).unit_name}` }}
+          </template>
+        </el-table-column>
+        <el-table-column label="Harga Beli" width="100" align="right">
+          <template #default="{ row }">
+            {{ currencyWithoutSymbol((row as ItemRABView).buy_price,0) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="Harga Jual" width="100" align="right">
+          <template #default="{ row }">
+            {{ currencyWithoutSymbol((row as ItemRABView).selling_price ||0, 0) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="Total" width="100" align="right">
+          <template #default="{ row }">
+            {{ currencyWithoutSymbol((row as ItemRABView).total_selling_price || 0, 0) }}
+          </template>
+        </el-table-column>
+      </el-table>
+      <div class="flex justify-end mt-3">
+        <el-pagination
+          background
+          :layout="`prev, pager, next, ${isMobile ? '' : 'sizes, total'}`"
+          :total="canvassing_vendor.data.value?.total_data"
+          @current-change="handlePageChangeVendor"
+          @size-change="handleSizeChangeVendor"
+          size="small"
+        />
+      </div>
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="dialogItemRAB = false">Cancel</el-button>
+          <el-button type="primary" @click="saveSelectedItemFromRAB">
+            Simpan
+          </el-button>
+        </div>
+      </template>
+    </el-dialog>
     <el-dialog v-model="dialogContact" title="Detail Kontak">
       <AddContact
         ref="formFieldsRefContact"
@@ -694,6 +779,7 @@ import {
   Picture,
   User as ElUserIcon,
   Close,
+  Search,
 } from "@element-plus/icons-vue";
 import {
   dayjs,
@@ -734,7 +820,12 @@ import type { BaseResponse } from "~/types/response";
 import type { Pricelist_item } from "~/types/pricelist";
 import type { ItemSearch } from "~/types/item_search";
 import type { Pagination } from "~/types/pagination";
-import { CanvassingVendorStatus, type Canvassing } from "~/types/scm/canvasing";
+import {
+  CanvassingVendorStatus,
+  type Canvassing,
+  type CanvassingItem,
+  type CanvassingVendor,
+} from "~/types/scm/canvasing";
 import TrumsUploadFile from "~/components/trums/form/TrumsUploadFile.vue";
 import type { AppFile } from "~/types/file";
 import type { AddressType } from "~/types/address";
@@ -767,6 +858,7 @@ import {
   formatInputCurrency,
 } from "#imports";
 import { currencyWithoutSymbol } from "#imports";
+import { displayCatalogueName } from "#imports";
 const { isMobile } = useDevice();
 
 const props = defineProps<{
@@ -788,6 +880,12 @@ const visibleModalNewAdjustment = ref(false);
 const stateActiveTypeContat = ref<"vendor" | "customer" | "pic">("vendor");
 const dialogContact = ref<boolean>(false);
 const dialogAddItem = ref<boolean>(false);
+const dialogItemRAB = ref<boolean>(false);
+
+const selectedVendors = ref<Record<string, string>>({});
+const selectedParents = ref(new Set<string>());
+
+const selectedItemRAB = ref<CanvassingItem[]>([]);
 
 const itemActive = ref<number>(-1);
 const router = useRouter();
@@ -991,6 +1089,75 @@ const requestSearchLocation = ref<RequestSearch>({
   limit: "50",
   offset: "1",
 });
+const requestSearchRAB = ref<RequestSearch>({
+  keyword: "",
+  table: "canvassing_item",
+  column: [],
+  sort: {
+    column: "created_at",
+    order: OrderColumn.DESC,
+  },
+  limit: "20",
+  offset: "1",
+});
+
+type ItemRABView = {
+  unique_id: string;
+  rab_number: string;
+  rab_id: string;
+  canvassing_vendor_id: string;
+  vendor_name: string;
+  buy_price: number;
+  quantity: number;
+  selling_price: number;
+  total_selling_price: number;
+  type: "item" | "vendor";
+  unit_name: string;
+  unit_id: string;
+  catalogue_id: string;
+  catalogue_name: string;
+  children: ItemRABView[];
+  contact_name: string;
+  contact_id: string;
+  status: string;
+  canvassing_item?: CanvassingItem;
+  canvassing_vendor?: CanvassingVendor;
+};
+
+const isSelected = (row: ItemRABView) => {
+  return selectedParents.value.has(row.unique_id);
+};
+
+const toggleParent = (row: ItemRABView, checked: boolean) => {
+  if (checked) {
+    selectedParents.value.add(row.unique_id);
+    if (row.canvassing_item) {
+      selectedItemRAB.value.push(row.canvassing_item!);
+    }
+  } else {
+    selectedParents.value.delete(row.unique_id);
+    if (row.canvassing_item) {
+      selectedItemRAB.value = selectedItemRAB.value.filter(
+        (filter) => filter.unique_id != row.canvassing_item?.unique_id
+      );
+    }
+  }
+};
+
+const rab_item = ref<ItemRABView[]>([]);
+
+const canvassing_vendor = await useAsyncData(
+  "search-canvassing-vendor",
+  async () => {
+    const res = await useFetchApi<ResponsePagination<CanvassingItem[]>>(
+      `/search`,
+      "search-canvassing-vendor",
+      "post",
+      requestSearchRAB.value
+    );
+    return res.data.value;
+  }
+);
 
 const requestSearchInventory = ref<RequestSearch>({
   keyword: "",
@@ -2079,6 +2246,7 @@ const onHandleSelectVendor = (item: any, type: "to" | "vendor" | "pic") => {
       stateActiveTypeContat.value = "vendor";
     } else if (type == "pic") {
       ruleForm.pic_name = item.keyword;
+
       ruleForm.pic = {
         id: 0,
         unique_id: "",
@@ -3118,6 +3286,126 @@ const initialSetting = () => {
     console.log("rule form", ruleForm);
   }
 };
+
+const handlePageChangeVendor = (page: number) => {
+  console.log("harusnya referesh");
+  requestSearchRAB.value.offset = `${page}`;
+};
+
+const handleSizeChangeVendor = (size: number) => {
+  console.log("harusnya referesh");
+  requestSearchRAB.value.limit = `${size}`;
+};
+
+const refreshFromRAB = () => canvassing_vendor.refresh();
+
+watch(
+  () => ruleForm.to_id,
+  () => initItemView(canvassing_vendor.data.value?.data || []),
+  { deep: true }
+);
+
+watch(
+  () => requestSearchRAB.value,
+  () => refreshFromRAB(),
+  { deep: true }
+);
+
+const initItemView = (newValue: CanvassingItem[]) => {
+  rab_item.value = [];
+  for (const item of newValue || []) {
+    if (ruleForm.to_id == item.canvassing?.source?.request_to?.unique_id) {
+      rab_item.value.push({
+        unique_id: item.unique_id,
+        rab_number: item.canvassing?.unique_code || "",
+        rab_id: item.canvassing?.unique_id || "",
+        canvassing_vendor_id: "",
+        vendor_name: "",
+        buy_price: 0,
+        quantity: item.quantity,
+        selling_price: item.unit_selling_price || 0,
+        total_selling_price: item.total_selling_price || 0,
+        type: "item",
+        unit_name: item.unit_name || "",
+        unit_id: item.unit_id || "",
+        catalogue_id: item.catalogue_id || "",
+        catalogue_name: item.catalogue
+          ? displayCatalogueName(item.catalogue!)
+          : item.catalogue_name,
+        contact_name: item.canvassing?.source?.request_to?.name || "",
+        contact_id: item.canvassing?.source?.request_to?.unique_id || "",
+        status: "",
+        canvassing_item: item,
+        children: (item.canvassing_vendor || [])
+          .filter((filter) => filter.status == CanvassingVendorStatus.SELECTED)
+          .map((vendor) => ({
+            unique_id: vendor.unique_id || "",
+            rab_number: item.canvassing?.unique_code || "",
+            rab_id: item.canvassing?.unique_id || "",
+            canvassing_vendor_id: vendor.unique_id || "",
+            vendor_name: vendor.vendor?.name || "",
+            buy_price: 0,
+            quantity: vendor.quantity,
+            selling_price: vendor.selling_price || 0,
+            total_selling_price: vendor.total_selling_price || 0,
+            type: "vendor",
+            unit_name: vendor.unit_name || "",
+            unit_id: vendor.unit_id || "",
+            catalogue_id: vendor.catalogue_id || "",
+            catalogue_name: vendor.catalogue
+              ? displayCatalogueName(vendor.catalogue!)
+              : vendor.catalogue_name,
+            contact_name: item.canvassing?.source?.request_to?.name || "",
+            contact_id: item.canvassing?.source?.request_to?.unique_id || "",
+            children: [],
+            status: vendor.status || "",
+          })),
+      });
+    }
+  }
+};
+
+const saveSelectedItemFromRAB = () => {
+  for (const item of selectedItemRAB.value || []) {
+    (item.canvassing_vendor || []).forEach((element) => {
+      const exist = ruleForm.pricetag_item.findIndex(
+        (find) => find.catalogue_id == element.catalogue_id
+      );
+
+      if (exist >= 0) {
+        ruleForm.pricetag_item[exist].quantity += element.quantity;
+      } else {
+        ruleForm.pricetag_item.push({
+          unique_id: null,
+          tag_id: null,
+          catalogue_id: element.catalogue_id,
+          catalogue: element.catalogue!,
+          inventory_id: "",
+          inventory: null,
+          quantity: element.quantity,
+          price: element.selling_price || 0,
+          unit_id: element.unit_id,
+          unit_name: element.unit_name,
+          unit_version: element.unit_version,
+          fileUploads: [],
+          item_name: displayCatalogueName(element.catalogue!),
+          reference_id: item.unique_id,
+          reference: ReferencePriceTag.CANVASSING_ITEM,
+        });
+      }
+    });
+  }
+
+  dialogItemRAB.value = false;
+};
+
+watch(
+  () => canvassing_vendor.data.value?.data,
+  (newValue) => {
+    initItemView(newValue || []);
+  },
+  { deep: true, immediate: true }
+);
 
 // onMounted(() => {
 //   loadingGetEditData.value = false;

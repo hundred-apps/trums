@@ -1151,6 +1151,7 @@ const generatePDF = async () => {
   // Logo
   const imgLogo = await getBase64ImageFromUrl("/images/trumecs-logo.png"); // path logo (public/logo.png)
   const tmsLogo = await getBase64ImageFromUrl("/images/tms-logo.png"); // path logo (public/logo.png)
+  const tmpCAP = await getBase64ImageFromUrl("/images/TMP-CAP.png");
   const headerTop = 10;
   const headerHeight = 25;
   const headerCenterY = headerTop + headerHeight / 2;
@@ -1671,23 +1672,60 @@ const generatePDF = async () => {
   // let signY = finalY + 50;
   // signY = checkPageBreak(doc, signY);
 
+  const signWidth = 35;
+  const signHeight = 20;
+
+  // ratio CAP (stempel)
+  const capWidth = 35;
+  let capHeight = 20;
+
+  if (tmpCAP) {
+    const capImage = new Image();
+    capImage.src = tmpCAP;
+
+    await new Promise((resolve) => {
+      capImage.onload = resolve;
+    });
+
+    capHeight = (capImage.naturalHeight / capImage.naturalWidth) * capWidth;
+  }
+
+  const sourceSignCreator = data.value?.data?.people?.files?.findLast(
+    (value) => value.type == AppFileType.TANDA_TANGAN
+  );
   let signCreatorBase64 = "";
 
-  console.log("creator", data.value?.data?.people);
-
-  // if (
-  //     data.value?.data?.people?.files &&
-  //     data.value?.data?.people?.files.length > 0
-  //   ) {
-  //     approvedSignBase64 = await getBase64ImageFromUrl(
-  //       `${imageUrl}/${data.value?.data?.people?.files[0].image_path}/${canvassingData.value.approved_by.files[0].filename}`
-  //     );
-  //   }
+  if (sourceSignCreator) {
+    signCreatorBase64 = await getBase64ImageFromUrl(
+      `${imageUrl}/${sourceSignCreator.image_path}/${sourceSignCreator.filename}`
+    );
+  }
 
   doc.setFont("helvetica", "bold");
   doc.text(`Dibuat Oleh`.toUpperCase(), rightX, signY, {
     align: "center",
   });
+
+  if (signCreatorBase64) {
+    doc.addImage(
+      signCreatorBase64,
+      "PNG",
+      rightX - signWidth / 2,
+      signY + 5,
+      signWidth,
+      signHeight
+    );
+
+    doc.addImage(
+      tmpCAP,
+      "PNG",
+      rightX - capWidth / 2 - 8,
+      signY + 2,
+      capWidth,
+      capHeight
+    );
+  }
+
   doc.setFont("helvetica", "normal");
   if (data?.value?.data?.type === "in") {
     doc.text(data?.value?.data?.vendor_name ?? "", rightX, signY + 40, {

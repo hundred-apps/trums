@@ -1186,6 +1186,33 @@ const printDocument = async (code: string) => {
 
   rows.push([
     {
+      content: "Total",
+      colSpan: 5,
+      styles: { halign: "right", fontStyle: "bold" },
+    },
+    currencyWithoutSymbol(totalPrice.value),
+  ]);
+
+  let grandTotal = subtotal.value;
+  (purchaseOrderData?.value?.reference_transaction ?? []).forEach((el) => {
+    if (el.adjustments_transaction?.category != "tax") {
+      rows.push([
+        {
+          content:
+            (el.adjustments_transaction?.name ?? "").toLowerCase() === "ppn"
+              ? "PPN"
+              : el.adjustments_transaction?.name ?? "",
+          colSpan: 5,
+          styles: { halign: "right", fontStyle: "bold" },
+        },
+        currencyWithoutSymbol(displayAmount(el, subtotal.value)),
+      ]);
+      grandTotal += Number(displayAmount(el, subtotal.value) ?? 0);
+    }
+  });
+
+  rows.push([
+    {
       content: "Sub Total",
       colSpan: 5,
       styles: { halign: "right", fontStyle: "bold" },
@@ -1193,20 +1220,32 @@ const printDocument = async (code: string) => {
     currencyWithoutSymbol(subtotal.value),
   ]);
 
-  let grandTotal = subtotal.value;
   (purchaseOrderData?.value?.reference_transaction ?? []).forEach((el) => {
-    rows.push([
-      {
-        content:
-          (el.adjustments_transaction?.name ?? "").toLowerCase() === "ppn"
-            ? "PPN"
-            : el.adjustments_transaction?.name ?? "",
-        colSpan: 5,
-        styles: { halign: "right", fontStyle: "bold" },
-      },
-      currencyWithoutSymbol(displayAmount(el, subtotal.value)),
-    ]);
-    grandTotal += Number(displayAmount(el, subtotal.value) ?? 0);
+    if (el.adjustments_transaction?.category == "tax") {
+      if ((el.adjustments_transaction?.name ?? "").toLowerCase() === "ppn") {
+        rows.push([
+          {
+            content: "VAT",
+            colSpan: 5,
+            styles: { halign: "right", fontStyle: "bold" },
+          },
+          currencyWithoutSymbol(getDPPNilaiLainView.value),
+        ]);
+        rows.push([
+          {
+            content:
+              (el.adjustments_transaction?.name ?? "").toLowerCase() === "ppn"
+                ? "PPN"
+                : el.adjustments_transaction?.name ?? "",
+            colSpan: 5,
+            styles: { halign: "right", fontStyle: "bold" },
+          },
+          currencyWithoutSymbol(displayAmount(el, subtotal.value)),
+        ]);
+
+        grandTotal += Number(displayAmount(el, subtotal.value) ?? 0);
+      }
+    }
   });
 
   rows.push([
@@ -1530,7 +1569,6 @@ const generatePDF = async () => {
       req_doc
     );
 
-    console.log("generate", response.status.value);
     if (response.status.value == "success") {
       loadingDocument.value = false;
       const { doc } = await printDocument(

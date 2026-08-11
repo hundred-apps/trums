@@ -2012,7 +2012,7 @@ const onHandleSelectReference = async (item: any) => {
     }
 
     paymentTerms.value = po.payment_terms ?? [];
-
+    console.log("references from ref", po.reference_transaction);
     po.reference_transaction.forEach((element) => {
       const index = references.value.findIndex(
         (find) => find.adjustment_id == element.adjustment_id
@@ -2225,21 +2225,26 @@ const submitForm = async (formEl: FormInstance | undefined) => {
         });
 
         references.value.forEach((ref, i) => {
-          const refFields = {
-            unique_id: ref.unique_id,
-            adjustment_id: ref.adjustment_id,
-            value: ref.value,
-            amount: ref.amount,
-            type: ref.type,
-            party_type: ref.party_type,
-            party_id: ref.party_id,
-            reference: ref.reference,
-            reference_id: ref.reference_id,
-          };
+          if (ref.amount > 0) {
+            const refFields = {
+              unique_id: ref.unique_id,
+              adjustment_id: ref.adjustment_id,
+              value: ref.value,
+              amount: ref.amount,
+              type: ref.type,
+              party_type: ref.party_type,
+              party_id: ref.party_id,
+              reference: ref.reference,
+              reference_id: ref.reference_id,
+            };
 
-          Object.entries(refFields).forEach(([key, value]) => {
-            formData.append(`reference_transaction[${i}][${key}]`, `${value}`);
-          });
+            Object.entries(refFields).forEach(([key, value]) => {
+              formData.append(
+                `reference_transaction[${i}][${key}]`,
+                `${value}`
+              );
+            });
+          }
         });
 
         const response = await useFetchApi<BaseResponse<Invoice>>(

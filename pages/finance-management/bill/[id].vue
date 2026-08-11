@@ -59,7 +59,7 @@
               </template>
             </el-dropdown>
             <el-button type="primary" @click="generateInvoicePDF">
-              Cetak Invoice
+              Cetak Tagihan
             </el-button>
             <el-button
               type="success"
@@ -474,7 +474,8 @@ import {
 } from "#imports";
 import type { FormInstance } from "element-plus";
 import { formattedText } from "#imports";
-import { getDisplayFileType } from "~/types/file";
+import { AppFileType, getDisplayFileType } from "~/types/file";
+import type { TrumDoc } from "~/types/document";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -922,6 +923,7 @@ const generatePDF = async () => {
   // Logo
   const imgLogo = await getBase64ImageFromUrl("/images/trumecs-logo.png"); // path logo (public/logo.png)
   const tmsLogo = await getBase64ImageFromUrl("/images/tms-logo.png"); // path logo (public/logo.png)
+  const tmpCAP = await getBase64ImageFromUrl("/images/TMP-CAP.png");
   const headerTop = 10;
   const headerHeight = 25;
   const headerCenterY = headerTop + headerHeight / 2;
@@ -1205,30 +1207,38 @@ const generatePDF = async () => {
   (data?.value?.data?.reference_transaction ?? [])
     .filter((value) => value.adjustments_transaction?.operator == "minus")
     .forEach((element) => {
-      rowData.push([
-        {
-          content: `${element.adjustments_transaction?.name}`,
-          colSpan: 5,
-          styles: {
-            halign: "right",
-            fontStyle: "bold",
-            cellWidth: 0.0,
-            lineWidth: 0.1,
-            lineColor: [0, 0, 0],
-            fillColor: [255, 255, 255],
+      if (
+        (
+          element.adjustment || element.adjustments_transaction
+        )?.name.toLowerCase() != "pembulatan ke bawah"
+      ) {
+        rowData.push([
+          {
+            content: `${element.adjustments_transaction?.name}`,
+            colSpan: 5,
+            styles: {
+              halign: "right",
+              fontStyle: "bold",
+              cellWidth: 0.0,
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
           },
-        },
-        {
-          content: `${currencyWithoutSymbol(data.value?.data?.subtotal || 0)}`,
-          styles: {
-            halign: "right",
-            cellWidth: 0.0,
-            lineWidth: 0.1,
-            lineColor: [0, 0, 0],
-            fillColor: [255, 255, 255],
+          {
+            content: `${currencyWithoutSymbol(
+              data.value?.data?.subtotal || 0
+            )}`,
+            styles: {
+              halign: "right",
+              cellWidth: 0.0,
+              lineWidth: 0.1,
+              lineColor: [0, 0, 0],
+              fillColor: [255, 255, 255],
+            },
           },
-        },
-      ]);
+        ]);
+      }
     });
   (data?.value?.data?.reference_transaction ?? [])
     .filter(
@@ -1397,10 +1407,60 @@ const generatePDF = async () => {
   // let signY = finalY + 50;
   // signY = checkPageBreak(doc, signY);
 
+  const signWidth = 35;
+  const signHeight = 20;
+
+  // ratio CAP (stempel)
+  const capWidth = 35;
+  let capHeight = 20;
+
+  if (tmpCAP) {
+    const capImage = new Image();
+    capImage.src = tmpCAP;
+
+    await new Promise((resolve) => {
+      capImage.onload = resolve;
+    });
+
+    capHeight = (capImage.naturalHeight / capImage.naturalWidth) * capWidth;
+  }
+
+  const sourceSignCreator = data.value?.data?.people?.files?.findLast(
+    (value) => value.type == AppFileType.TANDA_TANGAN
+  );
+  let signCreatorBase64 = "";
+
+  if (sourceSignCreator) {
+    signCreatorBase64 = await getBase64ImageFromUrl(
+      `${imageUrl}/${sourceSignCreator.image_path}/${sourceSignCreator.filename}`
+    );
+  }
+
   doc.setFont("helvetica", "bold");
   doc.text(`Dibuat Oleh`.toUpperCase(), rightX, signY, {
     align: "center",
   });
+
+  if (signCreatorBase64) {
+    doc.addImage(
+      signCreatorBase64,
+      "PNG",
+      rightX - signWidth / 2,
+      signY + 5,
+      signWidth,
+      signHeight
+    );
+
+    doc.addImage(
+      tmpCAP,
+      "PNG",
+      rightX - capWidth / 2 - 8,
+      signY + 2,
+      capWidth,
+      capHeight
+    );
+  }
+
   doc.setFont("helvetica", "normal");
   if (data?.value?.data?.type === "in") {
     doc.text(data?.value?.data?.people?.name ?? "", rightX, signY + 40, {
@@ -1462,10 +1522,33 @@ const downloadPdf = () => {
 };
 
 const generateInvoicePDF = async () => {
+  // loading.value = true;
+  // try {
+  //   const req_doc = {
+  //     reference: "bill",
+  //     reference_id: data.value?.data?.unique_id,
+  //   };
+
+  //   const response = await useFetchApi<BaseResponse<TrumDoc>>(
+  //     "/documents-create",
+  //     "document-create",
+  //     "post",
+  //     req_doc
+  //   );
+
+  //   console.log("generate", response.status.value);
+  //   if (response.status.value == "success") {
+  //     loading.value = false;
   const { doc } = await generatePDF();
   const blob = doc.output("blob");
   pdfUrl.value = URL.createObjectURL(blob);
   showPrevInvoice.value = true;
+  //   }
+  // } catch (error: any) {
+  //   ElMessage.error(error?.response?.message ?? error);
+  // } finally {
+  //   loading.value = false;
+  // }
 };
 
 const showTransactionAdjustmentValue = (

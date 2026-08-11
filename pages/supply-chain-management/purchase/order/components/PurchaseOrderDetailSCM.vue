@@ -282,6 +282,7 @@
     type="view"
     :data="data?.data?.payment_terms ?? []"
     v-if="!loading"
+    :total="grandTotal"
   />
 
   <el-card class="mb-3" shadow="hover">
@@ -372,6 +373,7 @@ import type { BaseResponse } from "~/types/response";
 import jsPDF from "jspdf";
 import type { AddressType } from "~/types/address";
 import autoTable from "jspdf-autotable";
+import { AppFileType } from "~/types/file";
 import {
   FeeType,
   type ReferenceTransactionAdjustment,
@@ -381,6 +383,9 @@ import type { TrumDoc } from "~/types/document";
 import CustomPaymentTerm from "~/components/trums/CustomPaymentTerm.vue";
 import { generateAddressViewName } from "#imports";
 import { getDeliveryMethodLabel, getStatusItemLabel } from "~/types/pricetag";
+
+const config = useRuntimeConfig();
+const baseImageURL = config.public.baseImageURL;
 
 interface Props {
   order_id: string;
@@ -650,6 +655,8 @@ const printDocument = async (code: string) => {
   // ================= LOGO =================
   const imgLogo = await getBase64ImageFromUrl("/images/trumecs-logo.png");
   const tmsLogo = await getBase64ImageFromUrl("/images/tms-logo.png");
+  const tmpCAP = await getBase64ImageFromUrl("/images/TMP-CAP.png");
+  const pageHeight = doc.internal.pageSize.getHeight();
 
   doc.addImage(tmsLogo, "PNG", pageWidth - 50, 15, 40, 25);
   doc.addImage(imgLogo, "PNG", margin, 20, 40, 15);
@@ -830,13 +837,118 @@ const printDocument = async (code: string) => {
   });
 
   // ================= SIGNATURE =================
-  const finalY = (doc as any).lastAutoTable.finalY + 30;
+  let finalY = (doc as any).lastAutoTable.finalY + 15;
 
-  doc.text("Prepared By,", margin, finalY);
-  doc.text("Approved By,", pageWidth - 70, finalY);
+  // tinggi area tanda tangan sekitar 40
+  if (finalY + 40 > pageHeight - margin) {
+    doc.addPage();
+    finalY = 30;
+  }
 
-  doc.line(margin, finalY + 20, margin + 60, finalY + 20);
-  doc.line(pageWidth - 70, finalY + 20, pageWidth - margin, finalY + 20);
+  const signWidth = 35;
+  const signHeight = 20;
+
+  const creatorCenterX = margin + 25;
+  const approvalCenterX = pageWidth - margin - 25;
+
+  // ratio CAP (stempel)
+  const capWidth = 35;
+  let capHeight = 20;
+
+  if (tmpCAP) {
+    const capImage = new Image();
+    capImage.src = tmpCAP;
+
+    await new Promise((resolve) => {
+      capImage.onload = resolve;
+    });
+
+    capHeight = (capImage.naturalHeight / capImage.naturalWidth) * capWidth;
+  }
+
+  // ===== PREPARED BY (pembuat) =====
+  const sourceSignCreator = data.value?.data?.people?.files?.findLast(
+    (value) => value.type == AppFileType.TANDA_TANGAN
+  );
+  let requestSignCreator = "";
+
+  if (sourceSignCreator) {
+    requestSignCreator = await getBase64ImageFromUrl(
+      `${baseImageURL}/${sourceSignCreator.image_path}/${sourceSignCreator.filename}`
+    );
+  }
+
+  doc.text("Prepared By,", creatorCenterX, finalY, { align: "center" });
+
+  if (requestSignCreator) {
+    doc.addImage(
+      requestSignCreator,
+      "PNG",
+      creatorCenterX - signWidth / 2,
+      finalY + 5,
+      signWidth,
+      signHeight
+    );
+
+    doc.addImage(
+      tmpCAP,
+      "PNG",
+      creatorCenterX - capWidth / 2 - 8,
+      finalY + 2,
+      capWidth,
+      capHeight
+    );
+  }
+
+  doc.text(
+    `${capitalizeWords(data.value?.data?.people?.name ?? "")}`,
+    creatorCenterX,
+    finalY + 32,
+    { align: "center" }
+  );
+
+  // ===== APPROVED BY (hanya saat PO sudah disetujui) =====
+  if (data.value?.data?.status == PurchaseOrderStatus.APPROVED) {
+    const sourceSignApprove = data.value?.data?.approved_by?.files?.findLast(
+      (value) => value.type == AppFileType.TANDA_TANGAN
+    );
+    let requestSignApproval = "";
+
+    if (sourceSignApprove) {
+      requestSignApproval = await getBase64ImageFromUrl(
+        `${baseImageURL}/${sourceSignApprove.image_path}/${sourceSignApprove.filename}`
+      );
+    }
+
+    doc.text("Approved By,", approvalCenterX, finalY, { align: "center" });
+
+    if (requestSignApproval) {
+      doc.addImage(
+        requestSignApproval,
+        "PNG",
+        approvalCenterX - signWidth / 2,
+        finalY + 5,
+        signWidth,
+        signHeight
+      );
+
+      doc.addImage(
+        tmpCAP,
+        "PNG",
+        approvalCenterX - capWidth / 2 - 8,
+        finalY + 2,
+        capWidth,
+        capHeight
+      );
+    }
+
+    doc.text(
+      `${data.value?.data?.approved_by?.name ?? ""}`,
+      approvalCenterX,
+      finalY + 32,
+      { align: "center" }
+    );
+  }
 
   // ================= OUTPUT =================
   const blob = doc.output("blob");

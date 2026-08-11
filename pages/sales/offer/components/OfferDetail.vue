@@ -768,8 +768,6 @@ watch(
         const isExist = pricetag_item_views.value.findIndex(
           (find) => find.unique_id == item.reference_id
         );
-        console.log("exist data", isExist);
-        console.log("exist data", item.catalogue?.name);
         if (isExist < 0) {
           pricetag_item_views.value.push({
             no: `${no}`,
@@ -811,7 +809,6 @@ watch(
             hasChild: false,
           });
         } else {
-          console.log("item reference id", item.reference_id);
           const findCatalogueExist = pricetag_item_views.value.findIndex(
             (find) => find.item_id == item.catalogue_id
           );
