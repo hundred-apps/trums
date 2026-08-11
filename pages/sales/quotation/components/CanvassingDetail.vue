@@ -5101,11 +5101,325 @@ const generateSCMMemo = async () => {
 
               if (vendor.status == CanvassingVendorStatus.SELECTED) {
                 checked = "V";
-              }
+                rows.push([
+                  {
+                    content: ``,
+                    styles: {
+                      halign: "center",
+                      fontStyle: "italic",
+                      textColor: [120, 120, 120],
+                      lineWidth: 0.1,
+                      lineColor: [0, 0, 0],
+                      fillColor: [245, 245, 245],
+                    },
+                  },
+                  {
+                    content: `${delimiter}${displayCatalogueName(
+                      vendor.catalogue!
+                    )}`,
+                    styles: {
+                      halign: "left",
+                      fontStyle: "italic",
+                      textColor: [120, 120, 120],
+                      lineWidth: 0.1,
+                      lineColor: [0, 0, 0],
+                      fillColor: [245, 245, 245],
+                    },
+                  },
+                  {
+                    content: `${vendor.vendor?.name || "-"}`,
+                    styles: {
+                      halign: "left",
+                      fontStyle: "italic",
+                      textColor: [120, 120, 120],
+                      lineWidth: 0.1,
+                      lineColor: [0, 0, 0],
+                      fillColor: [245, 245, 245],
+                    },
+                  },
+                  {
+                    content: `${vendor.pricetag_item.status_item}`,
+                    styles: {
+                      halign: "left",
+                      textColor: [120, 120, 120],
+                      lineWidth: 0.1,
+                      lineColor: [0, 0, 0],
+                      fillColor: [245, 245, 245],
+                    },
+                  },
+                  {
+                    content: `${vendor.pricetag_item.delivery}`,
+                    styles: {
+                      halign: "left",
+                      textColor: [120, 120, 120],
+                      lineWidth: 0.1,
+                      lineColor: [0, 0, 0],
+                      fillColor: [245, 245, 245],
+                    },
+                  },
+                  {
+                    content: `${vendor.expected_delivery}`,
+                    styles: {
+                      halign: "left",
+                      textColor: [120, 120, 120],
+                      lineWidth: 0.1,
+                      lineColor: [0, 0, 0],
+                      fillColor: [245, 245, 245],
+                    },
+                  },
 
+                  {
+                    content: `${vendor.quantity}`,
+                    styles: {
+                      halign: "center",
+                      fontStyle: "italic",
+                      textColor: [120, 120, 120],
+                      lineWidth: 0.1,
+                      lineColor: [0, 0, 0],
+                      fillColor: [245, 245, 245],
+                    },
+                  },
+                  {
+                    content: `${vendor.unit_name}`,
+                    styles: {
+                      halign: "center",
+                      fontStyle: "italic",
+                      textColor: [120, 120, 120],
+                      lineWidth: 0.1,
+                      lineColor: [0, 0, 0],
+                      fillColor: [245, 245, 245],
+                    },
+                  },
+                  {
+                    content: `${currencyWithoutSymbol(vendor.unit_price || 0)}`,
+                    styles: {
+                      halign: "right",
+                      fontStyle: "italic",
+                      textColor: [120, 120, 120],
+                      lineWidth: 0.1,
+                      lineColor: [0, 0, 0],
+                      fillColor: [245, 245, 245],
+                    },
+                  },
+                  {
+                    content: `${currencyWithoutSymbol(
+                      vendor.unit_price! * vendor.quantity
+                    )}`,
+                    styles: {
+                      halign: "right",
+                      fontStyle: "italic",
+                      textColor: [120, 120, 120],
+                      lineWidth: 0.1,
+                      lineColor: [0, 0, 0],
+                      fillColor: [245, 245, 245],
+                    },
+                  },
+                  {
+                    content: `${currencyWithoutSymbol(
+                      vendor.selling_price || 0
+                    )}`,
+                    styles: {
+                      halign: "right",
+                      fontStyle: "italic",
+                      textColor: [120, 120, 120],
+                      lineWidth: 0.1,
+                      lineColor: [0, 0, 0],
+                      fillColor: [245, 245, 245],
+                    },
+                  },
+                  {
+                    content: `${currencyWithoutSymbol(
+                      vendor.total_selling_price || 0
+                    )}`,
+                    styles: {
+                      halign: "right",
+                      fontStyle: "italic",
+                      textColor: [120, 120, 120],
+                      lineWidth: 0.1,
+                      lineColor: [0, 0, 0],
+                      fillColor: [245, 245, 245],
+                    },
+                  },
+                  {
+                    content: `${currencyWithoutSymbol(
+                      Number(vendor.total_selling_price || 0) -
+                        Number(vendor.total_price || 0)
+                    )}`,
+                    styles: {
+                      halign: "right",
+                      fontStyle: "italic",
+                      textColor: [120, 120, 120],
+                      lineWidth: 0.1,
+                      lineColor: [0, 0, 0],
+                      fillColor: [245, 245, 245],
+                    },
+                  },
+                  {
+                    content: `${calculateMargin(
+                      vendor.total_price,
+                      vendor.total_selling_price || 0
+                    ).toFixed(2)}`,
+                    styles: {
+                      halign: "right",
+                      fontStyle: "italic",
+                      textColor: [120, 120, 120],
+                      lineWidth: 0.1,
+                      lineColor: [0, 0, 0],
+                      fillColor: [245, 245, 245],
+                    },
+                  },
+                ]);
+              }
+            });
+          }
+        } else {
+          rows.push([
+            {
+              content: `${index + 1}`,
+              styles: {
+                halign: "center",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+            {
+              content: `${item.catalogue?.name}`,
+              styles: {
+                halign: "left",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+            {
+              content: ``,
+              styles: {
+                halign: "left",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+            {
+              content: ``,
+              styles: {
+                halign: "left",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+            {
+              content: ``,
+              styles: {
+                halign: "left",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+            {
+              content: ``,
+              styles: {
+                halign: "left",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+            {
+              content: ``,
+              styles: {
+                halign: "center",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+            {
+              content: ``,
+              styles: {
+                halign: "center",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+            {
+              content: ``,
+              styles: {
+                halign: "center",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+            {
+              content: ``,
+              styles: {
+                halign: "right",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+            {
+              content: ``,
+              styles: {
+                halign: "right",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+            {
+              content: ``,
+              styles: {
+                halign: "right",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+            {
+              content: ``,
+              styles: {
+                halign: "right",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+            {
+              content: ``,
+              styles: {
+                halign: "right",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+                fillColor: [255, 255, 255],
+              },
+            },
+          ]);
+
+          item.canvassing_vendor.forEach((vendor, eqIndex) => {
+            let delimiter = "";
+
+            if (vendor.type_item == "equivalent") {
+              delimiter = "EQ - ";
+            } else if (vendor.type_item == "original") {
+              delimiter = "REQ - ";
+            } else if (vendor.type_item == "quotation") {
+              delimiter = "SUB - ";
+            }
+
+            let checked = "";
+
+            if (vendor.status == CanvassingVendorStatus.SELECTED) {
+              checked = "V";
               rows.push([
                 {
-                  content: `${checked}`,
+                  content: ``,
                   styles: {
                     halign: "center",
                     fontStyle: "italic",
@@ -5271,321 +5585,7 @@ const generateSCMMemo = async () => {
                   },
                 },
               ]);
-            });
-          }
-        } else {
-          rows.push([
-            {
-              content: `${index + 1}`,
-              styles: {
-                halign: "center",
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-            {
-              content: `${item.catalogue?.name}`,
-              styles: {
-                halign: "left",
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-            {
-              content: ``,
-              styles: {
-                halign: "left",
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-            {
-              content: ``,
-              styles: {
-                halign: "left",
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-            {
-              content: ``,
-              styles: {
-                halign: "left",
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-            {
-              content: ``,
-              styles: {
-                halign: "left",
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-            {
-              content: ``,
-              styles: {
-                halign: "center",
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-            {
-              content: ``,
-              styles: {
-                halign: "center",
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-            {
-              content: ``,
-              styles: {
-                halign: "center",
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-            {
-              content: ``,
-              styles: {
-                halign: "right",
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-            {
-              content: ``,
-              styles: {
-                halign: "right",
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-            {
-              content: ``,
-              styles: {
-                halign: "right",
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-            {
-              content: ``,
-              styles: {
-                halign: "right",
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-            {
-              content: ``,
-              styles: {
-                halign: "right",
-                lineWidth: 0.1,
-                lineColor: [0, 0, 0],
-                fillColor: [255, 255, 255],
-              },
-            },
-          ]);
-
-          item.canvassing_vendor.forEach((vendor, eqIndex) => {
-            let delimiter = "";
-
-            if (vendor.type_item == "equivalent") {
-              delimiter = "EQ - ";
-            } else if (vendor.type_item == "original") {
-              delimiter = "REQ - ";
-            } else if (vendor.type_item == "quotation") {
-              delimiter = "SUB - ";
             }
-
-            let checked = "";
-
-            if (vendor.status == CanvassingVendorStatus.SELECTED) {
-              checked = "V";
-            }
-
-            rows.push([
-              {
-                content: `${checked}`,
-                styles: {
-                  halign: "center",
-                  fontStyle: "italic",
-                  textColor: [120, 120, 120],
-                  lineWidth: 0.1,
-                  lineColor: [0, 0, 0],
-                  fillColor: [245, 245, 245],
-                },
-              },
-              {
-                content: `${delimiter}${displayCatalogueName(
-                  vendor.catalogue!
-                )}`,
-                styles: {
-                  halign: "left",
-                  fontStyle: "italic",
-                  textColor: [120, 120, 120],
-                  lineWidth: 0.1,
-                  lineColor: [0, 0, 0],
-                  fillColor: [245, 245, 245],
-                },
-              },
-              {
-                content: `${vendor.vendor?.name || "-"}`,
-                styles: {
-                  halign: "left",
-                  fontStyle: "italic",
-                  textColor: [120, 120, 120],
-                  lineWidth: 0.1,
-                  lineColor: [0, 0, 0],
-                  fillColor: [245, 245, 245],
-                },
-              },
-              {
-                content: `${vendor.pricetag_item.status_item}`,
-                styles: {
-                  halign: "left",
-                  textColor: [120, 120, 120],
-                  lineWidth: 0.1,
-                  lineColor: [0, 0, 0],
-                  fillColor: [245, 245, 245],
-                },
-              },
-              {
-                content: `${vendor.pricetag_item.delivery}`,
-                styles: {
-                  halign: "left",
-                  textColor: [120, 120, 120],
-                  lineWidth: 0.1,
-                  lineColor: [0, 0, 0],
-                  fillColor: [245, 245, 245],
-                },
-              },
-              {
-                content: `${vendor.expected_delivery}`,
-                styles: {
-                  halign: "left",
-                  textColor: [120, 120, 120],
-                  lineWidth: 0.1,
-                  lineColor: [0, 0, 0],
-                  fillColor: [245, 245, 245],
-                },
-              },
-
-              {
-                content: `${vendor.quantity}`,
-                styles: {
-                  halign: "center",
-                  fontStyle: "italic",
-                  textColor: [120, 120, 120],
-                  lineWidth: 0.1,
-                  lineColor: [0, 0, 0],
-                  fillColor: [245, 245, 245],
-                },
-              },
-              {
-                content: `${vendor.unit_name}`,
-                styles: {
-                  halign: "center",
-                  fontStyle: "italic",
-                  textColor: [120, 120, 120],
-                  lineWidth: 0.1,
-                  lineColor: [0, 0, 0],
-                  fillColor: [245, 245, 245],
-                },
-              },
-              {
-                content: `${currencyWithoutSymbol(vendor.unit_price || 0)}`,
-                styles: {
-                  halign: "right",
-                  fontStyle: "italic",
-                  textColor: [120, 120, 120],
-                  lineWidth: 0.1,
-                  lineColor: [0, 0, 0],
-                  fillColor: [245, 245, 245],
-                },
-              },
-              {
-                content: `${currencyWithoutSymbol(
-                  vendor.unit_price! * vendor.quantity
-                )}`,
-                styles: {
-                  halign: "right",
-                  fontStyle: "italic",
-                  textColor: [120, 120, 120],
-                  lineWidth: 0.1,
-                  lineColor: [0, 0, 0],
-                  fillColor: [245, 245, 245],
-                },
-              },
-              {
-                content: `${currencyWithoutSymbol(vendor.selling_price || 0)}`,
-                styles: {
-                  halign: "right",
-                  fontStyle: "italic",
-                  textColor: [120, 120, 120],
-                  lineWidth: 0.1,
-                  lineColor: [0, 0, 0],
-                  fillColor: [245, 245, 245],
-                },
-              },
-              {
-                content: `${currencyWithoutSymbol(
-                  vendor.total_selling_price || 0
-                )}`,
-                styles: {
-                  halign: "right",
-                  fontStyle: "italic",
-                  textColor: [120, 120, 120],
-                  lineWidth: 0.1,
-                  lineColor: [0, 0, 0],
-                  fillColor: [245, 245, 245],
-                },
-              },
-              {
-                content: `${currencyWithoutSymbol(
-                  Number(vendor.total_selling_price || 0) -
-                    Number(vendor.total_price || 0)
-                )}`,
-                styles: {
-                  halign: "right",
-                  fontStyle: "italic",
-                  textColor: [120, 120, 120],
-                  lineWidth: 0.1,
-                  lineColor: [0, 0, 0],
-                  fillColor: [245, 245, 245],
-                },
-              },
-              {
-                content: `${calculateMargin(
-                  vendor.total_price,
-                  vendor.total_selling_price || 0
-                ).toFixed(2)}`,
-                styles: {
-                  halign: "right",
-                  fontStyle: "italic",
-                  textColor: [120, 120, 120],
-                  lineWidth: 0.1,
-                  lineColor: [0, 0, 0],
-                  fillColor: [245, 245, 245],
-                },
-              },
-            ]);
           });
         }
       }
