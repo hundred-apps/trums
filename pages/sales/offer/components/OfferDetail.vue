@@ -1703,7 +1703,7 @@ const generateQuotationPdf = async () => {
           requestSignBase64,
           "PNG",
           signCenterX - signImageWidth / 2,
-          currentY - 25,
+          currentY - 15,
           signImageWidth,
           signImageHeight
         );
@@ -1722,7 +1722,7 @@ const generateQuotationPdf = async () => {
           tmpCAP,
           "PNG",
           signCenterX - capWidth / 2 - 8,
-          currentY - 25,
+          currentY - 17,
           capWidth,
           capHeight
         );
