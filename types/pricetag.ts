@@ -7,6 +7,7 @@ import type { Canvassing } from "./scm/canvasing";
 import type { TermOfPayment } from "./payment_term";
 import type { ReferenceTransactionAdjustment } from "./attribute_adjustment";
 import type { CanvassingItem, CanvassingVendor } from "./scm/canvasing";
+import type { People } from "./people";
 
 export enum ReferencePriceTag {
   CANVASING_VENDOR = "canvassing_vendor",
@@ -56,6 +57,7 @@ export type Pricetag = {
   total_price?: number;
   reference_transaction_adjustment?: ReferenceTransactionAdjustment[];
   raw_payload?: any | null;
+  people?: People;
 };
 
 export enum PricetagItemStatus {

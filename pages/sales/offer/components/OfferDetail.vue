@@ -26,6 +26,19 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item
+          v-if="dataInterface.data?.type == 'out'"
+          label="Daftar Item"
+          style="margin: 0 !important"
+          :label-width="150"
+          :label-position="'left'"
+          size="default"
+        >
+          <el-radio-group v-model="listItem">
+            <el-radio value="satuan">Satuan</el-radio>
+            <el-radio value="permintaan">Berdasarkan Permintaan</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item
           :label-position="'left'"
           :label-width="150"
           v-if="dataInterface.data?.type == 'out'"
@@ -524,6 +537,19 @@
           </el-radio-group>
         </el-form-item>
         <el-form-item
+          v-if="dataInterface.data?.type == 'out'"
+          label="Daftar Item"
+          style="margin: 0 !important"
+          :label-width="150"
+          :label-position="'left'"
+          size="default"
+        >
+          <el-radio-group v-model="listItem">
+            <el-radio value="satuan">Satuan</el-radio>
+            <el-radio value="permintaan">Berdasarkan Permintaan</el-radio>
+          </el-radio-group>
+        </el-form-item>
+        <el-form-item
           :label-position="'left'"
           :label-width="150"
           v-if="dataInterface.data?.type == 'out'"
@@ -654,6 +680,7 @@ const quotationNumber = ref<string>("");
 const showPreviewQuotation = ref(false);
 const pdfUrl = ref<string | null>(null);
 const typeSummery = ref<"satuan" | "total">("satuan");
+const listItem = ref<"satuan" | "permintaan">("satuan");
 const withAddress = ref<boolean>(true);
 const modalSelectContact = ref<boolean>(false);
 
@@ -1230,70 +1257,140 @@ const generateQuotationPdf = async () => {
   // ================= TABLE =================
 
   let rowData: RowInput[] = [];
+  if (listItem.value == "permintaan") {
+    let no = 1;
+    pricetag_item_views.value.forEach((item, i) => {
+      const isChild: boolean =
+        item.item_name.includes("(Equivalent)") ||
+        item.item_name.includes("(Subtitution)");
+      rowData.push([
+        {
+          content: `${item.hasChild ? no : ""}`,
+          styles: {
+            halign: "center",
+            lineWidth: 0.1,
+            lineColor: [0, 0, 0],
+          },
+        },
+        {
+          content: `${item.item_name}`,
+          styles: {
+            halign: "left",
+            lineWidth: 0.1,
+            lineColor: [0, 0, 0],
+          },
+        },
+        {
+          content: `${item.hasChild ? "" : item.qty}`,
+          styles: {
+            halign: "center",
+            lineWidth: 0.1,
+            lineColor: [0, 0, 0],
+          },
+        },
+        {
+          content: `${item.hasChild ? "" : item.unit_name}`,
+          styles: {
+            halign: "center",
+            lineWidth: 0.1,
+            lineColor: [0, 0, 0],
+          },
+        },
+        {
+          content: `${item.hasChild ? "" : currencyWithoutSymbol(item.price)}`,
+          styles: {
+            halign: "right",
+            lineWidth: 0.1,
+            lineColor: [0, 0, 0],
+          },
+        },
+        {
+          content: `${
+            item.hasChild
+              ? ""
+              : currencyWithoutSymbol(item.qty * (item.price || 0))
+          }`,
+          styles: {
+            halign: "right",
+            lineWidth: 0.1,
+            lineColor: [0, 0, 0],
+          },
+        },
+      ]);
+      if (item.hasChild) {
+        no++;
+      }
+    });
+  } else {
+    let no = 1;
+    pricetag_item_views.value
+      .sort((a, b) => a.item_name.localeCompare(b.item_name))
+      .forEach((item, i) => {
+        const isChild: boolean =
+          item.item_name.includes("(Equivalent)") ||
+          item.item_name.includes("(Subtitution)");
 
-  let no = 1;
-  pricetag_item_views.value.forEach((item, i) => {
-    const isChild: boolean =
-      item.item_name.includes("(Equivalent)") ||
-      item.item_name.includes("(Subtitution)");
-    rowData.push([
-      {
-        content: `${item.hasChild ? no : ""}`,
-        styles: {
-          halign: "center",
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-        },
-      },
-      {
-        content: `${item.item_name}`,
-        styles: {
-          halign: "left",
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-        },
-      },
-      {
-        content: `${item.hasChild ? "" : item.qty}`,
-        styles: {
-          halign: "center",
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-        },
-      },
-      {
-        content: `${item.hasChild ? "" : item.unit_name}`,
-        styles: {
-          halign: "center",
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-        },
-      },
-      {
-        content: `${item.hasChild ? "" : currencyWithoutSymbol(item.price)}`,
-        styles: {
-          halign: "right",
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-        },
-      },
-      {
-        content: `${
-          item.hasChild
-            ? ""
-            : currencyWithoutSymbol(item.qty * (item.price || 0))
-        }`,
-        styles: {
-          halign: "right",
-          lineWidth: 0.1,
-          lineColor: [0, 0, 0],
-        },
-      },
-    ]);
-    if (item.hasChild) {
-      no++;
-    }
-  });
+        if (!item.hasChild) {
+          rowData.push([
+            {
+              content: `${no}`,
+              styles: {
+                halign: "center",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+              },
+            },
+            {
+              content: `${item.item_name}`,
+              styles: {
+                halign: "left",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+              },
+            },
+            {
+              content: `${item.hasChild ? "" : item.qty}`,
+              styles: {
+                halign: "center",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+              },
+            },
+            {
+              content: `${item.hasChild ? "" : item.unit_name}`,
+              styles: {
+                halign: "center",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+              },
+            },
+            {
+              content: `${
+                item.hasChild ? "" : currencyWithoutSymbol(item.price)
+              }`,
+              styles: {
+                halign: "right",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+              },
+            },
+            {
+              content: `${
+                item.hasChild
+                  ? ""
+                  : currencyWithoutSymbol(item.qty * (item.price || 0))
+              }`,
+              styles: {
+                halign: "right",
+                lineWidth: 0.1,
+                lineColor: [0, 0, 0],
+              },
+            },
+          ]);
+          no++;
+        }
+      });
+  }
 
   let summeryData: RowInput[] = [];
   if (typeSummery.value === "total") {
@@ -1592,9 +1689,52 @@ const generateQuotationPdf = async () => {
         align: "center",
       });
     } else {
-      doc.text("Stanislaus Adrian Pratama", signCenterX, currentY + 20, {
-        align: "center",
-      });
+      let requestSignBase64 = "";
+
+      if (
+        props.dataInterface?.data?.people?.files &&
+        props.dataInterface?.data?.people?.files.length > 0
+      ) {
+        requestSignBase64 = await getBase64ImageFromUrl(
+          `${baseImageURL}/${props.dataInterface?.data?.people.files[0].image_path}/${props.dataInterface?.data?.people.files[0].filename}`
+        );
+
+        doc.addImage(
+          requestSignBase64,
+          "PNG",
+          signCenterX - signImageWidth / 2,
+          currentY - 25,
+          signImageWidth,
+          signImageHeight
+        );
+        const capImage = new Image();
+        capImage.src = tmpCAP;
+
+        await new Promise((resolve) => {
+          capImage.onload = resolve;
+        });
+
+        const capWidth = 35;
+        const capHeight =
+          (capImage.naturalHeight / capImage.naturalWidth) * capWidth;
+
+        doc.addImage(
+          tmpCAP,
+          "PNG",
+          signCenterX - capWidth / 2 - 8,
+          currentY - 25,
+          capWidth,
+          capHeight
+        );
+      }
+      doc.text(
+        `${props.dataInterface?.data?.people?.name}`,
+        signCenterX,
+        currentY + 20,
+        {
+          align: "center",
+        }
+      );
     }
 
     currentY += 10;
