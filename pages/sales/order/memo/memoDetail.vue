@@ -425,6 +425,8 @@
 
 
 
+
+
             }}%</span
           >
         </template>
@@ -1179,6 +1181,7 @@ const generateContactFee = (data: Canvassing) => {
     } else {
       otherCost.value.push({
         ...adjustment,
+        amount_nominal: adjustment.amount,
         adjustment: adjustment.adjustments_transaction,
       });
     }
@@ -1306,7 +1309,14 @@ const calculateSummaryaData = () => {
       element.adjustments_transaction?.category == "tax" &&
       element.adjustments_transaction?.name.toLowerCase() == "ppn"
     ) {
-      subtotal -= element.amount_nominal || 0;
+      // subtotal -= element.amount_nominal || 0;
+
+      if (element.include) {
+        subtotal -= element.amount_nominal || 0;
+      } else {
+        subtotal += element.amount_nominal || 0;
+      }
+
       summeryView.value.push({
         label: element.adjustments_transaction?.name ?? "",
         amount: `${currencyWithoutSymbol(element.amount_nominal ?? 0, 0)}`,
@@ -1578,9 +1588,7 @@ const generateSCMMemo = async () => {
           childCell(`${child.rab_number ?? ""}`, "center"),
           childCell(
             `${
-              child.po_vendor_id
-                ? child.po_vendor_number || ""
-                : "Belum Ada PO"
+              child.po_vendor_id ? child.po_vendor_number || "" : "Belum Ada PO"
             }`,
             "center"
           ),

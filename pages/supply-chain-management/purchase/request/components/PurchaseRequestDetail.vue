@@ -395,10 +395,10 @@ const deletePurchaseRequest = async () => {
   loading.value = true;
   try {
     const response = await useFetchApi<BaseResponse<any>>(
-      `/purchase-request-delete/${props.purchaseRequestData.unique_id}`,
+      "/purchase-request-delete",
       "delete-purchase-request",
-      "delete",
-      null
+      "post",
+      [props.purchaseRequestData.unique_id]
     );
 
     if (response.status.value === "success") {

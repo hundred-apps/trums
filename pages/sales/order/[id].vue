@@ -16,10 +16,13 @@
       /></el-tab-pane>
       <el-tab-pane label="PR">
         <PurchaseRequestDetail
-          v-if="!loading && purchaseRequest"
+          v-if="!loadingPR && purchaseRequest"
           :purchase-request-data="purchaseRequest"
           @on-refresh="fetchPR"
         />
+        <div v-else>
+          <NotFound />
+        </div>
       </el-tab-pane>
       <el-tab-pane label="PO Vendor">
         <PurchaseOrderTable
@@ -85,16 +88,17 @@ import SalesOrderDetail from "./components/SalesOrderDetail.vue";
 import type { Permission } from "~/types/menu";
 import type { ResponsePagination } from "~/types/response_pagination";
 import type { Inquiry } from "~/types/inquiry";
-import type { RequestSearch } from "~/types/request_search";
+import { OrderColumn, type RequestSearch } from "~/types/request_search";
 import movementTable from "~/pages/inventory-management/checkin/components/movementTable.vue";
 import InvoiceTable from "~/pages/finance-management/invoice/components/InvoiceTable.vue";
 import type { ItemRequestTrail } from "~/types/item_request";
 import type { PurchaseRequest } from "~/types/purchase_request";
 import PurchaseRequestDetail from "~/pages/supply-chain-management/purchase/request/components/PurchaseRequestDetail.vue";
 import PurchaseOrderTable from "~/pages/supply-chain-management/purchase/components/PurchaseOrderTable.vue";
-
+import NotFound from "../../error/404.vue";
 import memoDetail from "./memo/memoDetail.vue";
 import type { Canvassing } from "~/types/scm/canvasing";
+import { Column } from "jspdf-autotable";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -107,6 +111,7 @@ const route = useRoute();
 const purchaseOrderId = ref<string>(route.params.id as string);
 
 const loading = ref(false);
+const loadingPR = ref<boolean>();
 const purchaseOrderData = ref<PurchaseOrder | null>(null);
 const purchaseRequest = ref<PurchaseRequest | undefined>();
 
@@ -249,6 +254,7 @@ const fetchInquiry = async () => {
   }
 };
 const fetchPR = async () => {
+  loadingPR.value = true;
   try {
     const pr_request: RequestSearch = {
       keyword: "",
@@ -259,21 +265,24 @@ const fetchPR = async () => {
           item_request_id: [inquiryData.value.data?.item_request[0].unique_id],
         },
       ],
-      sort: null,
+      sort: {
+        column: "created_at",
+        order: OrderColumn.DESC,
+      },
       offset: "1",
-      limit: "1",
+      limit: "10",
     };
 
     // Fetch related purchase orders
     const purchaseRequestResponse = await useFetchApi<
       ResponsePagination<ItemRequestTrail[]>
-    >(`/search`, "fetch-inquiries", "post", pr_request);
+    >(`/search`, "fetch-pr", "post", pr_request);
 
     if (purchaseRequestResponse.status.value === "success") {
       if (purchaseRequestResponse.data.value?.data) {
         const item_request_trail: ItemRequestTrail[] =
           purchaseRequestResponse.data.value?.data ?? [];
-
+        console.log("data PR", item_request_trail);
         if (item_request_trail.length > 0) {
           purchaseRequest.value = item_request_trail[0]
             .data_reference as PurchaseRequest;
@@ -282,6 +291,8 @@ const fetchPR = async () => {
     }
   } catch (error) {
     console.error("Failed to fetch related data", error);
+  } finally {
+    loadingPR.value = false;
   }
 };
 const fetchPOVendor = async () => {
@@ -295,7 +306,10 @@ const fetchPOVendor = async () => {
           item_request_id: [inquiryData.value.data?.item_request[0].unique_id],
         },
       ],
-      sort: null,
+      sort: {
+        column: "created_at",
+        order: OrderColumn.DESC,
+      },
       offset: "1",
       limit: "10",
     };
@@ -312,7 +326,8 @@ const fetchPOVendor = async () => {
 
         if (item_request_trail.length > 0) {
           list_po_id.value = item_request_trail.map(
-            (map) => (map.data_reference as PurchaseOrder).unique_id
+            (map) =>
+              (map.data_reference as PurchaseOrder | undefined)?.unique_id || ""
           );
         }
       }

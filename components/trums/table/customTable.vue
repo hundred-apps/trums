@@ -18,6 +18,7 @@
       :align="col.align ?? 'left'"
       :sortable="col.sortable ? 'custom' : false"
       :fixed="col.fixed"
+      :class-name="col.class"
     >
       <template #header v-if="col.headerCellRenderer">
         <component :is="renderHeader(col)" />

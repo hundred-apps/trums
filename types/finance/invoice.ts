@@ -117,6 +117,18 @@ export type Invoice = {
   files?: AppFile[];
 };
 
+export type InvoiceReport = Invoice & {
+  total_po: number;
+  total_harga_jual: number;
+  total_harga_beli: number;
+  biaya_lain_lain: number;
+  total_fee: number;
+  ppn_masukan: number;
+  ppn_keluaran: number;
+  profit: number;
+  data_reference?: PurchaseOrder;
+};
+
 export type InvoiceItem = {
   unique_id: string;
   unique_code: string;

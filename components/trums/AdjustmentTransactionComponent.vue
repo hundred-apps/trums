@@ -14,7 +14,7 @@
         <span class="text-sm flex flex-1 justify-end items-center gap-2">
           <el-input
             :disabled="ref.include"
-            v-model="ref.amount"
+            v-model="ref.tmp_amount_input"
             style="max-width: 300px"
             placeholder="Masukan Nilai"
           >
@@ -80,7 +80,7 @@
           </el-radio-group>
           <el-input
             :disabled="ref.include"
-            v-model="ref.amount"
+            v-model="ref.tmp_amount_input"
             style="max-width: 300px"
             placeholder="Masukan Nilai"
           >
@@ -145,7 +145,7 @@
           </el-radio-group>
           <el-input
             :disabled="ref.include"
-            v-model="ref.amount"
+            v-model="ref.tmp_amount_input"
             style="max-width: 300px"
             placeholder="Masukan Nilai"
           >
@@ -214,7 +214,7 @@
           </el-radio-group>
           <el-input
             :disabled="ref.include"
-            v-model="ref.amount"
+            v-model="ref.tmp_amount_input"
             style="max-width: 300px"
             placeholder="Masukan Nilai"
             type="number"
@@ -499,14 +499,15 @@ watch(
 
 watch(
   props.references,
-  () => {
+  (newValue) => {
+    console.log("reference form", newValue);
     emit("update:total", {
       totalBiayaTambahan: totalBiayaTambahan.value,
       totalPotongan: totalPotongan.value,
       totalPajak: totalPajak.value,
     });
   },
-  { deep: true }
+  { deep: true, immediate: true }
 );
 
 onMounted(() => {

@@ -475,6 +475,7 @@
       v-if="id === undefined && !loadingGetEditData"
       @update:term-of-payments="onUpdatePaymentTerms"
       type="input"
+      :total="grandTotal"
     />
     <CustomPaymentTerm
       v-else
@@ -482,6 +483,7 @@
       :data="termOfPayments"
       type="input"
       v-if="!loadingGetEditData"
+      :total="grandTotal"
     />
 
     <el-card class="mb-3" shadow="hover">
@@ -1004,6 +1006,21 @@ watch(
   () => request_search_trail.value,
   () => itemRequest.refresh(),
   { deep: true }
+);
+
+watch(
+  () => references.value,
+  (newValue) => {
+    console.log("update references", newValue);
+    newValue.forEach((element) => {
+      if (element.type == FeeType.PERCENT) {
+        element.value = toNumber(element.tmp_amount_input || "0");
+      } else {
+        element.amount = toNumber(element.tmp_amount_input || "0");
+      }
+    });
+  },
+  { deep: true, immediate: true }
 );
 
 const paginationClick = (val: number) => {
@@ -2405,8 +2422,12 @@ const fetchDataEdit = async () => {
         references.value = request.reference_transaction.map((value) => ({
           ...value,
           adjustment: value.adjustments_transaction,
+          tmp_amount_input:
+            value.type == FeeType.AMOUNT
+              ? `${value.amount || 0}`
+              : `${value.value}`,
         }));
-
+        console.log("reference", references.value);
         address.value = request.address ?? null;
 
         termOfPayments.value = request.payment_terms ?? [];
@@ -2454,7 +2475,19 @@ const summeryData = computed(() => {
   ];
 
   references.value.forEach((element) => {
-    if (element.adjustment?.category != "tax") {
+    if (
+      element.adjustment?.category != "tax" &&
+      (element.adjustment?.name || "").toLowerCase() !== "ppn"
+    ) {
+      if (element.type == FeeType.PERCENT) {
+        const nominal = (subtotal.value * Number(element.value)) / 100;
+        element.amount_nominal = nominal;
+        element.amount = nominal;
+      } else {
+        const toPercent = (Number(element.amount) / subtotal.value) * 100;
+        element.amount_nominal = Number(element.amount);
+        element.value = customMathCeil(toPercent);
+      }
       tableData.push({
         label: element.adjustment?.name ? `${element.adjustment?.name}` : "-",
         value: currency(displayAmount(element, totalItems.value)),
@@ -2477,12 +2510,28 @@ const summeryData = computed(() => {
       element.adjustment?.category == "tax" &&
       element.adjustment.name.toLowerCase() === "ppn"
     ) {
+      if (element.type == FeeType.PERCENT) {
+        // console.log("ini PPN", getDPPNilaiLain.value);
+        const nominal = (getDPPNilaiLain.value * Number(element.value)) / 100;
+        element.amount_nominal = nominal;
+        element.amount = nominal;
+        element.tmp_amount_input = `${element.value}`;
+      } else {
+        const toPercent =
+          (Number(element.amount) / getDPPNilaiLain.value) * 100;
+        element.amount_nominal = Number(element.amount);
+        element.value = customMathCeil(toPercent);
+        element.tmp_amount_input = `${element.amount}`;
+      }
+
       tableData.push({
         label: element.adjustment?.name ? `${element.adjustment?.name}` : "-",
-        value: currency(displayAmount(element, getDPPNilaiLain.value)),
+        value: currency(element.amount),
       });
     }
   });
+
+  console.log("references summary", references.value);
 
   tableData.push({
     label: "Grand Total",

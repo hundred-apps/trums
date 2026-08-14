@@ -118,6 +118,16 @@ const columns: ColumnTable<PurchaseOrderItem>[] = [
     ),
   },
   {
+    key: "Vendor",
+    title: "Vendor",
+    dataKey: "Vendor",
+    width: isMobile ? 0 : 200,
+    align: "center",
+    cellRenderer: ({ rowData }: { rowData: PurchaseOrderItem }) => (
+      <>{rowData.purchase_order?.vendor_name}</>
+    ),
+  },
+  {
     key: "quantity",
     title: "QTY",
     dataKey: "quantity",

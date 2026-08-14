@@ -73,4 +73,5 @@ export type ReferenceTransactionAdjustment = {
   disabled?: boolean;
   data_reference?: any;
   description?: string;
+  deleted?: boolean;
 };

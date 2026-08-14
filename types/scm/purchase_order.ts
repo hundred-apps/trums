@@ -9,6 +9,7 @@ import type { TermOfPayment } from "../payment_term";
 import type { People } from "../people";
 import type { Pricetag_item } from "../pricetag";
 import type { Tax } from "../tax";
+import type { Canvassing } from "./canvasing";
 import type { DiscountUnit } from "./offers";
 // import { WarrantyUnit } from "./offers";
 
@@ -123,6 +124,7 @@ export type PurchaseOrder = {
   pic?: Contact;
   people?: People;
   approved_by?: People;
+  canvassing?: Canvassing;
 };
 
 export type StatisticOrder = {

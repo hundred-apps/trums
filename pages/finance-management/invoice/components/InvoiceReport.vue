@@ -1,98 +1,5 @@
+`
 <template>
-  <el-row v-if="dashboard" :gutter="16">
-    <el-col :xs="24" :sm="12" :md="12" class="mb-4">
-      <div class="statistic-card">
-        <el-statistic :value="statistic.data.value?.data.total_nominal ?? 0">
-          <template #title>
-            <div
-              style="display: inline-flex; align-items: center"
-              class="text-green-500"
-            >
-              Total Invoice
-              <el-tooltip
-                effect="dark"
-                content="Number of users who logged into the product in one day"
-                placement="top"
-              >
-                <el-icon style="margin-left: 4px" :size="12">
-                  <Warning />
-                </el-icon>
-              </el-tooltip>
-            </div>
-          </template>
-        </el-statistic>
-      </div>
-    </el-col>
-    <el-col :xs="24" :sm="12" :md="12" class="mb-4">
-      <div class="statistic-card">
-        <el-statistic :value="statistic.data.value?.data.total_received ?? 0">
-          <template #title>
-            <div
-              style="display: inline-flex; align-items: center"
-              class="text-red-500"
-            >
-              Total Harus Di Bayar
-              <el-tooltip
-                effect="dark"
-                content="Number of users who logged into the product in one month"
-                placement="top"
-              >
-                <el-icon style="margin-left: 4px" :size="12">
-                  <Warning />
-                </el-icon>
-              </el-tooltip>
-            </div>
-          </template>
-        </el-statistic>
-      </div>
-    </el-col>
-    <el-col :xs="24" :sm="12" :md="12" class="mb-4">
-      <div class="statistic-card">
-        <el-statistic :value="statistic.data.value?.data.total_paid ?? 0">
-          <template #title>
-            <div
-              style="display: inline-flex; align-items: center"
-              class="text-blue-500"
-            >
-              Telah Di Bayar
-              <el-tooltip
-                effect="dark"
-                content="Number of users who logged into the product in one month"
-                placement="top"
-              >
-                <el-icon style="margin-left: 4px" :size="12">
-                  <Warning />
-                </el-icon>
-              </el-tooltip>
-            </div>
-          </template>
-        </el-statistic>
-      </div>
-    </el-col>
-    <el-col :xs="24" :sm="12" :md="12" class="mb-4">
-      <div class="statistic-card">
-        <el-statistic :value="statistic.data.value?.data.total_invoices ?? 0">
-          <template #title>
-            <div
-              style="display: inline-flex; align-items: center"
-              class="text-black-500"
-            >
-              Total Data Invoice
-              <el-tooltip
-                effect="dark"
-                content="Number of users who logged into the product in one month"
-                placement="top"
-              >
-                <el-icon style="margin-left: 4px" :size="12">
-                  <Warning />
-                </el-icon>
-              </el-tooltip>
-            </div>
-          </template>
-        </el-statistic>
-      </div>
-    </el-col>
-  </el-row>
   <div class="flex items-center gap-3 my-3">
     <el-input
       v-model="request_search.keyword"
@@ -101,33 +8,7 @@
       clearable
       style="width: 300px"
     />
-    <el-dropdown v-if="mode == 'edit'" @command="handleNewInvoice">
-      <el-button
-        type="primary"
-        v-if="canAccess('invoices-create', data?.privilege ?? [])"
-      >
-        Buat Invoice<el-icon class="el-icon--right"><arrow-down /></el-icon>
-      </el-button>
-      <template #dropdown>
-        <el-dropdown-menu>
-          <el-dropdown-item command="tunggal"
-            >Buat Invoice Tunggal</el-dropdown-item
-          >
-          <el-dropdown-item command="termin"
-            >Buat Invoice Termin</el-dropdown-item
-          >
-        </el-dropdown-menu>
-      </template>
-    </el-dropdown>
-    <!-- <NuxtLink
-      v-if="canAccess('invoices-create', data?.privilege ?? [])"
-      class="el-button el-button--primary el-button--default"
-      :href="
-        type == 'finance' ? '/finance-management/invoice/add' : '/invoicing/add'
-      "
-    >
-      Buat Invoice Baru
-    </NuxtLink> -->
+
     <el-button
       size="default"
       :loading-icon="Eleme"
@@ -182,15 +63,16 @@
     </el-tag>
   </div>
 
-  <TrumsDragScrollTable>
-    <customTable
-      :columns="filteredColumns"
-      :data="data?.data ?? []"
-      :loading="status == 'pending'"
-      @sort-change="onSort"
-      @selection-change="handleSelectionChange"
-    />
-  </TrumsDragScrollTable>
+  <ClientOnly>
+    <TrumsDragScrollTable>
+      <customTable
+        :columns="filteredColumns"
+        :data="data?.data ?? []"
+        @sort-change="onSort"
+        @selection-change="handleSelectionChange"
+      />
+    </TrumsDragScrollTable>
+  </ClientOnly>
   <div class="flex justify-end mt-3">
     <el-pagination
       background
@@ -351,7 +233,11 @@ import {
 } from "element-plus";
 import type { ColumnTable } from "~/types/ColumnTable";
 import { PaymentMethod, PaymentStatus } from "~/types/finance/bill";
-import type { Invoice, StatisticInvoice } from "~/types/finance/invoice";
+import type {
+  Invoice,
+  InvoiceReport,
+  StatisticInvoice,
+} from "~/types/finance/invoice";
 import {
   OrderColumn,
   StatisticTable,
@@ -484,17 +370,10 @@ const shortcutDate = [
 
 const request_search = ref<RequestSearch>({
   keyword: "",
-  column: [
-    {
-      // type: ["out"],
-      // status: [],
-      // payment_method: [],
-      ...props.paramsColumn,
-    },
-  ],
+  column: [{ type: ["out"], status: [], payment_method: [] }],
   limit: "10",
   offset: "1",
-  table: "invoices",
+  table: "",
   sort: {
     column: "created_at",
     order: OrderColumn.DESC,
@@ -502,22 +381,11 @@ const request_search = ref<RequestSearch>({
   flag: "list",
 });
 
-type InvoiceReport = Invoice & {
-  total_harga_beli: number;
-  total_harga_jual: number;
-  biaya_lain_lain: number;
-  total_fee: number;
-  tr_memo?: Canvassing;
-  profit: number;
-};
-
-const invoiceReport = ref<InvoiceReport[]>([]);
-
-const { data, status, refresh } = await useAsyncData(
+const { data, refresh, status } = await useAsyncData(
   props.fetchKey,
   async () => {
-    const res = await useFetchApi<ResponsePagination<Invoice[]>>(
-      `/search`,
+    const res = await useFetchApi<ResponsePagination<InvoiceReport[]>>(
+      `/invoice-list-report`,
       props.fetchKey,
       "post",
       request_search.value
@@ -587,7 +455,7 @@ const availableColumn = computed(() => {
       dataKey: "unique_code",
       width: 200,
       fixed: isMobile ? undefined : true,
-
+      class: "stay-on-top",
       cellRenderer: ({ rowData: row }) => (
         <div class={"flex items-end"}>
           <NuxtLink
@@ -603,15 +471,6 @@ const availableColumn = computed(() => {
         </div>
       ),
     },
-    // {
-    //   key: "publisher",
-    //   title: "Penerbit",
-    //   dataKey: "publisher",
-    //   fixed: isMobile ? undefined : true,
-    //   cellRenderer: ({ rowData }: { rowData: Invoice }) => (
-    //     <span>{rowData.vendor?.name}</span>
-    //   ),
-    // },
     {
       key: "customer_id",
       title: props.view == "invoice" ? "Customer" : "Vendor",
@@ -632,6 +491,7 @@ const availableColumn = computed(() => {
       title: "No.PO",
       dataKey: "sourcing_document",
       width: 120,
+      class: "stay-on-top",
       cellRenderer: ({ rowData }: { rowData: InvoiceReport }) => {
         // const total = row.items?.reduce((sum: any, item: { total_amount: any }) => sum + (item.total_amount || 0), 0) || 0
         return (
@@ -655,6 +515,7 @@ const availableColumn = computed(() => {
       dataKey: "invoice_date",
       width: 170,
       sortable: true,
+      class: "stay-on-top",
       cellRenderer: ({ rowData }: { rowData: InvoiceReport }) => (
         <span>
           {rowData.invoice_date == 0
@@ -669,6 +530,7 @@ const availableColumn = computed(() => {
       dataKey: "due_date",
       width: 170,
       sortable: true,
+      class: "stay-on-top",
       cellRenderer: ({ rowData }: { rowData: InvoiceReport }) => (
         <span>
           {rowData.due_date == 0 || rowData.due_date == null
@@ -684,18 +546,144 @@ const availableColumn = computed(() => {
       dataKey: "total_amount",
       width: 150,
       sortable: true,
+      class: "stay-on-top",
       cellRenderer: ({ rowData }: { rowData: InvoiceReport }) => {
         // const total = row.items?.reduce((sum: any, item: { total_amount: any }) => sum + (item.total_amount || 0), 0) || 0
-        return <span>{currency(rowData.paid_amount || 0)}</span>;
+        return <span>{currencyWithoutSymbol(rowData.paid_amount || 0)}</span>;
+      },
+    },
+    {
+      key: "total_po",
+      title: "Total PO",
+      dataKey: "total_po",
+      width: 150,
+      sortable: true,
+      class: "stay-on-top",
+      cellRenderer: ({ rowData }: { rowData: InvoiceReport }) => {
+        // const total = row.items?.reduce((sum: any, item: { total_amount: any }) => sum + (item.total_amount || 0), 0) || 0
+        return <span>{currencyWithoutSymbol(rowData.total_po || 0)}</span>;
+      },
+    },
+    {
+      key: "total_harga_jual",
+      title: "Total Jual",
+      dataKey: "total_harga_jual",
+      width: 150,
+      sortable: true,
+      class: "stay-on-top",
+      cellRenderer: ({ rowData }: { rowData: InvoiceReport }) => {
+        // const total = row.items?.reduce((sum: any, item: { total_amount: any }) => sum + (item.total_amount || 0), 0) || 0
+        return (
+          <span>{currencyWithoutSymbol(rowData.total_harga_jual || 0)}</span>
+        );
       },
     },
 
+    {
+      key: "ppn_masukan",
+      title: "PPN Masukan",
+      dataKey: "ppn_masukan",
+      width: 150,
+      sortable: true,
+      class: "stay-on-top",
+      cellRenderer: ({ rowData }: { rowData: InvoiceReport }) => {
+        // const total = row.items?.reduce((sum: any, item: { total_amount: any }) => sum + (item.total_amount || 0), 0) || 0
+        return <span>{currencyWithoutSymbol(rowData.ppn_masukan || 0)}</span>;
+      },
+    },
+    {
+      key: "ppn_keluaran",
+      title: "PPN Keluaran",
+      dataKey: "ppn_keluaran",
+      width: 150,
+      sortable: true,
+      class: "stay-on-top",
+      cellRenderer: ({ rowData }: { rowData: InvoiceReport }) => {
+        // const total = row.items?.reduce((sum: any, item: { total_amount: any }) => sum + (item.total_amount || 0), 0) || 0
+        return <span>{currencyWithoutSymbol(rowData.ppn_keluaran || 0)}</span>;
+      },
+    },
+    {
+      key: "total_harga_beli",
+      title: "Total Beli",
+      dataKey: "total_harga_beli",
+      width: 150,
+      sortable: true,
+      class: "stay-on-top",
+      cellRenderer: ({ rowData }: { rowData: InvoiceReport }) => {
+        // const total = row.items?.reduce((sum: any, item: { total_amount: any }) => sum + (item.total_amount || 0), 0) || 0
+        return (
+          <span>{currencyWithoutSymbol(rowData.total_harga_beli || 0)}</span>
+        );
+      },
+    },
+    {
+      key: "biaya_lain_lain",
+      title: "Biaya Lain-Lain",
+      dataKey: "biaya_lain_lain",
+      width: 400,
+      sortable: true,
+      class: "stay-on-top",
+      cellRenderer: ({ rowData }: { rowData: InvoiceReport }) => {
+        // const total = row.items?.reduce((sum: any, item: { total_amount: any }) => sum + (item.total_amount || 0), 0) || 0
+        return (
+          <span class={"flex flex-col"}>
+            <span class={"mb-3 font-bold"}>
+              {currencyWithoutSymbol(rowData.biaya_lain_lain || 0)}
+            </span>
+            {(rowData.data_reference?.canvassing?.reference_transaction || [])
+              .filter(
+                (tr) =>
+                  (tr.adjustments_transaction?.name || "").toLowerCase() !=
+                    "fee" &&
+                  (tr.adjustments_transaction?.name || "").toLowerCase() !=
+                    "ppn"
+              )
+              .map((c) => (
+                <span class={"flex justify-between items-center"}>
+                  <span class={"text-xs"}>
+                    {c.adjustments_transaction?.name}
+                  </span>
+                  <span class={"text-xs"}>
+                    {currencyWithoutSymbol(c.amount)}
+                  </span>
+                </span>
+              ))}
+          </span>
+        );
+      },
+    },
+    {
+      key: "total_fee",
+      title: "Total Fee",
+      dataKey: "total_fee",
+      width: 150,
+      sortable: true,
+      class: "stay-on-top",
+      cellRenderer: ({ rowData }: { rowData: InvoiceReport }) => {
+        // const total = row.items?.reduce((sum: any, item: { total_amount: any }) => sum + (item.total_amount || 0), 0) || 0
+        return <span>{currencyWithoutSymbol(rowData.total_fee || 0)}</span>;
+      },
+    },
+    {
+      key: "profit",
+      title: "Profit",
+      dataKey: "profit",
+      width: 150,
+      sortable: true,
+      class: "stay-on-top",
+      cellRenderer: ({ rowData }: { rowData: InvoiceReport }) => {
+        // const total = row.items?.reduce((sum: any, item: { total_amount: any }) => sum + (item.total_amount || 0), 0) || 0
+        return <span>{currencyWithoutSymbol(rowData.profit || 0)}</span>;
+      },
+    },
     {
       key: "status",
       title: "Status",
       dataKey: "status",
       width: 150,
       align: "center",
+      class: "stay-on-top",
       cellRenderer: ({ rowData: row }) => renderStatusTag(row.status),
       headerCellRenderer: () => (
         <div class="flex items-center justify-center">
@@ -748,7 +736,7 @@ const availableColumn = computed(() => {
       dataKey: "received_date",
       width: 150,
       sortable: true,
-
+      class: "stay-on-top",
       cellRenderer: ({ rowData }: { rowData: InvoiceReport }) => (
         <span>
           {rowData.received_date
@@ -763,6 +751,7 @@ const availableColumn = computed(() => {
       dataKey: "payment_method",
       width: 150,
       align: "center",
+      class: "stay-on-top",
       cellRenderer: ({ rowData: row }) =>
         renderPaymentMethod(row.payment_method),
       headerCellRenderer: () => (
@@ -945,9 +934,7 @@ const getOptionColumn = () => {};
 
 // Filter columns based on selection
 const filteredColumns = computed(() => {
-  return availableColumn.value.filter((col) =>
-    columnsSelected.value.includes(col.key!.toString())
-  );
+  return availableColumn.value;
 });
 
 const hasSelected = computed(() => {
@@ -1280,3 +1267,4 @@ const refreshData = () => refresh();
   color: var(--el-color-error);
 }
 </style>
+`

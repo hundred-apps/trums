@@ -286,15 +286,25 @@
           <el-table-column label="PO Vendor" width="420" align="center">
             <el-table-column
               label="No PO"
-              width="200"
+              width="250"
               header-align="center"
               align="right"
             >
               <template #default="{ row }">
                 <div
                   v-if="row.type == 'child'"
-                  class="flex items-center justify-between"
+                  class="flex items-center gap-3 justify-between"
                 >
+                  <el-icon
+                    v-if="row.po_id"
+                    color="#FF5252"
+                    class="cursor-pointer"
+                    @click="
+                      () =>
+                        delete_po_vendor(row.parent_index, parseInt(row.index))
+                    "
+                    ><Delete
+                  /></el-icon>
                   <span
                     v-if="row.po_id"
                     class="text-blue-600 cursor-pointer"
@@ -524,10 +534,82 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 }}%</span
               >
-              <span v-else
-                >{{ customMathCeil(calculateMargin((row as CanvassingItemMemoForm).total_price, (row as CanvassingItemMemoForm).total_po_price))
+              <span v-else>
+                {{
+                  customMathCeil(calculateMargin((row as CanvassingItemMemoForm).total_price, (row as CanvassingItemMemoForm).total_po_price))
 
 
 
@@ -572,23 +654,8 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-                }}%</span
-              >
+                }}%
+              </span>
             </template>
           </el-table-column>
         </el-table>
@@ -706,7 +773,8 @@
           v-for="({ ref, originalIndex }, index) in otherCost
             .map((ref, originalIndex) => ({ ref, originalIndex }))
             .filter(
-              ({ ref }) => ref.adjustments_transaction?.category !== 'tax'
+              ({ ref }) =>
+                ref.adjustments_transaction?.category !== 'tax' && !ref.deleted
             )"
           :key="originalIndex"
         >
@@ -730,31 +798,21 @@
             }}</span>
             <el-button
               type="warning"
-              :disabled="ref.reference_id != ''"
+              :disabled="ref.reference_id != '' && ref.reference_id != id"
               link
               @click="() => openEditAdjustment(originalIndex)"
             >
               <el-icon><EditPen /></el-icon>
             </el-button>
-            <!-- <el-input
-              v-model="ref.tmp_amount_input"
-              style="max-width: 300px"
-              :disabled="false"
-              placeholder="Masukan Nilai"
-              @input="(value) => onInputAnotherCost(ref, value)"
-              @blur="(value) => onBlurAntoherCost()"
+            <el-button
+              style="margin-left: 0"
+              type="danger"
+              :disabled="ref.reference_id != '' && ref.reference_id != id"
+              link
+              @click="() => deleteAdjustment(originalIndex)"
             >
-              <template #append>
-                <el-select
-                  v-model="ref.type"
-                  :disabled="false"
-                  style="width: 100px"
-                >
-                  <el-option label="%" value="percent" />
-                  <el-option label="Rp" value="amount" />
-                </el-select>
-              </template>
-            </el-input> -->
+              <el-icon><Delete /></el-icon>
+            </el-button>
           </span>
         </div>
       </div>
@@ -769,40 +827,48 @@
       <div>
         <div
           class="flex justify-between items-center mb-2"
-          v-for="(ref, index) in otherCost.filter(
-            (filter) => filter.adjustments_transaction?.category == 'tax'
-          )"
+          v-for="({ ref, originalIndex }, index) in otherCost
+            .map((ref, originalIndex) => ({ ref, originalIndex }))
+            .filter(
+              ({ ref }) =>
+                ref.adjustments_transaction?.category == 'tax' && !ref.deleted
+            )"
         >
-          <span class="font-bold text-sm">{{
-            ref.adjustment?.name
-              ? ref.adjustment?.name
-              : ref.adjustments_transaction?.name ?? ""
-          }}</span>
+          <div class="flex flex-col">
+            <span class="font-bold text-sm">{{
+              ref.adjustment?.name
+                ? ref.adjustment?.name
+                : ref.adjustments_transaction?.name ?? ""
+            }}</span>
+            <div
+              class="text-sm mt-1 italic text-gray-400"
+              v-if="ref.description"
+              v-html="`${extractDescription(ref.description)}`"
+            ></div>
+          </div>
           <span class="text-sm flex items-center gap-3">
-            <el-input
-              v-model="ref.tmp_amount_input"
-              style="max-width: 300px"
-              :disabled="false"
-              placeholder="Masukan Nilai"
-              @input="
-                (value: any) => {
-                  // onInputAdjustment(ref);
-                  ref.amount = Number(value);
-                  console.log('ref', ref);
-                }
-              "
+            <span>{{
+              ref.type == FeeType.AMOUNT
+                ? currencyWithoutSymbol(ref.amount_nominal || 0, 0)
+                : `${ref.value}%`
+            }}</span>
+            <el-button
+              type="warning"
+              :disabled="ref.reference_id != '' && ref.reference_id != id"
+              link
+              @click="() => openEditAdjustment(originalIndex)"
             >
-              <template #append>
-                <el-select
-                  v-model="ref.type"
-                  :disabled="false"
-                  style="width: 100px"
-                >
-                  <el-option label="%" value="percent" />
-                  <el-option label="Rp" value="amount" />
-                </el-select>
-              </template>
-            </el-input>
+              <el-icon><EditPen /></el-icon>
+            </el-button>
+            <el-button
+              style="margin-left: 0"
+              type="danger"
+              :disabled="ref.reference_id != '' && ref.reference_id != id"
+              link
+              @click="() => deleteAdjustment(originalIndex)"
+            >
+              <el-icon><Delete /></el-icon>
+            </el-button>
           </span>
         </div>
       </div>
@@ -810,7 +876,7 @@
         Tambah Item
       </el-button>
     </el-card>
-    <el-card class="mb-3" shadow="never">
+    <el-card v-if="!loading" class="mb-3" shadow="never">
       <template #header>
         <div class="card-header"><span>Summary</span></div>
       </template>
@@ -1197,11 +1263,13 @@ type CanvassingItemMemoForm = CanvassingItemForm & {
   canvassing_vendor_unique_id: string;
   po_number?: string;
   po_id?: string;
+  po_item_id?: string;
   status_stok?: string;
   delivery?: string;
   unit_price_po_vendor: number;
   total_price_po_vendor: number;
   qty_po_vendor: number;
+  children: CanvassingItemMemoForm[];
 };
 
 type TotalPerRAB = {
@@ -1293,6 +1361,19 @@ const openModalSelectPoItemVendor = (
     childIndex: childIndex,
   };
 };
+const delete_po_vendor = (parentIndex: number, childIndex: number) => {
+  const po_id = item_memo.value[parentIndex].children[childIndex].po_id;
+  item_memo.value[parentIndex].children[childIndex].po_id = "";
+  item_memo.value[parentIndex].children[childIndex].po_number = "";
+  item_memo.value[parentIndex].children[childIndex].qty_po_vendor = 0;
+  item_memo.value[parentIndex].children[childIndex].unit_price_po_vendor = 0;
+  item_memo.value[parentIndex].children[childIndex].total_price_po_vendor = 0;
+
+  otherCost.value = otherCost.value.filter(
+    (filter) => filter.reference_id != po_id
+  );
+  calculateSummaryaData();
+};
 
 const handleSelectPOitemVendor = async (item: PurchaseOrderItem) => {
   const dataExist =
@@ -1309,14 +1390,15 @@ const handleSelectPOitemVendor = async (item: PurchaseOrderItem) => {
   memoChild.vendor_name =
     item.purchase_order?.vendor?.name || dataExist.vendor_name;
 
-  memoChild.quantity = item.quantity || dataExist.quantity;
+  memoChild.qty_po_vendor = item.quantity || dataExist.quantity;
+  memoChild.unit_price_po_vendor = item.unit_price;
 
-  memoChild.total_price =
-    (item.quantity || dataExist.quantity) *
-    (item.unit_price || dataExist.unit_price);
+  // memoChild.total_price =
+  //   (item.quantity || dataExist.quantity) *
+  //   (item.unit_price || dataExist.unit_price);
 
-  memoChild.total_po_price =
-    (item.quantity || dataExist.quantity) * memoChild.unit_po_price;
+  memoChild.total_price_po_vendor =
+    (item.quantity || dataExist.quantity) * item.unit_price;
   memoChild.po_number = item.purchase_order?.unique_code || "";
   memoChild.po_id = item.purchase_order?.unique_id || "";
   memoChild.reference = CanvassingItemReference.PURCHASE_ORDER_ITEM;
@@ -1326,8 +1408,7 @@ const handleSelectPOitemVendor = async (item: PurchaseOrderItem) => {
   ] = memoChild;
 
   calculateParentItem();
-  findRecepientFee();
-  calculateReferences();
+  // findRecepientFee();
 
   await fetchAdjustmentForPOVendor([item.order_id]);
 
@@ -1380,6 +1461,11 @@ const openEditAdjustment = (index: number) => {
   modelFormAdjustment.value = otherCost.value[index].value || 0;
   modelFormAdjustment.description = otherCost.value[index].description || "";
 };
+const deleteAdjustment = (index: number) => {
+  console.log("adjustment to delete", otherCost.value[index]);
+  otherCost.value[index].deleted = true;
+  calculateSummaryaData();
+};
 
 const openDetailVendor = (unique_id: string) => {
   request_search_vendor.value.column = [
@@ -1421,10 +1507,14 @@ const fetchSoDetail = async () => {
       ruleForm.reference_id = data.value?.unique_id || "";
       ruleForm.address_view = data.value?.address?.address_name || "";
 
+      calculateReferences();
+
       await fetchPOItem();
       await fetchInquiry();
 
-      // await initialItemMemo();
+      await initialItemMemo();
+
+      calculateSummaryaData();
     }
   } catch (error) {
     console.error("Failed to fetch related data", error);
@@ -1481,8 +1571,6 @@ const fetchInquiry = async () => {
       if (inquiry.data.value?.data) {
         const inquiryDataValue: Inquiry[] = inquiry.data.value?.data ?? [];
 
-        console.log("data inquiry", inquiryDataValue);
-
         if (inquiryDataValue.length > 0) {
           inquiryData.value = {
             message: "",
@@ -1490,10 +1578,11 @@ const fetchInquiry = async () => {
             success: true,
             data: inquiryDataValue[0],
           };
-
-          await fetchPR();
-          await fetchPOVendor();
         }
+
+        await fetchPR();
+        await fetchPOVendor();
+        // await initialItemMemo();
       }
     }
   } catch (error) {
@@ -1575,6 +1664,9 @@ const fetchPOVendor = async () => {
               },
             },
           ];
+
+          console.log("masuk sini");
+
           await fetchPOVendorItem(list_po_vendor);
           await fetchAdjustmentForPOVendor(list_po_vendor);
         }
@@ -1616,8 +1708,7 @@ const fetchPOVendorItem = async (uniques: string[]) => {
     if (response.status.value == "success") {
       listPOitemVendor.value = response.data.value?.data || [];
     }
-
-    await initialItemMemo();
+    // await initialItemMemo();
   } catch (error: any) {
     ElMessage.error(error?.response?.message ?? error);
   }
@@ -1648,19 +1739,33 @@ const fetchAdjustmentForPOVendor = async (uniques: string[]) => {
     >("/search", "fetch-reference-adjustment", "post", request_search);
 
     if (response.status.value == "success") {
-      for (const refs of response.data.value?.data || []) {
-        otherCost.value.push({
-          ...refs,
-          adjustment: refs.adjustments_transaction,
+      for (const ref of response.data.value?.data || []) {
+        let refData: ReferenceTransactionAdjustment = {
+          ...ref,
+          adjustment: ref.adjustments_transaction,
           unique_id: "",
-          tmp_amount_input: `${refs.amount}`,
-          amount_nominal: refs.amount,
-          // reference: ReferenceAdjustment.CANVASSING,
-          // reference_id: "",
-          description: `${capitalizeWords(
-            refs.adjustments_transaction?.name ?? ""
-          )} ${(refs.data_reference as PurchaseOrder)?.vendor_name}`,
-        });
+          type: FeeType.AMOUNT,
+          tmp_amount_input: `${ref.amount}`,
+          amount_nominal: ref.amount,
+        };
+
+        if ((ref.adjustments_transaction?.name || "").toLowerCase() == "ppn") {
+          refData.description = `PPN Masukan ${capitalizeWords(
+            ref.adjustments_transaction?.name || ""
+          )} ${capitalizeWords(
+            (ref.data_reference as PurchaseOrder)?.vendor_name
+          )}`;
+          refData.inc_tmp = "0";
+          refData.include = false;
+        } else {
+          refData.description = `${capitalizeWords(
+            ref.adjustments_transaction?.name || ""
+          )} ${capitalizeWords(
+            (ref.data_reference as PurchaseOrder)?.vendor_name
+          )}`;
+        }
+
+        otherCost.value.push(refData);
 
         calculateSummaryaData();
       }
@@ -1992,7 +2097,6 @@ const deleteITemMemoVendor = (
   }
   calculateParentItem();
   findRecepientFee();
-  calculateReferences();
   calculateSummaryaData();
 };
 
@@ -2254,7 +2358,7 @@ const initialItemMemo = async () => {
   }
   calculateParentItem();
   findRecepientFee();
-  calculateReferences();
+
   activeCollapseVendor.value = pricetagList.value.map((map) => map.unique_id);
 };
 
@@ -2351,7 +2455,7 @@ const calculateSummaryaData = () => {
     label: "Gross Profit",
     amount: `${currencyWithoutSymbol(subtotal, 0)}`,
     percent: `${customMathCeil(
-      calculateMargin(totalHargaBeli.value, totalHargaJual.value)
+      calculateMargin(totalHargaBeli.value, totalHargaBeli.value)
     )} %`,
     description: "",
   });
@@ -2363,17 +2467,17 @@ const calculateSummaryaData = () => {
   );
 
   otherCost.value.forEach((element) => {
-    console.log("other cost", element);
     if (
       element.adjustments_transaction?.category != "tax" &&
-      element.adjustments_transaction?.name.toLowerCase() != "ppn"
+      element.adjustments_transaction?.name.toLowerCase() != "ppn" &&
+      !element.deleted
     ) {
       if (element.type == FeeType.PERCENT) {
-        const nominal = (totalHargaJual.value * Number(element.value)) / 100;
+        const nominal = (totalHargaBeli.value * Number(element.value)) / 100;
         element.amount_nominal = nominal;
         element.amount = nominal;
       } else {
-        const toPercent = (Number(element.amount) / totalHargaJual.value) * 100;
+        const toPercent = (Number(element.amount) / totalHargaBeli.value) * 100;
         element.amount_nominal = Number(element.amount);
         element.value = customMathCeil(toPercent);
       }
@@ -2404,14 +2508,15 @@ const calculateSummaryaData = () => {
     label: "Total Fee",
     amount: `${currencyWithoutSymbol(receivingCommission, 0)}`,
     percent: `${customMathCeil(
-      nominalToPercent(receivingCommission, totalHargaJual.value)
+      nominalToPercent(receivingCommission, totalHargaBeli.value)
     )} %`,
     description: "",
   });
   otherCost.value.forEach((element) => {
     if (
       element.adjustments_transaction?.category == "tax" &&
-      element.adjustments_transaction?.name.toLowerCase() == "ppn"
+      element.adjustments_transaction?.name.toLowerCase() == "ppn" &&
+      !element.deleted
     ) {
       if (element.type == FeeType.PERCENT) {
         // console.log("ini PPN", getDPPNilaiLain.value);
@@ -2419,12 +2524,16 @@ const calculateSummaryaData = () => {
         element.amount_nominal = nominal;
         element.amount = nominal;
       } else {
-        const toPercent = (Number(element.amount) / totalHargaJual.value) * 100;
+        const toPercent = (Number(element.amount) / totalHargaBeli.value) * 100;
         element.amount_nominal = Number(element.amount);
         element.value = customMathCeil(toPercent);
       }
 
-      subtotal -= element.amount_nominal || 0;
+      if (element.include) {
+        subtotal -= element.amount_nominal || 0;
+      } else {
+        subtotal += element.amount_nominal || 0;
+      }
       summeryView.value.push({
         label: element.adjustments_transaction?.name ?? "",
         amount: `${currencyWithoutSymbol(element.amount_nominal ?? 0, 0)}`,
@@ -2437,7 +2546,7 @@ const calculateSummaryaData = () => {
     label: "Net Profit",
     amount: `${currencyWithoutSymbol(subtotal, 0)}`,
     percent: `${customMathCeil(
-      nominalToPercent(subtotal, totalHargaJual.value)
+      nominalToPercent(subtotal, totalHargaBeli.value)
     )} %`,
     description: "",
   });
@@ -2458,6 +2567,9 @@ const calculateReferences = () => {
     } else {
       element.tmp_amount_input = `${element.amount}`;
     }
+
+    element.include = true;
+    element.inc_tmp = "1";
 
     otherCost.value.push({ ...element, reference_id: "" });
   });
@@ -2733,6 +2845,10 @@ const submitForm = async () => {
         `canvassing_items[${i}][reference_id]`,
         `${item.reference_id}`
       );
+      formData.append(
+        `canvassing_items[${i}][is_deleted]`,
+        `${item.is_deleted}`
+      );
 
       // Append canvassing_vendor
       // Append canvassing_vendor fields satu per satu
@@ -2853,6 +2969,10 @@ const submitForm = async () => {
           `canvassing_items[${i}][canvassing_vendor][${j}][reference_id]`,
           `${vendor.reference_id}`
         );
+        formData.append(
+          `canvassing_items[${i}][canvassing_vendor][${j}][is_deleted]`,
+          `${vendor.is_deleted}`
+        );
 
         let referenceCanvassingVendor: ReferenceTransactionAdjustment[] =
           vendor.contacts_fee;
@@ -2920,6 +3040,8 @@ const submitForm = async () => {
         reference: ref.reference,
         reference_id: ref.reference_id,
         description: ref.description,
+        include: ref.include,
+        is_deleted: ref.deleted ?? false,
       };
 
       Object.entries(refFields).forEach(([key, value]) => {
@@ -3057,6 +3179,16 @@ const buildItemMemoFromCanvassing = async (canvassing: Canvassing) => {
         vendor.reference == CanvassingItemReference.PURCHASE_ORDER_ITEM
           ? await fetchPoItemVendorDetail(vendor.reference_id)
           : undefined;
+
+      if (poItemDetail) {
+        if (poItemDetail.pricetag_item?.pricetag) {
+          const pricetagItemDetailVendor: Pricetag_item | undefined =
+            await fetchPricetagItemDetail(poItemDetail.pricetag_item_id || "");
+          if (pricetagItemDetailVendor?.pricetag) {
+            pricetagVendrorList.value.push(pricetagItemDetailVendor.pricetag);
+          }
+        }
+      }
 
       if (poItemDetail?.order_id) {
         listPOitemVendor.value.push(poItemDetail);
