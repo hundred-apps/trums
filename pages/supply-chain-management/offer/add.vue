@@ -69,7 +69,10 @@ import PhotoWallUploads from "~/components/trums/PhotoWallUploads.vue";
 import CatalogueAdd from "~/components/trums/CatalogueAdd.vue";
 import { getFirstFileUrl } from "#imports";
 import AddPriceTagComponent from "~/components/trums/AddPriceTagComponent.vue";
-import type { ReferenceTransactionAdjustment } from "~/types/attribute_adjustment";
+import {
+  FeeType,
+  type ReferenceTransactionAdjustment,
+} from "~/types/attribute_adjustment";
 import type { TermOfPayment } from "~/types/payment_term";
 
 definePageMeta({

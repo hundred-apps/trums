@@ -131,7 +131,194 @@
             disabled
           />
         </el-form-item>
+        <el-form-item label="Buat Bundle" prop="volume">
+          <el-switch v-model="ruleForm.is_bundle" />
+        </el-form-item>
       </el-form>
+      <div v-if="ruleForm.is_bundle" class="mt-4">
+        <el-divider content-position="left">
+          <span class="font-semibold">📦 Children Items</span>
+          <el-tag size="small" type="info" class="ml-2">
+            {{ ruleForm.children.length }} item
+          </el-tag>
+        </el-divider>
+
+        <!-- Tombol Tambah Child -->
+        <div class="mb-3 flex justify-end">
+          <el-button type="primary" plain size="small" @click="addChild">
+            <el-icon><Plus /></el-icon>
+            Tambah Child
+          </el-button>
+        </div>
+
+        <!-- Table Children -->
+        <el-table :data="ruleForm.children" border style="width: 100%">
+          <el-table-column type="index" label="#" width="50" align="center" />
+
+          <el-table-column label="Nama Item" min-width="150">
+            <template #default="{ row, $index }">
+              <el-form-item
+                :prop="`children.${$index}.name`"
+                :rules="[
+                  {
+                    required: true,
+                    message: 'Nama wajib diisi',
+                    trigger: 'blur',
+                  },
+                ]"
+                class="mb-0"
+              >
+                <el-input
+                  v-model="row.name"
+                  placeholder="Nama Child"
+                  size="small"
+                  clearable
+                />
+              </el-form-item>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="Brand" min-width="150">
+            <template #default="{ row, $index }">
+              <el-form-item
+                :prop="`children.${$index}.brand_name`"
+                :rules="[
+                  {
+                    required: true,
+                    message: 'Brand wajib dipilih',
+                    trigger: 'blur',
+                  },
+                ]"
+                class="mb-0"
+              >
+                <el-autocomplete
+                  v-model="row.brand_name"
+                  :fetch-suggestions="
+                    (query, cb) => querySearchBrandChild(query, cb, $index)
+                  "
+                  :trigger-on-focus="false"
+                  clearable
+                  size="small"
+                  placeholder="Pilih Brand"
+                  @select="(item) => handleSelectBrandChild(item, $index)"
+                />
+              </el-form-item>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="Serial Number" width="150">
+            <template #default="{ row }">
+              <el-input
+                v-model="row.sn"
+                placeholder="SN"
+                size="small"
+                clearable
+              />
+            </template>
+          </el-table-column>
+
+          <el-table-column label="Tahun" width="100">
+            <template #default="{ row }">
+              <el-input
+                v-model="row.year"
+                placeholder="Tahun"
+                size="small"
+                type="number"
+              />
+            </template>
+          </el-table-column>
+
+          <el-table-column label="Jenis" width="130">
+            <template #default="{ row }">
+              <el-select v-model="row.type" placeholder="Jenis" size="small">
+                <el-option label="Item" value="item" />
+                <el-option label="Place" value="place" />
+                <el-option label="Document" value="document" />
+              </el-select>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="Dimensi (P×L×T)" width="180">
+            <template #default="{ row }">
+              <div class="flex gap-1">
+                <el-input
+                  v-model="row.panjang"
+                  placeholder="P"
+                  size="small"
+                  type="number"
+                  style="width: 50px"
+                />
+                <span class="text-gray-400">×</span>
+                <el-input
+                  v-model="row.lebar"
+                  placeholder="L"
+                  size="small"
+                  type="number"
+                  style="width: 50px"
+                />
+                <span class="text-gray-400">×</span>
+                <el-input
+                  v-model="row.tinggi"
+                  placeholder="T"
+                  size="small"
+                  type="number"
+                  style="width: 50px"
+                />
+              </div>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="Berat (g)" width="110">
+            <template #default="{ row }">
+              <el-input
+                v-model="row.berat"
+                placeholder="Berat"
+                size="small"
+                type="number"
+              />
+            </template>
+          </el-table-column>
+
+          <el-table-column
+            label="Aksi"
+            width="100"
+            align="center"
+            fixed="right"
+          >
+            <template #default="{ $index }">
+              <el-button
+                type="danger"
+                size="small"
+                link
+                @click="removeChild($index)"
+              >
+                <el-icon><Delete /></el-icon>
+              </el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <!-- Informasi Total -->
+        <div
+          v-if="ruleForm.children.length > 0"
+          class="mt-3 p-3 bg-gray-50 rounded"
+        >
+          <div class="flex gap-6 text-sm">
+            <span>
+              <span class="font-semibold">Total Items:</span>
+              {{ ruleForm.children.length }}
+            </span>
+            <span>
+              <span class="font-semibold">Total Berat:</span>
+              {{ calculateTotalBerat() }} g
+            </span>
+            <span>
+              <span class="font-semibold">Total Volume:</span>
+              {{ calculateTotalVolume() }} cm³
+            </span>
+          </div>
+        </div>
+      </div>
       <template #footer>
         <div class="flex justify-end align-center">
           <el-button type="info" plain @click="resetForm(ruleFormRef)"
@@ -175,6 +362,8 @@ interface RuleForm {
   tmp_asset: string;
   type: string;
   file_catalogues: any[];
+  is_bundle: boolean;
+  children: RuleForm[];
 }
 
 import { Plus } from "@element-plus/icons-vue";
@@ -226,6 +415,30 @@ const ruleForm = reactive<RuleForm>({
   tmp_asset: "",
   type: "item",
   file_catalogues: [],
+  is_bundle: false,
+  children: [],
+});
+
+const createEmptyChild = (): RuleForm => ({
+  id: null,
+  unique_id: null,
+  name: "",
+  brand_id: null,
+  brand_name: "",
+  year: "",
+  sn: "",
+  description: "",
+  berat: null,
+  volume: null,
+  panjang: null,
+  lebar: null,
+  tinggi: null,
+  is_asset: false,
+  tmp_asset: "0",
+  type: "item",
+  file_catalogues: [],
+  is_bundle: false,
+  children: [],
 });
 
 const rules = reactive<FormRules<RuleForm>>({
@@ -341,6 +554,76 @@ const handleSelectBrand = (item: any) => {
   }
 };
 
+const querySearchBrandChild = (
+  queryString: string,
+  cb: (arg: any) => void,
+  index: number
+) => {
+  const requestSearch = {
+    keyword: queryString,
+    table: "brands",
+    limit: "10",
+    offset: "1",
+  };
+
+  try {
+    useFetchApi<ResponsePagination<Brands[]>>(
+      "/search",
+      "search-brand-child",
+      "post",
+      requestSearch
+    ).then((response) => {
+      if (response.status.value == "success") {
+        const brands = response.data.value?.data as Brands[];
+
+        if (brands.length > 0) {
+          cb(
+            brands.map((brand: any) => ({
+              ...brand,
+              value: brand.name,
+              isNew: false,
+            }))
+          );
+        } else {
+          cb([
+            {
+              value: `Tambahkan ${queryString}`,
+              name: queryString,
+              isNew: true,
+            },
+          ]);
+        }
+      }
+    });
+  } catch (error: any) {
+    ElMessage.error(error.response?.data?.message);
+    cb([]);
+  }
+};
+
+const handleSelectBrandChild = (item: any, index: number) => {
+  const child = ruleForm.children[index];
+  if (!child) return;
+
+  if (item.isNew) {
+    useFetchApi<BaseResponse<Brands>>(
+      "/brands-create",
+      "create-brand-child",
+      "post",
+      { name: item.name }
+    ).then((response) => {
+      if (response.status.value == "success") {
+        const brand = response.data.value!.data as Brands;
+        child.brand_id = brand.unique_id;
+        child.brand_name = brand.name;
+      }
+    });
+  } else {
+    child.brand_id = item.unique_id;
+    child.brand_name = item.name;
+  }
+};
+
 const submitForm = async (formEl: FormInstance | undefined) => {
   if (!formEl) return;
 
@@ -371,6 +654,7 @@ const submitForm = async (formEl: FormInstance | undefined) => {
       formData.append("height", ruleForm.tinggi?.toString() || "");
       formData.append("is_asset", ruleForm.is_asset.toString());
       formData.append("type", ruleForm.type);
+      formData.append("is_bundle", `${ruleForm.is_bundle}`);
 
       if (ruleForm.unique_id) {
         formData.append("unique_id", ruleForm.unique_id);
@@ -382,6 +666,75 @@ const submitForm = async (formEl: FormInstance | undefined) => {
           formData.append(`files[${i}]`, file.raw);
         }
       });
+
+      if (ruleForm.is_bundle && ruleForm.children.length > 0) {
+        const childrenData = ruleForm.children.map((child) => ({
+          name: child.name,
+          brand_id: child.brand_id,
+          brand_name: child.brand_name,
+          year: child.year,
+          sn: child.sn,
+          description: child.description,
+          berat: child.berat,
+          panjang: child.panjang,
+          lebar: child.lebar,
+          tinggi: child.tinggi,
+          is_asset: child.tmp_asset === "1",
+          type: child.type,
+          volume: `${child.panjang}x${child.lebar}x${child.tinggi}`,
+        }));
+
+        ruleForm.children.forEach((element, childIndex) => {
+          formData.append(`children[${childIndex}][name]`, element.name);
+
+          formData.append(
+            `children[${childIndex}][brand_id]`,
+            element.brand_id || ""
+          );
+          formData.append(
+            `children[${childIndex}][brand_name]`,
+            element.brand_name
+          );
+          formData.append(`children[${childIndex}][year]`, element.year);
+          formData.append(`children[${childIndex}][sn]`, element.sn);
+          formData.append(
+            `children[${childIndex}][description]`,
+            element.description
+          );
+          formData.append(
+            `children[${childIndex}][berat]`,
+            element.berat?.toString() || ""
+          );
+          formData.append(
+            `children[${childIndex}][volume]`,
+            `${element.panjang}x${element.lebar}x${element.tinggi}`
+          );
+          formData.append(
+            `children[${childIndex}][length]`,
+            element.panjang?.toString() || ""
+          );
+          formData.append(
+            `children[${childIndex}][width]`,
+            element.lebar?.toString() || ""
+          );
+          formData.append(
+            `children[${childIndex}][height]`,
+            element.tinggi?.toString() || ""
+          );
+          formData.append(
+            `children[${childIndex}][is_asset]`,
+            element.is_asset.toString()
+          );
+          formData.append(`children[${childIndex}][type]`, element.type);
+
+          if (element.unique_id) {
+            formData.append(
+              `children[${childIndex}][unique_id]`,
+              element.unique_id
+            );
+          }
+        });
+      }
 
       // console.log(payload);
 
@@ -468,6 +821,32 @@ const mapApiFilesToUpload = (files: any[]) => {
   }));
 };
 
+const mapApiChildrenToForm = (children: any[]): RuleForm[] => {
+  if (!children || children.length === 0) return [];
+
+  return children.map((child) => ({
+    id: child.id || null,
+    unique_id: child.unique_id || null,
+    name: child.name || "",
+    brand_id: child.brand_id || null,
+    brand_name: child.brand?.name || "",
+    year: child.year || "",
+    sn: child.sn || "",
+    description: child.description || "",
+    berat: child.berat || null,
+    volume: child.volume || null,
+    panjang: child.length || null,
+    lebar: child.width || null,
+    tinggi: child.height || null,
+    is_asset: child.is_asset || false,
+    tmp_asset: child.is_asset ? "1" : "0",
+    type: child.type || "item",
+    file_catalogues: [],
+    is_bundle: false,
+    children: [],
+  }));
+};
+
 const fetchDataEdit = async () => {
   loading.value = true;
   try {
@@ -513,7 +892,9 @@ const fetchDataEdit = async () => {
           is_asset: catalogue.is_asset,
           tmp_asset: catalogue.is_asset ? "1" : "0",
           type: catalogue.type,
+          is_bundle: catalogue.is_bundle || false,
           file_catalogues: mapApiFilesToUpload(catalogue.files || []),
+          children: mapApiChildrenToForm(catalogue.children || []),
         });
       } else {
         ElMessage.error(`Data Tidak Di Temukan!`);
@@ -524,6 +905,36 @@ const fetchDataEdit = async () => {
   } finally {
     loading.value = false;
   }
+};
+
+const addChild = () => {
+  ruleForm.children.push(createEmptyChild());
+};
+
+const removeChild = (index: number) => {
+  ElMessageBox.confirm("Yakin ingin menghapus child item ini?", "Konfirmasi", {
+    confirmButtonText: "Hapus",
+    cancelButtonText: "Batal",
+    type: "warning",
+  }).then(() => {
+    ruleForm.children.splice(index, 1);
+    ElMessage.success("Child item dihapus");
+  });
+};
+
+const calculateTotalBerat = () => {
+  return ruleForm.children.reduce(
+    (total, child) => total + (child.berat || 0),
+    0
+  );
+};
+
+const calculateTotalVolume = () => {
+  return ruleForm.children.reduce((total, child) => {
+    const volume =
+      (child.panjang || 0) * (child.lebar || 0) * (child.tinggi || 0);
+    return total + volume;
+  }, 0);
 };
 
 onMounted(async () => {

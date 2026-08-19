@@ -38,6 +38,8 @@ export type Catalogue = {
   brand?: Brands;
   inventories_location?: Inventory[];
   document?: TrumDoc;
+  children?: Catalogue[];
+  is_bundle?: boolean;
 };
 
 export type ItemInterface = {

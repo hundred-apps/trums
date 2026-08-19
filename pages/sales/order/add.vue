@@ -343,6 +343,7 @@
     <AdjustmentTransactionComponent
       v-if="!loadingGetEditData"
       :references="references"
+      :default_reference="ReferenceAdjustment.PURCHASEORDER"
       @update:total="
         (value) => {
           console.log('update total', value);
@@ -354,6 +355,7 @@
       v-if="id === undefined && !loadingGetEditData"
       @update:term-of-payments="onUpdatePaymentTerms"
       type="input"
+      :total="grandTotal"
     />
     <CustomPaymentTerm
       v-else
@@ -361,6 +363,7 @@
       :data="termOfPayments"
       type="input"
       v-if="!loadingGetEditData"
+      :total="grandTotal"
     />
 
     <el-card class="mb-3" shadow="never">
@@ -370,66 +373,14 @@
         </div>
       </template>
 
-      <el-descriptions :column="1" border>
-        <el-descriptions-item :width="100" label="Total Price" align="right">{{
-          currency(totalPrice || 0)
-        }}</el-descriptions-item>
-        <el-descriptions-item
-          :width="100"
-          align="right"
-          v-for="ref in references.filter(
-            (value) =>
-              value.adjustment?.operator == 'plus' &&
-              value.adjustment?.category == 'adjustment'
-          )"
-          :key="ref.adjustment_id"
-          :label="ref.adjustment?.name ?? ''"
-          >{{
-            currency(showTransactionAdjustmentValue(ref))
-          }}</el-descriptions-item
-        >
-        <el-descriptions-item
-          :width="100"
-          align="right"
-          v-for="ref in references.filter(
-            (value) => value.adjustment?.operator == 'minus'
-          )"
-          :key="ref.adjustment_id"
-          :label="ref.adjustment?.name ?? ''"
-          >{{
-            currency(showTransactionAdjustmentValue(ref))
-          }}</el-descriptions-item
-        >
-        <el-descriptions-item :width="100" label="Subtotal" align="right">{{
-          currency(subtotal)
-        }}</el-descriptions-item>
-        <el-descriptions-item
-          :width="100"
-          label="DPP Nilai Lain"
-          align="right"
-          v-if="getDPPNilaiLain > 0"
-          >{{ currency(getDPPNilaiLainView) }}</el-descriptions-item
-        >
-
-        <el-descriptions-item
-          :width="100"
-          align="right"
-          v-for="ref in references.filter(
-            (value) =>
-              value.adjustment?.category == 'transform' ||
-              value.adjustment?.category == 'tax'
-          )"
-          :key="ref.adjustment_id"
-          :label="ref.adjustment?.name ?? ''"
-          >{{
-            currency(showTransactionAdjustmentValue(ref))
-          }}</el-descriptions-item
-        >
-        <el-descriptions-item :width="100" label="Grand Total" align="right">{{
-          currency(grandTotal)
-        }}</el-descriptions-item>
-        <!-- <el-descriptions-item :width="100" label="Grand Total">{{ currency(grandTotal) }}</el-descriptions-item> -->
-      </el-descriptions>
+      <el-table :data="summeryData ?? []" style="width: 100%">
+        <el-table-column label="" prop="label" width="300">
+          <template #default="{ row }">
+            <div class="font-bold">{{ row.label }}</div>
+          </template>
+        </el-table-column>
+        <el-table-column label="" prop="value" align="right" />
+      </el-table>
     </el-card>
 
     <ModalAdjustmentTransaction
@@ -1440,7 +1391,7 @@ const handleSizeChange = (size: number) => {
 
 function displayAmount(ref: any, multiplier: number) {
   if (ref.type === "percent") {
-    return (multiplier || 0) * (ref.amount / 100);
+    return (multiplier || 0) * (ref.value / 100);
   } else {
     return ref.amount;
   }
@@ -1555,10 +1506,14 @@ const handleSelectAdjustment = (items: AdjustmentTransaction[]) => {
         amount: element.default_value,
         created_at: 0,
         value: element.default_value,
+        tmp_amount_input: `${element.default_value}`,
         adjustment: element,
         changeType: true,
       });
     }
+  });
+  (references.value || "").forEach((element) => {
+    console.log("handle selected", element.tmp_amount_input);
   });
   visibleModalAdjustmentTransaction.value = false;
 };
@@ -1736,6 +1691,20 @@ watch(
     filteredPricetagItems.refresh();
   },
   { deep: true }
+);
+
+watch(
+  () => references.value,
+  (newValue) => {
+    newValue.forEach((element) => {
+      if (element.type == FeeType.PERCENT) {
+        element.value = toNumber(element.tmp_amount_input || "0");
+      } else {
+        element.amount = toNumber(element.tmp_amount_input || "0");
+      }
+    });
+  },
+  { deep: true, immediate: true }
 );
 
 const createNewVendor = async (data: any) => {
@@ -1964,7 +1933,12 @@ const getAvailableItems = computed(() => {
 });
 
 const removeItem = (index: number) => {
+  console.log("index", index);
   ruleForm.items[index].is_deleted = true;
+
+  ruleForm.items.forEach((element) => {
+    console.log("deleted", element.is_deleted);
+  });
   // ruleForm.items.splice(index, 1);
 };
 
@@ -2245,6 +2219,7 @@ const fetchDataEdit = async () => {
           ...item,
           display_buy_price: currencyWithoutSymbol(item.buy_price || 0),
           display_po_unit_price: currencyWithoutSymbol(item.po_unit_price || 0),
+          is_deleted: false,
         }));
         ruleForm.payment_term =
           request.term_payment == null
@@ -2371,6 +2346,81 @@ onMounted(() => {
 
     refreshNuxtData("search-pricetag-item");
   }
+});
+
+const summeryData = computed(() => {
+  const tableData: any[] = [
+    {
+      label: "Total Price",
+      value: currency(totalPrice.value),
+    },
+  ];
+
+  references.value.forEach((element) => {
+    if (
+      element.adjustment?.category != "tax" &&
+      (element.adjustment?.name || "").toLowerCase() !== "ppn"
+    ) {
+      if (element.type == FeeType.PERCENT) {
+        const nominal = (subtotal.value * Number(element.value)) / 100;
+        element.amount_nominal = nominal;
+        element.amount = nominal;
+      } else {
+        const toPercent = (Number(element.amount) / subtotal.value) * 100;
+        element.amount_nominal = Number(element.amount);
+        element.value = customMathCeil(toPercent);
+      }
+      tableData.push({
+        label: element.adjustment?.name ? `${element.adjustment?.name}` : "-",
+        value: currency(displayAmount(element, totalPrice.value)),
+      });
+    }
+  });
+  tableData.push({
+    label: "Subtotal",
+    value: currency(subtotal.value),
+  });
+  if (getDPPNilaiLain.value > 0) {
+    tableData.push({
+      label: "DPP Nilai Lain",
+      value: currency(getDPPNilaiLainView.value),
+    });
+  }
+
+  references.value.forEach((element) => {
+    if (
+      element.adjustment?.category == "tax" &&
+      element.adjustment.name.toLowerCase() === "ppn"
+    ) {
+      if (element.type == FeeType.PERCENT) {
+        // console.log("ini PPN", getDPPNilaiLain.value);
+        const nominal = (getDPPNilaiLain.value * Number(element.value)) / 100;
+        element.amount_nominal = nominal;
+        element.amount = nominal;
+        element.tmp_amount_input = `${element.value}`;
+      } else {
+        const toPercent =
+          (Number(element.amount) / getDPPNilaiLain.value) * 100;
+        element.amount_nominal = Number(element.amount);
+        element.value = customMathCeil(toPercent);
+        element.tmp_amount_input = `${element.amount}`;
+      }
+
+      tableData.push({
+        label: element.adjustment?.name ? `${element.adjustment?.name}` : "-",
+        value: currency(element.amount),
+      });
+    }
+  });
+
+  console.log("references summary", references.value);
+
+  tableData.push({
+    label: "Grand Total",
+    value: currency(grandTotal.value),
+  });
+
+  return tableData;
 });
 </script>
 

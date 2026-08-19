@@ -475,6 +475,7 @@
       <AdjustmentTransactionComponent
         v-if="!loadingGetEditData"
         :references="references"
+        :default_reference="ReferenceAdjustment.OFFER"
         @update:total="
           (value) => {
             console.log('update total', value);
@@ -3300,14 +3301,48 @@ const handleSizeChangeVendor = (size: number) => {
 const refreshFromRAB = () => canvassing_vendor.refresh();
 
 watch(
+  () => references.value,
+  (newValue) => {
+    console.log("update references", newValue);
+    newValue.forEach((element) => {
+      if (element.type == FeeType.PERCENT) {
+        element.value = toNumber(element.tmp_amount_input || "0");
+      } else {
+        element.amount = toNumber(element.tmp_amount_input || "0");
+      }
+    });
+  },
+  { deep: true, immediate: true }
+);
+
+watch(
   () => ruleForm.to_id,
-  () => initItemView(canvassing_vendor.data.value?.data || []),
+  (newValue) => {
+    requestSearchRAB.value.column = [
+      {
+        canvassing: {
+          source: {
+            request_to: {
+              unique_id: [newValue],
+            },
+          },
+        },
+      },
+    ];
+    // initItemView(canvassing_vendor.data.value?.data || []);
+  },
   { deep: true }
 );
 
 watch(
   () => requestSearchRAB.value,
   () => refreshFromRAB(),
+  { deep: true }
+);
+
+watch(
+  () => canvassing_vendor.data.value?.data,
+  (newValue) => initItemView(newValue || []),
   { deep: true }
 );
 
@@ -3367,33 +3402,38 @@ const initItemView = (newValue: CanvassingItem[]) => {
 
 const saveSelectedItemFromRAB = () => {
   for (const item of selectedItemRAB.value || []) {
-    (item.canvassing_vendor || []).forEach((element) => {
-      const exist = ruleForm.pricetag_item.findIndex(
-        (find) => find.catalogue_id == element.catalogue_id
-      );
+    (item.canvassing_vendor || [])
+      .filter((filter) => filter.status == CanvassingVendorStatus.SELECTED)
+      .forEach((element) => {
+        console.log("canvassing vendor", element.catalogue?.name);
+        console.log("quantity", element.quantity);
+        const exist = ruleForm.pricetag_item.findIndex(
+          (find) => find.catalogue_id == element.catalogue_id
+        );
 
-      if (exist >= 0) {
-        ruleForm.pricetag_item[exist].quantity += element.quantity;
-      } else {
-        ruleForm.pricetag_item.push({
-          unique_id: null,
-          tag_id: null,
-          catalogue_id: element.catalogue_id,
-          catalogue: element.catalogue!,
-          inventory_id: "",
-          inventory: null,
-          quantity: element.quantity,
-          price: element.selling_price || 0,
-          unit_id: element.unit_id,
-          unit_name: element.unit_name,
-          unit_version: element.unit_version,
-          fileUploads: [],
-          item_name: displayCatalogueName(element.catalogue!),
-          reference_id: item.unique_id,
-          reference: ReferencePriceTag.CANVASSING_ITEM,
-        });
-      }
-    });
+        if (exist >= 0) {
+          ruleForm.pricetag_item[exist].quantity += element.quantity;
+        } else {
+          ruleForm.pricetag_item.push({
+            unique_id: null,
+            tag_id: null,
+            catalogue_id: element.catalogue_id,
+            catalogue: element.catalogue!,
+            inventory_id: "",
+            inventory: null,
+            quantity: element.quantity,
+            price: element.selling_price || 0,
+            unit_id: element.unit_id,
+            unit_name: element.unit_name,
+            unit_version: element.unit_version,
+            fileUploads: [],
+            item_name: displayCatalogueName(element.catalogue!),
+            reference_id: item.unique_id,
+            reference: ReferencePriceTag.CANVASSING_ITEM,
+            is_new: true,
+          });
+        }
+      });
   }
 
   dialogItemRAB.value = false;

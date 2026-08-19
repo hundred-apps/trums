@@ -199,58 +199,6 @@
         </el-button></el-col
       > -->
         </el-row>
-
-        <!-- <el-table
-      :data="items.data ?? []"
-      size="small"
-      border
-      ref="offerItemTableRef"
-      @selection-change="handlePricetagSelectionChange"
-    > -->
-        <!-- <el-table-column type="selection" width="30" /> -->
-        <!-- <el-table-column prop="image" label="Image" width="75">
-        <template #default="scope">
-          <div class="demo-image__preview flex items-center">
-            <ItemImageUpload
-              v-if="((scope.row as Pricetag_item).files ?? []).length > 0 && getFirstFileUrl(((scope.row as Pricetag_item).files ?? [])) !== ''"
-              v-model="scope.row.files"
-              :image-url="getFirstFileUrl((scope.row as Pricetag_item).files ?? [])"
-              :show-text="false"
-              @open-modal="() => {
-                              fileList = mapAllAppFileToFileUri((scope.row as Pricetag_item).files || []);
-                              initialIndexImage = 0;
-                              previewImage = true;
-                            }"
-            />
-            <div
-              v-else
-              class="w-10 h-10 rounded border flex items-center justify-center text-gray-400 image-viewer-slot image-slot"
-            >
-              <el-icon><Picture /></el-icon>
-            </div>
-          </div>
-        </template>
-      </el-table-column> -->
-        <!-- <el-table-column prop="name" label="item">
-        <template #default="scope">
-          {{ scope.row.catalogue?.name ?? "-" }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="catalogue.sn" label="SN/PN" width="300" />
-      <el-table-column prop="quantity" label="QTY" width="70" />
-      <el-table-column prop="unit_name" label="UOM" width="100" />
-      <el-table-column
-        prop="price"
-        label="Harga Jual"
-        width="140"
-        align="right"
-      >
-        <template #default="scope">
-          {{ currency(scope.row.price * scope.row.quantity) }}
-        </template>
-      </el-table-column>
-      <el-table-column prop="note" label="Note" width="150" /> -->
-        <!-- </el-table> -->
         <el-table
           :data="pricetag_item_views ?? []"
           :size="isMobile ? 'small' : 'default'"
@@ -298,6 +246,25 @@
             }} -->
                 {{ scope.row.item_name }}
               </p>
+            </template>
+          </el-table-column>
+          <el-table-column
+            v-if="dataInterface?.data?.type == 'out'"
+            prop="rab_number"
+            label="No.RAB"
+            class="my-0"
+            :width="isMobile ? 160 : 200"
+            fixed="left"
+            :align="isMobile ? 'center' : 'left'"
+          >
+            <template #default="{ row }">
+              <NuxtLink
+                class="text-blue-600 cursor-pointer"
+                v-if="row.rab_id"
+                :href="`/sales/quotation/${row.rab_id}`"
+                >{{ row.rab_number }}</NuxtLink
+              >
+              <div v-else></div>
             </template>
           </el-table-column>
           <el-table-column
@@ -415,9 +382,6 @@
             @size-change="handleSizeChange"
           />
         </div>
-        <!-- <el-button class="mt-4" style="width: 100%" @click="addNewLine">
-              Tambahkan Item
-          </el-button> -->
       </el-card>
 
       <CustomPaymentTerm
@@ -707,6 +671,9 @@ type PricetagItemView = {
   no: string;
   status_item?: PricetagItemStatus;
   delivery?: DeliveryMethod;
+  rab_number?: string;
+  rab_id?: string;
+  reference_id: string;
 };
 
 const pricetag_item_views = ref<PricetagItemView[]>([]);
@@ -790,7 +757,7 @@ watch(
     let no = 1;
 
     (data ?? []).forEach((item) => {
-      console.log("item catalogue", item.data_reference);
+      // console.log("reference", item);
       if (item.data_reference) {
         const isExist = pricetag_item_views.value.findIndex(
           (find) => find.unique_id == item.reference_id
@@ -813,7 +780,14 @@ watch(
             equivalent_from_id: "",
             delivery: item.delivery,
             status_item: item.status_item,
+            rab_number:
+              (item.data_reference as CanvassingItem | undefined)?.canvassing
+                ?.unique_code || "",
+            rab_id:
+              (item.data_reference as CanvassingItem | undefined)?.canvassing
+                ?.unique_id || "",
             hasChild: true,
+            reference_id: item.reference_id || "",
           });
           no += 1;
           pricetag_item_views.value.push({
@@ -833,13 +807,53 @@ watch(
             equivalent_from_id: "",
             delivery: item.delivery,
             status_item: item.status_item,
+            rab_number:
+              (item.data_reference as CanvassingItem | undefined)?.canvassing
+                ?.unique_code || "",
+            rab_id:
+              (item.data_reference as CanvassingItem | undefined)?.canvassing
+                ?.unique_id || "",
             hasChild: false,
+            reference_id: item.reference_id || "",
           });
         } else {
           const findCatalogueExist = pricetag_item_views.value.findIndex(
             (find) => find.item_id == item.catalogue_id
           );
-          if (findCatalogueExist >= 0) {
+          if (
+            findCatalogueExist >= 0 &&
+            pricetag_item_views.value[findCatalogueExist].reference_id ==
+              item.reference_id
+          ) {
+            // if (pricetag_item_views.value[findCatalogueExist].hasChild) {
+            //   const data = {
+            //     no: ``,
+            //     item_id: item.catalogue_id || "",
+            //     unique_id: item.unique_id || "",
+            //     item_name: item.catalogue
+            //       ? displayCatalogueName(item.catalogue!)
+            //       : "",
+            //     price: item.price,
+            //     qty: item.quantity,
+            //     unit_id: item.unit_id || "",
+            //     unit_name: item.unit_name || "",
+            //     garansi: item.garansi ? item.garansi + " Hari" : "N/A",
+            //     note: item.note || "",
+            //     is_equivalent: false,
+            //     equivalent_from_id: "",
+            //     delivery: item.delivery,
+            //     status_item: item.status_item,
+            //     rab_number:
+            //       (item.data_reference as CanvassingItem | undefined)
+            //         ?.canvassing?.unique_code || "",
+            //     rab_id:
+            //       (item.data_reference as CanvassingItem | undefined)
+            //         ?.canvassing?.unique_id || "",
+            //     hasChild: false,
+            //   };
+            //   pricetag_item_views.value.splice(isExist + 1, 0, data);
+            // } else {
+            // }
             pricetag_item_views.value[findCatalogueExist].qty += item.quantity;
           } else {
             const data = {
@@ -859,7 +873,14 @@ watch(
               equivalent_from_id: "",
               delivery: item.delivery,
               status_item: item.status_item,
+              rab_number:
+                (item.data_reference as CanvassingItem | undefined)?.canvassing
+                  ?.unique_code || "",
+              rab_id:
+                (item.data_reference as CanvassingItem | undefined)?.canvassing
+                  ?.unique_id || "",
               hasChild: false,
+              reference_id: item.reference_id || "",
             };
             pricetag_item_views.value.splice(isExist + 1, 0, data);
             // pricetag_item_views.value.push(data);
@@ -884,6 +905,7 @@ watch(
           delivery: item.delivery,
           status_item: item.status_item,
           hasChild: false,
+          reference_id: item.reference_id || "",
         });
         no++;
       }
@@ -891,7 +913,7 @@ watch(
 
     console.log("item views", pricetag_item_views.value);
   },
-  { deep: true }
+  { deep: true, immediate: true }
 );
 
 const handlePricetagSelectionChange = (selection: Pricetag_item[]) => {

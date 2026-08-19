@@ -289,6 +289,7 @@ import AddAdjustment from "./AddAdjustment.vue";
 
 const props = defineProps<{
   references: ReferenceTransactionAdjustment[];
+  default_reference?: ReferenceAdjustment;
 }>();
 
 const emit = defineEmits<{
@@ -397,7 +398,7 @@ const handleSelectAdjustment = (items: AdjustmentTransaction[]) => {
 
     props.references.push({
       unique_id: "",
-      reference: ReferenceAdjustment.OFFER,
+      reference: props.default_reference ?? ReferenceAdjustment.OFFER,
       reference_id: "",
       adjustment_id: element.unique_id,
       type: element.type,
@@ -408,6 +409,7 @@ const handleSelectAdjustment = (items: AdjustmentTransaction[]) => {
       changeType: true,
       inc_tmp: "0",
       include: false,
+      tmp_amount_input: `${element.default_value}`,
     });
   });
   visibleModalAdjustmentTransaction.value = false;
