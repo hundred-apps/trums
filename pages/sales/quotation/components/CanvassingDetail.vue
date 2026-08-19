@@ -5646,8 +5646,7 @@ const generateSCMMemo = async () => {
   };
   const subtotalMarginNominal =
     subtotalSellingPrice() - subtotalBuyTotalPrice.value;
-  const subtotalMargin =
-    (subtotalMarginNominal / subtotalBuyTotalPrice.value) * 100;
+  const subtotalMargin = (subtotalMarginNominal / subtotalSellingPrice()) * 100;
 
   let grandTotalPrint = subtotalSellingPrice() - subtotalBuyTotalPrice.value;
 
@@ -5758,7 +5757,7 @@ const generateSCMMemo = async () => {
     {
       content: `${safePercent(
         adjustmentTransactionOngkirTotal.value?.amount ?? 0,
-        subtotalBuyTotalPrice.value
+        subtotalSellingPrice()
       )}`,
 
       styles: {
@@ -5813,7 +5812,7 @@ const generateSCMMemo = async () => {
         },
       },
       {
-        content: `${safePercent(fee ?? 0, totalBuyingPrice.value)}`,
+        content: `${safePercent(fee ?? 0, subtotalSellingPrice())}`,
 
         styles: {
           halign: "right",
@@ -5860,8 +5859,8 @@ const generateSCMMemo = async () => {
         },
         {
           content: `${safePercent(
-            displayAmount(element, subtotalBuyTotalPrice.value),
-            subtotalBuyTotalPrice.value
+            displayAmount(element, subtotalSellingPrice()),
+            subtotalSellingPrice()
           )}`,
           styles: {
             halign: "right",
@@ -5908,7 +5907,7 @@ const generateSCMMemo = async () => {
       },
     },
     {
-      content: `${safePercent(totalFeeRecive, subtotalBuyTotalPrice.value)}`,
+      content: `${safePercent(totalFeeRecive, subtotalSellingPrice())}`,
       styles: {
         halign: "right",
         cellWidth: 0.0,
@@ -5946,7 +5945,7 @@ const generateSCMMemo = async () => {
       },
     },
     {
-      content: `${safePercent(grandTotalPrint, subtotalBuyTotalPrice.value)}`,
+      content: `${safePercent(grandTotalPrint, subtotalSellingPrice())}`,
       styles: {
         halign: "right",
         cellWidth: 0.0,
