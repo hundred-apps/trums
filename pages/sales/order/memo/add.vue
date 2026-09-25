@@ -608,11 +608,17 @@
 
 
 
+
+
+
                 }}%</span
               >
               <span v-else>
                 {{
                   customMathCeil(calculateMargin((row as CanvassingItemMemoForm).total_price, (row as CanvassingItemMemoForm).total_po_price))
+
+
+
 
 
 
@@ -1657,7 +1663,7 @@ const fetchPOVendor = async () => {
       if (purchaseRequestResponse.data.value?.data) {
         const item_request_trail: ItemRequestTrail[] =
           purchaseRequestResponse.data.value?.data ?? [];
-
+        console.log(`daftar request item trail `, item_request_trail);
         if (item_request_trail.length > 0) {
           const list_po_vendor = item_request_trail.map(
             (map) => (map.data_reference as PurchaseOrder).unique_id

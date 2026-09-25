@@ -182,7 +182,11 @@
   <el-card>
     <h1 class="mb-4">Daftar Item</h1>
     <el-table
-      :data="checkData?.inventory_movement_item"
+      :data="
+        (checkData?.inventory_movement_item || []).filter(
+          (filter) => filter.is_deleted == false
+        )
+      "
       style="width: 100%"
       border
     >
@@ -505,24 +509,26 @@ const generateDeliveryOrderPdf = async (unique_code: string) => {
 
   let itemTable: any[] = [];
 
-  (props.checkData?.inventory_movement_item ?? []).forEach((item, i) => {
-    if (props.checkData?.category == CategoryMovement.DOCUMENTS) {
-      itemTable.push([
-        i + 1,
-        `${item.reference_data?.catalogue_name}`,
-        item.quantity,
-        item.note ?? "",
-      ]);
-    } else {
-      itemTable.push([
-        i + 1,
-        (item.display_name || item.inventory?.catalogue?.name) ?? "",
-        item.quantity,
-        item.unit_name,
-        item.note ?? "",
-      ]);
-    }
-  });
+  (props.checkData?.inventory_movement_item ?? [])
+    .filter((filter) => filter.is_deleted == false)
+    .forEach((item, i) => {
+      if (props.checkData?.category == CategoryMovement.DOCUMENTS) {
+        itemTable.push([
+          i + 1,
+          `${item.reference_data?.catalogue_name}`,
+          item.quantity,
+          item.note ?? "",
+        ]);
+      } else {
+        itemTable.push([
+          i + 1,
+          (item.display_name || item.inventory?.catalogue?.name) ?? "",
+          item.quantity,
+          item.unit_name,
+          item.note ?? "",
+        ]);
+      }
+    });
 
   let headerTable = [["No", "Nama Item", "Qty", "UoM", "Keterangan"]];
 

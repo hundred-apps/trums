@@ -156,4 +156,5 @@ export type InvoiceItem = {
   inventory_movement_version?: number;
   catalogue?: Catalogue;
   invoice?: Invoice;
+  is_deleted?: boolean;
 };

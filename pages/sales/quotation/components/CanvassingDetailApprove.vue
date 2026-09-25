@@ -4453,6 +4453,8 @@ const generateSCMMemo = async () => {
         // =========================
         // ORIGINAL ITEM
         // =========================
+        const subtotalMarginNominalItem = Number(getTotalSellingPrice(item)) - getTotalBuyingPrice(item);
+        const subtotalMarginPecent = (subtotalMarginNominalItem / getTotalSellingPrice.value) * 100;
         rows.push([
           {
             content: `${index + 1}`,
@@ -4521,7 +4523,7 @@ const generateSCMMemo = async () => {
           },
           {
             content: `${currencyWithoutSymbol(
-              Number(getTotalSellingPrice(item)) - getTotalBuyingPrice(item)
+              subtotalMarginNominalItem
             )}`,
             styles: {
               halign: "right",
@@ -4531,10 +4533,7 @@ const generateSCMMemo = async () => {
             },
           },
           {
-            content: `${calculateMargin(
-              getTotalBuyingPrice(item),
-              getTotalSellingPrice(item)
-            ).toFixed(2)}`,
+            content: `${subtotalMarginPecent.toFixed(2)}`,
             styles: {
               halign: "right",
               lineWidth: 0.1,
@@ -4552,6 +4551,9 @@ const generateSCMMemo = async () => {
         );
 
         equivalentItems.forEach((vendor, eqIndex) => {
+          const subtotalMarginNominalItemEquivalent = Number(vendor.total_selling_price || 0) -
+                  Number(vendor.total_price || 0);
+          const subtotalMarginPecentEquivalent = (subtotalMarginNominalItem / total_selling_price.value) * 100;
           rows.push([
             {
               content: ``,
@@ -4633,10 +4635,7 @@ const generateSCMMemo = async () => {
               },
             },
             {
-              content: `${currencyWithoutSymbol(
-                Number(vendor.total_selling_price || 0) -
-                  Number(vendor.total_price || 0)
-              )}`,
+              content: `${currencyWithoutSymbol(subtotalMarginNominalItemEquivalent)}`,
               styles: {
                 halign: "right",
                 fontStyle: "italic",
@@ -4647,10 +4646,7 @@ const generateSCMMemo = async () => {
               },
             },
             {
-              content: `${calculateMargin(
-                vendor.total_price,
-                vendor.total_selling_price || 0
-              ).toFixed(2)}`,
+              content: `${subtotalMarginPecentEquivalent.toFixed(2)}`,
               styles: {
                 halign: "right",
                 fontStyle: "italic",

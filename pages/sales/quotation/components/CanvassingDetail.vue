@@ -4957,6 +4957,7 @@ const generateSCMMemo = async () => {
           if (
             selectedData.value.findLast((find) => find.index == item.unique_id!)
           ) {
+            
             rows.push([
               {
                 content: `${index + 1}`,
@@ -5101,6 +5102,9 @@ const generateSCMMemo = async () => {
 
               if (vendor.status == CanvassingVendorStatus.SELECTED) {
                 checked = "V";
+                const subtotalMarginNominalItem = Number(vendor.total_selling_price || 0) -
+                        Number(vendor.total_price || 0)
+                const subtotalMarginPecent = (subtotalMarginNominalItem / vendor.total_selling_price) * 100;
                 rows.push([
                   {
                     content: ``,
@@ -5242,8 +5246,7 @@ const generateSCMMemo = async () => {
                   },
                   {
                     content: `${currencyWithoutSymbol(
-                      Number(vendor.total_selling_price || 0) -
-                        Number(vendor.total_price || 0)
+                      subtotalMarginNominalItem
                     )}`,
                     styles: {
                       halign: "right",
@@ -5255,10 +5258,7 @@ const generateSCMMemo = async () => {
                     },
                   },
                   {
-                    content: `${calculateMargin(
-                      vendor.total_price,
-                      vendor.total_selling_price || 0
-                    ).toFixed(2)}`,
+                    content: `${subtotalMarginPecent.toFixed(2)}`,
                     styles: {
                       halign: "right",
                       fontStyle: "italic",
@@ -5273,6 +5273,7 @@ const generateSCMMemo = async () => {
             });
           }
         } else {
+          
           rows.push([
             {
               content: `${index + 1}`,
@@ -5417,6 +5418,9 @@ const generateSCMMemo = async () => {
 
             if (vendor.status == CanvassingVendorStatus.SELECTED) {
               checked = "V";
+              const subtotalMarginNominalItem = Number(vendor.total_selling_price || 0) -
+                        Number(vendor.total_price || 0)
+          const subtotalMarginPecent = (subtotalMarginNominalItem / vendor.total_selling_price) * 100;
               rows.push([
                 {
                   content: ``,
@@ -5558,8 +5562,7 @@ const generateSCMMemo = async () => {
                 },
                 {
                   content: `${currencyWithoutSymbol(
-                    Number(vendor.total_selling_price || 0) -
-                      Number(vendor.total_price || 0)
+                    subtotalMarginNominalItem
                   )}`,
                   styles: {
                     halign: "right",
@@ -5571,10 +5574,7 @@ const generateSCMMemo = async () => {
                   },
                 },
                 {
-                  content: `${calculateMargin(
-                    vendor.total_price,
-                    vendor.total_selling_price || 0
-                  ).toFixed(2)}`,
+                  content: `${subtotalMarginPecent.toFixed(2)}`,
                   styles: {
                     halign: "right",
                     fontStyle: "italic",

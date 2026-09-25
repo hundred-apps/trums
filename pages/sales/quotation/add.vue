@@ -674,6 +674,7 @@
                         //   }
                         // });
                         calculatePricing(row, 'selling_price');
+                        
                       }
                     "
                   />
@@ -685,13 +686,17 @@
             </el-table-column>
             <el-table-column label="Total Harga" width="200">
               <template #default="{ row }">
-                {{ currency(row.total_selling_price) }}
+                <p v-if="(row as CanvassingItemForm).type === 'child'">
+                  {{ currency(row.total_selling_price) }}
+                </p>
               </template>
             </el-table-column>
           </el-table-column>
           <el-table-column label="Margin" width="150">
             <template #default="{ row }">
-              {{ currency(calculateMarginNominal(row)) }}
+              <p v-if="(row as CanvassingItemForm).type === 'child'">
+                {{ currency(calculateMarginNominal(row)) }}
+              </p>
             </template>
           </el-table-column>
           <el-table-column label="Margin (%)" width="150">
@@ -2249,6 +2254,8 @@ const calculateMargin = (row: CanvassingItemForm) => {
   return ((row.selling_price - row.unit_price) / row.unit_price) * 100;
 };
 const calculateMarginNominal = (row: CanvassingItemForm) => {
+  // console.log("total_selling_price", row.total_selling_price);
+  // console.log("total_price", row.total_price);
   return (row.total_selling_price || 0) - Number(row.total_price);
 };
 
@@ -2455,9 +2462,9 @@ const calculateProfitAndFee = (
   if (activeField == "selling_price") {
     let selisih = row.selling_price - (hargaBeli + ongkirNominal);
 
-    if (selisih < 0) {
-      selisih = 0;
-    }
+    // if (selisih < 0) {
+    //   selisih = 0;
+    // }
 
     const tmpProfit = 100;
     const tmpFee = feePercent;
@@ -2538,7 +2545,10 @@ function calculatePricing(
           child.fee_unit == "percent" ? child.fee_percent : child.fee_nominal;
         child.ongkir_nominal = ongkir_nominal;
         child.ongkir = ongkir_nominal;
-
+        console.log("unit price", child.unit_price);
+        console.log("profit_nominal", child.profit_nominal);
+        console.log("fee_nominal", child.fee_nominal);
+        console.log("ongkir_nominal", child.ongkir_nominal);
         child.selling_price =
           child.unit_price +
           (child.profit_nominal || 0) +
@@ -2548,6 +2558,7 @@ function calculatePricing(
         child.total_selling_price = child.selling_price * child.quantity;
       }
     });
+    // row.total_selling_price = row.selling_price * row.
   } else {
     const {
       fee_nominal,

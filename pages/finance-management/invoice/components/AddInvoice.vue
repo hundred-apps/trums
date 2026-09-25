@@ -2027,8 +2027,7 @@ const deleteItem = async (unique_id: string, index: number) => {
 };
 
 const removeItem = async (index: number) => {
-  const unique_id = useCookie("unique_id");
-  if (unique_id.value) {
+  if (id.value) {
     await ElMessageBox.confirm(
       `Apakah Anda yakin ingin menghapus item ini?`,
       "Konfirmasi Hapus",

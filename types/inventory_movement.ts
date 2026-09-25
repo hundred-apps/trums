@@ -55,6 +55,7 @@ export interface InventoryMovementItem {
   note?: string;
   invoice_items?: InvoiceItem[];
   display_name?: string;
+  is_deleted?: boolean;
 }
 
 export interface InventoryMovement {
