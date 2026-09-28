@@ -59,6 +59,14 @@
               </template>
             </el-dropdown> -->
             <el-button
+              v-if="data?.data?.is_performa"
+              type="default"
+              style="margin-left: 0px"
+              @click="markAsInvoice"
+            >
+              Tandai Sebagai Invoice
+            </el-button>
+            <el-button
               type="primary"
               style="margin-left: 0px"
               @click="generateInvoicePDF"
@@ -1902,6 +1910,64 @@ const generateInvoicePDF = async () => {
   } finally {
     loading.value = false;
   }
+};
+const markAsInvoice = async () => {
+  ElMessageBox.confirm(
+    "Yakin ingin mengubah performa invoice menjadi invoice. Lanjutkan?",
+    "Warning",
+
+    {
+      confirmButtonText: "Ubah",
+      cancelButtonText: "Batal",
+      type: "warning",
+      title: "Ubah Menjadi Invoice?",
+    }
+  )
+    .then(async () => {
+      try {
+        loading.value = true;
+        const formData = new FormData();
+        formData.append("unique_id", `${data?.value?.data?.unique_id}`);
+        formData.append("is_performa", `${false}`);
+        const response = await useFetchApi<BaseResponse<Invoice>>(
+          "/invoice-create",
+          "update-status",
+          "post",
+          formData
+        );
+
+        if (response.status.value == "success") {
+          ElMessage.success("Data Berhasil Diubah!");
+          refresh();
+        }
+      } catch (error: any) {
+        ElMessage.error(`${error?.response?.message ?? error}`);
+      } finally {
+        loading.value = false;
+      }
+    })
+    .catch(() => {});
+  // loading.value = true;
+  // try {
+  //   const formData = new FormData();
+
+  //   formData.append("unique_id", `${data?.value?.data?.unique_id}`);
+  //   formData.append("is_performa", `${false}`);
+  //   const response = await useFetchApi<BaseResponse<Invoice>>(
+  //     "/invoice-create",
+  //     "update-status",
+  //     "post",
+  //     formData
+  //   );
+
+  //   if (response.status.value == "success") {
+  //     ElMessage.success("Data Berhasil Diubah!");
+  //   }
+  // } catch (error: any) {
+  //   ElMessage.error(error?.response?.message ?? error);
+  // } finally {
+  //   loading.value = false;
+  // }
 };
 
 const showTransactionAdjustmentValue = (
