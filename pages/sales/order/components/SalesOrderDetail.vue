@@ -131,8 +131,28 @@
           </el-descriptions>
         </div>
       </div>
+      <h1
+        class="font-bold text-black"
+        v-if="(purchaseOrderData?.files || []).length > 0"
+      >
+        Lampiran
+      </h1>
+      <div
+        class="text-sm mt-1"
+        v-if="(purchaseOrderData?.files || []).length > 0"
+      >
+        <div v-for="(file, key) in purchaseOrderData?.files" :key="key">
+          <NuxtLink
+            class="text-blue-600 text-sm"
+            :href="`${baseImageURL}/${file.image_path}/${file.filename}`"
+            target="_blank"
+            >{{ file.filename_original }}</NuxtLink
+          >
+        </div>
+      </div>
+      <span v-else class="text-sm text-gray-400">Tidak ada Lampiran</span>
 
-      <h1 class="font-bold">Informasi Tambahan</h1>
+      <h1 class="font-bold mt-10">Informasi Tambahan</h1>
       <div
         class="text-sm mt-1"
         v-if="purchaseOrderData?.additional_information"

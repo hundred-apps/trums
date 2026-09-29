@@ -986,8 +986,8 @@ const request_search_trail = ref<RequestSearch>({
   limit: "10",
   offset: "1",
   sort: {
-    column: "created_at",
-    order: OrderColumn.ASC,
+    column: "data_reference.id",
+    order: OrderColumn.DESC,
   },
   table: "item_request_trail",
 });

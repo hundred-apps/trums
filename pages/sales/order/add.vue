@@ -164,6 +164,31 @@
           <el-form-item label="File Lampiran" prop="files">
             <TrumsUploadFile v-model:file-list="fileList" />
           </el-form-item>
+          <el-form-item
+            label="Telah Diupload"
+            prop=""
+            v-if="fileDocument.length > 0"
+          >
+            <div class="w-full">
+              <div
+                class="flex items-center justify-between p-2 hover:bg-gray-50"
+                v-for="(value, key) in fileDocument"
+                :key="key"
+              >
+                <NuxtLink
+                  class="text-blue-500 text-sm"
+                  :target="'_blank'"
+                  :href="`${baseImageURL}/${value.image_path}/${value.filename}`"
+                  >{{ value.filename_original }}</NuxtLink
+                >
+                <el-icon
+                  class="cursor-pointer"
+                  @click="() => handleRemoveFileDocument(value)"
+                  ><Close
+                /></el-icon>
+              </div>
+            </div>
+          </el-form-item>
 
           <el-form-item label="Informasi Tambahan" prop="additinal_information">
             <el-input
@@ -686,6 +711,7 @@ import {
   Picture,
   Edit,
   WarningFilled,
+  Close,
 } from "@element-plus/icons-vue";
 import {
   ElMessage,
@@ -743,6 +769,7 @@ import { parseCurrencyID, formatCurrencyID } from "#imports";
 import type { Catalogue } from "~/types/catalogue";
 import type { Unit } from "~/types/unit";
 import { displayCatalogueName } from "#imports";
+import type { AppFile } from "~/types/file";
 
 definePageMeta({
   middleware: ["auth", "check-access"],
@@ -751,8 +778,11 @@ definePageMeta({
 });
 
 const fileList = ref<UploadUserFile[]>([]);
-
+const fileDocument = ref<AppFile[]>([]);
 const router = useRouter();
+
+const config = useRuntimeConfig();
+const baseImageURL = config.public.baseImageURL;
 
 const ruleFormRef = ref<FormInstance>();
 const loading = ref(false);
@@ -1052,6 +1082,38 @@ const querySearchCatalogue = (
   } catch (err) {
     cb([]);
   }
+};
+
+const handleRemoveFileDocument = async (appFile: AppFile) => {
+  ElMessageBox.confirm(
+    "File akan di hapus secara permanen. Lanjutkan?",
+    "Warning",
+
+    {
+      confirmButtonText: "Delete",
+      cancelButtonText: "Cancel",
+      type: "warning",
+      title: "Yakin ingin menghapus file?",
+    }
+  )
+    .then(async () => {
+      try {
+        const response = await useApiFetch<BaseResponse<any>>("/file-delete", {
+          method: "POST",
+          body: [appFile.unique_id],
+        });
+
+        if (response.success) {
+          fileDocument.value = fileDocument.value.filter(
+            (filter) => filter.unique_id != appFile.unique_id
+          );
+          ElMessage.success(`Image Berhasil Di Hapus!`);
+        }
+      } catch (error: any) {
+        ElMessage.error(`${error?.response?.message ?? error}`);
+      }
+    })
+    .catch(() => {});
 };
 
 const querySearchUnit = (queryString: string, cb: (arg: any) => void) => {
@@ -2233,6 +2295,8 @@ const fetchDataEdit = async () => {
           ...value,
           adjustment: value.adjustments_transaction,
         }));
+
+        fileDocument.value = request.files || [];
 
         termOfPayments.value = request.payment_terms ?? [];
 

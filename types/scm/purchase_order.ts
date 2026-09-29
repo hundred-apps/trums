@@ -2,6 +2,7 @@ import type { AddressType } from "../address";
 import type { ReferenceTransactionAdjustment } from "../attribute_adjustment";
 import type { Catalogue } from "../catalogue";
 import type { Contact } from "../contact";
+import type { AppFile } from "../file";
 import type { PaymentMethod } from "../finance/bill";
 import type { Invoice } from "../finance/invoice";
 import type { ItemRequestTrail } from "../item_request";
@@ -125,6 +126,7 @@ export type PurchaseOrder = {
   people?: People;
   approved_by?: People;
   canvassing?: Canvassing;
+  files?: AppFile[];
 };
 
 export type StatisticOrder = {
