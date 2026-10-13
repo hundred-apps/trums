@@ -1573,6 +1573,14 @@ const generatePDF = async () => {
     },
   ]);
 
+  // Reserve space for the Payment Information + Signature block so it never
+  // orphans onto an otherwise-empty page. If the table spills over, the
+  // spilled page will always carry table rows instead of only the block.
+  const bankCount = data.value?.data?.purchase_order_bank?.length ?? 0;
+  const requiredHeight = bankCount * 20 + 50 + 10;
+  const footerClearance = 19;
+  const reserveBottom = requiredHeight + footerClearance;
+
   // Table
   autoTable(doc, {
     startY: 120,
@@ -1581,7 +1589,9 @@ const generatePDF = async () => {
     styles: {
       fontSize: 9,
     },
-    margin: { left: marginX, right: marginX },
+    margin: { left: marginX, right: marginX, bottom: reserveBottom },
+    showHead: "everyPage",
+    rowPageBreak: "avoid",
     headStyles: {
       fillColor: [248, 248, 248], // background
       textColor: [0, 0, 0], // warna text
@@ -1643,27 +1653,10 @@ const generatePDF = async () => {
   const colonXBank = bankInfoDetailX + 15;
   const valueXBank = bankInfoDetailX + 20;
 
-  // Hitung posisi awal payment information
+  // Blok Payment Information + Signature sudah diakomodasi oleh
+  // reserveBottom pada margin autoTable, jadi selalu muat di halaman
+  // tempat tabel berakhir (halaman itu selalu punya baris tabel).
   let valueY = finalY;
-
-  // Tinggi yang dibutuhkan oleh blok payment + signature
-  const bankCount = data.value?.data?.purchase_order_bank?.length ?? 0;
-
-  const paymentHeight = bankCount * 20;
-  const signatureHeight = 50;
-  const bottomSafety = 10;
-
-  const requiredHeight = paymentHeight + signatureHeight + bottomSafety;
-
-  // Footer berada di Y = 285
-  const footerY = 285;
-
-  // Pastikan seluruh blok Payment Information + Signature
-  // muat sebelum footer.
-  if (valueY + requiredHeight > footerY - 5) {
-    doc.addPage();
-    valueY = 20;
-  }
 
   // ================= PAYMENT INFORMATION =================
 
@@ -1779,13 +1772,18 @@ const generatePDF = async () => {
   }
 
   // ================= FOOTER =================
-  doc.setFontSize(8);
-  doc.text(
-    "PT Tiyasa Makmur Perkasa\nJl. Jend. Sudirman KM 31, Kayuringin Jaya, Kota Bekasi, Jawa Barat 17144 | Tel: 021-8849319",
-    pageWidth / 2,
-    285,
-    { align: "center" }
-  );
+  // Gambar footer di setiap halaman invoice (termasuk halaman 1 saat invoice
+  // terbagi jadi 2 halaman).
+  const footerText =
+    "PT Tiyasa Makmur Perkasa\nJl. Jend. Sudirman KM 31, Kayuringin Jaya, Kota Bekasi, Jawa Barat 17144 | Tel: 021-8849319";
+
+  const totalPages = doc.getNumberOfPages();
+
+  for (let pageNumber = 1; pageNumber <= totalPages; pageNumber++) {
+    doc.setPage(pageNumber);
+    doc.setFontSize(8);
+    doc.text(footerText, pageWidth / 2, 285, { align: "center" });
+  }
 
   const blob = doc.output("blob");
 
