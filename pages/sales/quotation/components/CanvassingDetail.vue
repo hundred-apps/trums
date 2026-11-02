@@ -4957,7 +4957,6 @@ const generateSCMMemo = async () => {
           if (
             selectedData.value.findLast((find) => find.index == item.unique_id!)
           ) {
-            
             rows.push([
               {
                 content: `${index + 1}`,
@@ -5102,9 +5101,12 @@ const generateSCMMemo = async () => {
 
               if (vendor.status == CanvassingVendorStatus.SELECTED) {
                 checked = "V";
-                const subtotalMarginNominalItem = Number(vendor.total_selling_price || 0) -
-                        Number(vendor.total_price || 0)
-                const subtotalMarginPecent = (subtotalMarginNominalItem / vendor.total_selling_price) * 100;
+                const subtotalMarginNominalItem =
+                  Number(vendor.total_selling_price || 0) -
+                  Number(vendor.total_price || 0);
+                const subtotalMarginPecent =
+                  (subtotalMarginNominalItem / vendor.total_selling_price) *
+                  100;
                 rows.push([
                   {
                     content: ``,
@@ -5273,7 +5275,6 @@ const generateSCMMemo = async () => {
             });
           }
         } else {
-          
           rows.push([
             {
               content: `${index + 1}`,
@@ -5418,9 +5419,11 @@ const generateSCMMemo = async () => {
 
             if (vendor.status == CanvassingVendorStatus.SELECTED) {
               checked = "V";
-              const subtotalMarginNominalItem = Number(vendor.total_selling_price || 0) -
-                        Number(vendor.total_price || 0)
-          const subtotalMarginPecent = (subtotalMarginNominalItem / vendor.total_selling_price) * 100;
+              const subtotalMarginNominalItem =
+                Number(vendor.total_selling_price || 0) -
+                Number(vendor.total_price || 0);
+              const subtotalMarginPecent =
+                (subtotalMarginNominalItem / vendor.total_selling_price) * 100;
               rows.push([
                 {
                   content: ``,
@@ -5614,10 +5617,9 @@ const generateSCMMemo = async () => {
       });
     } else {
       canvassingData.value?.canvassing_item.forEach((element) => {
-        total += element.canvassing_vendor.reduce(
-          (sum, acc) => sum + (acc.selling_price || 0),
-          0
-        );
+        total += element.canvassing_vendor
+          .filter((filter) => filter.status == CanvassingVendorStatus.SELECTED)
+          .reduce((sum, acc) => sum + (acc.selling_price || 0), 0);
       });
     }
 
@@ -5635,10 +5637,9 @@ const generateSCMMemo = async () => {
       });
     } else {
       canvassingData.value?.canvassing_item.forEach((element) => {
-        total += element.canvassing_vendor.reduce(
-          (sum, acc) => sum + (acc.total_selling_price || 0),
-          0
-        );
+        total += element.canvassing_vendor
+          .filter((filter) => filter.status == CanvassingVendorStatus.SELECTED)
+          .reduce((sum, acc) => sum + (acc.total_selling_price || 0), 0);
       });
     }
 
@@ -7418,11 +7419,13 @@ const subtotalBuyPrice = computed(() => {
     });
   } else {
     (canvassingData.value?.canvassing_item || []).forEach((element) => {
-      const totalBuyPrice = element.canvassing_vendor.reduce((sum, item) => {
-        return sum + item.unit_price;
+      const totalBuyPrice = element.canvassing_vendor
+        .filter((filter) => filter.status == CanvassingVendorStatus.SELECTED)
+        .reduce((sum, item) => {
+          return sum + item.unit_price;
 
-        return sum;
-      }, 0);
+          return sum;
+        }, 0);
       subtotalBeli += Number(totalBuyPrice);
     });
   }
@@ -7443,11 +7446,13 @@ const subtotalBuyTotalPrice = computed(() => {
     });
   } else {
     (canvassingData.value?.canvassing_item || []).forEach((element) => {
-      const totalBuyPrice = element.canvassing_vendor.reduce((sum, item) => {
-        return sum + item.unit_price * item.quantity;
+      const totalBuyPrice = element.canvassing_vendor
+        .filter((filter) => filter.status == CanvassingVendorStatus.SELECTED)
+        .reduce((sum, item) => {
+          return sum + item.unit_price * item.quantity;
 
-        return sum;
-      }, 0);
+          return sum;
+        }, 0);
       subtotalBeli += Number(totalBuyPrice);
     });
   }

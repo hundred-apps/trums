@@ -66,6 +66,7 @@ const column_selected = ref<string[]>([
 const popoverRef = ref();
 const config = useRuntimeConfig();
 const router = useRouter();
+const route = useRoute();
 
 const axios = useApi();
 
@@ -76,7 +77,8 @@ const request_search = ref<RequestSearch>({
       type: [TypeInquiry.SALES_INQUIRY],
       reference: [],
       priority: [],
-      status: [],
+      // Inquiry berstatus DRAFT belum memiliki canvassing pada alur kerja saat ini.
+      status: route.query.dashboard_queue === "procurement" ? ["draft"] : [],
     },
   ],
   limit: "20",

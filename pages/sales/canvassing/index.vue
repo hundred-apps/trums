@@ -142,6 +142,7 @@ import { refreshNuxtData } from "#app";
 import { load } from "@fingerprintjs/fingerprintjs";
 
 const { isMobile } = useDevice();
+const route = useRoute();
 
 definePageMeta({
   middleware: ["auth", "app", "check-access"],
@@ -156,12 +157,22 @@ const request_search = ref<RequestSearch>({
       inquiries: {
         type: [TypeInquiry.SALES_INQUIRY],
       },
-      status: [
-        CanvassingStatus.DRAFT,
-        CanvassingStatus.CANVASSING,
-        CanvassingStatus.PENDING_APPROVAL_RAB,
-        CanvassingStatus.DONE,
-      ],
+      status:
+        route.query.dashboard_queue === "manager"
+          ? [CanvassingStatus.PENDING_APPROVAL]
+          : route.query.dashboard_queue === "sales"
+            ? [
+                CanvassingStatus.DRAFT,
+                CanvassingStatus.CANVASSING,
+                CanvassingStatus.RAB,
+                CanvassingStatus.PENDING_APPROVAL_RAB,
+              ]
+            : [
+                CanvassingStatus.DRAFT,
+                CanvassingStatus.CANVASSING,
+                CanvassingStatus.PENDING_APPROVAL_RAB,
+                CanvassingStatus.DONE,
+              ],
     },
   ],
   limit: "10",

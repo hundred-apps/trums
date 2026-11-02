@@ -1,14 +1,4 @@
 <template>
-  <el-date-picker
-    class="mb-3"
-    v-model="monthRange"
-    type="monthrange"
-    unlink-panels
-    range-separator="To"
-    start-placeholder="Start month"
-    end-placeholder="End month"
-    :shortcuts="shortcuts"
-  />
   <el-row :gutter="16">
     <el-col :xs="24" :sm="12" :md="12" class="mb-4">
       <div class="statistic-card">
@@ -66,45 +56,19 @@ type SummeryType = {
   pembelian: number;
   penjualan: number;
 };
-
-const currentYear = new Date().getFullYear();
-
-const monthRange = ref([
-  new Date(currentYear, 0, 1),
-  new Date(currentYear, 11, 1),
-]);
-
-const shortcuts = [
-  {
-    text: "This month",
-    value: [new Date(), new Date()],
-  },
-  {
-    text: "This year",
-    value: () => {
-      const end = new Date();
-      const start = new Date(new Date().getFullYear(), 0);
-      return [start, end];
-    },
-  },
-  {
-    text: "Last 6 months",
-    value: () => {
-      const end = new Date();
-      const start = new Date();
-      start.setMonth(start.getMonth() - 6);
-      return [start, end];
-    },
-  },
-];
+const props = defineProps<{ dateRange: [Date, Date] }>();
 
 const { data, status, refresh } = await useAsyncData(
   "fetch-po-summary",
   async () => {
+    const start = new Date(props.dateRange[0]);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(props.dateRange[1]);
+    end.setHours(23, 59, 59, 999);
     const res = await useFetchApi<BaseResponse<SummeryType>>(
       `/purchase-orders-summary?start_date=${
-        monthRange.value[0].getTime() / 1000
-      }&end_date=${monthRange.value[1].getTime() / 1000}`,
+        Math.floor(start.getTime() / 1000)
+      }&end_date=${Math.floor(end.getTime() / 1000)}`,
       "fetch-po-summary",
       "get",
       null
@@ -151,7 +115,7 @@ const { data, status, refresh } = await useAsyncData(
 //     i.unique_code;
 
 watch(
-  () => monthRange.value,
+  () => props.dateRange,
   () => refresh(),
   { deep: true }
 );
