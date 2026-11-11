@@ -231,7 +231,15 @@
           border
           style="width: 100%"
         >
-          <el-table-column prop="catalogue_name" label="Item" />
+          <el-table-column label="Item" min-width="220">
+            <template #default="scope">
+              <el-input
+                v-model="scope.row.catalogue_name"
+                placeholder="Nama item"
+                size="small"
+              />
+            </template>
+          </el-table-column>
           <el-table-column
             prop="quantity"
             label="Qty"
@@ -2086,6 +2094,10 @@ const submitForm = async (formEl: FormInstance | undefined) => {
             `${value.catalogue_name}`
           );
           formData.append(
+            `item[${index}][catalogue_name]`,
+            `${value.catalogue_name}`
+          );
+          formData.append(
             `item[${index}][item_version]`,
             `${value.catalogue_version}`
           );
@@ -2279,6 +2291,10 @@ const fetchDataEdit = async () => {
 
         ruleForm.items = request.purchase_order_item.map((item) => ({
           ...item,
+          catalogue_name:
+            item.catalogue_name ||
+            item.item_name ||
+            (item.catalogue ? displayCatalogueName(item.catalogue) : ""),
           display_buy_price: currencyWithoutSymbol(item.buy_price || 0),
           display_po_unit_price: currencyWithoutSymbol(item.po_unit_price || 0),
           is_deleted: false,

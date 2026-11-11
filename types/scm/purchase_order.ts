@@ -150,6 +150,7 @@ export type PurchaseOrderItem = {
   item_request_trail_version?: number | null;
   catalogue_id?: string | null;
   catalogue_name: string;
+  item_name?: string | null;
   catalogue_version: number;
   quantity: number;
   unit_price: number;

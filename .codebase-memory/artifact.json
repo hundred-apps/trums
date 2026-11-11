@@ -1,11 +1,11 @@
 {
     "schema_version": 2,
-    "commit": "c84c422f202c5fdac467372260b18e108cc4cd22",
-    "indexed_at": "2026-11-02T09:56:20Z",
+    "commit": "f92db787d75253e55a07819d3f6b8e507da1a8a2",
+    "indexed_at": "2026-11-11T11:13:35Z",
     "project": "Users-developermini-Downloads-web-trums-dev",
     "nodes": 3826,
-    "edges": 8509,
-    "original_size": 13434880,
-    "compressed_size": 1846369,
+    "edges": 8637,
+    "original_size": 13369344,
+    "compressed_size": 1848203,
     "compression_level": 3
 }

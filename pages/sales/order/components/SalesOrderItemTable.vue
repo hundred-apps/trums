@@ -91,13 +91,16 @@ const columns: ColumnTable<PurchaseOrderItem>[] = [
     key: "catalogue_name",
     title: "Nama Item",
     dataKey: "catalogue_name",
-    cellRenderer: ({ rowData }: { rowData: PurchaseOrderItem }) => (
-      <>
-        {rowData.catalogue
-          ? displayCatalogueName(rowData.catalogue)
-          : rowData.catalogue_name}
-      </>
-    ),
+     cellRenderer: ({ rowData }: { rowData: PurchaseOrderItem }) => (
+       <>
+         {rowData.catalogue_name &&
+         rowData.catalogue_name !== rowData.catalogue?.name
+           ? rowData.catalogue_name
+           : rowData.catalogue
+           ? displayCatalogueName(rowData.catalogue)
+           : rowData.catalogue_name}
+       </>
+     ),
   },
   {
     key: "so_number",

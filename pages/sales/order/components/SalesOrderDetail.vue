@@ -183,7 +183,25 @@
         </div>
       </template>
       <el-table :data="purchaseOrderItemsView ?? []" row-key="unique_id" border>
-        <el-table-column prop="item_name" label="Item" />
+        <el-table-column prop="item_name" label="Item">
+         <template #default="{ row }">
+           <div v-if="editingItemId === row.unique_id">
+             <el-input
+               v-model="editingName"
+               size="small"
+               @keyup.enter="saveItemName(row)"
+               @blur="saveItemName(row)"
+             />
+           </div>
+           <span
+             v-else
+             style="cursor: pointer; color: var(--el-color-primary)"
+             @click="startEditItemName(row)"
+           >
+             {{ row.item_name }}
+           </span>
+         </template>
+       </el-table-column>
         <el-table-column
           prop="quantity"
           label="QTY"
@@ -520,6 +538,63 @@ const handleSizeChange = (size: number) => {
 };
 
 const purchaseOrderItemsView = ref<PurchasOrderViewTree[]>([]);
+
+const editingItemId = ref<string | null>(null);
+const editingName = ref("");
+const savingItemName = ref(false);
+
+const startEditItemName = (row: PurchasOrderViewTree) => {
+  editingItemId.value = row.unique_id;
+  editingName.value = row.item_name;
+};
+
+const saveItemName = async (row: PurchasOrderViewTree) => {
+  if (savingItemName.value) return;
+  const newName = editingName.value.trim();
+  if (!newName || newName === row.item_name) {
+    editingItemId.value = null;
+    return;
+  }
+
+  if (!purchaseOrderData.value?.unique_id) {
+    ElMessage.error("Data purchase order tidak ditemukan");
+    editingItemId.value = null;
+    return;
+  }
+
+  savingItemName.value = true;
+  try {
+    const formData = new FormData();
+    formData.append("unique_id", purchaseOrderData.value.unique_id);
+
+    (purchaseOrderItemsView.value || []).forEach((item, index) => {
+      const itemName =
+        item.unique_id === row.unique_id ? newName : item.item_name;
+      formData.append(`item[${index}][unique_id]`, item.unique_id);
+      formData.append(`item[${index}][catalogue_name]`, itemName);
+    });
+
+    const response = await useFetchApi<BaseResponse<PurchaseOrder>>(
+      "/purchase-order-create",
+      "update-so-item-name",
+      "post",
+      formData
+    );
+
+    if (response.status.value === "success") {
+      row.item_name = newName;
+      purchaseOrderItem.refresh();
+      ElMessage.success("Nama item berhasil diubah");
+    } else {
+      ElMessage.error("Gagal mengubah nama item");
+    }
+  } catch (error: any) {
+    ElMessage.error(error?.response?.message ?? "Gagal mengubah nama item");
+  } finally {
+    savingItemName.value = false;
+    editingItemId.value = null;
+  }
+};
 
 const relatedDocuments = ref<any[]>([]);
 const approveForm = reactive({
@@ -1055,10 +1130,15 @@ watch(
         console.log("children", childs);
       }
 
-      purchaseOrderItemsView.value.push({
-        unique_id: element.unique_id,
-        item_name: displayCatalogueName(element.catalogue!),
-        item_id: element.catalogue_id || "",
+       purchaseOrderItemsView.value.push({
+         unique_id: element.unique_id,
+         item_name: (() => {
+           const soName = element.item_name || element.catalogue_name || "";
+           if (soName && soName !== element.catalogue?.name) return soName;
+           if (element.catalogue) return displayCatalogueName(element.catalogue);
+           return soName;
+         })(),
+         item_id: element.catalogue_id || "",
         quantity: element.quantity,
         unit_name: element.unit_name || "N/A",
         harga_quo: element.pricetag_item?.price || 0,
