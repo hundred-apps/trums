@@ -1212,6 +1212,8 @@ const handleCheck = (checked: any, row: CanvassingItemForm) => {
     );
   }
 
+  console.log("selected vendor", selectedRowsVendors.value);
+
   // console.log('row', row);
   if (row.type_item === "original") {
     item_canvassing.value[row.parent_index!].selling_price = row.selling_price;
@@ -4535,10 +4537,9 @@ const submit = async (formEl: FormInstance | undefined) => {
       // Append canvassing_vendor
       // Append canvassing_vendor fields satu per satu
       item.children.forEach((vendor: CanvassingItemForm, j: any) => {
+        console.log("vendor index", vendor.index);
         const isSelected = selectedRowsVendors.value.find(
-          (find) =>
-            find.vendor_id == vendor.vendor_id &&
-            find.catalogue_id == vendor.catalogue_id
+          (find) => find.index == vendor.index
         );
 
         if (isSelected) {
