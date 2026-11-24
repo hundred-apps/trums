@@ -1,0 +1,18 @@
+- generic [ref=f15e1]:
+  - generic [ref=f15e7]:
+    - img "Logo Trums" [ref=f15e9]
+    - heading "Welcome to Trums" [level=5] [ref=f15e10]
+    - generic [ref=f15e18]: Get Started!
+    - generic [ref=f15e20]:
+      - button [expanded] [active] [ref=f15e23] [cursor=pointer]
+      - button [ref=f15e28] [cursor=pointer]
+  - generic [ref=f15e31]:
+    - button "Toggle Nuxt DevTools" [ref=f15e32] [cursor=pointer]
+    - generic "Page load time" [ref=f15e36]:
+      - generic [ref=f15e37]: "39"
+      - generic [ref=f15e38]: ms
+    - button "Toggle Component Inspector" [ref=f15e40] [cursor=pointer]
+  - menu [ref=f15e49]:
+    - menuitem "Light" [ref=f15e50] [cursor=pointer]
+    - menuitem "Dark" [ref=f15e53] [cursor=pointer]
+    - menuitem "System" [ref=f15e56] [cursor=pointer]

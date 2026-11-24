@@ -440,6 +440,7 @@ const columnsSelected = ref<string[]>([
   "publisher",
   "customer_id",
   "sourcing_document",
+  "inq_numbers",
   "total_amount",
   "status",
   "payment_method",
@@ -506,6 +507,26 @@ const availableColumn = computed(() => {
           >
             {rowData.data_reference?.sourcing_document ?? ""}
           </NuxtLink>
+        );
+      },
+    },
+    {
+      key: "inq_numbers",
+      title: "INQ.Numbers",
+      dataKey: "inq_numbers",
+      width: 200,
+      class: "stay-on-top",
+      cellRenderer: ({ rowData }: { rowData: InvoiceReport }) => {
+        const inqNumbers = getInvoiceInqNumbers(rowData);
+        if (inqNumbers.length === 0) return <span>-</span>;
+        return (
+          <div class="flex flex-wrap gap-1">
+            {inqNumbers.map((inqNumber) => (
+              <ElTag key={inqNumber} size="small">
+                {inqNumber}
+              </ElTag>
+            ))}
+          </div>
         );
       },
     },

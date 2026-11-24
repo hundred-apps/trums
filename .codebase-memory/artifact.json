@@ -1,12 +1,11 @@
 {
     "schema_version": 2,
-    "commit": "6b46644d666e3702ccc49b2d66762a92b033f090",
-    "indexed_at": "2026-11-11T11:13:53Z",
+    "commit": "70f1a58b080704817af24b3b880ed17db16fa8e3",
+    "indexed_at": "2026-11-24T06:58:55Z",
     "project": "Users-developermini-Downloads-web-trums-dev",
-    "nodes": 3826,
-    "edges": 8668,
-    "original_size": 13369344,
-    "compressed_size": 1852567,
-    "compression_level": 3,
-    "reconcile_basis": "git-clean-head"
+    "nodes": 3866,
+    "edges": 8735,
+    "original_size": 13565952,
+    "compressed_size": 1892151,
+    "compression_level": 3
 }
